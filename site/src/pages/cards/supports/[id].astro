@@ -1,0 +1,85 @@
+---
+import type { GetStaticPaths } from "astro";
+import SupportCardDetail from "../../../components/card-details/SupportCardDetail.astro";
+import DetailQuickSwitcher from "../../../components/DetailQuickSwitcher.astro";
+import BaseLayout from "../../../layouts/BaseLayout.astro";
+import {
+  catalog,
+  getAsset,
+  getBand,
+  getCharacter,
+  type SupportCard
+} from "../../../lib/catalog";
+import {
+  getSupportCardProjection,
+  type CardDetailProjection
+} from "../../../lib/game-database";
+import { supportCardSwitchData } from "../../../lib/detail-switch-data";
+import { activeReleaseContext } from "../../../lib/release-context";
+import { siteHref } from "../../../lib/site-context";
+import "../../../styles/card-details.css";
+import "../../../styles/card-growth-workspace.css";
+
+export const getStaticPaths = (() =>
+  catalog.supportCards.map((card) => ({
+    params: { id: card.id },
+    props: {
+      card,
+      projection: getSupportCardProjection(card.id)
+    }
+  }))) satisfies GetStaticPaths;
+
+interface Props {
+  card: SupportCard;
+  projection: CardDetailProjection;
+}
+
+const { card, projection } = Astro.props;
+const asset = getAsset(card.primaryAssetId);
+const characters = card.featuredCharacterIds
+  .map(getCharacter)
+  .filter((character) => character !== undefined);
+if (!projection) throw new Error(`Missing detail projection for ${card.id}`);
+const relations = characters.map((character) => ({
+  name: character.displayName,
+  href: `/characters/${character.id}/`,
+  accent: character.mainColor
+}));
+const bands = [
+  ...new Map(
+    characters
+      .map((character) => getBand(character.bandId))
+      .filter((band) => band !== undefined)
+      .map((band) => [band.id, band])
+  ).values()
+];
+const switchItems = supportCardSwitchData.items.map((item) => ({
+  ...item,
+  href: import.meta.env.BASE_URL === "/"
+    ? item.href
+    : siteHref(item.href, activeReleaseContext)
+}));
+---
+
+<BaseLayout title={card.displayName} image={asset?.previewUrl}>
+  <SupportCardDetail
+    card={card}
+    asset={asset}
+    projection={projection}
+    heading={card.description || card.name}
+    identityLabel="画面登场角色"
+    relations={relations}
+    bands={bands}
+    releaseLabel={catalog.release.label}
+  >
+    <DetailQuickSwitcher
+      slot="media-actions"
+      variant="card"
+      listHref={import.meta.env.BASE_URL === "/" ? "/cards/supports/" : siteHref("/cards/supports/", activeReleaseContext)}
+      currentId={card.id}
+      label={supportCardSwitchData.label}
+      items={switchItems}
+      facets={supportCardSwitchData.facets}
+    />
+  </SupportCardDetail>
+</BaseLayout>

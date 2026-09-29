@@ -1,0 +1,68 @@
+---
+import AnonTokyoHeader from "./AnonTokyoHeader.astro";
+
+interface Props { record: Record<string, any>; stagedMedia: Array<Record<string, string>>; }
+interface WardrobeRecord {
+  id: string;
+  name: string;
+  type: string;
+  series: string;
+  imageKey: string;
+  rarity?: number;
+  popularity?: number;
+  characters: Array<{ id: string; name: string }>;
+  associatedGoods: Array<{ id: string; name: string; imageKey?: string }>;
+  attributionStatus?: string;
+  attributionVerified?: boolean;
+}
+const { record: rawRecord, stagedMedia } = Astro.props;
+const record = rawRecord as WardrobeRecord;
+const media = new Map(stagedMedia.map((entry) => [entry.logicalKey.toLocaleLowerCase("en-US"), entry.publicUrl]));
+const imageUrl = media.get(record.imageKey.toLocaleLowerCase("en-US"));
+---
+
+<AnonTokyoHeader
+  active="wardrobe"
+  title={record.name}
+  description={`${record.series} · ${record.type}`}
+  count={record.associatedGoods.length}
+/>
+
+<main class="at-guide-main"><div class="content-shell at-detail-shell">
+  <a class="at-detail-back" href="/anontokyo/wardrobe/">← 返回换装图鉴</a>
+  <div class="at-wardrobe-detail-hero">
+    {imageUrl ? <img src={imageUrl} alt="" /> : <span class="at-image-fallback" aria-hidden="true">{record.name.slice(0, 1)}</span>}
+    <dl>
+      <div><dt>系列</dt><dd>{record.series}</dd></div>
+      <div><dt>部位</dt><dd>{record.type}</dd></div>
+      {typeof record.rarity === "number" && record.rarity > 0 && <div><dt>稀有度</dt><dd>{record.rarity}</dd></div>}
+      {typeof record.popularity === "number" && record.popularity > 0 && <div><dt>人气</dt><dd>{record.popularity}</dd></div>}
+      <div><dt>归属状态</dt><dd>{record.attributionVerified === true ? "已确认" : "归属待确认"}</dd></div>
+    </dl>
+  </div>
+  <section class="at-wardrobe-detail-section">
+    <h2>归属角色</h2>
+    {record.characters.length > 0 ? (
+      <ul class="at-wardrobe-detail-chars">
+        {record.characters.map((character) => (
+          <li><a href={`/anontokyo/staff/${character.id}/`}>{character.name}</a></li>
+        ))}
+      </ul>
+    ) : (
+      <p class="at-wardrobe-empty">归属角色尚未确定，本视图不展示推断。</p>
+    )}
+  </section>
+  <section class="at-wardrobe-detail-section">
+    <h2>包内关联商品</h2>
+    {record.associatedGoods.length > 0 ? (
+      <ul class="at-wardrobe-detail-goods">
+        {record.associatedGoods.map((goods) => (
+          <li><a href={`/anontokyo/goods/${goods.id}/`}>{goods.name}</a></li>
+        ))}
+      </ul>
+    ) : (
+      <p class="at-wardrobe-empty">暂无关联商品。</p>
+    )}
+    <p class="at-guide-note">关联仅表示安装包内引用同一商品 ID，并不代表已确认的解锁或取得方式。</p>
+  </section>
+</div></main>

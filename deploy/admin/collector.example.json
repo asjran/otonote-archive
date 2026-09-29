@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "role": "collector",
+  "host": "127.0.0.1",
+  "port": 18081,
+  "database": "/var/lib/ournotes-stats/analytics.sqlite",
+  "readTokenEnv": "OURNOTES_STATS_READ_TOKEN",
+  "trustedProxyTokenEnv": "OURNOTES_COLLECTOR_PROXY_TOKEN",
+  "maxDatabaseBytes": 1073741824,
+  "sampleSeconds": 5,
+  "sites": [{"id": "ournotes", "name": "Our Notes", "timezone": "Asia/Shanghai", "origins": ["https://otonote.example.com"], "catalogFile": "/etc/ournotes-admin/catalog.json", "accessLog": "/var/log/nginx/ournotes.access.log"}],
+  "loadSources": [{"id": "website", "name": "网站服务器 / 共享 Nginx", "statusUrl": "http://127.0.0.1:18083/status", "interfaces": [], "rxLimitMbps": null, "txLimitMbps": null}]
+}

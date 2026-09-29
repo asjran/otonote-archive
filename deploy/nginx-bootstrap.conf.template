@@ -1,0 +1,15 @@
+server {
+    listen 80;
+    listen [::]:80;
+    server_name __SITE_DOMAIN__;
+
+    root /srv/ournotes/current;
+
+    location ^~ /.well-known/acme-challenge/ {
+        try_files $uri =404;
+    }
+
+    location / {
+        try_files $uri $uri/ =404;
+    }
+}

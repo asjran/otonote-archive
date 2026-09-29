@@ -1,0 +1,16 @@
+---
+import formalRules from '../data/formal-scoring-rules.json';
+import { referenceScoringRules } from '../lib/scoring-release-gate.mjs';
+import { activeReleaseContext } from '../lib/release-context';
+const english = activeReleaseContext.locale === 'en';
+---
+{referenceScoringRules(formalRules) && <aside class="tool-capability" data-scoring-reference>
+  <strong>{english ? 'Reference estimate' : '参考估算'}</strong>
+  <p>{english
+    ? 'Uses current cards and charts with reference scoring rules. Results have not been verified against gameplay in the current game version.'
+    : '使用当前卡牌与谱面数据，按参考版本规则计算；结果尚未完成当前游戏版本的实战核验。'}</p>
+</aside>}
+<style>
+  [data-scoring-reference] { margin: 0 0 1rem; padding: .8rem 1rem; border: 1px solid var(--border-color, #dce3eb); border-radius: .75rem; background: var(--surface-muted, #f5f7fa); color: var(--text-muted, #536277); font-size: .85rem; }
+  [data-scoring-reference] p { margin: .25rem 0 0; line-height: 1.6; }
+</style>

@@ -1,0 +1,34 @@
+[Unit]
+Description=OurNotes Dynamic Query Service
+Requires=docker.service
+After=docker.service network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+EnvironmentFile=/etc/ournotes/query.env
+ExecStart=/usr/bin/docker run \
+    --rm \
+    --name ournotes-query \
+    --publish 127.0.0.1:8090:8090 \
+    --env-file /etc/ournotes/query.env \
+    --mount type=bind,source=/srv/ournotes-data/releases,target=/data/releases,readonly \
+    --mount type=bind,source=/srv/ournotes-data/identity,target=/data/identity \
+    --memory=256m \
+    --cpus=0.50 \
+    --pids-limit=128 \
+    --read-only \
+    --tmpfs /tmp:rw,noexec,nosuid,size=32m \
+    ${OURNOTES_QUERY_IMAGE}
+Restart=on-failure
+RestartSec=5s
+SuccessExitStatus=143
+TimeoutStartSec=60s
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+MemoryMax=512M
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,41 @@
+---
+import AnonTokyoHeader from "./AnonTokyoHeader.astro";
+
+interface Props { dataset: Record<string, any>; stagedMedia: Array<Record<string, string>>; }
+interface StageMember { id: string; name: string; imageKey?: string; }
+interface StageEffect { name: string; imageKey?: string; }
+interface StageRecord { id: string; band: string; music: { name: string; duration: string; unlock?: string; imageKey?: string }; members: StageMember[]; feverEffects: StageEffect[]; }
+const { dataset, stagedMedia } = Astro.props;
+const records = dataset.records as StageRecord[];
+const effects = dataset.effects as StageEffect[];
+const media = new Map(stagedMedia.map((entry) => [entry.logicalKey.toLocaleLowerCase("en-US"), entry.publicUrl]));
+---
+
+<AnonTokyoHeader active="stages" title="舞台攻略" description="查看乐队成员、舞台歌曲、解锁条件和已验证的 FEVER 效果。" count={records.length} />
+<main class="at-guide-main">
+  <div class="content-shell">
+    <p class="at-guide-note">包内时间配置不代表服务器当前开放；本页不显示活动状态或倒计时。</p>
+    <div class="at-stage-grid">
+      {records.map((record) => {
+        const musicImage = record.music.imageKey ? media.get(record.music.imageKey.toLocaleLowerCase("en-US")) : undefined;
+        return (
+          <article class="at-stage-card">
+            <header>{musicImage ? <img src={musicImage} alt="" /> : <span class="at-image-fallback" aria-hidden="true">♪</span>}<div><span>FEVER STAGE</span><h2>{record.band}</h2><p>{record.music.name} · {record.music.duration}</p></div></header>
+            <div class="at-member-strip" aria-label={`${record.band} 成员`}>
+              {record.members.map((member) => {
+                const avatar = member.imageKey ? media.get(member.imageKey.toLocaleLowerCase("en-US")) : undefined;
+                return <span>{avatar ? <img src={avatar} alt="" loading="lazy" /> : <i aria-hidden="true">{member.name.slice(0, 1)}</i>}<small>{member.name}</small></span>;
+              })}
+            </div>
+            <div class="at-effect-list">{record.feverEffects.map((effect) => { const icon = effect.imageKey ? media.get(effect.imageKey.toLocaleLowerCase("en-US")) : undefined; return <span>{icon && <img src={icon} alt="" />}<b>{effect.name}</b></span>; })}</div>
+            <footer><span>{record.music.unlock ?? "解锁条件暂未确认"}</span><a href={`/anontokyo/stages/${record.id}/`}>查看舞台详情 →</a></footer>
+          </article>
+        );
+      })}
+    </div>
+    <section class="at-stage-effect-index">
+      <header><h2>FEVER 效果索引</h2><span>{effects.length} 种</span></header>
+      <div class="at-effect-list at-effect-list--index">{effects.map((effect) => { const icon = effect.imageKey ? media.get(effect.imageKey.toLocaleLowerCase("en-US")) : undefined; return <span>{icon && <img src={icon} alt="" loading="lazy" />}<b>{effect.name}</b></span>; })}</div>
+    </section>
+  </div>
+</main>

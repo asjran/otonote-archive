@@ -1,0 +1,111 @@
+---
+import AnonTokyoHeader from "./AnonTokyoHeader.astro";
+
+interface Props { dataset: Record<string, any>; stagedMedia: Array<Record<string, string>>; }
+const { dataset, stagedMedia } = Astro.props;
+const records = dataset.records as Array<Record<string, any>>;
+const types = dataset.types as string[];
+const series = dataset.series as string[];
+const characters = dataset.characters as string[];
+const outfits = (dataset.characterOutfits ?? []) as Array<Record<string, any>>;
+const unconfirmed = (dataset.unconfirmedAttributionCount ?? 0) as number;
+const media = new Map(stagedMedia.map((entry) => [entry.logicalKey.toLocaleLowerCase("en-US"), entry.publicUrl]));
+---
+
+<AnonTokyoHeader
+  active="wardrobe"
+  title="换装图鉴"
+  description="整理安装包内所有可见换装资源；角色归属通过本地 Spine 父级链解析，已确认的标为绿色，其余标注为「归属待确认」。商品只标为包内关联关系，不代表解锁或取得方式。"
+  count={records.length}
+  warning={unconfirmed > 0 ? `${unconfirmed} 件换装的归属关系尚未确认，以「归属待确认」展示。` : undefined}
+/>
+
+<main class="at-guide-main" data-at-wardrobe>
+  <div class="content-shell">
+    {outfits.length > 0 && (
+      <section class="at-wardrobe-styling">
+        <header>
+          <h2>角色造型视图</h2>
+          <p>按角色 → 系列 → 部位聚合，已通过的归属核对仅作为参考，不构成解锁或取得承诺。</p>
+        </header>
+        <div class="at-wardrobe-styling-grid">
+          {outfits.map((outfit) => (
+            <article class="at-wardrobe-styling-card">
+              <h3>{outfit.character}</h3>
+              <span><b>{outfit.pieceCount}</b> 件已确认</span>
+              {outfit.outfit.map((slot: any) => (
+                <div class="at-wardrobe-styling-slot">
+                  <strong>{slot.type}</strong>
+                  <ul>
+                    {slot.pieces.map((piece: any) => {
+                      const imageUrl = media.get(piece.imageKey.toLocaleLowerCase("en-US"));
+                      return <li>
+                        <a href={`/anontokyo/wardrobe/${piece.id}/`}>
+                          {imageUrl ? <img src={imageUrl} alt="" loading="lazy" decoding="async" /> : <span aria-hidden="true">{piece.name.slice(0, 1)}</span>}
+                          <span>{piece.name}</span>
+                        </a>
+                      </li>;
+                    })}
+                  </ul>
+                </div>
+              ))}
+            </article>
+          ))}
+        </div>
+      </section>
+    )}
+    <div class="at-filter-bar at-filter-bar--wardrobe">
+      <label class="at-filter-search"><span>搜索换装</span><input type="search" placeholder="输入名称、系列或角色" data-at-query /></label>
+      <label><span>角色</span><select data-at-character><option value="">全部角色</option>{characters.map((name) => <option value={name}>{name}</option>)}</select></label>
+      <label><span>部位</span><select data-at-type><option value="">全部部位</option>{types.map((name) => <option value={name}>{name}</option>)}</select></label>
+      <label><span>系列</span><select data-at-series><option value="">全部系列</option>{series.map((name) => <option value={name}>{name}</option>)}</select></label>
+      <strong><b data-at-count>{records.length}</b> 件</strong>
+    </div>
+    <div class="at-wardrobe-grid">
+      {records.map((record) => {
+        const imageUrl = media.get(record.imageKey.toLocaleLowerCase("en-US"));
+        const characterNames = record.characters.map((character: any) => character.name);
+        const isUnconfirmed = !record.attributionVerified && characterNames.length === 0;
+        const search = [record.name, record.series, record.type, ...characterNames, ...record.associatedGoods.map((goods: any) => goods.name)].join(" ").toLocaleLowerCase("zh-CN");
+        return <article class="at-wardrobe-card" data-at-record data-search={search} data-character={characterNames.join("|")} data-type={record.type} data-series={record.series}>
+          <a class="at-wardrobe-card__lead" href={`/anontokyo/wardrobe/${record.id}/`}>
+            {imageUrl ? <img src={imageUrl} alt="" loading="lazy" decoding="async" /> : <span class="at-image-fallback" aria-hidden="true">{record.name.slice(0, 1)}</span>}
+            <div><span>{record.series}</span><h2>{record.name}</h2><p>{characterNames.length ? characterNames.join("、") : <span class="at-content-caution">归属待确认</span>}</p></div>
+          </a>
+          <div class="at-wardrobe-meta"><b>{record.type}</b>{record.rarity > 0 && <span>稀有度 {record.rarity}</span>}{record.popularity > 0 && <span>人气 {record.popularity}</span>}{isUnconfirmed && <span class="at-content-caution">待确认</span>}</div>
+          {record.associatedGoods.length > 0 ? <div class="at-wardrobe-goods"><strong>关联商品</strong>{record.associatedGoods.slice(0, 3).map((goods: any) => <a href={`/anontokyo/goods/${goods.id}/`}>{goods.name}</a>)}{record.associatedGoods.length > 3 && <span>另有 {record.associatedGoods.length - 3} 件</span>}</div> : <p class="at-wardrobe-empty">暂无已确认的商品关联</p>}
+        </article>;
+      })}
+    </div>
+    <p class="at-empty" data-at-empty hidden>没有符合条件的换装。</p>
+  </div>
+</main>
+
+<script>
+  for (const root of document.querySelectorAll("[data-at-wardrobe]")) {
+    const query = root.querySelector("[data-at-query]");
+    const character = root.querySelector("[data-at-character]");
+    const type = root.querySelector("[data-at-type]");
+    const series = root.querySelector("[data-at-series]");
+    const records = Array.from(root.querySelectorAll<HTMLElement>("[data-at-record]"));
+    const update = () => {
+      const q = query instanceof HTMLInputElement ? query.value.trim().toLocaleLowerCase("zh-CN") : "";
+      const selectedCharacter = character instanceof HTMLSelectElement ? character.value : "";
+      const selectedType = type instanceof HTMLSelectElement ? type.value : "";
+      const selectedSeries = series instanceof HTMLSelectElement ? series.value : "";
+      let visible = 0;
+      for (const record of records) {
+        const matches = (!q || (record.dataset.search ?? "").includes(q)) && (!selectedCharacter || (record.dataset.character ?? "").split("|").includes(selectedCharacter)) && (!selectedType || record.dataset.type === selectedType) && (!selectedSeries || record.dataset.series === selectedSeries);
+        record.toggleAttribute("hidden", !matches);
+        if (matches) visible += 1;
+      }
+      const count = root.querySelector("[data-at-count]");
+      if (count) count.textContent = String(visible);
+      root.querySelector("[data-at-empty]")?.toggleAttribute("hidden", visible !== 0);
+    };
+    query?.addEventListener("input", update);
+    character?.addEventListener("change", update);
+    type?.addEventListener("change", update);
+    series?.addEventListener("change", update);
+  }
+</script>

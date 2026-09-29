@@ -1,0 +1,48 @@
+.st-share-trigger { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 36px; padding: 7px 10px; border-radius: 7px; background: var(--kind-wash); color: var(--kind-ink); font-size: 12px; cursor: pointer; }
+.st-share-trigger svg { width: 17px; height: 17px; stroke: currentColor; stroke-width: 1.6; flex-shrink: 0; }
+.st-share-trigger[aria-pressed="true"] { background: var(--kind-ink); color: white; }
+.st-selection { padding: 10px 14px 12px; border-top: 1px solid var(--st-line); background: #f0f4f7; }
+.st-selection > p { margin: 0 0 8px; color: #526477; font-size: 12px; }
+.st-selection-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+.st-selection-actions > span { flex: 1 1 170px; font-size: 12px; color: var(--st-text); }
+.st-selection button, .st-share-dialog-footer button, .st-share-dialog-footer a { display: inline-flex; align-items: center; justify-content: center; min-height: 36px; padding: 7px 12px; background: white; border: 1px solid var(--st-line); border-radius: 7px; font-size: 12px; cursor: pointer; }
+.st-reader .st-primary { background: #315f73; color: white; border-color: #315f73; }
+.st-selection button:disabled { opacity: .45; cursor: not-allowed; }
+.st-line-select { display: none; }
+.st-reader[data-selecting] .st-line { padding-left: 38px; cursor: pointer; border-radius: 7px; }
+.st-reader[data-selecting] .st-line-select { position: absolute; left: 0; top: 8px; display: grid; place-items: center; width: 32px; min-height: 36px; padding: 0; border: 1px solid #cad4dd; border-radius: 6px; background: white; color: #63717c; font: 11px var(--font-mono); cursor: pointer; }
+.st-reader .st-line[data-selected] { background: #e3eef5; box-shadow: inset 3px 0 #315f73; }
+.st-reader .st-line-select[aria-pressed="true"] { background: #315f73; color: white; border-color: #315f73; }
+.st-reader[data-selecting] .st-line--location { margin-block: 4px; }
+.st-reader :is(button, summary, a, select):focus-visible { outline: 2px solid #315f73; outline-offset: 3px; }
+.st-share-open { overflow: hidden; }
+.st-share-dialog { width: min(620px, calc(100vw - 24px)); max-height: 90dvh; padding: 0; border: 1px solid #dfe2e4; border-radius: 14px; background: #fffefa; color: #28323e; box-shadow: 0 20px 80px #15273740; }
+.st-share-dialog[open] { display: flex; flex-direction: column; }
+.st-share-dialog::backdrop { background: #1726338c; }
+.st-share-dialog > header { display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; gap: 16px; padding: 14px 18px; border-bottom: 1px solid #dfe2e4; }
+.st-share-dialog header p { margin: 0 0 3px; color: #69717b; font-size: 10px; letter-spacing: .08em; }
+.st-share-dialog h2 { margin: 0; font: 600 18px/1.4 var(--font-body); }
+.st-share-dialog header button { display: grid; place-items: center; width: 36px; height: 36px; background: #eff2f4; border-radius: 50%; font-size: 24px; cursor: pointer; }
+.st-share-preview { min-height: 0; overflow: auto; overscroll-behavior: contain; padding: 16px; background: #e7ecef; }
+.st-share-preview img { display: block; width: 100%; height: auto; box-shadow: 0 2px 10px #15273715; }
+.st-share-dialog-footer { flex-shrink: 0; padding: 12px 18px 16px; border-top: 1px solid #dfe2e4; }
+.st-share-dialog-footer p { margin: 0 0 6px; color: #69717b; font-size: 12px; line-height: 1.6; }
+.st-share-dialog-footer [data-share-result] { font-size: 11px; }
+.st-share-dialog-footer > div { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.st-reader .st-share-error { color: #a52e43; margin-block: 8px 0; }
+.st-reader [hidden] { display: none !important; }
+@media (max-width: 600px) {
+  .st-share-trigger { padding-inline: 8px; font-size: 11px; }
+  .st-reader-tools .st-directory-count, .st-reader-tools .st-directory-toggle { display: none; }
+  .st-selection { padding: 9px 10px; }
+  .st-selection-actions > span { flex-basis: 100%; }
+  .st-selection-actions button { flex: 1; }
+  .st-reader[data-selecting] .st-line { padding-left: 32px; }
+  .st-reader[data-selecting] .st-line-select { width: 27px; font-size: 10px; }
+  .st-share-dialog { max-height: 94dvh; }
+  .st-share-preview { padding: 10px; }
+  .st-share-dialog-footer { padding: 10px 14px 14px; }
+}
+@media print {
+  .st-reader-toolbar, .st-line-select, .st-share-dialog { display: none !important; }
+}

@@ -1,0 +1,132 @@
+---
+import "../styles/calculator-strategy.css";
+import StrategyIllustration from "./StrategyIllustration.astro";
+interface Props { ruleVersion: string; }
+const chapters = [
+  ['整理 Box', '哪些卡值得放进来'], ['普通配队', '属性、乐队与留影'],
+  ['激奏配队', '三段任务怎么吃分'], ['冲分选歌', '找适合自己的歌'],
+  ['养成顺序', '材料先花在哪里'], ['使用提醒', '搜索结果怎么看']
+];
+---
+<calculator-strategy-guide class="calculator-strategy" id="calculator-strategy">
+  <button type="button" class="strategy-cover" data-strategy-open aria-haspopup="dialog" aria-expanded="false" aria-controls="strategy-dialog">
+    <span class="strategy-bookmark" aria-hidden="true">配队攻略</span>
+    <span><strong>手里的卡，怎么配才能多拿分？</strong><small>普通与激奏配队 · 留影取舍 · 冲分选歌</small></span>
+    <span class="strategy-expand" aria-hidden="true">打开图文攻略 ↗</span>
+  </button>
+  <dialog class="strategy-dialog" id="strategy-dialog" aria-labelledby="strategy-dialog-title">
+    <header class="strategy-dialog-header"><div><span>OURNOTES · 配队攻略</span><h2 id="strategy-dialog-title">把手里的卡配好，再去冲分。</h2></div><button type="button" data-strategy-close autofocus aria-label="关闭配队攻略">关闭 <span aria-hidden="true">×</span></button></header>
+    <div class="strategy-dialog-layout">
+      <nav class="strategy-contents" aria-label="攻略章节">
+        {chapters.map(([title,caption],i)=><button type="button" data-strategy-chapter={i} aria-controls={`strategy-chapter-${i+1}`} aria-current={i===0?'step':undefined}><span>{String(i+1).padStart(2,'0')}</span><span><strong>{title}</strong><small>{caption}</small></span></button>)}
+        <p>默认 AP · 满血 · 无辅助<br/>按自己的 Box 和养成来配</p>
+      </nav>
+      <div class="strategy-reader" data-strategy-reader>
+    <section class="strategy-chapter" id="strategy-chapter-1" data-strategy-panel hidden={false} aria-labelledby="strategy-heading-1">
+      <header class="strategy-chapter-heading"><span>CHAPTER 01</span><h3 id="strategy-heading-1" tabindex="-1">整理 Box：高破低星卡也留个位置</h3></header>
+      <StrategyIllustration kind="box" />
+    <p class="strategy-premise">有几张高破 R 留影，也有低破 SSR，到底该带谁？同乐队凑齐了，却不如混队分高，又是为什么？这篇就从手里的 Box 出发，聊聊配队时最容易纠结的地方。以下都按 <strong>AP、满血、不开辅助</strong>来算。</p>
+    <div class="strategy-routes">
+      <article><span>普通自由演出</span><h3>面板要高，技能也要吃满</h3><p>先找综合力和加分技能都不错的队伍，再挑留影。能让强力加分技能多覆盖一串音符的延时留影，值得单独比较。</p></article>
+      <article><span>激奏演出</span><h3>留影跟着歌曲任务换</h3><p>普通打歌好用的一套，到了激奏未必还是最强。三段是什么任务、技能能否赶上、能拿第几，都会影响最后的分数。</p></article>
+    </div>
+
+
+      <p>录卡时把有的成员和留影都加进去，尤其别漏掉已经练起来的 R、SR。低星卡可能靠突破、属性连携或合适的技能挤进队伍，先按稀有度筛掉就看不到这些配法了。成员至少要凑出 5 个不同角色，同一角色的不同卡不能一起上场。</p>
+      <p>养成按自己账号填：成员要看等级、突破、觉醒，以及演出和激奏两种技能等级；留影填等级、突破，技能等级会随突破计算。卡库里新加的卡默认都是 1，导入完记得批量改一下。</p>
+      <p>乐器、角色评级、回忆和 TGW 也别漏。同样一套卡，别人已经练满乐器，你还没练，抄过来的队伍就可能不是最适合你的。选“全部卡库满养成”只能看卡片练满后的配法，账号加成仍要自己填。</p>
+      <p>第一次配队，选<strong>“已拥有卡库”</strong>，乐队和属性先都留“不限”。等有了一套推荐，再拿你想组的同队、同属性队伍去比，比较容易看出差在哪。</p>
+      <p class="strategy-note">录入卡库 → 填好养成 → 点“用我的卡库配队” → 选歌和难度 → 开始搜索。“当前编成”只会重配已经选好的五张成员和五张留影，不会帮你从 Box 换人。</p>
+    </section>
+
+    <section class="strategy-chapter" id="strategy-chapter-2" data-strategy-panel hidden={true} aria-labelledby="strategy-heading-2">
+      <header class="strategy-chapter-heading"><span>CHAPTER 02</span><h3 id="strategy-heading-2" tabindex="-1">普通打歌：同队、同属性，怎么凑更划算</h3></header>
+      <StrategyIllustration kind="ordinary" />
+
+      <p>普通模式先用<strong>“歌曲平均分”</strong>配队。综合力高很有用，但两队面板接近时，往往还要看加分技能强不强、持续多久，以及发动时能吃到多少音符。</p>
+      <h4>先分清两种属性加成</h4>
+      <p><strong>成员和她带的留影同属性</strong>，吃的是这一组的属性连携；<strong>成员和歌曲同属性</strong>，吃的是歌曲属性加成。前者还看留影突破，后者还看成员突破，全属性另按匹配规则处理。它们是两笔加成，不是要求五个人同属性才一起生效。</p>
+      <p>所以，Box 没有五张好用的同属性成员，也不用硬凑。先让强卡上场，给她们找合适的留影，再试着换入同属性卡。为了凑齐颜色，把练好的强卡换成技能和数值都差很多的卡，未必赚。</p>
+      <h4>同乐队的优势，要看加成能不能吃到</h4>
+      <p>队长技能和乐器如果照顾某个乐队，凑同队就更有价值；留影技能也可能要求搭配指定乐队的成员。先看这些条件，再决定要不要补齐五人。同队同属性当然可以试，但不用为了阵容整齐就放弃更好的混队。</p>
+      <p>打本乐队的歌，还要看卡片和歌曲是否匹配<strong>“擅长歌曲”标签</strong>。不能看到同乐队就自行再算一层分数倍率。队长放在第三格，换队长时也记得看她到底加哪些人、哪些能力。</p>
+      <h4>高破 R 留影，真的能赢 SSR 吗？</h4>
+      <p><strong>能，但得看给谁带。</strong>留影三维提供的是对应能力的加成率，搭配成员的基础能力越适合，收益就越好；同属性还可以再吃连携。高破同属性 R 对上低破异属性 SSR，完全值得放进计算器比一比。</p>
+      <p>接着看技能。普通 AP 下，留影的<strong>演出技能延时</strong>很值得注意：让成员的加分技能多持续一段时间，如果刚好接上一串密集音符，少一点面板也可能追回来。反过来，延长出来的时间几乎没音符，收益就会小很多。</p>
+      <p>有乐队要求的延时技能，要交给符合条件的成员；留影画面里是谁，并不能替代技能条件。单纯回血、判定辅助，在满血 AP 下通常不多给分，不过同张留影如果还带延时，仍然要一起看。</p>
+      <aside class="strategy-example"><strong>拿不准 R 和 SSR 时，就这样比</strong><p>先固定歌曲、成员和另外四张留影，只换这一张。看换后综合力涨了多少，再看整曲分数是否真的更高。如果换上 SSR 后面板涨、出分反而降，就去检查是不是丢了属性连携或有效延时。确定这两张各有什么长处后，再让整个 Box 重新配一次，可能还有更合适的分配。</p></aside>
+      <p class="strategy-note">想看平时表现，用平均分；想看不利技能顺序下能拿多少，用最低分；愿意反复刷有利顺序冲纪录，再看最高分。工具会比较 120 种技能顺序，AP 也不代表每把出分都一样。</p>
+    </section>
+
+    <section class="strategy-chapter" id="strategy-chapter-3" data-strategy-panel hidden={true} aria-labelledby="strategy-heading-3">
+      <header class="strategy-chapter-heading"><span>CHAPTER 03</span><h3 id="strategy-heading-3" tabindex="-1">激奏配队：三段任务比普通模式更挑留影</h3></header>
+      <StrategyIllustration kind="gekisou" />
+
+      <p>打激奏时，建议把留影重新配一遍。先看这首歌三段分别是什么任务，再找手里能配合的成员和留影。演出技能等级与激奏技能等级分开算，别只练了其中一种，却在计算器里都填满。</p>
+      <div class="strategy-table-wrap"><table>
+        <caption>看到任务后，先留意这些技能</caption>
+        <thead><tr><th scope="col">任务</th><th scope="col">配队重点</th></tr></thead>
+        <tbody>
+          <tr><th scope="row">COMBO</th><td>看累计增加、达到一定 COMBO 后触发的技能，以及段内加分。累计涨得快，可能更早吃到加成，也可能帮助争名次。</td></tr>
+          <tr><th scope="row">LUCK</th><td>看 LUCK 获得、RUSH 和加分效果。LUCK 点数不等于直接得分；多算几批，别被某一次特别高的结果带跑。</td></tr>
+          <tr><th scope="row">JUST</th><td>看 JUST 判定、累计和相关加分。AP 也有判定偏差，不能直接当作全 JUST，而且并非所有音符都能判 JUST。</td></tr>
+        </tbody>
+      </table></div>
+      <h4>为了任务技能，值得拆掉同属性配对吗？</h4>
+      <p>先把任务留影换上，看看它到底多带来了什么：更早触发加分、段内分数更高，还是有机会把第二变成第一？这些收益要能补回丢掉的综合力和普通技能收益，才值得换。没有“带对任务就一定强过同属性”这样的固定顺序。</p>
+      <p>激奏段的奖励是<strong>段内音符分 × 对应名次的奖励百分比</strong>，在音符分之外追加；百分比还看三段任务组合和段序。也就是说，段内多拿的分，可能连奖励一起抬高。这就是某张留影普通打歌一般，换到合适的激奏歌曲却很好用的原因之一。</p>
+      <h4>只按“三段第一”算，会漏看争名次的价值</h4>
+      <p>计算器默认三段都是第一，适合先比较拿到第一后的出分。但一张留影如果主要帮你增加任务累计、争到第一，在已经固定第一的情况下，这部分优势就显示不出来；它对段内倍率、技能触发的帮助仍会计算。</p>
+      <p>有对手的段落数据，就填进去算名次。没有的话，可以先按三段第一比一遍，再把比较悬的一段调低名次，看看哪套队伍掉分更多。两套队伍要用相同条件比较，AP 本身并不保证第一。</p>
+      <h4>激奏段占多少分，直接看这首歌的明细</h4>
+      <p>打开“为什么推荐这支队伍？”或“查看分数明细”，找出占分最多的段，再看换留影后这一段涨了多少。有的配法只在某一段特别强，有的能兼顾整首，不能拿一个固定占比套所有歌。</p>
+      <p>每段的“占整曲”已经包含该段音符分和奖励，“名次奖励占总分”只算奖励，两项不要再相加。候选差距很小时，增加抽样批数、换个随机种子再比；特别是 LUCK，单次最高分不适合直接拿来排强弱。</p>
+      <p class="strategy-note">应用激奏推荐时，成员和留影的站位也一起保留。相同的十张卡换个位置，技能处理可能受影响。激奏的最高／最低分是本次模拟抽到的范围，不是每把都能复现的成绩。</p>
+    </section>
+
+    <section class="strategy-chapter" id="strategy-chapter-4" data-strategy-panel hidden={true} aria-labelledby="strategy-heading-4">
+      <header class="strategy-chapter-heading"><span>CHAPTER 04</span><h3 id="strategy-heading-4" tabindex="-1">想冲高分，先挑适合自己 Box 的歌</h3></header>
+      <StrategyIllustration kind="songs" />
+
+      <h4>普通模式：先挑几首，再一首首认真配</h4>
+      <p>从你练得最好的几张成员出发，先挑容易吃到歌曲属性、擅长歌曲加成的歌。拿一套现成队伍，在“比较这支队伍在其他歌曲的表现”里看<strong>普通歌曲分数</strong>，可以先找出几首值得继续试的。</p>
+      <p>接下来，为这些歌分别回到“已拥有卡库”重新配队。第一首歌的最佳队伍，换到第二首可能就该换人、换留影了。用同一队伍试歌很方便，但只靠这一步，也可能漏掉某首歌真正好用的配法。</p>
+      <p>比较时记得统一看平均分，或统一看最高分。还没搜完的队伍先留着观察，别急着因为暂时分低就排除那首歌。</p>
+      <p><strong>音符多、歌长，不一定更好冲分。</strong>计分本身会按折算音符数处理，还看难度系数、音符权重、连击和技能覆盖。技能发动后是一段密集音符，还是一段空拍，差别很大。既然都按 AP 讨论，也可以把几个难度一起试，不必直接认定 EXPERT 一定最高。</p>
+      <h4>激奏模式：看看你的强项能在哪几段用上</h4>
+      <p>手里的 COMBO、LUCK 或 JUST 技能哪一类比较齐，就先找相应任务的歌来试。但不要只数任务出现了几次：还要看这些段落能打多少分、技能来不来得及触发，以及能拿到什么名次。仍然要逐首配队、逐首看分。</p>
+      <h4>歌曲不固定时，留一套更能应付曲池的队伍</h4>
+      <p>如果进场前不知道会出哪首歌，就选几套候选队伍，让<strong>每套队伍都完整打分一遍可能出现的歌曲</strong>，同时看平均表现和最吃亏的歌。某队一首特别高、其他歌都弱，未必比各首都不错的队伍更适合带进场。</p>
+      <p>知道选曲概率，可以按概率算平均；不知道就先把每首歌按同样机会比较。不要把各首歌分别换队后的最高分加在一起，那样算的是“每次都能提前换好队”，不是一支队伍应付随机选曲的表现。</p>
+      <p class="strategy-note">目前普通模式可以直接比较固定队伍的跨歌分数。激奏请在歌曲计算页逐首看完整分数；“比较其他歌曲”里的激奏入口只列综合力和任务，还不能一键找出整个曲池的最佳队伍。</p>
+    </section>
+
+    <section class="strategy-chapter" id="strategy-chapter-5" data-strategy-panel hidden={true} aria-labelledby="strategy-heading-5">
+      <header class="strategy-chapter-heading"><span>CHAPTER 05</span><h3 id="strategy-heading-5" tabindex="-1">材料不够，先练谁？</h3></header>
+      <StrategyIllustration kind="growth" />
+
+      <p>先把当前 Box 导出备份，记下现在能打的分数。然后在计算器里试着只升一项：比如一张常用留影突破一级，或者主力成员的演出技能升一级。重新配队，看实际多了多少分，再决定材料花不花。</p>
+      <p>普通打歌，可以先比较常上场成员的加分技能、留影延时和等级突破。激奏则多看一步：升完后有没有更早触发技能、够到新的累计门槛，或者争名次更有优势。只对一种任务特别有用的卡，要看你常打的歌用不用得上。</p>
+      <p>乐器、角色评级等养成，也值得放进来一起比。能照顾多张常用卡、多首常打歌曲的提升，通常比只看某一首的成绩更有参考价值；具体覆盖哪些成员，还是看加成条件。</p>
+      <p>同样一份材料，哪项提升的分数更多、用得更频繁，就更值得先考虑。别只因为卡是 SSR 就把材料全投进去。试完记得撤销卡库修改，账号加成也改回实际数值，免得下次算出一套自己暂时打不出来的队伍。</p>
+      <p class="strategy-note">计算器可以帮你试升级后的分数，材料成本还要自己对照游戏查看。目前没有自动分配材料的功能。</p>
+    </section>
+
+    <section class="strategy-chapter" id="strategy-chapter-6" data-strategy-panel hidden={true} aria-labelledby="strategy-heading-6">
+      <header class="strategy-chapter-heading"><span>CHAPTER 06</span><h3 id="strategy-heading-6" tabindex="-1">计算器怎么用，少走几个弯路</h3></header>
+      <StrategyIllustration kind="search" />
+
+      <p><strong>想先拿一套能用的队伍：</strong>用快速或深入搜索，先看当前推荐。想继续找更好的，切到完整搜索后点“继续搜索”；完整搜索不限组数，Box 大时可能需要等很久，只有搜完才算找完了当前卡库和条件下的最佳配法。</p>
+      <p><strong>中途想停一下：</strong>可以暂停，之后在本页续算。改卡、换歌或改计算条件就需要重搜；刷新、关闭页面也会丢失进度。</p>
+      <p><strong>激奏算得很高，实战却差一截：</strong>先核对养成、判定偏差和三段名次，再看 LUCK 波动。默认零偏差、三段第一算的是理想发挥；把搜索跑完，也不会让每次实战都变成这个成绩。</p>
+      <p><strong>活动开了以后：</strong>先确认工具有没有支持活动的新加成，再重新配队。平时最强的一套，活动里可能就该换了。</p>
+      <p class="strategy-source">攻略依据游戏资料与本站估算结果整理，尚未通过实际游玩逐项核对，仅供配队参考。</p>
+    </section>
+      </div>
+    </div>
+    <footer class="strategy-dialog-footer"><button type="button" data-strategy-previous disabled>← 上一节</button><span data-strategy-page aria-live="polite">1 / 6</span><button type="button" data-strategy-next>下一节 →</button></footer>
+  </dialog>
+</calculator-strategy-guide>
+<script>
+  import "../lib/calculator-strategy-guide.mjs";
+</script>

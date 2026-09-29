@@ -1,0 +1,71 @@
+---
+import AnonTokyoHeader from "./AnonTokyoHeader.astro";
+
+interface Props { dataset: Record<string, any>; stagedMedia: Array<Record<string, string>>; }
+interface ChatCharacter { id: string; name: string; imageKey?: string; }
+interface ChatScene { kind: string; label: string; lines: string[]; }
+interface ChatRecord { id: string; band: string; characters: ChatCharacter[]; scenes: ChatScene[]; reusedText?: boolean; contentNote?: string; }
+interface MonologueRecord { id: string; band: string; kind: string; role: string; text: string; character: ChatCharacter; }
+const { dataset, stagedMedia } = Astro.props;
+const records = dataset.records as ChatRecord[];
+const monologues = dataset.monologues as MonologueRecord[];
+const media = new Map(stagedMedia.map((entry) => [entry.logicalKey.toLocaleLowerCase("en-US"), entry.publicUrl]));
+const characterNames = [...new Set([...records.flatMap((record) => record.characters.map((character: Record<string, any>) => character.name)), ...monologues.map((item) => item.character.name)])].sort((left, right) => left.localeCompare(right, "zh-CN"));
+---
+
+<AnonTokyoHeader active="chats" title="角色聊天" description="按角色和岗位阅读组合聊天与独白；对白保持原始顺序，不猜测单句说话人。" count={records.length + monologues.length} />
+<main class="at-guide-main" data-at-chats>
+  <div class="content-shell">
+    <div class="at-filter-bar">
+      <label class="at-filter-search"><span>搜索正文</span><input type="search" placeholder="输入角色或正文" data-at-query /></label>
+      <label><span>内容</span><select data-at-kind><option value="">全部</option><option value="chat">角色聊天</option><option value="monologue">岗位独白</option></select></label>
+      <label><span>角色</span><select data-at-character><option value="">全部角色</option>{characterNames.map((name) => <option value={name}>{name}</option>)}</select></label>
+      <label><span>场景</span><select data-at-scene><option value="">全部场景</option>{dataset.scenes.map((scene: string) => <option value={scene}>{scene}</option>)}<option value="待机">待机</option></select></label>
+      <strong><b data-at-count>{records.length + monologues.length}</b> 条</strong>
+    </div>
+    <section class="at-chat-section"><header><h2>角色聊天</h2><span>{records.length} 组</span></header><div class="at-chat-grid">
+      {records.map((record) => {
+        const names = record.characters.map((character) => character.name);
+        const text = record.scenes.flatMap((scene) => scene.lines).join(" ");
+        return <article class="at-chat-card" data-at-record data-kind="chat" data-characters={names.join("|")} data-scenes={record.scenes.map((scene) => scene.label).join("|")} data-search={`${names.join(" ")} ${text}`.toLocaleLowerCase("zh-CN")}>
+          <header><div class="at-chat-pair">{record.characters.map((character) => { const avatar = character.imageKey ? media.get(character.imageKey.toLocaleLowerCase("en-US")) : undefined; return avatar ? <img src={avatar} alt="" loading="lazy" /> : <span aria-hidden="true">{character.name.slice(0, 1)}</span>; })}</div><div><span>{record.band || "角色组合"}</span><h3>{names.join(" × ")}</h3></div></header>
+          {record.reusedText && <p class="at-content-caution">包内文本复用 · 对应关系待确认</p>}
+          <div class="at-chat-scenes">{record.scenes.map((scene) => <span><b>{scene.label}</b>{scene.lines[0]}</span>)}</div>
+          <a href={`/anontokyo/chats/${record.id}/`}>阅读全部场景 →</a>
+        </article>;
+      })}
+    </div></section>
+    <section class="at-chat-section"><header><h2>岗位独白</h2><span>{monologues.length} 条</span></header><div class="at-monologue-list">
+      {monologues.map((item) => { const avatar = item.character.imageKey ? media.get(item.character.imageKey.toLocaleLowerCase("en-US")) : undefined; return <article class="at-monologue-row" data-at-record data-kind="monologue" data-characters={item.character.name} data-scenes={item.role} data-search={`${item.character.name} ${item.role} ${item.text}`.toLocaleLowerCase("zh-CN")}>
+        {avatar ? <img src={avatar} alt="" loading="lazy" /> : <span class="at-image-fallback" aria-hidden="true">{item.character.name.slice(0, 1)}</span>}<strong>{item.character.name}</strong><b>{item.role}</b><p>{item.text}</p>
+      </article>; })}
+    </div></section>
+    <p class="at-empty" data-at-empty hidden>没有符合条件的聊天或独白。</p>
+  </div>
+</main>
+
+<script>
+  for (const root of document.querySelectorAll("[data-at-chats]")) {
+    const query = root.querySelector("[data-at-query]");
+    const kind = root.querySelector("[data-at-kind]");
+    const character = root.querySelector("[data-at-character]");
+    const scene = root.querySelector("[data-at-scene]");
+    const records = Array.from(root.querySelectorAll<HTMLElement>("[data-at-record]"));
+    const requestedCharacter = new URLSearchParams(location.search).get("character") ?? "";
+    if (character instanceof HTMLSelectElement && [...character.options].some((option) => option.value === requestedCharacter)) character.value = requestedCharacter;
+    const update = () => {
+      const q = query instanceof HTMLInputElement ? query.value.trim().toLocaleLowerCase("zh-CN") : "";
+      const selectedKind = kind instanceof HTMLSelectElement ? kind.value : "";
+      const selectedCharacter = character instanceof HTMLSelectElement ? character.value : "";
+      const selectedScene = scene instanceof HTMLSelectElement ? scene.value : "";
+      let visible = 0;
+      for (const record of records) {
+        const matches = (!q || (record.dataset.search ?? "").includes(q)) && (!selectedKind || record.dataset.kind === selectedKind) && (!selectedCharacter || (record.dataset.characters ?? "").split("|").includes(selectedCharacter)) && (!selectedScene || (record.dataset.scenes ?? "").split("|").includes(selectedScene));
+        record.toggleAttribute("hidden", !matches); if (matches) visible += 1;
+      }
+      const count = root.querySelector("[data-at-count]"); if (count) count.textContent = String(visible);
+      root.querySelector("[data-at-empty]")?.toggleAttribute("hidden", visible !== 0);
+    };
+    query?.addEventListener("input", update); kind?.addEventListener("change", update); character?.addEventListener("change", update); scene?.addEventListener("change", update); update();
+  }
+</script>

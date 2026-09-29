@@ -1,0 +1,75 @@
+---
+import type {
+  MusicChart,
+  MusicTrack
+} from "../lib/catalog";
+import { formatBpmRange } from "../lib/catalog";
+import { rewardView } from "../lib/music-rewards";
+import "../styles/music-archive.css";
+
+interface Props {
+  track: MusicTrack;
+  charts: MusicChart[];
+  selectedOnly?: boolean;
+}
+
+const { track, charts, selectedOnly = false } = Astro.props;
+const initialDifficulty = charts.find(chart => chart.difficulty === "expert")?.difficulty ?? charts[0]?.difficulty;
+const comboRateLabels: Record<number, string> = {
+  0: "25% COMBO",
+  1: "50% COMBO",
+  2: "75% COMBO",
+  3: "FULL COMBO"
+};
+const comboRewardsByDifficulty = new Map(
+  charts.map((chart) => [
+    chart.difficulty,
+    track.soloRewards.comboRewards.filter(
+      (reward) => reward.difficulty === chart.difficulty
+    )
+  ])
+);
+---
+
+<section class:list={["music-rewards", {"music-rewards--selected": selectedOnly}]} aria-labelledby="music-rewards-title">
+  <header class="music-rewards-heading">
+    <div>
+      <span class="section-index">SOLO LIVE REWARDS</span>
+      <h2 id="music-rewards-title">演奏奖励</h2>
+    </div>
+  </header>
+
+  <div class="difficulty-ledger difficulty-ledger--rewards">
+    {charts.map((chart) => (
+      <article class={`difficulty-card difficulty-card--${chart.difficulty}`} data-reward-difficulty={chart.difficulty} hidden={selectedOnly && chart.difficulty !== initialDifficulty}>
+        <header class="difficulty-card-heading">
+          <span>{chart.difficulty.toUpperCase()}</span>
+          <strong>{chart.displayLevel}</strong>
+        </header>
+        <dl>
+          <div><dt>FULL COMBO</dt><dd>{chart.fullComboCount}</dd></div>
+          <div><dt>BPM</dt><dd>{formatBpmRange(chart.bpm)}</dd></div>
+          <div><dt>峰值</dt><dd>{chart.peakDensity}/s</dd></div>
+        </dl>
+        <section class="difficulty-reward-list" aria-label={`${chart.difficulty} Combo 奖励`}>
+          <header><span>COMBO REWARD</span><b>4 档</b></header>
+          <div>
+            {(comboRewardsByDifficulty.get(chart.difficulty) ?? []).map((reward) => {
+              const view = rewardView(reward.entry);
+              return (
+                <a href={view.href}>
+                  <span>{comboRateLabels[reward.comboRateType] ?? `RATE ${reward.comboRateType}`}</span>
+                  <span class="difficulty-reward-item">
+                    {view.asset && <img src={view.asset.previewUrl} alt="" loading="lazy" />}
+                    <strong>{view.label}</strong>
+                    <b>× {reward.entry.resourceCount.toLocaleString()}</b>
+                  </span>
+                </a>
+              );
+            })}
+          </div>
+        </section>
+      </article>
+    ))}
+  </div>
+</section>

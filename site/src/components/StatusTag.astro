@@ -1,0 +1,27 @@
+---
+import { activeReleaseContext } from "../lib/release-context";
+import { getUi } from "../lib/ui-i18n";
+
+interface Props {
+  status: string;
+  dotOnly?: boolean;
+}
+
+const { status, dotOnly = false } = Astro.props;
+const ui = getUi(activeReleaseContext.locale);
+const label = {
+  identified: ui.statusIdentified,
+  pending: ui.statusPending,
+  missing_asset: ui.statusMissingAsset,
+  archive_only: "归档展示",
+  source_placeholder: "来源占位"
+}[status] ?? status;
+---
+
+<span
+  class:list={["status-tag", `status-${status}`, { "status-tag--dot-only": dotOnly }]}
+  title={dotOnly ? label : undefined}
+>
+  <i aria-hidden="true"></i>
+  {dotOnly ? <span class="visually-hidden">{label}</span> : label}
+</span>

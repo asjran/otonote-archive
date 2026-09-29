@@ -1,0 +1,43 @@
+{
+  "catalogHash": "catalog-fixture-v1",
+  "locations": [
+    {
+      "internalId": "https://cdn.example.test/bundles/dependency.bundle",
+      "providerId": "UnityEngine.ResourceManagement.ResourceProviders.AssetBundleProvider",
+      "resourceType": "UnityEngine.AssetBundle",
+      "dependencies": [],
+      "labels": ["shared"],
+      "keys": ["dependency", "shared"],
+      "expectedHash": "f26350dafe3f19aabfd69ac463fb5daf76015c9a2763e76e2ad32fc0fcfedf31",
+      "expectedSize": 10
+    },
+    {
+      "internalId": "https://cdn.example.test/bundles/main.bundle",
+      "providerId": "UnityEngine.ResourceManagement.ResourceProviders.AssetBundleProvider",
+      "resourceType": "UnityEngine.AssetBundle",
+      "dependencies": ["dependency"],
+      "labels": ["event-1"],
+      "keys": ["main", "event-1"],
+      "expectedHash": null,
+      "expectedSize": 12,
+      "futureField": {"preserved": true}
+    },
+    {
+      "internalId": "https://cdn.example.test/bundles/main.bundle",
+      "providerId": "UnityEngine.ResourceManagement.ResourceProviders.AssetBundleProvider",
+      "resourceType": "UnityEngine.AssetBundle",
+      "dependencies": ["dependency"],
+      "labels": ["featured"],
+      "keys": ["main-alias", "featured"]
+    },
+    {
+      "internalId": "https://cdn.example.test/custom/data.bin",
+      "providerId": "Example.UnknownProvider",
+      "resourceType": "System.Byte[]",
+      "dependencies": [],
+      "labels": [],
+      "keys": ["custom"]
+    }
+  ],
+  "futureCatalogField": "kept"
+}

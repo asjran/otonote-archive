@@ -1,0 +1,53 @@
+---
+import {
+  getAsset,
+  type Band
+} from "../lib/catalog";
+
+interface Props {
+  band: Band;
+  href?: string;
+  compact?: boolean;
+  iconOnly?: boolean;
+  white?: boolean;
+}
+
+const {
+  band,
+  href,
+  compact = false,
+  iconOnly = false,
+  white = false
+} = Astro.props;
+const logo = getAsset(white ? band.whiteLogoAssetId : band.logoAssetId);
+const classNames = [
+  "band-mark",
+  {
+    "band-mark--compact": compact,
+    "band-mark--icon-only": iconOnly,
+    "band-mark--white": white
+  }
+];
+---
+
+{href ? (
+  <a
+    class:list={classNames}
+    href={href}
+    style={`--band-color:${band.mainColor}`}
+    aria-label={iconOnly ? band.displayName : undefined}
+    title={iconOnly ? band.displayName : undefined}
+  >
+    {logo && <img src={logo.previewUrl} alt="" />}
+    <span class:list={{ "visually-hidden": iconOnly }}>{band.displayName}</span>
+  </a>
+) : (
+  <span
+    class:list={classNames}
+    style={`--band-color:${band.mainColor}`}
+    title={iconOnly ? band.displayName : undefined}
+  >
+    {logo && <img src={logo.previewUrl} alt="" />}
+    <span class:list={{ "visually-hidden": iconOnly }}>{band.displayName}</span>
+  </span>
+)}

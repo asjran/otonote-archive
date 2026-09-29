@@ -1,0 +1,12 @@
+[Unit]
+Description=Poll enabled OurNotes resource environments
+
+[Timer]
+OnBootSec=5m
+OnUnitActiveSec=15m
+RandomizedDelaySec=60s
+Persistent=true
+Unit=resource-worker.service
+
+[Install]
+WantedBy=timers.target

@@ -1,0 +1,49 @@
+---
+interface Props {
+  active?: "studio" | "staff-assignment" | "store" | "growth" | "goods" | "customers" | "wardrobe" | "inspiration" | "furniture" | "themes" | "tasks" | "staff" | "chats" | "stages" | "guide" | "mechanics";
+  title: string;
+  description: string;
+  count?: number;
+  warning?: string;
+}
+
+const { active, title, description, count, warning } = Astro.props;
+const groups = [
+  ["Studio", [["studio", "地图布置"], ["staff-assignment", "岗位分配"]]],
+  ["经营资料", [["store", "店铺升级"], ["growth", "玩家成长"], ["inspiration", "灵感"], ["goods", "商品"], ["furniture", "家具"], ["themes", "主题"], ["tasks", "任务"], ["guide", "新手引导"], ["mechanics", "经营机制"]]],
+  ["角色与舞台", [["staff", "角色"], ["customers", "顾客偏好"], ["wardrobe", "换装"], ["chats", "聊天"], ["stages", "舞台"]]],
+] as const;
+---
+
+<header class="at-guide-head">
+  <div class="content-shell">
+    <div class="at-guide-head__topline">
+      <a class="at-guide-brand" href="/anontokyo/">
+        <strong>Anon Tokyo</strong>
+        <span>Studio · 内容体验与资料保存</span>
+      </a>
+      <span class="at-private-mark">Global 客户端资料</span>
+    </div>
+    <nav class="at-guide-nav" aria-label="Anon Tokyo 资料分类">
+      {groups.map(([group, links]) => (
+        <div class="at-guide-nav__group">
+          <span>{group}</span>
+          {links.map(([key, label]) => (
+            <a
+              href={`/anontokyo/${key}/`}
+              aria-current={active === key ? "page" : undefined}
+            >{label}</a>
+          ))}
+        </div>
+      ))}
+    </nav>
+    <div class="at-guide-heading">
+      <div>
+        <h1>{title}</h1>
+        <p>{description}</p>
+        {warning && <p class="at-content-caution">{warning}</p>}
+      </div>
+      {typeof count === "number" && <strong><span>{count}</span> 条资料</strong>}
+    </div>
+  </div>
+</header>

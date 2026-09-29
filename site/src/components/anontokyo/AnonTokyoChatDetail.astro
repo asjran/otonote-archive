@@ -1,0 +1,21 @@
+---
+import AnonTokyoHeader from "./AnonTokyoHeader.astro";
+
+interface Props { record: Record<string, any>; stagedMedia: Array<Record<string, string>>; }
+interface ChatCharacter { id: string; name: string; imageKey?: string; }
+interface ChatScene { kind: string; label: string; lines: string[]; }
+interface ChatRecord { id: string; band: string; characters: ChatCharacter[]; scenes: ChatScene[]; reusedText?: boolean; contentNote?: string; }
+const { record: rawRecord, stagedMedia } = Astro.props;
+const record = rawRecord as ChatRecord;
+const media = new Map(stagedMedia.map((entry) => [entry.logicalKey.toLocaleLowerCase("en-US"), entry.publicUrl]));
+const title = record.characters.map((character: Record<string, any>) => character.name).join(" × ");
+---
+
+<AnonTokyoHeader active="chats" title={title} description={`${record.band || "角色组合"} · ${record.scenes.length} 个工作场景`} />
+<main class="at-guide-main"><div class="content-shell at-detail-shell">
+  <a class="at-detail-back" href="/anontokyo/chats/">← 返回角色聊天</a>
+  <div class="at-chat-detail-people">{record.characters.map((character) => { const avatar = character.imageKey ? media.get(character.imageKey.toLocaleLowerCase("en-US")) : undefined; return <a href={`/anontokyo/staff/${character.id}/`}>{avatar ? <img src={avatar} alt="" /> : <span aria-hidden="true">{character.name.slice(0, 1)}</span>}<strong>{character.name}</strong></a>; })}</div>
+  {record.reusedText && <p class="at-content-caution at-content-caution--detail">{record.contentNote}</p>}
+  <p class="at-guide-note">文本顺序来自国际服本地数据；当前证据不足以确认每一句的说话人，因此不添加推测署名。</p>
+  <div class="at-chat-transcripts">{record.scenes.map((scene) => <section><header><h2>{scene.label}</h2><span>{scene.lines.length} 句</span></header><ol>{scene.lines.map((line) => <li>{line}</li>)}</ol></section>)}</div>
+</div></main>

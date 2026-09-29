@@ -1,0 +1,80 @@
+---
+import type { GetStaticPaths } from "astro";
+import MemberCardDetail from "../../../components/card-details/MemberCardDetail.astro";
+import DetailQuickSwitcher from "../../../components/DetailQuickSwitcher.astro";
+import BaseLayout from "../../../layouts/BaseLayout.astro";
+import {
+  catalog,
+  getAsset,
+  getBand,
+  getCharacter,
+  type MemberCard
+} from "../../../lib/catalog";
+import {
+  getMemberCardProjection,
+  type CardDetailProjection
+} from "../../../lib/game-database";
+import { memberCardSwitchData } from "../../../lib/detail-switch-data";
+import { activeReleaseContext } from "../../../lib/release-context";
+import { siteHref } from "../../../lib/site-context";
+import "../../../styles/card-details.css";
+import "../../../styles/card-growth-workspace.css";
+
+export const getStaticPaths = (() =>
+  catalog.memberCards.map((card) => ({
+    params: { id: card.id },
+    props: {
+      card,
+      projection: getMemberCardProjection(card.id)
+    }
+  }))) satisfies GetStaticPaths;
+
+interface Props {
+  card: MemberCard;
+  projection: CardDetailProjection;
+}
+
+const { card, projection } = Astro.props;
+const asset = getAsset(card.primaryAssetId);
+const character = getCharacter(card.characterId);
+const band = getBand(character?.bandId);
+if (!projection) throw new Error(`Missing detail projection for ${card.id}`);
+const relations = [
+  ...(character
+    ? [{
+        name: character.displayName,
+        href: `/characters/${character.id}/`,
+        accent: character.mainColor
+      }]
+    : [])
+];
+const switchItems = memberCardSwitchData.items.map((item) => ({
+  ...item,
+  href: import.meta.env.BASE_URL === "/"
+    ? item.href
+    : siteHref(item.href, activeReleaseContext)
+}));
+---
+
+<BaseLayout title={card.displayName} image={asset?.previewUrl}>
+  <MemberCardDetail
+    card={card}
+    asset={asset}
+    projection={projection}
+    heading={card.subtitle}
+    identityLabel="角色"
+    relations={relations}
+    bands={band ? [band] : []}
+    releaseLabel={catalog.release.label}
+  >
+    <DetailQuickSwitcher
+      slot="media-actions"
+      variant="card"
+      listHref={import.meta.env.BASE_URL === "/" ? "/cards/members/" : siteHref("/cards/members/", activeReleaseContext)}
+      currentId={card.id}
+      label={memberCardSwitchData.label}
+      items={switchItems}
+      facets={memberCardSwitchData.facets}
+    />
+  </MemberCardDetail>
+</BaseLayout>

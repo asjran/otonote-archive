@@ -1,0 +1,61 @@
+{
+  "catalogHash": "fixture-catalog",
+  "locations": [
+    {
+      "primaryKey": "AT_Icon_Goods_Test",
+      "internalId": "fixture/goods-test.bundle",
+      "providerId": "UnityEngine.ResourceManagement.ResourceProviders.BundledAssetProvider",
+      "resourceType": "UnityEngine.Sprite",
+      "keys": ["AT_Icon_Goods_Test"]
+    },
+    {
+      "primaryKey": "AT_Icon_Decoration_Test",
+      "internalId": "fixture/decoration-test.bundle",
+      "providerId": "UnityEngine.ResourceManagement.ResourceProviders.BundledAssetProvider",
+      "resourceType": "UnityEngine.Sprite",
+      "keys": ["AT_Icon_Decoration_Test"]
+    },
+    {
+      "primaryKey": "AT_Main_Avatar_Test",
+      "internalId": "fixture/avatar-test.bundle",
+      "providerId": "UnityEngine.ResourceManagement.ResourceProviders.BundledAssetProvider",
+      "resourceType": "UnityEngine.Sprite",
+      "keys": ["AT_Main_Avatar_Test"]
+    },
+    {
+      "primaryKey": "AT_Icon_Decoration_Mirror",
+      "internalId": "fixture/decoration-mirror.bundle",
+      "providerId": "UnityEngine.ResourceManagement.ResourceProviders.BundledAssetProvider",
+      "resourceType": "UnityEngine.Sprite",
+      "keys": ["AT_Icon_Decoration_Mirror"]
+    },
+    {
+      "primaryKey": "AT_Theme_Test",
+      "internalId": "fixture/theme-test.bundle",
+      "providerId": "UnityEngine.ResourceManagement.ResourceProviders.BundledAssetProvider",
+      "resourceType": "UnityEngine.Sprite",
+      "keys": ["AT_Theme_Test"]
+    },
+    {
+      "primaryKey": "AT_Stage_Music_Test",
+      "internalId": "fixture/stage-music-test.bundle",
+      "providerId": "UnityEngine.ResourceManagement.ResourceProviders.BundledAssetProvider",
+      "resourceType": "UnityEngine.Sprite",
+      "keys": ["AT_Stage_Music_Test"]
+    },
+    {
+      "primaryKey": "AT_Common_Icon_Star",
+      "internalId": "fixture/stage-buff-star.bundle",
+      "providerId": "UnityEngine.ResourceManagement.ResourceProviders.BundledAssetProvider",
+      "resourceType": "UnityEngine.Sprite",
+      "keys": ["AT_Common_Icon_Star"]
+    },
+    {
+      "primaryKey": "AT_Main_Avatar_Second",
+      "internalId": "fixture/avatar-second.bundle",
+      "providerId": "UnityEngine.ResourceManagement.ResourceProviders.BundledAssetProvider",
+      "resourceType": "UnityEngine.Sprite",
+      "keys": ["AT_Main_Avatar_Second"]
+    }
+  ]
+}

@@ -1,0 +1,127 @@
+/* Native document transitions keep the previous page visible until its replacement is ready. */
+html[data-shell="sidebar"] {
+  background: var(--paper);
+  scrollbar-gutter: stable;
+}
+
+@keyframes page-reveal {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* Stage is the default; explicit preview URLs keep the other variants available. */
+html {
+  --stage-duration: 420ms;
+  --book-duration: 620ms;
+  --beat-duration: 480ms;
+  --page-hinge: var(--sidebar-width, 236px);
+}
+html[data-transition-speed="slow"] {
+  --stage-duration: 1400ms;
+  --book-duration: 2067ms;
+  --beat-duration: 1600ms;
+}
+
+@keyframes stage-reveal {
+  from { clip-path: polygon(0 0, -10% 0, -20% 100%, 0 100%); }
+  to { clip-path: polygon(0 0, 120% 0, 110% 100%, 0 100%); }
+}
+@keyframes stage-depart {
+  from { clip-path: polygon(-7% 0, 100% 0, 100% 100%, -17% 100%); }
+  to { clip-path: polygon(123% 0, 100% 0, 100% 100%, 113% 100%); }
+}
+@keyframes book-turn {
+  0% { transform: perspective(1800px) rotateY(0deg); filter: brightness(1); opacity: 1; }
+  65% { opacity: 1; filter: brightness(.86); }
+  100% { transform: perspective(1800px) rotateY(94deg); filter: brightness(.72); opacity: 0; }
+}
+@keyframes beat-reveal {
+  0% { clip-path: polygon(0 0, 0 0, 0 33.333%, 0 33.333%, 0 66.667%, 0 66.667%, 0 100%, 0 100%); }
+  35% { clip-path: polygon(0 0, 72% 0, 72% 33.333%, 24% 33.333%, 24% 66.667%, 0 66.667%, 0 100%, 0 100%); }
+  65% { clip-path: polygon(0 0, 100% 0, 100% 33.333%, 90% 33.333%, 90% 66.667%, 48% 66.667%, 48% 100%, 0 100%); }
+  100% { clip-path: polygon(0 0, 100% 0, 100% 33.333%, 100% 33.333%, 100% 66.667%, 100% 66.667%, 100% 100%, 0 100%); }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  @view-transition { navigation: auto; }
+
+  [data-motion="on"] .site-header { view-transition-name: site-header; }
+  [data-motion="on"] .site-brand { view-transition-name: site-brand; }
+
+  /* An opaque old page stays underneath throughout: there is no blank middle frame. */
+  ::view-transition-group(root) { animation: none; }
+  ::view-transition-old(root) { animation: none; opacity: 1; }
+  ::view-transition-new(root) { animation: page-reveal 180ms ease-out both; }
+  ::view-transition-image-pair(root) { isolation: isolate; }
+  ::view-transition-old(root),
+  ::view-transition-new(root) { mix-blend-mode: normal; }
+
+  /* The narrow space between the two diagonal masks exposes the lacquer curtain. */
+  [data-page-transition="stage"]::view-transition-group(root) {
+    background: var(--lacquer);
+    overflow: clip;
+  }
+  [data-page-transition="stage"]::view-transition-old(root) {
+    animation: stage-depart var(--stage-duration) cubic-bezier(.65, 0, .25, 1) both;
+  }
+  [data-page-transition="stage"]::view-transition-new(root) {
+    animation: stage-reveal var(--stage-duration) cubic-bezier(.65, 0, .25, 1) both;
+  }
+
+  [data-page-transition="book"]::view-transition-group(root) { overflow: clip; }
+  [data-page-transition="book"]::view-transition-old(root) {
+    z-index: 1;
+    transform-origin: var(--page-hinge) 50%;
+    backface-visibility: hidden;
+    box-shadow: 18px 0 48px rgb(17 19 27 / 26%);
+    animation: book-turn var(--book-duration) cubic-bezier(.3, .05, .25, 1) both;
+  }
+  [data-page-transition="book"]::view-transition-new(root) { animation: none; opacity: 1; }
+
+  [data-page-transition="beat"]::view-transition-new(root) {
+    animation: beat-reveal var(--beat-duration) linear both;
+  }
+  [data-page-transition="fade"][data-transition-speed="slow"]::view-transition-new(root) { animation-duration: 600ms; }
+
+  /* Hold at the fully covered first frame until the incoming layout is ready. */
+  [data-navigation-pending]::view-transition-old(root),
+  [data-navigation-pending]::view-transition-new(root) { animation-play-state: paused !important; }
+  [data-navigation-pending][data-page-transition="book"]::view-transition-old(root) { opacity: 1; }
+
+  /* The frame updates immediately without crossfading or moving the navigation text. */
+  ::view-transition-group(site-header),
+  ::view-transition-group(site-brand),
+  ::view-transition-group(site-navigation) { animation: none; z-index: 1; }
+  ::view-transition-old(site-header),
+  ::view-transition-old(site-brand),
+  ::view-transition-old(site-navigation) { animation: none; opacity: 0; }
+  ::view-transition-new(site-header),
+  ::view-transition-new(site-brand),
+  ::view-transition-new(site-navigation) { animation: none; opacity: 1; }
+
+  /* Cross-page fading already provides the arrival; do not fade content a second time. */
+  [data-navigation-entry] .home-hero-copy > *,
+  [data-navigation-entry] .home-hero-art > img,
+  [data-navigation-entry] .home-shortcuts { animation: none; }
+}
+
+@media (max-width: 1100px) {
+  html { --page-hinge: 0px; }
+}
+
+/* Mobile drawers close before navigation and must not become a persistent snapshot. */
+@media (prefers-reduced-motion: no-preference) and (min-width: 1101px) {
+  [data-motion="on"] .site-nav { view-transition-name: site-navigation; }
+}
+
+/* Also covers a preference change while a transition is in progress. */
+@media (prefers-reduced-motion: reduce) {
+  @view-transition { navigation: none; }
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) { animation: none !important; }
+}
+
+[data-motion="off"]::view-transition-group(*),
+[data-motion="off"]::view-transition-old(*),
+[data-motion="off"]::view-transition-new(*) { animation: none !important; }

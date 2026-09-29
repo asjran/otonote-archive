@@ -1,0 +1,131 @@
+---
+import ArchiveImage from "../../components/ArchiveImage.astro";
+import BandMark from "../../components/BandMark.astro";
+import CardAttributeBadge from "../../components/CardAttributeBadge.astro";
+import DetailQuickSwitcher from "../../components/DetailQuickSwitcher.astro";
+import GekisouTypeBadge from "../../components/GekisouTypeBadge.astro";
+import MusicScoreRewards from "../../components/MusicScoreRewards.astro";
+import SongAudioPlayer from "../../components/SongAudioPlayer.astro";
+import MusicSoloRewards from "../../components/MusicSoloRewards.astro";
+import MusicChartSummary from "../../components/MusicChartSummary.astro";
+import ScoreWorkbench from "../../components/ScoreWorkbench.astro";
+import AutoStage from "../../components/AutoStage.astro";
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import {
+  catalog,
+  getAsset,
+  getBand,
+  getMusicCharts,
+  type MusicTrack
+} from "../../lib/catalog";
+import { musicSwitchData } from "../../lib/detail-switch-data";
+import "../../styles/music-archive.css";
+import "../../styles/music-layout.css";
+import "../../styles/song-record.css";
+
+export function getStaticPaths() {
+  return catalog.musicTracks.map((track) => ({
+    params: { id: track.id },
+    props: { track }
+  }));
+}
+
+interface Props {
+  track: MusicTrack;
+}
+
+const { track } = Astro.props;
+
+const jacket = getAsset(track.jacketAssetId);
+const charts = getMusicCharts(track.id);
+const dateLabel = track.startAt.replace(/\//g, ".").replace(" 0:00:00", "");
+const bands = track.bandIds
+  .map(getBand)
+  .filter((band) => band !== undefined);
+
+---
+
+<BaseLayout
+  title={track.title}
+  description={`${track.title}曲目资料、四档难度与谱面分析。`}
+  image={jacket?.previewUrl}
+>
+  <song-detail-page class="song-record-page" style={`--song-band:${bands[0]?.mainColor ?? '#6c9abb'}`}>
+    <section class="song-album" aria-labelledby="song-title">
+      <div class="content-shell song-album-inner">
+        <div class="song-album-topline">
+          <a href="/music/">← 音乐·乐谱</a>
+          <span>MUSIC / {track.masterId}</span>
+        </div>
+        <div class="song-album-grid">
+          <div class="song-art-column">
+            <div class="song-jacket">
+              {jacket ? <ArchiveImage asset={jacket} alt={`${track.title}曲目封面`} eager /> : <span class="media-missing">封面待入库</span>}
+            </div>
+            <DetailQuickSwitcher currentId={track.id} label={musicSwitchData.label} items={musicSwitchData.items} facets={musicSwitchData.facets} variant="music" />
+          </div>
+          <div class="song-liner">
+            <div class="song-tags">
+              {bands.map(band => <BandMark band={band} href={`/characters/?band=${band.id}`} />)}
+              <CardAttributeBadge code={track.musicType} />
+            </div>
+            <h1 id="song-title">{track.title}</h1>
+            {track.phoneticTitle && track.phoneticTitle !== track.title && <p class="song-phonetic">{track.phoneticTitle}</p>}
+            <p class="song-vocal"><span>VOCAL</span>{track.vocalistLabels.join(" / ")}</p>
+            <div class="song-edition"><span>{track.categoryLabels.join(" / ")}</span><span>{dateLabel} 收录</span>{track.audioDuration && <span>{Math.floor(track.audioDuration / 60)}:{String(Math.floor(track.audioDuration % 60)).padStart(2, '0')}</span>}</div>
+            <section class="song-gekisou-panel" aria-labelledby="gekisou-types-title">
+              <h2 id="gekisou-types-title">激奏类型</h2>
+              {track.gekisouMissions?.length > 0 ? <ol class="song-gekisou-sequence">
+                {track.gekisouMissions.map(mission => <li aria-label={`第 ${mission.index} 激奏`}><GekisouTypeBadge mission={mission} /></li>)}
+              </ol> : <p class="song-empty">暂无激奏信息</p>}
+            </section>
+            <SongAudioPlayer track={track} />
+            <dl class="song-credits">
+              <div><dt>作词</dt><dd>{track.lyricist || "未登记"}</dd></div>
+              <div><dt>作曲</dt><dd>{track.composer || "未登记"}</dd></div>
+              <div><dt>编曲</dt><dd>{track.arranger || "未登记"}</dd></div>
+            </dl>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="content-shell song-record-content">
+      <section class="song-chart-panel" aria-labelledby="song-chart-title">
+        <header class="song-section-heading">
+          <h2 id="song-chart-title">谱面</h2>
+          <button class="song-play-button" type="button" data-song-view="playback" aria-haspopup="dialog" aria-controls="song-module-dialog" aria-expanded="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m8 4 12 8-12 8Z" /></svg><strong>谱面播放</strong></button>
+        </header>
+        <MusicChartSummary charts={charts} />
+        <nav class="song-chart-links" aria-label="歌曲功能">
+          <button type="button" data-song-view="analysis" aria-haspopup="dialog" aria-controls="song-module-dialog" aria-expanded="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19h16M6 15V9m6 6V4m6 11v-7" /></svg><strong>谱面分析</strong><span>音符与密度</span></button>
+          <button type="button" data-song-view="rewards" aria-haspopup="dialog" aria-controls="song-module-dialog" aria-expanded="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3h8v7a4 4 0 0 1-8 0Zm0 2H4v4a4 4 0 0 0 4 4m8-8h4v4a4 4 0 0 1-4 4m-4 1v6m-4 0h8" /></svg><strong>演奏奖励</strong><span>Combo 奖励</span></button>
+        </nav>
+      </section>
+
+      <MusicScoreRewards track={track} />
+
+
+    </div>
+
+  <dialog id="song-module-dialog" class="song-module-dialog" data-song-dialog aria-labelledby="song-dialog-title">
+    <header class="song-dialog-heading">
+      <div><span>{track.title}</span><h2 id="song-dialog-title" data-song-dialog-title>谱面播放</h2></div>
+      <label class="song-dialog-difficulty">难度
+        <select data-song-dialog-difficulty aria-label="弹窗谱面难度">
+          {charts.map(chart => <option value={chart.difficulty} selected={chart.difficulty === "expert"}>{chart.difficulty.toUpperCase()} · Lv.{chart.displayLevel}</option>)}
+        </select>
+      </label>
+      <button type="button" class="song-dialog-close" data-song-dialog-close aria-label="关闭歌曲功能">×</button>
+    </header>
+    <div class="song-dialog-body">
+      <section id="song-panel-playback" data-song-panel="playback" hidden><AutoStage trackTitle={track.title} track={track} charts={charts} externalDifficulty /></section>
+      <section id="song-panel-analysis" class="music-workspace" data-song-panel="analysis" hidden><ScoreWorkbench trackTitle={track.title} charts={charts} /></section>
+      <section id="song-panel-rewards" data-song-panel="rewards" hidden><MusicSoloRewards track={track} charts={charts} selectedOnly /></section>
+    </div>
+  </dialog>
+  </song-detail-page>
+</BaseLayout>
+<script>
+  import "../../lib/song-detail-ui.mjs";
+</script>

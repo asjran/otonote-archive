@@ -1,0 +1,48 @@
+---
+import BaseLayout from "../../../layouts/BaseLayout.astro";
+import DatabaseCatalogBrowser from "../../../components/database/DatabaseCatalogBrowser.astro";
+import DatabaseDetailDialog from "../../../components/database/DatabaseDetailDialog.astro";
+import { itemTypeLabel } from "../../../lib/database-display";
+import ItemTile from "../../../components/database/ItemTile.astro";
+import { itemIndex } from "../../../lib/game-database";
+import {
+  getMemberCard,
+  getSupportCard
+} from "../../../lib/catalog";
+import "../../../styles/database.css";
+
+const typeOptions = [...new Set(itemIndex.map((item) => item.typeCode))]
+  .sort((left, right) => left - right)
+  .map((value) => ({ value: String(value), label: itemTypeLabel(value) }));
+const cardName = (id: string) =>
+  id.startsWith("member-card-")
+    ? getMemberCard(id)?.displayName
+    : getSupportCard(id)?.displayName;
+---
+
+<BaseLayout title="道具索引">
+  <section class="db-page-hero">
+    <div class="content-shell db-page-hero-grid">
+      <div><div class="eyebrow">ITEM & MATERIAL INDEX</div><h1>道具索引</h1><p>查找道具的获取方式、养成用途和关联卡牌。</p></div>
+      <div class="db-page-count"><strong>{itemIndex.length}</strong><span>ITEM RECORDS</span></div>
+    </div>
+  </section>
+
+  <section class="db-catalog-section">
+    <div class="content-shell">
+      <DatabaseCatalogBrowser mode="items" count={itemIndex.length} typeOptions={typeOptions}>
+        <div class="db-catalog-list">
+          {itemIndex.map((item) => (
+            <ItemTile
+              item={item}
+              relatedNames={item.relatedCardIds
+                .map(cardName)
+                .filter((name) => name !== undefined)}
+            />
+          ))}
+        </div>
+      </DatabaseCatalogBrowser>
+    </div>
+  </section>
+  <DatabaseDetailDialog kind="items" />
+</BaseLayout>

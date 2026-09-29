@@ -1,0 +1,98 @@
+---
+import type { Asset } from "../lib/catalog";
+import { getMediaRecord } from "../lib/media-index";
+
+interface Props {
+  asset: Asset;
+  alt: string;
+  eager?: boolean;
+  controlledLazy?: boolean;
+  variant?: "thumbnail" | "preview";
+  class?: string;
+}
+
+const {
+  asset,
+  alt,
+  eager = false,
+  controlledLazy = false,
+  variant = eager ? "preview" : "thumbnail",
+  class: className
+} = Astro.props;
+const media = getMediaRecord(asset.id);
+const listTier = media?.tiers.list;
+const previewVariants = media?.tiers.webPreview.variants ?? [];
+const src = variant === "thumbnail"
+  ? listTier?.url ?? asset.thumbnailUrl ?? asset.previewUrl
+  : asset.previewUrl;
+const srcset = previewVariants
+  .filter((candidate) => candidate.url && candidate.width)
+  .map((candidate) => `${candidate.url} ${candidate.width}w`)
+  .join(", ");
+const sizes = variant === "thumbnail"
+  ? "(max-width: 620px) 50vw, 320px"
+  : "(max-width: 900px) 100vw, 1200px";
+---
+
+<img
+  class={className}
+  src={controlledLazy ? undefined : src}
+  srcset={controlledLazy ? undefined : srcset || undefined}
+  sizes={controlledLazy ? undefined : srcset ? sizes : undefined}
+  data-controlled-lazy={controlledLazy ? "pending" : undefined}
+  data-src={controlledLazy ? src : undefined}
+  data-srcset={controlledLazy && srcset ? srcset : undefined}
+  data-sizes={controlledLazy && srcset ? sizes : undefined}
+  alt={alt}
+  width={asset.width}
+  height={asset.height}
+  loading={eager ? "eager" : "lazy"}
+  decoding="async"
+  fetchpriority={eager ? "high" : "auto"}
+/>
+
+<script>
+  const activateImage = (image: HTMLImageElement) => {
+    image.dataset.controlledLazy = "loading";
+    const reveal = async () => {
+      try {
+        await image.decode();
+        image.dataset.controlledLazy = image.naturalWidth > 0 ? "loaded" : "error";
+      } catch {
+        image.dataset.controlledLazy = "error";
+      }
+    };
+    image.addEventListener("load", reveal);
+    image.addEventListener("error", () => {
+      image.dataset.controlledLazy = "error";
+    });
+    const sizes = image.dataset.sizes;
+    const srcset = image.dataset.srcset;
+    const src = image.dataset.src;
+    if (sizes) image.sizes = sizes;
+    if (srcset) image.srcset = srcset;
+    if (src) image.src = src;
+    // A cache hit can already be complete before the load callback runs.
+    if (image.complete && image.naturalWidth > 0) void reveal();
+  };
+
+  const images = document.querySelectorAll<HTMLImageElement>(
+    'img[data-controlled-lazy="pending"]'
+  );
+  if (!("IntersectionObserver" in window)) {
+    images.forEach(activateImage);
+  } else {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (!entry.isIntersecting) continue;
+          const image = entry.target as HTMLImageElement;
+          observer.unobserve(image);
+          activateImage(image);
+        }
+      },
+      { rootMargin: "600px 0px" }
+    );
+    images.forEach((image) => observer.observe(image));
+  }
+</script>

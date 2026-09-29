@@ -1,0 +1,14 @@
+<details data-gekisou-opponents>
+  <summary>按对手段落表现计算名次</summary>
+  <p>不启用对手时使用上方指定名次。启用后，按任务累计、段落音符分、Perfect 数依次比较，完全相同则并列。请填写同一首歌的三段数据；音符分不含名次奖励，Perfect 数包含 JUST。</p>
+  {[1, 2, 3, 4].map(i => <fieldset data-gekisou-opponent>
+    <legend><label><input type="checkbox" data-opponent-enabled /> 对手 {i}</label></legend>
+    {[1, 2, 3].map(section => <fieldset data-opponent-section>
+      <legend>第 {section} 段（非本段任务的累计填 0）</legend>
+      {[
+        ['combo', 'COMBO 累计'], ['luckPoints', 'LUCK 点数'], ['just', 'JUST 累计'],
+        ['noteScore', '段落音符分'], ['perfectCount', 'Perfect 数（含 JUST）']
+      ].map(([field, label]) => <label>{label}<input data-opponent-field={field} type="number" min="0" max="2147483647" step="1" value="0" /></label>)}
+    </fieldset>)}
+  </fieldset>)}
+</details>

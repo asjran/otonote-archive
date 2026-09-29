@@ -1,0 +1,37 @@
+---
+import { catalog, type MusicTrack } from '../lib/catalog';
+import previews from '../data/music-previews.json';
+interface Props { track: MusicTrack }
+const { track } = Astro.props;
+const previewTracks = previews.tracks as Record<string, {url: string; duration: number}>;
+const preview = previews.contentReleaseId === catalog.release.id ? previewTracks[track.id] : undefined;
+const versions = [
+  ...(preview ? [{key:'preview', label:'试听', url:preview.url, duration:preview.duration, download:true}] : []),
+  ...(track.audioPlayback && track.audioUrl ? [{key:'full', label:'完整版', url:track.audioUrl, duration:track.audioDuration ?? 0, download:track.audioDownload}] : [])
+];
+const initial = versions[0];
+const time = (seconds: number) => `${Math.floor(seconds / 60)}:${String(Math.floor(seconds % 60)).padStart(2, '0')}`;
+const filename = (label: string) => `${track.title.replace(/[\\/:*?"<>|]/g, '_')}-${label}.m4a`;
+---
+{initial ? <song-audio-player class="song-audio-player" aria-label={`${track.title}音频`}>
+  <audio data-song-audio src={initial.url} preload="none"></audio>
+  <div class="song-audio-topline">
+    <div class="song-audio-versions" role="group" aria-label="音频版本">
+      {versions.map(version => <button type="button" data-audio-version={version.key} data-url={version.url} data-duration={version.duration} data-download={version.download} data-filename={filename(version.label)} aria-pressed={version === initial}>{version.label}</button>)}
+    </div>
+    <span class="song-audio-source">游戏版 · M4A</span>
+  </div>
+  <div class="song-audio-controls">
+    <button class="song-audio-play" type="button" data-audio-play aria-label="播放音频">
+      <span data-audio-play-icon><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 5 10 7-10 7Z" /></svg></span>
+      <span data-audio-pause-icon hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 5h4v14H7zm6 0h4v14h-4z" /></svg></span>
+    </button>
+    <input data-audio-seek type="range" min="0" max={initial.duration} step="0.1" value="0" aria-label="音频进度" disabled />
+    <span class="song-audio-time" data-audio-time>0:00 / {time(initial.duration)}</span>
+    <a class="song-audio-download" data-audio-download href={initial.url} download={filename(initial.label)} hidden={!initial.download} aria-label={`下载${initial.label}音频`}><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m-4-4 4 4 4-4M5 16v4h14v-4" /></svg><span>下载</span></a>
+  </div>
+  <p class="song-audio-status" data-audio-status role="status" hidden></p>
+</song-audio-player> : <p class="song-audio-unavailable">音频待收录</p>}
+<script>
+  import '../lib/song-audio-player.mjs';
+</script>

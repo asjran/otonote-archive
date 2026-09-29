@@ -1,0 +1,50 @@
+---
+import { activeReleaseContext } from "../lib/release-context";
+import { searchCopy } from "../lib/unified-search-copy.mjs";
+import "../styles/unified-search.css";
+
+const copy = searchCopy(activeReleaseContext.locale);
+const indexUrl = `${import.meta.env.BASE_URL.replace(/\/$/, "")}/search-index.json`;
+const routePrefix = import.meta.env.BASE_URL === "/" ? "" : `/${activeReleaseContext.region}/${activeReleaseContext.locale}`;
+const labels = JSON.stringify(copy).replaceAll("<", "\\u003c");
+---
+
+<global-search data-index-url={indexUrl} data-release-id={activeReleaseContext.contentReleaseId} data-route-prefix={routePrefix} class="global-search">
+  <script is:inline type="application/json" data-search-labels set:html={labels}></script>
+  <button type="button" class="global-search-trigger" aria-label={copy.title} aria-haspopup="dialog" data-search-open>
+    <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5" /><path d="m16 16 4.5 4.5" /></svg>
+    <strong>{copy.title}</strong><kbd data-search-shortcut aria-hidden="true">⌘ K</kbd>
+  </button>
+  <dialog class="global-search-dialog" data-search-dialog aria-labelledby="global-search-title">
+    <div class="global-search-frame">
+      <header class="global-search-heading">
+        <div><span class="global-search-eyebrow">OTONOTE / SEARCH</span><h2 id="global-search-title">{copy.title}</h2><p>{copy.description}</p></div>
+        <button type="button" class="global-search-close" data-search-close aria-label={copy.close}><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18" /></svg></button>
+      </header>
+      <div class="global-search-input">
+        <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5" /><path d="m16 16 4.5 4.5" /></svg>
+        <input type="search" placeholder={copy.placeholder} aria-label={copy.placeholder} aria-controls="global-search-results" autocomplete="off" spellcheck="false" maxlength="160" data-search-input />
+        <button type="button" data-search-clear aria-label={copy.clear} hidden>×</button>
+      </div>
+      <div class="global-search-types" role="group" aria-label={copy.filter}>
+        {[['all', copy.all], ...Object.entries(copy.types)].map(([type, label]) => <button type="button" data-search-type={type} aria-pressed={type === 'all' ? 'true' : 'false'}><span>{label}</span><small data-type-count aria-hidden="true"></small></button>)}
+      </div>
+      <div class="global-search-summary" role="status" data-search-summary>{copy.ready}</div>
+      <div class="global-search-content" data-search-content>
+        <div class="global-search-state" data-search-state>
+          <span class="global-search-state-icon" aria-hidden="true"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"><circle cx="10.5" cy="10.5" r="6.5" /><path d="m16 16 4.5 4.5" /></svg></span>
+          <h3 data-search-state-title>{copy.empty}</h3><p data-search-state-hint>{copy.emptyHint}</p>
+          <button type="button" data-search-retry hidden>{copy.retry}</button>
+          <button type="button" data-search-all hidden>{copy.showAll}</button>
+          <div class="global-search-suggestions" data-search-suggestions hidden><span>{copy.suggestions}</span><div data-search-suggestion-buttons></div></div>
+        </div>
+        <nav id="global-search-results" class="global-search-results" aria-label={copy.results} data-search-results hidden></nav>
+        <button type="button" class="global-search-more" data-search-more hidden>{copy.more}<span aria-hidden="true">↓</span></button>
+      </div>
+      <footer class="global-search-footer"><span><kbd>↑</kbd><kbd>↓</kbd> {copy.choose}<kbd>↵</kbd> {copy.open}</span><span><kbd>Esc</kbd> {copy.dismiss}</span></footer>
+    </div>
+  </dialog>
+</global-search>
+<script>
+  import "../lib/unified-search-client.mjs";
+</script>

@@ -1,0 +1,46 @@
+{
+  "schemaVersion": 1,
+  "datasetSchemaVersion": 1,
+  "dataset": "gacha-pools",
+  "query": {
+    "region": "global",
+    "channel": "production",
+    "locale": "en"
+  },
+  "release": {
+    "contentReleaseId": "global-production-content-fixture",
+    "observationReleaseId": null
+  },
+  "availability": "available",
+  "freshness": "fresh",
+  "provenance": "configured",
+  "observedAt": "2026-08-01T00:00:00Z",
+  "generatedAt": "2026-08-04T00:00:00Z",
+  "expiresAt": "2026-08-05T00:00:00Z",
+  "warnings": [
+    {
+      "code": "locale_fallback",
+      "message": "requested locale en missing translation for pickupEntityRefs display"
+    }
+  ],
+  "page": {
+    "limit": 20,
+    "nextCursor": null
+  },
+  "items": [
+    {
+      "poolId": "pool-fixture-1",
+      "localizedText": {
+        "zh-CN": "示例卡池",
+        "ja": "サンプルガチャ",
+        "en": "Sample Gacha"
+      },
+      "startAt": "2026-08-01T00:00:00Z",
+      "endAt": "2026-08-15T23:59:59Z",
+      "state": "active",
+      "pickupEntityRefs": ["entity-fixture-A"],
+      "currencyRef": "currency-fixture-1",
+      "sourceRef": "0000000000000000000000000000000000000000000000000000000000000002"
+    }
+  ]
+}

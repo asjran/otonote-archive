@@ -1,0 +1,103 @@
+---
+import {
+  activeReleaseContext,
+  releaseIndex,
+  type Locale,
+  type Region
+} from "../lib/release-context";
+import {
+  chooseProjection,
+  projectionSwitchHref,
+  type SiteProjection
+} from "../lib/site-context";
+import { getUi } from "../lib/ui-i18n";
+
+const current = activeReleaseContext as SiteProjection;
+const ui = getUi(current.locale);
+const projections = releaseIndex.projections as SiteProjection[];
+// Astro emits 404.html, not /404/index.html. Switch to the target home there.
+const pathname = /\/404(?:\.html)?\/?$/.test(Astro.url.pathname) ? "/" : Astro.url.pathname;
+const routeMode = import.meta.env.BASE_URL === "/" ? "single" : "matrix";
+const regionOrder: Region[] = ["global"];
+const regionLabels: Record<Region, string> = {
+  global: ui.regionGlobal
+};
+const regionShortLabels: Record<Region, string> = {
+  global: "GLOBAL"
+};
+const localeLabels: Record<Locale, string> = {
+  "zh-CN": ui.localeZhCN,
+  "zh-TW": ui.localeZhTW,
+  ja: ui.localeJa,
+  en: ui.localeEn
+};
+const regionTargets = regionOrder
+  .map((region) =>
+    chooseProjection(projections, region, current.locale)
+  )
+  .filter((item): item is SiteProjection => Boolean(item));
+const localeTargets = projections.filter(
+  (item) =>
+    item.contentReleaseId === current.contentReleaseId &&
+    item.region === current.region &&
+    item.channel === current.channel
+);
+---
+
+<details class="context-switcher">
+  <summary aria-label={ui.contextSwitch}>
+    <span>{regionShortLabels[current.region]}</span>
+    <strong>{localeLabels[current.locale]}</strong>
+  </summary>
+  <div class="context-switcher__panel">
+    <section aria-labelledby="region-switcher-label">
+      <small id="region-switcher-label">{ui.contextRegion} / REGION</small>
+      <div class="context-switcher__options">
+        {regionTargets.map((target) => {
+          const href = projectionSwitchHref(
+            pathname,
+            current,
+            target,
+            routeMode
+          );
+          return href ? (
+            <a
+              href={href}
+              aria-current={target.region === current.region ? "true" : undefined}
+            >
+              {regionLabels[target.region]}
+            </a>
+          ) : (
+            <span aria-disabled="true">{regionLabels[target.region]}</span>
+          );
+        })}
+      </div>
+    </section>
+    <section aria-labelledby="locale-switcher-label">
+      <small id="locale-switcher-label">{ui.contextLocale} / LOCALE</small>
+      <div class="context-switcher__options">
+        {localeTargets.map((target) => {
+          const href = projectionSwitchHref(
+            pathname,
+            current,
+            target,
+            routeMode
+          );
+          return href ? (
+            <a
+              href={href}
+              lang={target.locale}
+              aria-current={target.locale === current.locale ? "true" : undefined}
+            >
+              {localeLabels[target.locale]}
+            </a>
+          ) : (
+            <span lang={target.locale} aria-disabled="true">
+              {localeLabels[target.locale]}
+            </span>
+          );
+        })}
+      </div>
+    </section>
+  </div>
+</details>

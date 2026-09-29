@@ -1,0 +1,12 @@
+environmentId = "global-staging"
+region = "global"
+channel = "staging"
+enabled = false
+activationState = "external_gate"
+gateReason = "global_remote_protocol_unverified"
+clientBuildRef = "global-staging-android-12-ffb65618fc0daff8"
+clientGeneration = "unity6000-il2cpp39-v1"
+adapter = "protocol_pending"
+allowedHosts = ["offline.invalid"]
+authProfileRef = "global-staging-pending"
+pollIntervalSeconds = 900

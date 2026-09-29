@@ -1,0 +1,44 @@
+{
+  "exportTime": "2026-08-05T00:00:00Z",
+  "mapIndex": 1,
+  "countX": 4,
+  "countY": 4,
+  "startPosition": {"x": -300, "y": 0},
+  "tileSize": {"x": 100, "y": 100},
+  "mapHDir": {"x": 0.894427, "y": -0.447214},
+  "mapVDir": {"x": 0.894427, "y": 0.447214},
+  "tiles": [
+    {"idx": 0, "walkable": 1, "editable": 0, "center": {"x": -300, "y": 0}},
+    {"idx": 1, "walkable": 1, "editable": 1, "center": {"x": -200, "y": 0}},
+    {"idx": 2, "walkable": 1, "editable": 1, "center": {"x": -100, "y": 0}},
+    {"idx": 3, "walkable": 1, "editable": 1, "center": {"x": 0, "y": 0}},
+    {"idx": 4, "walkable": 1, "editable": 1, "center": {"x": -300, "y": 100}},
+    {"idx": 5, "walkable": 1, "editable": 1, "center": {"x": -200, "y": 100}},
+    {"idx": 6, "walkable": 1, "editable": 1, "center": {"x": -100, "y": 100}},
+    {"idx": 7, "walkable": 1, "editable": 1, "center": {"x": 0, "y": 100}},
+    {"idx": 8, "walkable": 1, "editable": 1, "center": {"x": -300, "y": 200}},
+    {"idx": 9, "walkable": 1, "editable": 1, "center": {"x": -200, "y": 200}},
+    {"idx": 10, "walkable": 1, "editable": 1, "center": {"x": -100, "y": 200}},
+    {"idx": 11, "walkable": 1, "editable": 1, "center": {"x": 0, "y": 200}},
+    {"idx": 12, "walkable": 1, "editable": 1, "center": {"x": -300, "y": 300}},
+    {"idx": 13, "walkable": 1, "editable": 1, "center": {"x": -200, "y": 300}},
+    {"idx": 14, "walkable": 1, "editable": 1, "center": {"x": -100, "y": 300}},
+    {"idx": 15, "walkable": 1, "editable": 1, "center": {"x": 0, "y": 300}}
+  ],
+  "marketLeftTop": 12,
+  "storeSizeX": 2,
+  "storeSizeY": 2,
+  "warehouseConfigId": 1003,
+  "warehouseTileIndex": 12,
+  "deliveryStartTile": 3,
+  "outdoorWalkableTiles": [0, 1, 2, 3],
+  "outdoorsUnEditableTiles": [0],
+  "npcBirthPointTiles": [0],
+  "npcDiePointTiles": [3],
+  "editableObjects": [
+    {"_id": 9001, "_mapObjType": 2, "_mapObjSubType": 1, "_configID": 200, "_mapIndex": 1, "_tIdx": 9, "_forward": 0, "_appIndex": 0, "_mallItems": [], "_children": [], "_parent": 0}
+  ],
+  "staticObjects": [
+    {"_id": 8001, "_configId": 1001, "_tileIndex": 0, "_forward": 0}
+  ]
+}

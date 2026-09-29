@@ -1,0 +1,7 @@
+server {
+    listen 127.0.0.1:__MONITOR_PORT__;
+    server_name localhost;
+    root /var/lib/ournotes-monitor/report;
+    location / { try_files $uri $uri/ /index.html =404; }
+    access_log off;
+}

@@ -1,0 +1,56 @@
+# Query Service image — a minimal Python runtime that exposes
+# ``backend.app:create_app_from_environment`` over FastAPI + Uvicorn. The image MUST NOT include
+# JavaScript runtimes, media transcoders, the Astro site, raw Master
+# data, APK artefacts, secrets or phone dumps; the only application
+# code shipped is ``backend/`` and the locked ``requirements-query.txt``.
+
+ARG PYTHON_BASE_IMAGE=python:3.11-slim-bookworm
+FROM ${PYTHON_BASE_IMAGE} AS runtime-base
+
+ENV DEBIAN_FRONTEND=noninteractive \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1
+
+RUN apt-get update \
+    && apt-get install --yes --no-install-recommends \
+        ca-certificates \
+        tini \
+    && rm -rf /var/lib/apt/lists/*
+
+# Non-root runtime account. The user owns nothing in the image so the
+# Query Service cannot write to its own image layers.
+RUN groupadd --system --gid 10001 ournotes-query \
+    && useradd --system --uid 10001 --no-create-home --gid ournotes-query ournotes-query
+
+WORKDIR /app
+
+FROM runtime-base AS python-deps
+
+COPY requirements-query.txt ./
+RUN pip install --requirement requirements-query.txt
+
+FROM python-deps AS query
+
+# Application code: only ``backend/`` (which contains the migrations).
+COPY --chown=ournotes-query:ournotes-query backend ./backend
+COPY --chown=ournotes-query:ournotes-query backend/migrations ./backend/migrations
+
+# The image never carries raw Master, APK, phone_dump or site media.
+# The same ``.dockerignore`` used by the worker image excludes those
+# patterns from the build context.
+
+ENV OURNOTES_DATA_ROOT=/data \
+    OURNOTES_QUERY_HOST=127.0.0.1 \
+    OURNOTES_QUERY_PORT=8090
+
+USER ournotes-query
+
+EXPOSE 8090
+
+# ``tini`` keeps the single uvicorn worker responsive to signals so
+# systemd ``Restart=on-failure`` behaves predictably.
+ENTRYPOINT ["/usr/bin/tini", "--"]
+
+CMD ["uvicorn", "backend.app:create_app_from_environment", "--factory", "--host", "0.0.0.0", "--port", "8090", "--workers", "1"]

@@ -1,0 +1,36 @@
+---
+import { activeReleaseContext } from '../lib/release-context';
+import '../styles/filter-drawer.css';
+interface Props { title: string; count: number; noun: string; controls?: boolean; }
+const { title, count, noun, controls=false } = Astro.props;
+const en = activeReleaseContext.locale === 'en';
+const id = `filter-drawer-${crypto.randomUUID()}`;
+---
+
+<filter-drawer class="filter-panel filter-panel--drawer" data-result-noun={noun} data-selection-controls={controls ? '' : undefined}>
+  <button class="filter-drawer-trigger" type="button" data-drawer-open aria-haspopup="dialog" aria-expanded="false" aria-controls={id}>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M4 7h7m4 0h5M4 17h3m4 0h9"/><circle cx="13" cy="7" r="2"/><circle cx="9" cy="17" r="2"/></svg>
+    <span>{en ? 'Filters' : '筛选'}</span><b data-panel-count hidden>0</b>
+  </button>
+  <dialog id={id} class="filter-drawer-dialog" aria-labelledby={`${id}-title`} aria-describedby={`${id}-hint`}>
+    <header class="filter-drawer-header">
+      <div><h2 id={`${id}-title`}>{title}</h2><p id={`${id}-hint`}>{en ? 'Results update as you choose.' : '按条件查找，结果即时更新'}</p></div>
+      <button class="filter-drawer-close" type="button" data-drawer-close aria-label={en ? 'Close filters' : '关闭筛选'} autofocus>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg>
+      </button>
+    </header>
+    <div class="filter-panel-body filter-drawer-body"><slot /></div>
+    <footer class="filter-drawer-footer">
+      <button type="button" class="filter-drawer-reset" data-drawer-reset>{en ? 'Clear filters' : '清除筛选'}</button>
+      <button type="button" class="filter-drawer-results" data-drawer-close>
+        <span>{en ? 'View' : '查看'}</span>
+        <span data-drawer-result aria-live="polite" aria-atomic="true">{count} {noun}</span>
+        <span aria-hidden="true">→</span>
+      </button>
+    </footer>
+  </dialog>
+</filter-drawer>
+
+<script>
+  import '../lib/filter-drawer.mjs';
+</script>

@@ -1,0 +1,13 @@
+[Unit]
+Description=Aggregate and render OurNotes traffic logs
+After=nginx.service
+
+[Service]
+Type=oneshot
+Nice=10
+IOSchedulingClass=idle
+ExecStart=/usr/bin/python3 /usr/local/lib/ournotes-monitor/collect.py --config /etc/ournotes-monitor/monitor.toml
+ExecStart=/usr/bin/python3 /usr/local/lib/ournotes-monitor/render.py --config /etc/ournotes-monitor/monitor.toml
+MemoryMax=192M
+NoNewPrivileges=true
+PrivateTmp=true

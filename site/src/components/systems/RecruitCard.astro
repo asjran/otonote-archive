@@ -1,0 +1,21 @@
+---
+import { catalog, getAsset, getCharacter } from "../../lib/catalog";
+import CardRarityBadge from "../CardRarityBadge.astro";
+import CardAttributeBadge from "../CardAttributeBadge.astro";
+import { systemHref, say } from "../../lib/system-display";
+interface Props { id: number; kind: number; pickup?: boolean; rate?: number; compact?: boolean; }
+const { id, kind, pickup, rate, compact } = Astro.props;
+const card = (kind === 2 ? catalog.memberCards : catalog.supportCards).find(c => c.masterId === id);
+const art = card ? getAsset(card.thumbnailAssetId ?? card.primaryAssetId) : undefined;
+const title = card ? ("subtitle" in card ? card.subtitle : "description" in card ? card.description : "") || card.displayName : `#${id}`;
+---
+{card && <a class:list={["recruit-card", { "recruit-card--snap": kind === 3, "recruit-card--compact": compact }]} title={card.displayName} href={systemHref(`/cards/${kind === 2 ? "members" : "supports"}/${card.id}/`)}>
+  <div class="recruit-card-art">
+    {art && <img src={art.thumbnailUrl || art.previewUrl} alt="" loading="lazy" />}
+    {pickup && <span class="recruit-up">UP</span>}
+  </div>
+  <div class="recruit-card-badges"><CardRarityBadge rarity={card.rarity} compact /><CardAttributeBadge code={card.attributeCode} compact iconOnly /></div>
+  <strong>{compact && "characterId" in card ? getCharacter(card.characterId)?.displayName : title}</strong>
+  {!compact && "characterId" in card && <small>{getCharacter(card.characterId)?.displayName}</small>}
+  {!!rate && <small class="recruit-rate">{say("UP 固定配置", "UP fixed configuration")} {rate / 100}%</small>}
+</a>}

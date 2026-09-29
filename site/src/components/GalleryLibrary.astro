@@ -1,0 +1,73 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import FilterPanel from './FilterPanel.astro';
+import PaginationControls from './PaginationControls.astro';
+import SourceDisclosure from './SourceDisclosure.astro';
+import { gallery } from '../lib/gallery';
+import { activeReleaseContext } from '../lib/release-context';
+import { siteHref } from '../lib/site-context';
+import '../styles/gallery.css';
+interface Props { kind: 'comics' | 'stamps' | 'decorations' }
+const { kind } = Astro.props;
+const en = activeReleaseContext.locale === 'en';
+const say = (zh: string, english: string) => en ? english : zh;
+const comic = kind === 'comics';
+const decorations = kind === 'decorations';
+const title = comic ? say('漫画', 'Comics') : decorations ? say('名片装饰', 'Profile decorations') : say('表情', 'Stamps');
+const intro = comic ? say('加载间隙的小小日常，把每一格故事慢慢看完。', 'Little moments between songs. Take your time with every panel.') : decorations ? say('用贴纸与背景，装点属于你的个人名片。', 'Decorate your profile card with stickers and backgrounds.') : say('聊天与多人演出中的小小回应，用表情传递每一种心情。', 'Express yourself in chats and multiplayer performances.');
+const entries = decorations ? [...gallery.stickers, ...gallery.backgrounds] : gallery[kind];
+const href = (path: string) => import.meta.env.BASE_URL === '/' ? path : siteHref(path, activeReleaseContext);
+const categories: Record<string, string> = { '1': say('角色表情', 'Character stamps'), '2': say('文字表情', 'Text stamps'), '3': say('其他表情', 'Other stamps'), stickers: say('名片贴纸', 'Profile stickers'), backgrounds: say('名片背景', 'Profile backgrounds') };
+const modules = [{kind:'comics', path:'/comics/', title:say('漫画','Comics')}, {kind:'stamps', path:'/stamps/', title:say('表情','Stamps')}, {kind:'decorations', path:'/profile-decorations/', title:say('名片装饰','Profile decorations')}];
+const missingCount = entries.filter(e => e.status === 'missing').length;
+const names = new Map(gallery.characters.map(c => [c.id, c.name]));
+const bands = new Map(gallery.bands.map(b => [b.id, b.name]));
+const categoryIds = [...new Set(entries.map(e => e.category))];
+---
+<BaseLayout title={title} description={intro}>
+  <div class="content-shell gallery-library" data-gallery data-filter-scope data-kind={kind}>
+    <header class="gallery-heading"><div><p class="gallery-eyebrow">{comic ? 'COMIC ARCHIVE' : decorations ? 'PROFILE DECORATIONS' : 'STAMP COLLECTION'}</p><h1>{title}<span>{entries.length}</span></h1><p>{intro}</p></div><nav class="gallery-siblings" aria-label={say('其他图集','Other galleries')}>{modules.filter(m=>m.kind !== kind).map(m=><a class="gallery-sibling" href={href(m.path)}>{m.title} ↗</a>)}</nav></header>
+    {entries.length ? <>
+      {decorations && <nav class="gallery-categories" aria-label={say('名片装饰分类','Decoration categories')}>
+        {(['stickers','backgrounds'] as const).map(category => <a href={`?category=${category}`} data-gallery-category={category} aria-current={category === 'stickers' ? 'true' : undefined}><span>{categories[category]}</span><b>{gallery[category].length}</b></a>)}
+      </nav>}
+      {missingCount > 0 && <p class="gallery-availability">{say(`收录 ${gallery.stickers.length} 张贴纸（${gallery.stickers.filter(e=>e.status === 'available').length} 张有图）与 ${gallery.backgrounds.length} 张背景；${missingCount} 项暂无资源。`, `${gallery.stickers.length} stickers (${gallery.stickers.filter(e=>e.status === 'available').length} with images) and ${gallery.backgrounds.length} backgrounds; ${missingCount} image unavailable.`)}</p>}
+      <form class="gallery-filters" data-gallery-form>
+        <label class="gallery-search"><span class="sr-only">{say('搜索', 'Search')}</span><input type="search" name="q" placeholder={comic ? say('搜索角色、乐队或漫画编号', 'Search character, band or comic number') : decorations ? say('搜索装饰名称、角色或编号', 'Search decoration, character or number') : say('搜索表情名称、角色或编号', 'Search stamp, character or number')} autocomplete="off" /></label>
+        {decorations && <select name="category" hidden aria-label={say('装饰分类','Decoration category')}><option value="stickers" selected>{categories.stickers}</option><option value="backgrounds">{categories.backgrounds}</option></select>}
+        <FilterPanel drawer title={say('筛选', 'Filters')} count={entries.length} noun={title}>
+          <div class="gallery-filter-groups">
+            {!comic && !decorations && <label><span>{say('表情类型', 'Stamp type')}</span><select name="category" multiple data-inline-filter><option value="all">{say('全部类型', 'All types')}</option>{categoryIds.map(id => <option value={id}>{categories[id] ?? id}</option>)}</select></label>}
+            <label><span>{say('乐队', 'Band')}</span><select name="band" multiple data-inline-filter><option value="all">{say('全部乐队', 'All bands')}</option>{gallery.bands.map(b => <option value={b.id}>{b.name}</option>)}</select></label>
+            <label><span>{say('角色', 'Character')}</span><select name="character" multiple data-inline-filter><option value="all">{say('全部角色', 'All characters')}</option>{gallery.characters.map(c => <option value={c.id}>{c.name}</option>)}</select></label>
+          </div>
+        </FilterPanel>
+      </form>
+      <div class="result-bar gallery-result"><span aria-live="polite"><b data-gallery-count data-filter-count>{entries.length}</b> {comic ? say('篇漫画', 'comics') : decorations ? say('项装饰', 'decorations') : say('个表情', 'stamps')}</span><span>{say('点击图片查看大图', 'Select an image to enlarge')}</span><button type="button" data-gallery-clear data-filter-reset>{say('清除筛选', 'Clear filters')}</button></div>
+      <div class="gallery-grid">
+        {entries.map((entry, index) => {
+          const cast = entry.characterIds.map(id => names.get(id)).join(' / ');
+          const band = entry.bandIds.map(id => bands.get(id)).join(' / ');
+          return <article class="gallery-card" data-gallery-card data-id={entry.id} data-media-type={entry.mediaType} data-category={entry.category} data-band={entry.bandIds.join(',')} data-character={entry.characterIds.join(',')} data-search={`${entry.id} ${String(entry.id).padStart(3, '0')} ${entry.title} ${cast} ${band}`}>
+            {entry.image && entry.thumbnail ? <a class="gallery-art" href={href(entry.image)} data-gallery-open data-title={entry.title} data-meta={`${cast || categories[entry.category]} · ${entry.width} × ${entry.height}`} aria-label={`${say('查看', 'View')} ${entry.title}`}>
+              <img src={href(entry.thumbnail)} alt={entry.title} width={entry.width ?? undefined} height={entry.height ?? undefined} loading={index < 6 ? 'eager' : 'lazy'} decoding="async" />
+              <span class="gallery-enlarge" aria-hidden="true">↗</span>
+            </a> : <div class="gallery-art gallery-missing"><span aria-hidden="true">◇</span><strong>{say('资源缺失','Image unavailable')}</strong><small>{say('已收录相关资料，图片暂未收录','The entry is listed, but its image is not yet available')}</small></div>}
+            <div class="gallery-card-copy"><div class="gallery-card-meta"><span>{comic ? band : categories[entry.category]}</span><span>#{String(entry.id).padStart(3, '0')}</span></div><h2>{entry.title}</h2>{!comic && cast && <p>{cast}</p>}</div>
+          </article>;
+        })}
+      </div>
+      <div class="gallery-empty" data-gallery-empty hidden><h2>{say('没有找到符合条件的内容', 'No matching results')}</h2><p>{say('换个关键词，或清除筛选再试试。', 'Try another keyword or clear your filters.')}</p><button type="button" data-gallery-clear>{say('清除筛选', 'Clear filters')}</button></div>
+      <PaginationControls defaultPageSize={comic ? 12 : 24} />
+    </> : <p class="gallery-empty">{say('当前版本尚无可用图片。', 'No images are available for this version.')}</p>}
+    <SourceDisclosure><p>{say('图片来自游戏，按角色和内容分类整理。图片保留原有比例、透明背景及其中的文字，不另作翻译。', 'Images come from the game and are organized by character and content. Original proportions, transparent backgrounds and text are preserved; text within images is not translated.')}</p><p>{say('部分图片尚未收录，页面会作出提示。收录内容可能与游戏最新内容有所差异。', 'Images that are not yet available are marked on the page. This collection may differ from the latest game content.')}</p></SourceDisclosure>
+    <dialog class="gallery-viewer" aria-labelledby="gallery-viewer-title" data-gallery-viewer>
+      <header><div><h2 id="gallery-viewer-title" data-viewer-title></h2><p data-viewer-meta></p></div><button type="button" data-viewer-close aria-label={say('关闭大图', 'Close image')}>×</button></header>
+      <div class="gallery-viewer-stage"><img data-viewer-image alt="" /></div>
+      <footer><button type="button" data-viewer-prev>{say('上一张', 'Previous')}</button><button type="button" data-viewer-zoom aria-pressed="false">{say('原始尺寸', 'Original size')}</button><a data-viewer-download download>{say('下载 PNG', 'Download PNG')} ↓</a><button type="button" data-viewer-next>{say('下一张', 'Next')}</button></footer>
+    </dialog>
+  </div>
+</BaseLayout>
+<script>
+  import '../lib/gallery-browser';
+</script>

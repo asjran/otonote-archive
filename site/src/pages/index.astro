@@ -1,0 +1,152 @@
+---
+import { siteDescription } from "../lib/site-brand.mjs";
+import GalleryEntrypoints from '../components/GalleryEntrypoints.astro';
+import HomeImmersiveHero from '../components/HomeImmersiveHero.astro';
+import HomeBirthdays from '../components/HomeBirthdays.astro';
+import SourceDisclosure from "../components/SourceDisclosure.astro";
+import ArchiveImage from "../components/ArchiveImage.astro";
+import CardRarityBadge from "../components/CardRarityBadge.astro";
+import CardAttributeBadge from "../components/CardAttributeBadge.astro";
+import BaseLayout from "../layouts/BaseLayout.astro";
+import { catalog, getAsset, getCharacter, getMusicCharts } from "../lib/catalog";
+import { activeReleaseContext } from "../lib/release-context";
+import { getUi } from "../lib/ui-i18n";
+import { siteHref } from "../lib/site-context";
+import "../styles/home.css";
+import { recentReleases, releaseTimestamp, releaseDateLabel } from "../lib/recent-releases.mjs";
+const en = activeReleaseContext.locale === "en";
+const href = (path: string) => import.meta.env.BASE_URL === "/" ? path : siteHref(path, activeReleaseContext);
+const entries = [
+  { href: "/catalog/", title: en ? "Characters & cards" : "角色与卡牌", text: en ? "Members, snaps & growth" : "成员、留影与养成", count: `${catalog.characters.length} / ${catalog.memberCards.length + catalog.supportCards.length}` },
+  { href: "/music/", title: en ? "Music & charts" : "歌曲与谱面", text: en ? "Songs, difficulty & charts" : "曲目、难度与谱面", count: String(catalog.musicTracks.length) },
+  { href: "/tools/deck-builder/", title: en ? "Team builder" : "编成与比较", text: en ? "Build and compare teams" : "编辑队伍、比较属性", count: "" },
+  { href: "/tools/", title: en ? "Scoring tools" : "计分与攻略", text: en ? "Calculators & score analysis" : "分数估算、攻略工具", count: "" }
+];
+const now = Date.now();
+const shortcutIcons = [
+  'M7 4h12v16H7z M3 7v13a3 3 0 0 0 3 3 M10 8h6 M10 12h6 M10 16h3',
+  'M9 18V5l11-2v13 M9 8l11-2 M9 18a3 3 0 1 1-3-3c1.7 0 3 1.3 3 3 M20 16a3 3 0 1 1-3-3c1.7 0 3 1.3 3 3',
+  'M4 6h16 M4 12h16 M4 18h16 M8 3v6 M16 9v6 M10 15v6',
+  'M4 3v17h17 M8 16v-4 M13 16V8 M18 16V5'
+];
+const cards = recentReleases([...catalog.memberCards].sort((a,b) => b.rarity-a.rarity), now);
+const recentSnaps = recentReleases(catalog.supportCards, now, 2);
+const initialSnapDate = Math.min(...catalog.supportCards.map(card => releaseTimestamp(card.startAt) ?? Infinity));
+const newSnaps = recentSnaps.filter(card => (releaseTimestamp(card.startAt) ?? 0) > initialSnapDate);
+const tracks = recentReleases(catalog.musicTracks, now, 8);
+const heroCard = catalog.supportCards.find(card => card.masterId === 61);
+const heroArt = getAsset(heroCard?.thumbnailAssetId);
+const upcomingTracks = catalog.musicTracks.filter(track => (releaseTimestamp(track.startAt) ?? 0) > now)
+  .sort((a,b) => releaseTimestamp(a.startAt)! - releaseTimestamp(b.startAt)!).slice(0,3);
+const sameMemberBatch = new Set(catalog.memberCards.map(card=>card.startAt)).size === 1;
+---
+<BaseLayout description={siteDescription(activeReleaseContext.locale)}>
+  <div class="content-shell home-dashboard" data-copy-layer="primary">
+    <script is:inline>
+      document.documentElement.dataset.home = new URLSearchParams(location.search).get('home') === 'immersive' ? 'immersive' : 'original';
+    </script>
+    <nav class="home-scene-switch" aria-label={en ? 'Homepage appearance preview' : '首页效果对比'}><a href={href('/')} data-home-mode="original">{en ? 'Original' : '原版首页'}</a><a href={`${href('/')}?home=immersive`} data-home-mode="immersive">{en ? 'Immersive preview' : '沉浸式预览'}</a></nav>
+    <HomeImmersiveHero />
+    <header class="home-intro home-intro--illustrated">
+      {heroArt && <div class="home-hero-art"><ArchiveImage asset={heroArt} alt="BanG Dream! Our Notes 乐队成员主视觉" eager /><a href={href(`/cards/supports/${heroCard!.id}/`)}>{en ? "Explore the artwork" : "查看这张留影"}</a></div>}
+      <div class="home-hero-copy">
+        <img class="home-hero-mark" src={href("/brand/ournotes-mark.svg")} width="42" height="42" alt="" />
+        <p class="home-kicker">OTONOTE / {en ? "PLAYER ARCHIVE" : "玩家资料站"}</p>
+        <h1>{en ? "Your next stage starts here." : "下一场演出，从这里开始。"}</h1>
+        <p class="home-description">{en ? "Find a card, explore a song, and put your next team together." : "收集每一次心动，记录每一段旋律。"}</p><div class="home-hero-actions"><a href={href("/music/")}>{en ? "Explore songs" : "探索歌曲"}</a><a href={href("/cards/members/")}>{en ? "Browse cards" : "浏览卡牌"} →</a></div>
+      </div>
+      <a class="home-version" href={href("/updates/")}>
+        <span class="home-version-dot" aria-hidden="true"></span>
+        <span>{activeReleaseContext.region.toUpperCase()} · {catalog.release.versionName}<small>{catalog.release.channel === "production" ? (en ? "Production data" : "正式服资料") : (en ? "Test data" : "测试版资料")}</small></span>
+
+      </a>
+    </header>
+
+    <HomeBirthdays />
+
+    <nav class="home-shortcuts home-shortcuts--illustrated" aria-label={en ? "Quick access" : "快捷入口"}>
+      {entries.map((entry, index) => <a href={href(entry.href)}><span class="home-shortcut-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d={shortcutIcons[index]} /></svg></span><span class="home-shortcut-copy"><span class="home-shortcut-title">{entry.title}<span aria-hidden="true">{entry.count}</span></span><small>{entry.text}</small></span></a>)}
+    </nav>
+
+    <GalleryEntrypoints />
+    <a class="home-scene-banner" href={href('/immersive/')}>
+      <img src={href('/immersive/thumbnails/10007.webp')} alt="" width="240" height="135" loading="lazy" />
+      <span class="home-scene-copy"><small>MyGO!!!!! <span aria-hidden="true">/</span> {en ? 'ANIMATED SCENES' : '动态场景'}</small><strong>{en ? 'Immersive scenes' : '沉浸式主页'}</strong><span>{en ? 'Browse, play & download scenes' : '浏览场景，播放动态并下载'}</span></span>
+      <span class="home-scene-link">{en ? 'Explore scenes' : '进入场景'}</span>
+    </a>
+
+    <section class="home-event" aria-labelledby="event-heading">
+      <div class="home-event-label"><span aria-hidden="true">○</span><h2 id="event-heading">{en ? "Event updates" : "活动情报"}</h2></div>
+      <p>{en ? "No verified event updates yet." : "暂无已确认的活动情报"}</p>
+      <a href={href("/events/")}>{en ? "View status" : "查看状态"}<span aria-hidden="true"> →</span></a>
+    </section>
+
+    {cards.length > 0 && <section class="home-section" aria-labelledby="home-cards-title">
+      <header class="home-section-heading">
+        <div><p class="home-kicker">CARD COLLECTION</p><h2 id="home-cards-title">{en ? "Recently added cards" : "近期卡牌"}<span>{catalog.memberCards.length}</span></h2></div>
+        <a href={href("/cards/members/")}>{en ? "All member cards" : "全部成员卡"}<span aria-hidden="true"> →</span></a>
+      </header>
+      {newSnaps.length > 0 && <div class="home-new-snaps">{newSnaps.map(card => {
+        const asset = getAsset(card.thumbnailAssetId);
+        return <a href={href(`/cards/supports/${card.id}/`)}>{asset && <ArchiveImage asset={asset} alt="" />}<div><small>{en ? "NEW SNAP" : "新加入的留影"} · {releaseDateLabel(card.startAt)}</small><h3>{card.description || card.name}</h3><p>{card.featuredCharacterIds.map(id=>getCharacter(id)?.displayName).filter(Boolean).join(" · ")}</p></div><span aria-hidden="true">→</span></a>;
+      })}</div>}
+      {sameMemberBatch && <p class="home-section-note">{en ? "Member cards share the same start date in this data version. Showing a selection from that batch." : "当前资料中的成员卡为同批收录，以下优先展示高稀有度成员。"}</p>}
+      <div class="home-card-grid">
+        {cards.map((card) => {
+          const asset = getAsset(card.thumbnailAssetId);
+          const character = getCharacter(card.characterId);
+          return <a class="home-card" href={href(`/cards/members/${card.id}/`)}>
+            <div class="home-card-art">
+              {asset ? <ArchiveImage asset={asset} alt={card.subtitle} /> : <span class="media-missing">{en ? "Preview unavailable" : "暂无预览"}</span>}
+            </div>
+            <div class="home-card-copy"><div class="home-card-taxonomy"><CardRarityBadge rarity={card.rarity} compact /><CardAttributeBadge code={card.attributeCode} compact /></div><h3>{card.subtitle}</h3><p>{character?.displayName ?? card.name}</p></div>
+          </a>;
+        })}
+      </div>
+      <a class="home-secondary-link" href={href("/cards/supports/")}>{en ? "Looking for equipment? Browse snaps" : "为成员搭配装备？浏览留影图鉴"}<span aria-hidden="true"> →</span></a>
+    </section>}
+
+    <section class="home-section" aria-labelledby="home-music-title">
+      <header class="home-section-heading">
+        <div><p class="home-kicker">MUSIC LIBRARY</p><h2 id="home-music-title">{en ? "Recently added songs" : "最近加入的歌曲"}<span>{catalog.musicTracks.length}</span></h2></div>
+        <a href={href("/music/")}>{en ? "All songs" : "全部歌曲"}<span aria-hidden="true"> →</span></a>
+      </header>
+      <div class="home-music-grid">
+        {tracks.map((track) => {
+          const jacket = getAsset(track.jacketAssetId);
+          const expert = getMusicCharts(track.id).find(chart => chart.difficulty === 'expert');
+          const gekisouCounts = (['just', 'combo', 'luck'] as const).map(type => ({
+            type,
+            count: (track.gekisouMissions ?? []).filter(mission => mission.type === type).length
+          })).filter(mission => mission.count > 0);
+          return <a class="home-track" href={href(`/music/${track.id}/`)}>
+            <div class="home-track-art">{jacket ? <ArchiveImage asset={jacket} alt={track.title} /> : <span aria-hidden="true">♪</span>}</div>
+            <div class="home-track-copy">
+              <h3 title={track.title}>{track.title}</h3>
+              <div class="home-track-ex" aria-label={en ? 'Expert difficulty' : 'EX 难度'}>EX <strong>{expert?.displayLevel ?? '—'}</strong></div>
+              {gekisouCounts.length > 0 && <div class="home-track-gekisou" aria-label={en ? 'Gekisou type counts' : '激奏类型数量'}>
+                {gekisouCounts.map(({type, count}) => <span data-type={type} title={`${type.toUpperCase()} ×${count}`} aria-label={`${type.toUpperCase()} ×${count}`}>{type[0].toUpperCase()}×{count}</span>)}
+              </div>}
+            </div>
+            <time class="home-track-date" datetime={releaseDateLabel(track.startAt)}>{releaseDateLabel(track.startAt).slice(5)}</time>
+          </a>;
+        })}
+      </div>
+      {upcomingTracks.length > 0 && <div class="home-upcoming"><span>{en ? "Coming next" : "即将加入"}</span>{upcomingTracks.map(track=><a href={href(`/music/${track.id}/`)}>{track.title}<time datetime={releaseDateLabel(track.startAt)}>{releaseDateLabel(track.startAt).slice(5)}</time></a>)}</div>}
+      <p class="home-section-note">{en ? "Sorted by the data version’s start time (UTC+8)." : "按当前资料中的开放时间排序（UTC+8）。"}</p>
+      {tracks.length === 0 && <p>{en ? "No songs in this data version yet." : "当前资料版本暂无歌曲。"}</p>}
+    </section>
+
+    <section class="home-workbench" aria-labelledby="home-workbench-title">
+      <div class="home-workbench-intro">
+        <span class="home-workbench-icon" aria-hidden="true"><svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><rect x="10" y="5" width="14" height="21" rx="2" /><path d="M7 10H5a2 2 0 0 0-2 2v15a2 2 0 0 0 2 2h11 M14 11h6 M14 16h6 M14 21h3" /></svg></span>
+        <div><h2 id="home-workbench-title">{en ? 'Team tools' : '配队工具'}</h2><p>{en ? 'Choose members and snaps, compare stats and estimate scores.' : '选择成员与留影，比较属性和预估分数。'}</p></div>
+      </div>
+      <div class="home-workbench-actions">
+        <a class="home-workbench-primary" href={href('/tools/deck-builder/')}>{en ? 'Build a team' : '开始编成'}</a>
+        <a href={href('/tools/song-calculator/')}>{en ? 'Score calculator' : '分数计算'}</a>
+      </div>
+    </section>
+    <SourceDisclosure><p>{getUi(activeReleaseContext.locale).siteSourceNote}</p></SourceDisclosure>
+  </div>
+</BaseLayout>

@@ -1,0 +1,69 @@
+---
+import AnonTokyoHeader from "./AnonTokyoHeader.astro";
+
+interface Props { dataset: Record<string, any>; stagedMedia: Array<Record<string, string>>; }
+interface Ability { name: string; effect: string; imageKey?: string; roleInclination?: { name: string; reason: string }; }
+interface StaffRecord { id: string; name: string; imageKey?: string; levelLimit?: number; unlock?: string; abilities: Ability[]; }
+const { dataset, stagedMedia } = Astro.props;
+const records = dataset.records as StaffRecord[];
+const media = new Map(stagedMedia.map((entry) => [entry.logicalKey.toLocaleLowerCase("en-US"), entry.publicUrl]));
+---
+
+<AnonTokyoHeader
+  active="staff"
+  title="角色"
+  description="能力效果与岗位倾向来自明确的能力—岗位关系；这里不生成最佳排班。"
+  count={records.length}
+/>
+
+<main class="at-guide-main" data-at-staff>
+  <div class="content-shell">
+    <div class="at-filter-bar at-filter-bar--staff">
+      <label class="at-filter-search"><span>搜索角色或能力</span><input type="search" placeholder="输入名称、能力或岗位" data-at-query /></label>
+      <strong><b data-at-count>{records.length}</b> 人</strong>
+    </div>
+    <div class="at-staff-grid">
+      {records.map((record) => {
+        const imageUrl = record.imageKey ? media.get(record.imageKey.toLocaleLowerCase("en-US")) : undefined;
+        return <article class="at-staff-card" data-at-record data-search={JSON.stringify(record).toLocaleLowerCase("zh-CN")}>
+          <div class="at-staff-card__lead">
+            {imageUrl ? <img class="at-staff-card__image" src={imageUrl} alt="" loading="lazy" decoding="async" /> : <span class="at-staff-card__image at-image-fallback" aria-hidden="true">{record.name.slice(0, 1)}</span>}
+            <header><span>{record.levelLimit ? `等级限制 ${record.levelLimit}` : "初始可用"}</span><h2>{record.name}</h2>{record.unlock && <p>{record.unlock}</p>}</header>
+          </div>
+          <div class="at-ability-list">
+            {record.abilities.map((ability) => {
+              const imageUrl = ability.imageKey ? media.get(ability.imageKey.toLocaleLowerCase("en-US")) : undefined;
+              return (
+                <div class="at-ability">
+                  {imageUrl ? <img src={imageUrl} alt="" loading="lazy" /> : <span class="at-ability__fallback" aria-hidden="true">+</span>}
+                  <div><strong>{ability.name} <b>{ability.effect}</b></strong>{ability.roleInclination && <p><span>{ability.roleInclination.name}</span>{ability.roleInclination.reason}</p>}</div>
+                </div>
+              );
+            })}
+          </div>
+          <a href={`/anontokyo/staff/${record.id}/`}>查看角色资料</a>
+        </article>;
+      })}
+    </div>
+    <p class="at-empty" data-at-empty hidden>没有符合条件的角色。</p>
+  </div>
+</main>
+
+<script>
+  for (const root of document.querySelectorAll("[data-at-staff]")) {
+    const query = root.querySelector("[data-at-query]");
+    const records = Array.from(root.querySelectorAll<HTMLElement>("[data-at-record]"));
+    query?.addEventListener("input", () => {
+      const q = query instanceof HTMLInputElement ? query.value.trim().toLocaleLowerCase("zh-CN") : "";
+      let visible = 0;
+      for (const record of records) {
+        const matches = !q || (record.dataset.search ?? "").includes(q);
+        record.toggleAttribute("hidden", !matches);
+        if (matches) visible += 1;
+      }
+      const count = root.querySelector("[data-at-count]");
+      if (count) count.textContent = String(visible);
+      root.querySelector("[data-at-empty]")?.toggleAttribute("hidden", visible !== 0);
+    });
+  }
+</script>

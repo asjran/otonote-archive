@@ -1,0 +1,25 @@
+[Unit]
+Description=OurNotes restricted resource task API
+After=network.target
+
+[Service]
+User=ournotes-node-api
+Group=ournotes-node
+WorkingDirectory=/opt/ournotes
+Environment=PYTHONDONTWRITEBYTECODE=1
+EnvironmentFile=/etc/ournotes-admin/node.env
+ExecStart=/opt/ournotes/.venv/bin/python -m backend.admin node --config /etc/ournotes-admin/node.json
+Restart=on-failure
+RestartSec=5
+ReadWritePaths=/var/lib/ournotes-node
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+IPAddressDeny=any
+IPAddressAllow=localhost
+MemoryMax=128M
+UMask=0007
+
+[Install]
+WantedBy=multi-user.target

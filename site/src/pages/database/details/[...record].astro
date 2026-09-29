@@ -1,0 +1,15 @@
+---
+import { gameDatabase, publicSkills, type SkillDefinition, type Item } from "../../../lib/game-database";
+import SkillDetail from "../../../components/database/SkillDetail.astro";
+import ItemDetail from "../../../components/database/ItemDetail.astro";
+export function getStaticPaths() {
+  return [
+    ...publicSkills.map(skill => ({ params: { record: `skills/${skill.id}` }, props: { skill } })),
+    ...gameDatabase.items.map(item => ({ params: { record: `items/${item.id}` }, props: { item } }))
+  ];
+}
+interface Props { skill?: SkillDefinition; item?: Item }
+const { skill, item } = Astro.props;
+---
+{skill && <SkillDetail skill={skill} />}
+{item && <ItemDetail item={item} />}

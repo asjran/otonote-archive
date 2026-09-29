@@ -1,0 +1,70 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import { catalog, getAsset } from "../../lib/catalog";
+import { activeReleaseContext } from "../../lib/release-context";
+import { getUi } from "../../lib/ui-i18n";
+import "../../styles/catalog-gateway.css";
+
+const ui = getUi(activeReleaseContext.locale);
+const en = activeReleaseContext.locale === "en";
+const say = (zh: string, english: string) => en ? english : zh;
+const href = (path: string) => `${import.meta.env.BASE_URL}${path.replace(/^\//, "")}`;
+const scenes = catalog.supportCards.flatMap(card => {
+  const asset = getAsset(card.primaryAssetId);
+  return asset?.previewUrl && asset.width >= asset.height * 1.4
+    ? [{ id: card.id, title: card.displayName, src: asset.previewUrl, width: asset.width, height: asset.height }]
+    : [];
+});
+const fallbackScene = scenes[0];
+const characterArt = getAsset(catalog.characters[0]?.profileAssetId);
+const memberArt = getAsset(catalog.memberCards[0]?.primaryAssetId);
+const collections = [
+  { title: ui.characters, label: "CHARACTERS", route: "/characters/", count: catalog.characters.length, art: characterArt?.thumbnailUrl || characterArt?.previewUrl, type: "character" },
+  { title: ui.memberCards, label: "MEMBERS", route: "/cards/members/", count: catalog.memberCards.length, art: memberArt?.thumbnailUrl || memberArt?.previewUrl, type: "member" },
+  { title: ui.supportCards, label: "SNAPS", route: "/cards/supports/", count: catalog.supportCards.length, art: fallbackScene?.src, type: "snap" }
+];
+const growth = [
+  { title: ui.skillArchive, route: "/database/skills/", detail: say("效果与触发条件", "Effects & conditions"), icon: "M12 3 4 13h7l-1 8 10-12h-7l1-6Z" },
+  { title: ui.itemArchive, route: "/database/items/", detail: say("材料与获取方式", "Materials & acquisition"), icon: "m12 3 8 5v8l-8 5-8-5V8l8-5Zm0 9v9M4 8l8 4 8-4" },
+  { title: ui.bandItemArchive, route: "/database/band-items/", detail: say("乐器与能力加成", "Instruments & bonuses"), icon: "M9 18V6l11-3v12M9 9l11-3M9 18a3 3 0 1 1-3-3h3M20 15a3 3 0 1 1-3-3h3" },
+  { title: ui.globalSystems, route: "/database/global-systems/", detail: say("等级特典与练习收益", "Rank benefits & practice"), icon: "M4 5h16v14H4V5Zm4 5v4m4-6v8m4-6v4" }
+];
+---
+
+<BaseLayout title={ui.navCatalog} description={say("浏览角色、成员卡与留影，查找技能、道具和养成资料。", "Explore characters, member cards, snaps and growth resources.")}>
+  <div class="catalog-gateway">
+    <header class="gateway-heading"><div><p>OTONOTE / COLLECTION</p><h1>{ui.navCatalog}</h1></div><span>{say("从索引签，翻到你想看的那一页。", "Find your next page in the index tabs.")}</span></header>
+    <div class="archive-desk">
+      <div class="archive-book">
+        <nav class="archive-tabs" aria-label={say("角色与卡牌", "Characters and cards")}>
+          {collections.map(entry => <a class={`gateway-portal archive-tab archive-tab--${entry.type}`} href={href(entry.route)}>
+            <span class="archive-tab-top"><span>{entry.label}</span><span>{entry.count}</span></span>
+            <span class="archive-tab-content">{entry.art && <img src={entry.art} alt="" width="56" height="62" loading="lazy" />}<span>{entry.title}<span class="archive-tab-arrow" aria-hidden="true">↗</span></span></span>
+          </a>)}
+        </nav>
+        <section class="gateway-exhibit" aria-label={say("留影展示", "Featured snap")} data-catalog-scene>
+          <div class="archive-binding" aria-hidden="true"><i></i><i></i><i></i></div>
+          <div class="gateway-paper" data-scene-page>
+          <div class="archive-cover-label"><span>{say("我们的留影册", "Our collection")}</span><span>OTONOTE ARCHIVE</span></div>
+          <div class="gateway-picture">
+            {fallbackScene ? <img data-scene-image src={fallbackScene.src} alt={fallbackScene.title} width={fallbackScene.width} height={fallbackScene.height} fetchpriority="high" decoding="async" /> : <p>{say("当前版本暂无留影", "No snaps in this release")}</p>}
+          </div>
+          <div class="gateway-picture-caption">
+            <div><span>{say("此刻翻到", "ON THIS PAGE")}</span><p data-scene-title aria-live="polite" aria-atomic="true">{fallbackScene?.title}</p></div>
+            <button type="button" hidden aria-label={say("随机换一张留影", "Show another random snap")}><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m17 3 4 4-4 4M3 7h3c5 0 7 10 12 10h3m-4-4 4 4-4 4M3 17h3c5 0 7-10 12-10h3" /></svg><span>{say("翻一页", "Turn a page")}</span></button>
+          </div>
+          </div>
+          <script type="application/json" set:html={JSON.stringify(scenes).replace(/</g, "\u003c")} />
+        </section>
+        <nav class="archive-bookmarks" aria-label={ui.growthArchive}>
+          {growth.map(entry => <a class="gateway-growth-link archive-bookmark" href={href(entry.route)}><svg viewBox="0 0 24 24" aria-hidden="true"><path d={entry.icon} /></svg><span><strong>{entry.title}</strong><small>{entry.detail}</small></span><span class="archive-bookmark-arrow" aria-hidden="true">↗</span></a>)}
+        </nav>
+      </div>
+      <p class="archive-desk-note">{say("侧签查角色与卡牌 · 书签查养成", "Side tabs for characters & cards · Bookmarks for growth")}</p>
+    </div>
+  </div>
+</BaseLayout>
+<script>
+  import { initializeCatalogScene } from "../../lib/catalog-scene.mjs";
+  document.querySelectorAll<HTMLElement>("[data-catalog-scene]").forEach(initializeCatalogScene);
+</script>

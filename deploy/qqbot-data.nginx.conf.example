@@ -1,0 +1,10 @@
+# Include inside the website HTTPS server block; publish immutable objects first.
+location = /data/qqbot/current.json {
+    alias /srv/ournotes/data-api/current.json;
+    add_header Cache-Control "no-cache";
+}
+location ^~ /data/qqbot/ {
+    alias /srv/ournotes/data-api/;
+    add_header Cache-Control "public, max-age=31536000, immutable";
+    autoindex off;
+}

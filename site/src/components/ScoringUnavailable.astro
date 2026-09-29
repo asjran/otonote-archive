@@ -1,0 +1,11 @@
+---
+import { activeReleaseContext } from "../lib/release-context";
+const english = activeReleaseContext.locale === "en";
+---
+<section class="tool-capability" data-scoring-unavailable>
+  <h2>{english ? "Calculation tools are awaiting verification" : "此版本的计算工具待验证"}</h2>
+  <p>{english
+    ? "The game content has been updated. Calculation rules for this version are still being checked; card, song and story data remain available."
+    : "游戏内容已更新，此版本的计算规则仍在核验。卡牌、歌曲和剧情资料可正常浏览。"}</p>
+  <a href="/">{english ? "Browse the updated archive" : "浏览最新资料"}</a>
+</section>

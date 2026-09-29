@@ -1,0 +1,9 @@
+---
+import {catalog,getCardAttribute} from '../lib/catalog';
+import CardAttributeBadge from './CardAttributeBadge.astro';
+const {label='筛选卡片属性'}=Astro.props;
+---
+<div class="compact-attribute-filter" role="group" aria-label={label}>
+  <span>属性</span><button type="button" data-attribute-value="" aria-pressed="true">全部</button>
+  {catalog.cardTaxonomy.attributes.filter(a=>a.code>=1&&a.code<=5).map(a=><button type="button" data-attribute-value={a.code} aria-label={getCardAttribute(a.code)?.names[catalog.release.locale]} aria-pressed="false"><CardAttributeBadge code={a.code} compact /></button>)}
+</div>

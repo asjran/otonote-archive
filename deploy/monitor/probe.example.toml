@@ -1,0 +1,16 @@
+[target]
+base_url = "https://example.invalid"
+
+[paths]
+homepage = "/"
+representative = "/global/zh-CN/music/"
+static = "/_astro/replace-with-current-hashed-asset.js"
+media = "/media/replace-with-current-hashed-preview.m4a"
+
+[thresholds]
+timeout_seconds = 10
+certificate_attention_days = 30
+certificate_incident_days = 7
+
+[output]
+alerts = "/var/lib/ournotes-monitor/alerts.json"

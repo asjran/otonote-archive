@@ -1,0 +1,28 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import ImmersiveScene from '../../components/ImmersiveScene.astro';
+import SourceDisclosure from '../../components/SourceDisclosure.astro';
+import catalog from '../../data/immersive-scenes.json';
+import { activeReleaseContext } from '../../lib/release-context';
+import { siteHref } from '../../lib/site-context';
+export function getStaticPaths() { return catalog.scenes.filter(s => s.assetRoot).map(scene => ({ params: { id: String(scene.id) }, props: { scene } })); }
+const { scene } = Astro.props;
+const en = activeReleaseContext.locale === 'en';
+const say = (zh: string, english: string) => en ? english : zh;
+const href = (path: string) => import.meta.env.BASE_URL === '/' ? path : siteHref(path, activeReleaseContext);
+const name = en ? scene.nameEn : scene.name;
+const band = catalog.bands.find(b => b.id === scene.bandId)!;
+---
+<BaseLayout title={name} description={say('播放沉浸式场景，收藏喜欢的画面与动态。', 'Play an immersive scene and export your favourite frame or animation.')}>
+  <div class="content-shell immersive-library">
+    <header class="immersive-heading"><div><p class="home-kicker">A MOMENT WITH {en ? band.nameEn : band.name}</p><h1>{name}</h1><a href={href('/immersive/')}>← {say(`全部 ${catalog.scenes.length} 个情景`, `All ${catalog.scenes.length} scenes`)}</a></div><label class="immersive-scene-select">{say('切换情景', 'Switch scene')}<select data-immersive-navigate>{catalog.bands.map(b => <optgroup label={en ? b.nameEn : b.name}>{catalog.scenes.filter(s => s.assetRoot && s.bandId === b.id).map(s => <option value={href(`/immersive/${s.id}/`)} selected={s.id === scene.id}>{en ? s.nameEn : s.name}</option>)}</optgroup>)}</select></label></header>
+    <ImmersiveScene scene={scene} />
+    <div class="immersive-notes"><p>{say('拖动画面、调整缩放，或分别查看背景与人物。导出文件不包含网站按钮和文字。', 'Drag to pan, zoom, or view the background and cast separately. Exports contain no website controls or labels.')}</p></div>
+    <SourceDisclosure><p>{say('本情景根据国际服游戏中的背景和角色动作制作。画面视角、人物位置和部分光影效果可能与游戏中不同，点击对话暂不支持。', 'This scene uses backgrounds and character animations from the Global game. Camera views, character placement and some lighting effects may differ from the game. Tap-to-talk dialogue is not supported.')}</p><p>{say('保存图片时会尽量提供高清画质，部分设备上的图片尺寸会较小，放大后不一定更清晰。单独保存人物图片可保留透明背景；录制人物视频时会使用纯色背景。', 'Saved images use high quality where possible, with smaller images on some devices. Enlarging an image may not reveal more detail. Character-only images can have transparent backgrounds; character-only videos use a solid background.')}</p></SourceDisclosure>
+  </div>
+</BaseLayout>
+<script>
+  document.querySelector<HTMLSelectElement>('[data-immersive-navigate]')?.addEventListener('change', event => {
+    location.assign((event.currentTarget as HTMLSelectElement).value);
+  });
+</script>

@@ -1,0 +1,127 @@
+---
+import { catalog, getAsset } from '../lib/catalog';
+import models from '../data/live2d-catalog.json';
+import { activeReleaseContext } from '../lib/release-context';
+import { siteHref } from '../lib/site-context';
+import '../styles/live2d.css';
+interface Props { characterId?: number; compact?: boolean; }
+const { characterId, compact = false } = Astro.props;
+const en = activeReleaseContext.locale === 'en';
+const say = (zh: string, english: string) => en ? english : zh;
+const base = import.meta.env.BASE_URL;
+const href = (path: string) => base === '/' ? path : siteHref(path, activeReleaseContext);
+const validRelease = models.releaseId === activeReleaseContext.contentReleaseId;
+const selectedModels = validRelease ? models.models.filter(m => !characterId || m.characterId === characterId) : [];
+const characters = [
+  ...catalog.characters.filter(c => selectedModels.some(m => m.characterId === c.masterId)).map(c => {
+    const face = c.portraitAssetIds.map(getAsset).find(a => a?.containerPath.endsWith('/character_face_icon.png'));
+    return { id: c.masterId, name: c.displayName, color: c.mainColor || '#77bbdd', category: 'member', aliases: c.aliases,
+      group: c.bandId, groupName: catalog.bands.find(b => b.id === c.bandId)?.displayName || '',
+      portrait: face ? face.thumbnailUrl || face.previewUrl : '' };
+  }),
+  ...((models as { characters?: { id: string; names: Record<string, string>; aliases: string[] }[] }).characters || [])
+    .filter(c => selectedModels.some(m => String(m.characterId) === c.id))
+    .map(c => ({ id: c.id, name: c.names[en ? 'en' : 'zh-CN'] || c.id, color: '#8c98a6', category: 'story', aliases: c.aliases,
+      group: 'story', groupName: say('剧情角色', 'Story characters'), portrait: '' }))
+];
+const payload = { models: selectedModels, characters, characterId, base, en, compact };
+---
+<live2d-workbench class:list={['l2d', { 'l2d--compact': compact }]} data-state="idle">
+  <script is:inline type="application/json" data-l2d-config set:html={JSON.stringify(payload).replace(/</g, '\\u003c')} />
+  <div class="l2d-selected">
+    <div class="l2d-avatar" data-selected-avatar aria-hidden="true"></div>
+    <div class="l2d-selected-copy"><div class="l2d-selected-title"><strong data-selected-name></strong><span data-selected-group></span></div><span data-selected-costume></span></div>
+    <div class="l2d-selection-actions"><button type="button" data-picker-open><svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>{say('切换角色 / 造型', 'Choose character / look')}</button><div class="l2d-cycle" role="group" aria-label={say('切换造型', 'Switch look')}><button type="button" data-costume-prev aria-label={say('上一套造型', 'Previous look')}>‹</button><span data-costume-position></span><button type="button" data-costume-next aria-label={say('下一套造型', 'Next look')}>›</button></div></div>
+  </div>
+  <dialog class="l2d-picker" data-picker aria-label={say('选择角色与造型', 'Choose character and look')}>
+    <header class="l2d-picker-header"><div><span class="l2d-eyebrow">MODEL LIBRARY</span><h2>{say('挑选登场造型', 'Choose a look')}</h2></div><button type="button" data-picker-close aria-label={say('关闭模型选择', 'Close model library')}>✕</button></header>
+    <p class="l2d-picker-tip">{say('先选角色，再点选造型。浏览和搜索时，当前预览会保持不变。', 'Choose a character, then a look. Browsing keeps your current preview unchanged.')}</p>
+    <div class="l2d-picker-body">
+      <section class="l2d-roster" aria-label={say('角色列表', 'Characters')}>
+        <label class="l2d-search-label"><span>{say('查找角色', 'Find character')}</span><input type="search" class="l2d-search" data-character-search aria-label={say('搜索角色', 'Search characters')} placeholder={say('姓名、别名或资源名', 'Name, alias or resource name')} /></label>
+        <div class="l2d-chips" data-character-groups aria-label={say('角色分组', 'Character groups')}></div>
+        <p class="l2d-result-count" data-library-count role="status"></p>
+        <div class="l2d-character-list" data-character-list></div>
+      </section>
+      <section class="l2d-wardrobe" aria-label={say('造型列表', 'Looks')}>
+        <div class="l2d-wardrobe-title"><strong data-browsing-name></strong><span data-costume-count></span></div>
+        <div class="l2d-chips" data-costume-types aria-label={say('造型类型', 'Look types')}></div>
+        <input type="search" class="l2d-search" data-costume-search aria-label={say('搜索造型', 'Search looks')} placeholder={say('搜索校服、眼镜、幼年…', 'Search school, glasses, childhood…')} />
+        <div class="l2d-costume-list" data-costume-list></div>
+      </section>
+    </div>
+  </dialog>
+  <div class="l2d-grid">
+    <div class="l2d-stage-column">
+      <div class="l2d-stage" data-stage data-background="studio">
+        <canvas aria-label={say('Live2D 角色预览，使用下方按钮缩放和复位', 'Live2D preview; use buttons below to zoom and reset')}></canvas>
+        <span class="l2d-stage-tag">LIVE2D <span data-stage-name></span></span>
+        <span class="l2d-state-indicator" data-state-indicator><span class="idle">{say('待加载', 'Ready to load')}</span><span class="loading">{say('下载中', 'Downloading')}</span><span class="initializing">{say('准备中', 'Preparing')}</span><span class="ready">{say('预览中', 'Live preview')}</span><span class="error">{say('加载失败', 'Load failed')}</span></span>
+        <span class="l2d-fps" data-fps></span>
+        <div class="l2d-overlay" data-overlay>
+          <div class="l2d-load-card">
+            <strong data-status role="status" aria-live="polite">{say('选择服装，开始预览', 'Choose a costume to preview')}</strong>
+            <p data-detail>{say('点击后下载模型、纹理、动作与表情。', 'Model, textures, motions and expressions download when you open the preview.')}</p>
+            <progress data-progress max="100" hidden aria-label={say('资源下载进度', 'Resource download progress')}></progress>
+            <div class="l2d-progress-meta" data-progress-text></div>
+            <div class="l2d-load-actions">
+              <button type="button" data-open disabled={selectedModels.length === 0}>{say('加载预览', 'Load preview')}</button>
+              <button type="button" data-cancel hidden>{say('取消', 'Cancel')}</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="l2d-viewbar">
+        <div class="l2d-zoom"><button type="button" data-minus disabled aria-label={say('缩小', 'Zoom out')}>−</button><button type="button" data-fit disabled>{say('视图复位', 'Reset view')}</button><button type="button" data-plus disabled aria-label={say('放大', 'Zoom in')}>＋</button></div>
+        <button type="button" data-close disabled>{say('关闭预览', 'Close preview')}</button>
+        <div class="l2d-backdrops" role="group" aria-label={say('画布背景', 'Canvas background')}>
+          <span>{say('画布背景', 'Canvas background')}</span>
+          <div class="l2d-backdrop-options">{[['studio', say('摄影棚', 'Studio')], ['grid', say('网格', 'Grid')], ['light', say('浅色', 'Light')], ['dark', say('深色', 'Dark')]].map(([value, label]) => <button type="button" data-background-choice={value} aria-pressed={value === 'studio'}><span class="l2d-swatch" data-swatch={value} aria-hidden="true"></span>{label}</button>)}</div>
+        </div>
+      </div>
+      <p class="l2d-hint">{say('拖动平移 · 滚轮缩放 · 切换服装自动取消旧加载', 'Drag to pan · Scroll to zoom · Switching costumes cancels the previous load')}</p>
+      <div class="l2d-export">
+        <button type="button" data-export disabled>{say('导出模型 ZIP', 'Export model ZIP')} <span aria-hidden="true">↓</span></button>
+        <button type="button" data-export-cancel hidden>{say('取消导出', 'Cancel export')}</button>
+        <a data-export-save hidden>{say('保存 ZIP', 'Save ZIP')}</a>
+        <span class="l2d-hint" data-export-status role="status" aria-live="polite">{say('运行时模型包 · 使用资源默认参数', 'Runtime model package · Source defaults')}</span>
+        <progress data-export-progress max="100" hidden aria-label={say('模型导出进度', 'Model export progress')}></progress>
+      </div>
+      <details class="l2d-resource-info"><summary>{say('角色预览说明', 'About this preview')} <span class="l2d-file-info" data-model-info></span></summary><div class="l2d-model-source" data-model-source></div></details>
+      {compact && <a class="l2d-workbench-link" href={href(`/tools/live2d/?character=${characterId}`)}>{say('打开调试工作台', 'Open debugger')} ↗</a>}
+    </div>
+    <aside class="l2d-panel" aria-label={say('播放与调试', 'Playback and debugging')}>
+      {!compact && <div class="l2d-panel-switch" role="group" aria-label={say('控制面板', 'Control panel')}><button type="button" data-panel-mode="play" aria-pressed="true">{say('播放控制', 'Playback')}</button><button type="button" data-panel-mode="debug" aria-pressed="false">{say('参数调试', 'Debug')}</button></div>}
+      <div data-play-panel>
+      <section class="l2d-controls">
+        <h3>{say('动作与表情', 'Motion & expression')}</h3>
+        <input type="search" class="l2d-search" data-clip-search disabled aria-label={say('搜索动作与表情', 'Search motions and expressions')} placeholder={say('搜索动作 / 表情…', 'Search motions / expressions…')} />
+        <label>{say('动作', 'Motion')}<select data-motion disabled><option value="">—</option></select></label>
+        <div class="l2d-play-actions"><button type="button" data-play disabled>{say('播放', 'Play')}</button><button type="button" data-stop disabled>{say('停止', 'Stop')}</button><label class="l2d-check"><input type="checkbox" data-loop />{say('循环', 'Loop')}</label></div>
+        <p class="l2d-playing" data-playing role="status">—</p>
+        <label>{say('表情', 'Expression')}<select data-expression disabled><option value="">{say('默认', 'Default')}</option></select></label>
+      </section>
+      <section class="l2d-controls">
+        <h3>{say('自动效果', 'Automatic effects')}</h3>
+        <div class="l2d-effects">{[['blink', say('眨眼', 'Blink')], ['breath', say('呼吸', 'Breath')], ['gaze', say('视线跟随', 'Pointer gaze')], ['physics', say('物理', 'Physics')]].map(([id, label]) => <label class="l2d-check"><input type="checkbox" data-effect={id} checked disabled />{label}</label>)}</div>
+      </section>
+      </div>
+      <div data-debug-panel hidden={!compact}>
+      {!compact && <>
+        <details class="l2d-controls" data-debug open>
+          <summary>{say('参数调试', 'Parameters')} <span data-parameter-count></span></summary>
+          <input class="l2d-search" type="search" data-search placeholder={say('搜索参数 ID', 'Search parameter ID')} aria-label={say('搜索参数', 'Search parameters')} />
+          <p class="l2d-hint">{say('拖动滑杆自动锁定参数，避免被动作覆盖。', 'Moving a slider locks its value against animation updates.')}</p>
+          <div class="l2d-parameters" data-parameters><p class="l2d-hint">{say('加载后显示模型参数。', 'Load a model to inspect parameters.')}</p></div>
+          <button type="button" data-reset disabled>{say('复位参数与部件', 'Reset parameters & parts')}</button>
+        </details>
+        <details class="l2d-controls"><summary>{say('部件透明度', 'Part opacity')} <span data-part-count></span></summary><div class="l2d-parameters" data-parts></div></details>
+      </>}
+      </div>
+    </aside>
+  </div>
+  <noscript>{say('请启用 JavaScript 以使用 Live2D 预览。', 'Enable JavaScript to use the Live2D preview.')}</noscript>
+</live2d-workbench>
+<script>
+  import '../lib/live2d-workbench.mjs';
+</script>

@@ -1,0 +1,11 @@
+[Unit]
+Description=Daily OurNotes identity database snapshot
+
+[Timer]
+OnCalendar=daily
+RandomizedDelaySec=15m
+Persistent=true
+Unit=query-backup.service
+
+[Install]
+WantedBy=timers.target

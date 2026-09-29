@@ -1,0 +1,19 @@
+---
+const site = import.meta.env.PUBLIC_ANALYTICS_SITE_ID || '';
+const endpoint = import.meta.env.PUBLIC_ANALYTICS_ENDPOINT || '/_stats/events';
+const en = Astro.props.locale === 'en';
+---
+{site && <div data-site-analytics data-site={site} data-timezone="Asia/Shanghai" data-endpoint={endpoint}>
+  <small>{en ? 'We count page views, download clicks and export results without account details or persistent device fingerprints.' : '本站统计页面访问、下载点击与导出结果，不记录账号或长期设备指纹。'}</small>
+  <button type="button" data-analytics-toggle aria-pressed="false">{en ? 'Turn off anonymous analytics' : '关闭匿名访问统计'}</button>
+</div>}
+<script>
+  import { installAnalytics } from '../lib/site-analytics.mjs';
+  installAnalytics();
+</script>
+<style>
+  [data-site-analytics] {display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center;margin-top:12px;font-size:12px;color:inherit;}
+  small {font-size:12px;}
+  button {font:inherit;color:inherit;background:none;border:0;text-decoration:underline;cursor:pointer;padding:4px 0;}
+  button:focus-visible {outline:2px solid currentColor;outline-offset:3px;}
+</style>

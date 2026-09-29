@@ -1,0 +1,75 @@
+---
+import type { GetStaticPaths } from "astro";
+import AnonTokyoDetail from "../../components/anontokyo/AnonTokyoDetail.astro";
+import AnonTokyoFurnitureBrowser from "../../components/anontokyo/AnonTokyoFurnitureBrowser.astro";
+import AnonTokyoThemeBrowser from "../../components/anontokyo/AnonTokyoThemeBrowser.astro";
+import AnonTokyoThemeDetail from "../../components/anontokyo/AnonTokyoThemeDetail.astro";
+import AnonTokyoStageBrowser from "../../components/anontokyo/AnonTokyoStageBrowser.astro";
+import AnonTokyoStageDetail from "../../components/anontokyo/AnonTokyoStageDetail.astro";
+import AnonTokyoChatBrowser from "../../components/anontokyo/AnonTokyoChatBrowser.astro";
+import AnonTokyoChatDetail from "../../components/anontokyo/AnonTokyoChatDetail.astro";
+import AnonTokyoGoodsBrowser from "../../components/anontokyo/AnonTokyoGoodsBrowser.astro";
+import AnonTokyoGrowthBrowser from "../../components/anontokyo/AnonTokyoGrowthBrowser.astro";
+import AnonTokyoCustomerBrowser from "../../components/anontokyo/AnonTokyoCustomerBrowser.astro";
+import AnonTokyoWardrobeBrowser from "../../components/anontokyo/AnonTokyoWardrobeBrowser.astro";
+import AnonTokyoWardrobeDetail from "../../components/anontokyo/AnonTokyoWardrobeDetail.astro";
+import AnonTokyoInspirationBrowser from "../../components/anontokyo/AnonTokyoInspirationBrowser.astro";
+import AnonTokyoPrivateHome from "../../components/anontokyo/AnonTokyoPrivateHome.astro";
+import AnonTokyoStaffBrowser from "../../components/anontokyo/AnonTokyoStaffBrowser.astro";
+import AnonTokyoStoreGuide from "../../components/anontokyo/AnonTokyoStoreGuide.astro";
+import AnonTokyoTaskBrowser from "../../components/anontokyo/AnonTokyoTaskBrowser.astro";
+import AnonTokyoGuideBrowser from "../../components/anontokyo/AnonTokyoGuideBrowser.astro";
+import AnonTokyoMechanicsBrowser from "../../components/anontokyo/AnonTokyoMechanicsBrowser.astro";
+import AnonTokyoStudio from "../../components/anontokyo/AnonTokyoStudio.astro";
+import AnonTokyoStaffAssignment from "../../components/anontokyo/AnonTokyoStaffAssignment.astro";
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import { privatePreviewPaths } from "../../lib/anontokyo-private.mjs";
+import "../../styles/anontokyo-private.css";
+import "../../styles/anontokyo-staff-assignment.css";
+
+export const getStaticPaths = (() => privatePreviewPaths()) satisfies GetStaticPaths;
+
+interface Props {
+  page: "home" | "studio" | "staff-assignment" | "store" | "growth" | "goods" | "customers" | "wardrobe" | "inspiration" | "furniture" | "themes" | "stages" | "chats" | "tasks" | "staff" | "guide" | "mechanics" | "detail";
+  section?: "goods" | "furniture" | "themes" | "stages" | "chats" | "tasks" | "staff" | "wardrobe";
+  manifest: Record<string, any>;
+  stagedMedia: Array<Record<string, string>>;
+  dataset?: Record<string, any>;
+  staffDataset?: Record<string, any>;
+  record?: Record<string, any>;
+}
+
+const { page, section, manifest, stagedMedia, dataset, staffDataset, record } = Astro.props as Props;
+---
+
+<BaseLayout
+  title="Anon Tokyo Studio · Global 内容体验"
+  footerMeta={{
+    releaseLabel: "Global 客户端 · 内容保存预览",
+    regionLocale: "GLOBAL / zh-CN",
+    contentReleaseId: String(manifest.sourceReleaseId ?? "global-staging-local"),
+  }}
+>
+  {page === "home" && <AnonTokyoPrivateHome manifest={manifest} />}
+  {page === "studio" && dataset && staffDataset && <AnonTokyoStudio dataset={dataset} staffDataset={staffDataset} stagedMedia={stagedMedia} sourceReleaseId={String(manifest.sourceReleaseId)} />}
+  {page === "staff-assignment" && dataset && <AnonTokyoStaffAssignment dataset={dataset} stagedMedia={stagedMedia} />}
+  {page === "store" && dataset && <AnonTokyoStoreGuide dataset={dataset} />}
+  {page === "growth" && dataset && <AnonTokyoGrowthBrowser dataset={dataset} />}
+  {page === "goods" && dataset && <AnonTokyoGoodsBrowser dataset={dataset} stagedMedia={stagedMedia} />}
+  {page === "customers" && dataset && <AnonTokyoCustomerBrowser dataset={dataset} stagedMedia={stagedMedia} />}
+  {page === "wardrobe" && dataset && <AnonTokyoWardrobeBrowser dataset={dataset} stagedMedia={stagedMedia} />}
+  {page === "inspiration" && dataset && <AnonTokyoInspirationBrowser dataset={dataset} />}
+  {page === "furniture" && dataset && <AnonTokyoFurnitureBrowser dataset={dataset} stagedMedia={stagedMedia} />}
+  {page === "themes" && dataset && <AnonTokyoThemeBrowser dataset={dataset} stagedMedia={stagedMedia} />}
+  {page === "stages" && dataset && <AnonTokyoStageBrowser dataset={dataset} stagedMedia={stagedMedia} />}
+  {page === "chats" && dataset && <AnonTokyoChatBrowser dataset={dataset} stagedMedia={stagedMedia} />}
+  {page === "tasks" && dataset && <AnonTokyoTaskBrowser dataset={dataset} stagedMedia={stagedMedia} />}
+  {page === "staff" && dataset && <AnonTokyoStaffBrowser dataset={dataset} stagedMedia={stagedMedia} />}
+  {page === "guide" && dataset && <AnonTokyoGuideBrowser dataset={dataset} stagedMedia={stagedMedia} />}
+  {page === "mechanics" && dataset && <AnonTokyoMechanicsBrowser dataset={dataset} />}
+  {page === "detail" && section === "themes" && record && <AnonTokyoThemeDetail record={record} stagedMedia={stagedMedia} />}
+  {page === "detail" && section === "stages" && record && <AnonTokyoStageDetail record={record} stagedMedia={stagedMedia} />}
+  {page === "detail" && section === "chats" && record && <AnonTokyoChatDetail record={record} stagedMedia={stagedMedia} />}
+  {page === "detail" && section === "wardrobe" && record && <AnonTokyoWardrobeDetail record={record} stagedMedia={stagedMedia} />}
+  {page === "detail" && section && record && !["themes", "stages", "chats", "wardrobe"].includes(section) && <AnonTokyoDetail section={section as "goods" | "furniture" | "tasks" | "staff"} record={record} stagedMedia={stagedMedia} />}
+</BaseLayout>

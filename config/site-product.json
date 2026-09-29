@@ -1,0 +1,22 @@
+{
+  "profile": "v1",
+  "archiveRouteRoots": [],
+  "mediaDirectories": [
+    "previews",
+    "thumbnails",
+    "responsive",
+    "originals",
+    "stage",
+    "auto-se",
+    "bgm"
+  ],
+  "closedDataPrefixes": [
+    "anontokyo",
+    "character-media",
+    "device-media",
+    "live2d",
+    "story-",
+    "media-capabilities"
+  ],
+  "description": "活动、资料查询、配队计分、剧情文本阅读、漫画、聊天表情与名片装饰图集，以及独立沉浸式场景与首页融合预览；旧音视频鉴赏模块不进入 V1 发布。"
+}

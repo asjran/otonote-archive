@@ -1,0 +1,89 @@
+---
+import {
+  getAsset,
+  getBand,
+  getMusicCharts,
+  formatBpmRange,
+  type MusicTrack
+} from "../lib/catalog";
+import { activeReleaseContext } from "../lib/release-context";
+import { getUi } from "../lib/ui-i18n";
+import "../styles/music-archive.css";
+import ArchiveImage from "./ArchiveImage.astro";
+import BandMark from "./BandMark.astro";
+import CardAttributeBadge from "./CardAttributeBadge.astro";
+import GekisouTypeBadge from "./GekisouTypeBadge.astro";
+
+interface Props {
+  track: MusicTrack;
+  variant?: "default" | "related";
+}
+
+const { track, variant = "default" } = Astro.props;
+const ui = getUi(activeReleaseContext.locale);
+const jacket = getAsset(track.jacketAssetId);
+const charts = getMusicCharts(track.id);
+const href = `/music/${track.id}/`;
+const bpmLabel = formatBpmRange(track.bpm);
+const bands = track.bandIds
+  .map(getBand)
+  .filter((band) => band !== undefined);
+---
+
+<article
+  class:list={["music-tile", "music-catalog-item", `music-tile--${variant}`]}
+  data-search={`${track.title} ${track.phoneticTitle} ${track.masterId} ${track.bandLabels.join(" ")} ${track.vocalistLabels.join(" ")} ${track.lyricist} ${track.composer} ${track.arranger}`}
+  data-band={track.bandIds.join(",")}
+  data-character={track.vocalCharacterIds.join(",")}
+  data-music-type={String(track.musicType)}
+  data-category={track.categoryIds.join(",")}
+  data-tag={track.tagIds.join(",")}
+  data-level={track.maxLevel}
+  data-bpm={track.bpm.max}
+  data-order={track.sortOrder}
+  data-title={track.phoneticTitle || track.title}
+  data-start={track.startAt}
+  data-notes={track.expertNoteCount}
+>
+  <a class="music-jacket" href={href}>
+    {jacket ? (
+      <ArchiveImage asset={jacket} alt={`${track.title}曲目封面`} controlledLazy />
+    ) : (
+      <span class="media-missing">{ui.previewPending}</span>
+    )}
+    <span class="music-index">M-{track.masterId}</span>
+  </a>
+  <div class="music-tile-body">
+    <div class="music-tile-heading">
+      <div>
+        <div class="music-tile-taxonomy">
+          <CardAttributeBadge code={track.musicType} compact />
+          {bands.map((band) => (
+            <BandMark band={band} href={`/characters/?band=${band.id}`} compact />
+          ))}
+        </div>
+        <h2><a class:list={{ "music-card-link": variant === "default" }} href={href}>{track.title}</a></h2>
+        {variant === "related" && <p>{track.phoneticTitle}</p>}
+      </div>
+      <span class="music-bpm">BPM <b>{bpmLabel}</b></span>
+    </div>
+    <p class="music-vocal">{ui.vocal} · {track.vocalistLabels.join(" / ")}</p>
+    <div class="difficulty-strip" aria-label="四档难度">
+      {charts.map((chart) => (
+        <span class={`difficulty-chip difficulty-chip--${chart.difficulty}`}>
+          <small>{chart.difficulty.slice(0, 2).toUpperCase()}</small>
+          <b>{chart.displayLevel}</b>
+        </span>
+      ))}
+    </div>
+    {variant === "default" && track.gekisouMissions?.length > 0 && (
+      <ol class="music-tile-gekisou" aria-label="激奏类型，按演奏顺序">
+        {track.gekisouMissions.map(mission => <li><GekisouTypeBadge mission={mission} /></li>)}
+      </ol>
+    )}
+    <div class="music-tile-footer">
+      <span>EXPERT FC {track.expertNoteCount}</span>
+      {variant === "related" && <a class="text-link" href={href}>{ui.openTrack} <span>→</span></a>}
+    </div>
+  </div>
+</article>

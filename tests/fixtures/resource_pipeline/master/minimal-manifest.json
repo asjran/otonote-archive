@@ -1,0 +1,10 @@
+{
+  "version": "master-fixture-v1",
+  "tables": [
+    {"name": "MasterAlpha", "source": "MasterAlpha.bin"},
+    {"name": "MasterDownload", "source": "MasterDownload.bin"}
+  ],
+  "catalogEvidence": {
+    "MasterDownload": ["event-1", "shared"]
+  }
+}

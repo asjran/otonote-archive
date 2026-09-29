@@ -1,0 +1,42 @@
+[
+  {
+    "address": 16777216,
+    "assembly": "App.Runtime.dll",
+    "methodName": "get_ServerUrl",
+    "parameterCount": 0,
+    "token": 100706031,
+    "typeName": "App.Config.NetworkConfig"
+  },
+  {
+    "address": 16777472,
+    "assembly": "App.Runtime.dll",
+    "methodName": "GetRemoteHashUrl",
+    "parameterCount": 0,
+    "token": 100685922,
+    "typeName": "App.GameLoop.AppCatalogHandler"
+  },
+  {
+    "address": null,
+    "assembly": "Fwk.Runtime.dll",
+    "methodName": "GetVersion",
+    "parameterCount": 0,
+    "token": 100700001,
+    "typeName": "Fwk.Master.MasterDataManager"
+  },
+  {
+    "address": null,
+    "assembly": "Fwk.Runtime.dll",
+    "methodName": "DownloadAsync",
+    "parameterCount": 1,
+    "token": 100700002,
+    "typeName": "Fwk.AssetDownload.AssetDownloadManager"
+  },
+  {
+    "address": null,
+    "assembly": "Fwk.Runtime.dll",
+    "methodName": "InvokeAsync",
+    "parameterCount": 2,
+    "token": 100700003,
+    "typeName": "Fwk.Server.AuthenticatedCallInvoker"
+  }
+]

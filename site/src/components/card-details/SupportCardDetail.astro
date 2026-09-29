@@ -1,0 +1,32 @@
+---
+import type {
+  Asset,
+  Band,
+  SupportCard
+} from "../../lib/catalog";
+import type { CardDetailProjection } from "../../lib/game-database";
+import CardDetailArchive from "./CardDetailArchive.astro";
+
+interface Relation {
+  name: string;
+  href: string;
+  accent?: string;
+}
+
+interface Props {
+  card: SupportCard;
+  asset?: Asset;
+  projection: CardDetailProjection;
+  heading: string;
+  identityLabel: string;
+  relations: Relation[];
+  bands: Band[];
+  releaseLabel: string;
+}
+
+const props = Astro.props;
+---
+
+<CardDetailArchive {...props} cardKind="support">
+  <slot name="media-actions" slot="media-actions" />
+</CardDetailArchive>

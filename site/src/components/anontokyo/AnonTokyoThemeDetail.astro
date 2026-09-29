@@ -1,0 +1,35 @@
+---
+import AnonTokyoHeader from "./AnonTokyoHeader.astro";
+
+interface Props { record: Record<string, any>; stagedMedia: Array<Record<string, string>>; }
+const { record, stagedMedia } = Astro.props;
+interface FurnitureLink { id: string; name: string; imageKey?: string; size: string; }
+const media = new Map(stagedMedia.map((entry) => [entry.logicalKey.toLocaleLowerCase("en-US"), entry.publicUrl]));
+const previewUrl = record.imageKey ? media.get(record.imageKey.toLocaleLowerCase("en-US")) : undefined;
+const groups: Array<[string, string, FurnitureLink[]]> = [
+  ["必须收集", "集齐这些家具后完成主题要求。", record.requiredFurniture],
+  ["完成后开放购买", "主题完成后可以购买的关联家具。", record.unlockedFurniture],
+];
+---
+
+<AnonTokyoHeader active="themes" title={record.name} description={`收集 ${record.requiredFurniture.length} 件 · 开放购买 ${record.unlockedFurniture.length} 件`} />
+<main class="at-guide-main">
+  <div class="content-shell at-detail-shell at-detail-shell--wide">
+    <a class="at-detail-back" href="/anontokyo/themes/">← 返回装修主题</a>
+    <section class="at-theme-detail-lead">
+      {previewUrl ? <img src={previewUrl} alt="" /> : <span class="at-theme-row__fallback" aria-hidden="true">{record.name.slice(0, 1)}</span>}
+      <div><span>主题完成奖励</span><strong>{record.reward ? `${record.reward.name} × ${record.reward.count ?? "—"}` : "暂未确认"}</strong><p>页面只列出能够关联到现有玩家家具资料的项目。</p></div>
+    </section>
+    {groups.map(([title, description, furniture]) => (
+      <section class="at-relation-section">
+        <header><div><h2>{title}</h2><p>{description}</p></div><strong>{furniture.length}</strong></header>
+        <div class="at-relation-grid">
+          {furniture.map((item) => {
+            const imageUrl = item.imageKey ? media.get(item.imageKey.toLocaleLowerCase("en-US")) : undefined;
+            return <a href={`/anontokyo/furniture/${item.id}/`}>{imageUrl ? <img src={imageUrl} alt="" loading="lazy" /> : <span aria-hidden="true">{item.name.slice(0, 1)}</span>}<div><strong>{item.name}</strong><small>占地 {item.size}</small></div><i aria-hidden="true">→</i></a>;
+          })}
+        </div>
+      </section>
+    ))}
+  </div>
+</main>

@@ -1,0 +1,150 @@
+---
+import type { MusicChart } from "../lib/catalog";
+import { activeReleaseContext } from "../lib/release-context";
+import { getRuntimeUiLabels } from "../lib/runtime-ui-labels";
+import { LOGICAL_LANE_COUNT } from "../lib/score-track-layout.mjs";
+import "../styles/score-workbench.css";
+
+interface Props {
+  trackTitle: string;
+  charts: MusicChart[];
+}
+
+const { trackTitle, charts } = Astro.props;
+const runtimeLabels = JSON.stringify(
+  getRuntimeUiLabels(activeReleaseContext.locale).scoreWorkbench
+).replaceAll("<", "\\u003c");
+const logicalLaneLabels = Array.from(
+  { length: LOGICAL_LANE_COUNT },
+  (_, lane) => lane + 1
+);
+---
+
+<score-workbench class="score-workbench" data-track-title={trackTitle}>
+  <script
+    is:inline
+    type="application/json"
+    data-score-runtime-labels
+    set:html={runtimeLabels}
+  ></script>
+  <div class="workbench-heading">
+    <div>
+      <span class="section-index">SCORE ANALYSIS</span>
+      <h2>谱面分析工作台</h2>
+    </div>
+    <p>底部是开始，向上查看后续音符。点选音符可查看原始位置、宽度与判定时间。</p>
+  </div>
+
+  <div class="score-view-switch" role="group" aria-label="谱面查看方式">
+    <button type="button" data-score-view="scroll" aria-pressed="true">滚动分析</button>
+    <button type="button" data-score-view="sheet" aria-pressed="false">2D 分段图</button>
+  </div>
+
+  <div data-score-chart-records hidden>
+    {charts.map((chart) => (
+      <span
+        data-chart-id={chart.id}
+        data-difficulty={chart.difficulty}
+        data-url={chart.analysisDataUrl}
+      ></span>
+    ))}
+  </div>
+
+  <div class="score-loading" data-score-loading>
+    <span></span>正在读取标准化谱面…
+  </div>
+  <div class="score-error" data-score-error hidden>
+    可视化数据读取失败。难度与官方摘要仍可使用，请刷新页面后重试。
+  </div>
+
+  <section class="density-panel" aria-labelledby="density-title" data-score-scroll-only>
+    <div class="panel-heading">
+      <div>
+        <span>FULL TRACK</span>
+        <h3 id="density-title">全曲密度</h3>
+      </div>
+      <output data-current-range>0.0 秒</output>
+    </div>
+    <svg
+      class="density-overview"
+      viewBox="0 0 1000 180"
+      preserveAspectRatio="none"
+      role="img"
+      aria-label={`${trackTitle}全曲音符密度，可点击定位区间`}
+      data-density
+    ></svg>
+  </section>
+
+  <div class="workbench-controls">
+    <div data-score-scroll-only>
+      <button type="button" data-move="-1">↓ 前一段</button>
+      <button type="button" data-move="1">↑ 后一段</button>
+    </div>
+    <fieldset>
+      <legend class="visually-hidden">显示音符类型</legend>
+      <label><input type="checkbox" value="tap" checked data-note-toggle /><i class="note-key note-key--tap" aria-hidden="true"></i>Tap</label>
+      <label><input type="checkbox" value="flick" checked data-note-toggle /><i class="note-key note-key--flick" aria-hidden="true"></i>Flick</label>
+      <label><input type="checkbox" value="trace" checked data-note-toggle /><i class="note-key note-key--trace" aria-hidden="true"></i>Trace</label>
+      <label><input type="checkbox" value="long" checked data-note-toggle /><i class="note-key note-key--long" aria-hidden="true"></i>Long</label>
+      <label><input type="checkbox" value="events" checked data-note-toggle /><i class="note-key note-key--event" aria-hidden="true"></i>事件</label>
+    </fieldset>
+  </div>
+
+  <section class="score-sheet" data-score-sheet hidden aria-label="整曲 2D 分段谱面">
+    <div class="score-atlas-heading">
+      <div><span>CHART ATLAS</span><h3>谱段图册 <small data-sheet-count></small></h3><p>每段 4 秒，按编号逐段阅读；每段从底部开始。</p></div>
+      <button type="button" data-sheet-download>导出图册</button>
+    </div>
+    <form class="score-range-form" data-sheet-range-form novalidate>
+      <label>开始时间<input type="text" data-sheet-range-start aria-label="开始时间" placeholder="0" autocomplete="off" aria-describedby="score-range-help score-range-error" /></label>
+      <span aria-hidden="true">—</span>
+      <label>结束时间<input type="text" data-sheet-range-end aria-label="结束时间" placeholder="曲尾" autocomplete="off" aria-describedby="score-range-help score-range-error" /></label>
+      <button type="submit">查看时段</button>
+      <button type="button" data-sheet-range-reset>恢复全曲</button>
+      <p id="score-range-help">支持秒数或分:秒，例如 30.5 或 1:02；留空表示起点或曲尾。</p>
+      <p id="score-range-error" data-sheet-range-error role="status" aria-live="polite"></p>
+    </form>
+    <nav class="score-atlas-navigation" aria-label="谱段定位">
+      <label>跳至谱段 <select data-sheet-jump aria-label="跳至谱段"></select></label>
+      <div data-sheet-focus-controls hidden>
+        <button type="button" data-sheet-back>返回图册</button>
+        <button type="button" data-sheet-step="-1">上一段</button>
+        <button type="button" data-sheet-step="1">下一段</button>
+      </div>
+    </nav>
+    <div class="score-segment-grid" data-sheet-grid role="list" aria-label="按时间排列的谱段"></div>
+  </section>
+
+  <div class="track-panel" id="score-track" data-score-scroll-only>
+    <div
+      class="track-scroll"
+      tabindex="0"
+      role="region"
+      aria-label={`${trackTitle}整曲可滚动谱面轨道`}
+      data-track-scroll
+    >
+      <div class="track-ruler" aria-hidden="true">
+        {logicalLaneLabels.map((lane) => <span>{lane}</span>)}
+      </div>
+      <canvas
+        width="720"
+        height="720"
+        aria-label={`${trackTitle}整曲可滚动 12 轨谱面，使用 0 到 24 原始坐标`}
+        data-score-canvas
+      >
+        当前浏览器不支持 Canvas。请使用上方密度图和统计摘要查看谱面。
+      </canvas>
+    </div>
+    <aside class="score-inspector" data-inspector>
+      <span>NOTE INSPECTOR</span>
+      <h3>选择一个音符</h3>
+      <p>点击轨道中的 Tap、Flick、Trace 或 Long 节点，查看时间、位置和当前事件。</p>
+    </aside>
+  </div>
+</score-workbench>
+
+<script>
+  import { registerScoreWorkbenchElement } from "../lib/score-workbench-element.ts";
+
+  registerScoreWorkbenchElement();
+</script>

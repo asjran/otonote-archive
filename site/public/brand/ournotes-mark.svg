@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <title>OtoNote — independent fan archive</title>
+  <rect width="64" height="64" rx="17" fill="#7a3155"/>
+  <path d="M12 22v20m10-26v32m10-36v40m10-36v32m10-26v20" stroke="#fffdf7" stroke-opacity=".13" stroke-width="2" stroke-linecap="round"/>
+  <path d="M25 42V24l20-6v18" fill="none" stroke="#fffdf7" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+  <ellipse cx="19" cy="43" rx="8" ry="6" transform="rotate(-20 19 43)" fill="#fffdf7"/>
+  <ellipse cx="39" cy="37" rx="8" ry="6" transform="rotate(-20 39 37)" fill="#79aec2"/>
+</svg>

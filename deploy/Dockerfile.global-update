@@ -1,0 +1,19 @@
+# Build context: vgmstream.tar.gz from the pinned official commit, package.json, package-lock.json.
+ARG WORKER_BASE=registry.example.com/otonote/ournotes-resource-worker@sha256:9e83a3c7f1294e525ca783536000ab133fdf4a001c64b884ae25f88ff13538db
+FROM ${WORKER_BASE} AS audio-builder
+USER root
+RUN apt-get update && apt-get install -y --no-install-recommends cmake build-essential && rm -rf /var/lib/apt/lists/*
+COPY vgmstream.tar.gz /tmp/vgmstream.tar.gz
+RUN echo 'aa9d78ad656dcef23e753e799f7a88802ebe9c4805b19e141f448f2c21ac868c  /tmp/vgmstream.tar.gz' | sha256sum -c - && mkdir /tmp/vgmstream && tar -xzf /tmp/vgmstream.tar.gz -C /tmp/vgmstream --strip-components=1 \
+    && cmake -S /tmp/vgmstream -B /tmp/vgm-build -DBUILD_CLI=ON -DBUILD_V123=OFF -DBUILD_AUDACIOUS=OFF \
+       -DUSE_FFMPEG=OFF -DUSE_MPEG=OFF -DUSE_VORBIS=OFF -DUSE_G7221=OFF -DUSE_G719=OFF -DUSE_ATRAC9=OFF -DUSE_CELT=OFF -DUSE_SPEEX=OFF \
+    && cmake --build /tmp/vgm-build --target vgmstream_cli --parallel 1
+FROM ${WORKER_BASE}
+USER root
+RUN apt-get update && apt-get install -y --no-install-recommends curl openssl openjdk-17-jdk-headless && rm -rf /var/lib/apt/lists/*
+COPY --from=audio-builder /tmp/vgm-build/cli/vgmstream-cli /usr/local/bin/vgmstream-cli
+COPY package.json package-lock.json /opt/ournotes-node/
+RUN cd /opt/ournotes-node && npm ci --ignore-scripts --no-audit --no-fund && npm cache clean --force
+ENV NODE_OPTIONS=--max-old-space-size=512 OURNOTES_PYTHON=/opt/ournotes-venv/bin/python
+WORKDIR /srv/ournotes-updater/app
+CMD ["python3", "-m", "tools.global_update", "run", "--config", "config/global-update.server.json"]

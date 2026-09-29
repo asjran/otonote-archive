@@ -1,0 +1,67 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import { catalog } from "../../lib/catalog";
+import { activeReleaseContext } from "../../lib/release-context";
+import {
+  cardDetailProjections,
+  gameDatabase,
+  publicSkills
+} from "../../lib/game-database";
+
+const pendingAssets = catalog.assets.filter(
+  (asset) => asset.catalogStatus === "pending"
+).length;
+const isEnglish = activeReleaseContext.locale === "en";
+---
+
+<BaseLayout title="更新记录">
+  <section class="page-hero">
+    <div class="content-shell page-hero-grid">
+      <div>
+        <div class="eyebrow">RELEASE LEDGER</div>
+        <h1>更新记录</h1>
+        <p>{isEnglish
+          ? "Tracks which game release generated the site data and the identification status of the current public set."
+          : "记录站点数据从哪个游戏版本生成，以及当前公开集的识别和待整理状态。"}</p>
+      </div>
+      <div class="page-stamp">
+        <strong>01</strong>
+        <span>INGESTED RELEASE<br />STATIC SNAPSHOT</span>
+      </div>
+    </div>
+  </section>
+
+  <section class="catalog-section">
+    <div class="content-shell">
+      <div class="updates-list">
+        <article class="update-entry">
+          <time datetime={catalog.generatedAt}>{catalog.generatedAt.slice(0, 10)}</time>
+          <div>
+            <small>{catalog.release.channel.toUpperCase()} / {catalog.release.versionCode}</small>
+            <h2>{catalog.release.label} {isEnglish ? "initial site ingest" : "首次站点入库"}</h2>
+            <p>
+              {isEnglish
+                ? `Generated ${catalog.characters.length} character records, ${catalog.memberCards.length} member cards, ${catalog.supportCards.length} snaps, and ${catalog.assets.length} public resources. Music contains ${catalog.musicTracks.length} tracks and ${catalog.musicCharts.length} parsed charts; the game database publishes ${publicSkills.length} card-referenced skills and ${gameDatabase.items.length} items into ${cardDetailProjections.memberCards.length + cardDetailProjections.supportCards.length} detail views. ${pendingAssets} assets remain pending.`
+                : `生成 ${catalog.characters.length} 个角色档案、${catalog.memberCards.length} 张成员卡、${catalog.supportCards.length} 张留影和 ${catalog.assets.length} 个公开资源；音乐资料库已收录 ${catalog.musicTracks.length} 首曲目与 ${catalog.musicCharts.length} 份正式谱面，游戏数据库公开 ${publicSkills.length} 项已有资料引用的技能和 ${gameDatabase.items.length} 种道具，并接入 ${cardDetailProjections.memberCards.length + cardDetailProjections.supportCards.length} 份详情；其中 ${pendingAssets} 个素材等待业务归档。`}
+            </p>
+          </div>
+          <span class="update-count">+{catalog.assets.length}</span>
+        </article>
+      </div>
+
+      <dl class="release-context-ledger">
+        <div><dt>Region</dt><dd>{activeReleaseContext.region.toUpperCase()}</dd></div>
+        <div><dt>ContentRelease</dt><dd>{activeReleaseContext.contentReleaseId}</dd></div>
+        <div><dt>Locale</dt><dd>{activeReleaseContext.locale}</dd></div>
+        <div><dt>Updated</dt><dd>{catalog.generatedAt}</dd></div>
+      </dl>
+
+      <div class="archive-note">
+        <strong>VERSION RULE</strong>
+        <p>{isEnglish
+          ? "Resources with identical content but changed paths are deduplicated by SHA-256. Future releases will list additions, changes, removals, and pending relations here."
+          : "内容相同但路径变化的资源通过 SHA-256 去重。以后版本会在这里显示新增、修改、移除和待确认关系。"}</p>
+      </div>
+    </div>
+  </section>
+</BaseLayout>

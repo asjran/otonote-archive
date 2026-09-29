@@ -1,0 +1,11 @@
+---
+import FilterDrawer from './FilterDrawer.astro';
+interface Props { title?: string; hint?: string; drawer?: boolean; count?: number; noun?: string; }
+const { title = '筛选面板', hint = '组合条件，快速找到想要的内容', drawer = false, count = 0, noun = '' } = Astro.props;
+---
+{drawer ? <FilterDrawer title={title} count={count} noun={noun}><slot /></FilterDrawer> : (
+<details class="filter-panel" open>
+  <summary><span class="filter-panel-title">{title}<b data-panel-count hidden>0</b></span><span class="filter-panel-hint">{hint}</span><span class="filter-panel-toggle" aria-hidden="true"></span></summary>
+  <div class="filter-panel-body"><slot /></div>
+</details>
+)}

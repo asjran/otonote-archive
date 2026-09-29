@@ -1,0 +1,31 @@
+[Unit]
+Description=OurNotes isolated website statistics
+After=network.target nginx.service
+
+[Service]
+User=ournotes-stats
+Group=ournotes-stats
+WorkingDirectory=/opt/ournotes
+Environment=PYTHONDONTWRITEBYTECODE=1
+EnvironmentFile=/etc/ournotes-admin/collector.env
+ExecStart=/opt/ournotes/.venv/bin/python -m backend.admin collector --config /etc/ournotes-admin/collector.json
+Restart=on-failure
+RestartSec=5
+StateDirectory=ournotes-stats
+ReadWritePaths=/var/lib/ournotes-stats
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+IPAddressDeny=any
+IPAddressAllow=localhost
+MemoryMax=192M
+Nice=10
+UMask=0077
+
+# Grant read permission to the one configured access log (including rotation).
+# Add per-service egress rules restricting the stats user to its status port;
+# localhost allowance alone does not isolate it from other loopback services.
+[Install]
+WantedBy=multi-user.target

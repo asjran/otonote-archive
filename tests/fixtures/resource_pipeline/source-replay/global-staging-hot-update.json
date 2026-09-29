@@ -1,0 +1,34 @@
+{
+  "schemaVersion": 1,
+  "identity": {
+    "environmentId": "global-staging",
+    "region": "global",
+    "channel": "staging",
+    "clientBuildRef": "global-staging-android-12-ffb65618fc0daff8"
+  },
+  "versionVector": {
+    "clientVersion": "global-fixture-v1",
+    "minimumClientVersion": "global-fixture-v1",
+    "bootstrapRevision": "global-bootstrap-v2",
+    "catalogHash": "global-catalog-v2",
+    "masterVersion": "global-master-v2",
+    "assetManifestVersion": "global-assets-v2",
+    "remoteCodeHash": "global-code-v1"
+  },
+  "catalog": {
+    "catalogHash": "global-catalog-v2",
+    "locationCount": 1
+  },
+  "master": {
+    "masterVersion": "global-master-v2",
+    "tableCount": 1
+  },
+  "assets": [
+    {
+      "primaryKey": "global-new-bundle",
+      "sourceUri": "fixture://global-staging/global-new-bundle",
+      "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "byteSize": 128
+    }
+  ]
+}

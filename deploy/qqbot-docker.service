@@ -1,0 +1,18 @@
+[Unit]
+Description=Our Notes official QQ image-query bot (Docker)
+After=docker.service network-online.target
+Requires=docker.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+EnvironmentFile=/etc/ournotes/qqbot-runtime.env
+ExecStart=/usr/bin/docker run --rm --name ournotes-qqbot --init --read-only --cap-drop ALL --security-opt no-new-privileges --memory 384m --memory-swap 384m --cpus 0.5 --pids-limit 64 --tmpfs /tmp:rw,noexec,nosuid,size=64m --log-driver local --log-opt max-size=10m --log-opt max-file=2 --publish 127.0.0.1:8091:8091 --env-file /etc/ournotes/qqbot.env --mount type=bind,source=/var/lib/ournotes-qqbot,target=/state ${QQBOT_IMAGE}
+ExecStop=/usr/bin/docker stop --time 20 ournotes-qqbot
+Restart=on-failure
+RestartSec=5
+TimeoutStartSec=60
+TimeoutStopSec=40
+
+[Install]
+WantedBy=multi-user.target

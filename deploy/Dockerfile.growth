@@ -1,0 +1,11 @@
+# Build context contains only the three runtime modules and pinned requirements.
+ARG BASE_IMAGE=python:3.11-slim
+FROM ${BASE_IMAGE}
+USER root
+WORKDIR /opt/ournotes-growth
+COPY requirements.txt ./requirements.txt
+RUN python -m pip install --no-cache-dir -r requirements.txt
+COPY tools/ ./tools/
+ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1
+USER 65534:65534
+ENTRYPOINT ["python", "-m", "tools.growth_web"]

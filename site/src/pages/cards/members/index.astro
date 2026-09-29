@@ -1,0 +1,66 @@
+---
+import CatalogBrowser from "../../../components/CatalogBrowser.astro";
+import MemberCardTile from "../../../components/MemberCardTile.astro";
+import BaseLayout from "../../../layouts/BaseLayout.astro";
+import { catalog, getAsset, getCardAttribute } from "../../../lib/catalog";
+import { filterVisualOptions } from "../../../lib/filter-visuals";
+import { cardDetailProjections, publicSkills } from "../../../lib/game-database";
+import { buildCardSkillFilters } from "../../../lib/card-skill-filtering.mjs";
+
+const skillFilters = buildCardSkillFilters(
+  cardDetailProjections.memberCards.filter(projection => catalog.memberCards.some(card => card.id === projection.cardId)),
+  publicSkills, catalog.release.locale, "member"
+);
+
+const rarityOptions = filterVisualOptions.rarity;
+const attributeOptions = [
+  ...new Set(catalog.memberCards.map((card) => card.attributeCode))
+]
+  .sort((left, right) => left - right)
+  .map((value) => ({ value: String(value), label: getCardAttribute(value)?.names[catalog.release.locale] ?? `属性 ${value}`, icon: getAsset(getCardAttribute(value)?.iconAssetId)?.previewUrl }));
+const bandOptions = catalog.bands.map((band) => ({
+  value: band.id,
+  label: band.displayName,
+  icon: getAsset(band.logoAssetId)?.previewUrl
+}));
+const characterOptions = catalog.characters.map((character) => ({
+  value: character.id,
+  label: character.displayName
+}));
+const facets = [
+  { name: "band", label: "乐队", options: bandOptions },
+  { name: "character", label: "角色", options: characterOptions },
+  { name: "rarity", label: "稀有度", options: rarityOptions },
+  { name: "attribute", label: "属性", options: attributeOptions },
+  ...skillFilters.facets
+];
+---
+
+<BaseLayout title="成员卡">
+  <section class="card-directory-intro">
+    <div class="content-shell card-directory-intro__inner">
+      <div class="card-directory-intro__copy">
+        <div class="eyebrow">MEMBER CARD DIRECTORY</div>
+        <h1>成员卡</h1>
+        <p>用于乐队编成。按角色、乐队、稀有度、属性或技能类型查找。</p>
+      </div>
+      <strong class="card-directory-count">{catalog.memberCards.length}<span> 张</span></strong>
+    </div>
+  </section>
+
+  <section class="catalog-section card-directory-section">
+    <div class="content-shell">
+      <CatalogBrowser
+        count={catalog.memberCards.length}
+        noun="张成员卡"
+        placeholder="搜索卡牌标题、角色、乐队或 Master ID…"
+        facets={facets}
+        filterDrawer
+      >
+        <div class="catalog-grid card-catalog-grid">
+          {catalog.memberCards.map((card) => <MemberCardTile card={card} skillFacets={skillFilters.records.get(card.id)} />)}
+        </div>
+      </CatalogBrowser>
+    </div>
+  </section>
+</BaseLayout>

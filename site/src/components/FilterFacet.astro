@@ -1,0 +1,31 @@
+---
+import { filterVisual } from '../lib/filter-visuals';
+interface Props {
+  facet: { name: string; label: string; options: { value: string; label: string; icon?: string }[] };
+  mode?: 'catalog' | 'music' | 'switcher';
+}
+const { facet, mode = 'catalog' } = Astro.props;
+const menuAttribute = mode === 'switcher' ? { 'data-switcher-facet-menu': facet.name } : { 'data-facet-menu': facet.name };
+const inputAttribute = mode === 'switcher' ? { 'data-switcher-facet': facet.name } : mode === 'music' ? { 'data-music-facet': facet.name } : { 'data-facet': facet.name };
+---
+<fieldset class="facet-group" {...menuAttribute}>
+  <legend>{facet.label}<strong data-facet-selected-count>全部</strong></legend>
+  <div class="facet-group-body">
+    {facet.options.length > 12 && <label class="facet-option-search"><span class="visually-hidden">搜索{facet.label}</span><input type="search" placeholder={`查找${facet.label}…`} autocomplete="off" data-facet-option-search /></label>}
+    <div class="facet-option-list">
+      {facet.options.map(option => {
+        const visual = filterVisual(facet.name, option.value, option.icon, option.label);
+        const label = visual.label || option.label;
+        return <label class:list={['facet-check', { 'filter-icon-only': visual.iconOnly }]} data-facet-option data-option-label={label.toLocaleLowerCase('zh-CN')} title={label}>
+          <input type="checkbox" name={mode === 'switcher' ? undefined : facet.name} value={option.value} aria-label={label} {...inputAttribute} />
+          <span class="filter-option-content">
+            {visual.icon && <img class:list={['filter-option-icon', { 'filter-option-icon--round': visual.round }]} src={visual.icon} alt="" loading="lazy" />}
+            <span class:list={{ 'visually-hidden': visual.iconOnly }}>{label}</span>
+          </span>
+          <b data-facet-count>0</b>
+        </label>;
+      })}
+    </div>
+    <button type="button" class="facet-clear-group" data-clear-facet={facet.name}>重置</button>
+  </div>
+</fieldset>

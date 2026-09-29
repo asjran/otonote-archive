@@ -1,0 +1,14 @@
+[storage]
+dataRoot = "data"
+
+[download]
+maxConcurrency = 4
+connectTimeoutSeconds = 10
+readTimeoutSeconds = 60
+retryLimit = 3
+
+[publishing]
+autoPublish = false
+
+[validation]
+maxCriticalTableDropRatio = 0.5

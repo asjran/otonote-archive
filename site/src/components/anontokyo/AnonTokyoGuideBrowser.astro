@@ -1,0 +1,99 @@
+---
+import AnonTokyoHeader from "./AnonTokyoHeader.astro";
+
+interface Props { dataset: Record<string, any>; stagedMedia: Array<Record<string, string>>; }
+interface Chapter {
+  key: string;
+  name: string;
+  stepCount: number;
+  steps: Array<{
+    sequence: number;
+    page: string;
+    primary: string;
+    hint?: string | null;
+    imageCount?: number;
+    pageImages?: Array<{ pageIndex?: number; imageKey: string }>;
+  }>;
+}
+const { dataset, stagedMedia } = Astro.props;
+const chapters = (dataset.chapters ?? []) as Chapter[];
+const carousels = (dataset.carousels ?? { intro: { pageImages: [] }, fever: { pageImages: [] } }) as {
+  intro: { referencedBy?: string | null; pageImages: Array<{ pageIndex?: number; imageKey: string }> };
+  fever: { pageImages: Array<{ pageIndex?: number; imageKey: string }> };
+};
+const media = new Map(stagedMedia.map((entry) => [entry.logicalKey.toLocaleLowerCase("en-US"), entry.publicUrl]));
+---
+
+<AnonTokyoHeader
+  active="guide"
+  title="新手引导手册"
+  description="本视图按章节聚合本地引导数据中的步骤，文本顺序来自原始数据；不展示 UI 控制路径、内部表名或文本键。"
+  count={chapters.reduce((sum, chapter) => sum + chapter.stepCount, 0)}
+/>
+
+<main class="at-guide-main" data-at-guide>
+  <div class="content-shell">
+    {carousels.intro?.pageImages && carousels.intro.pageImages.length > 0 && (
+      <section class="at-guide-carousel">
+        <header>
+          <h2>开场引导</h2>
+          {carousels.intro.referencedBy && <p>被步骤 ID {carousels.intro.referencedBy} 引用</p>}
+        </header>
+        <ul>
+          {carousels.intro.pageImages.map((image) => {
+            const url = media.get(image.imageKey.toLocaleLowerCase("en-US"));
+            return url ? <li><img src={url} alt="" loading="lazy" decoding="async" /></li> : null;
+          })}
+        </ul>
+      </section>
+    )}
+    <div class="at-guide-chapters">
+      {chapters.map((chapter) => (
+        <article class="at-guide-chapter">
+          <header>
+            <h2>{chapter.name}</h2>
+            <span><b>{chapter.stepCount}</b> 步</span>
+          </header>
+          {chapter.steps.length > 0 ? (
+            <ol class="at-guide-step-list">
+              {chapter.steps.map((step) => (
+                <li>
+                  <div class="at-guide-step-head">
+                    <span class="at-guide-step-seq">#{step.sequence}</span>
+                    {step.page && <span class="at-guide-step-page">{step.page}</span>}
+                  </div>
+                  <p>{step.primary}</p>
+                  {step.hint && <p class="at-guide-step-hint">提示：{step.hint}</p>}
+                  {step.pageImages && step.pageImages.length > 0 && (
+                    <ul class="at-guide-step-images">
+                      {step.pageImages.map((image) => {
+                        const url = media.get(image.imageKey.toLocaleLowerCase("en-US"));
+                        return url ? <li><img src={url} alt="" loading="lazy" decoding="async" /></li> : null;
+                      })}
+                    </ul>
+                  )}
+                </li>
+              ))}
+            </ol>
+          ) : (
+            <p class="at-wardrobe-empty">本章暂无明确文字步骤；只保留引导图片作为参考。</p>
+          )}
+        </article>
+      ))}
+    </div>
+    {carousels.fever?.pageImages && carousels.fever.pageImages.length > 0 && (
+      <section class="at-guide-carousel">
+        <header>
+          <h2>FEVER 引导（仅图片）</h2>
+          <p>本节文本步骤尚未在本地引导数据中给出明确文字，因此仅展示 FEVER 引导轮播图作为参考。</p>
+        </header>
+        <ul>
+          {carousels.fever.pageImages.map((image) => {
+            const url = media.get(image.imageKey.toLocaleLowerCase("en-US"));
+            return url ? <li><img src={url} alt="" loading="lazy" decoding="async" /></li> : null;
+          })}
+        </ul>
+      </section>
+    )}
+  </div>
+</main>

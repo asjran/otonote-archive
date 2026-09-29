@@ -1,0 +1,51 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import SourceDisclosure from "../../components/SourceDisclosure.astro";
+import BrowserControls from "../../components/systems/BrowserControls.astro";
+import BrowserPagination from "../../components/systems/BrowserPagination.astro";
+import Deadline from "../../components/systems/Deadline.astro";
+import RecruitmentDetail from "../../components/systems/RecruitmentDetail.astro";
+import RecruitCard from "../../components/systems/RecruitCard.astro";
+import { globalSystems } from "../../lib/global-systems";
+import { say, banner, categories } from "../../lib/system-display";
+import "../../styles/system-modules.css";
+import "../../styles/filter-panel.css";
+const pools = globalSystems.gachaPools;
+const hasPickup = (pool: typeof pools[number]) => pool.pickupMemberCardIds.length > 0 || pool.pickupSupportCardIds.length > 0;
+const groups = [
+  { id: "featured", title: say("UP 招募", "Featured recruitment"), pools: pools.filter(hasPickup) },
+  { id: "standard", title: say("其他招募", "Other recruitment"), pools: pools.filter(pool => !hasPickup(pool)) }
+].filter(group => group.pools.length);
+---
+<BaseLayout title={say("招募", "Recruitment")}>
+  <header class="sys-hero content-shell"><div class="eyebrow">RECRUITMENT</div><h1>{say("招募", "Recruitment")}</h1><p>{say("查看招募卡片、抽取消耗与概率。", "Explore featured cards, draw costs and rates.")}</p></header>
+  <section class="content-shell sys-body"><recruitment-browser><system-browser data-filter-scope>
+    <BrowserControls count={pools.length} categoryKeys={["permanent", "limited", "event", "birthday", "ticket", "pass", "ad"]} placeholder={say("搜索招募名称…", "Search recruitment…")} />
+    <div class="recruit-groups" data-results>
+      {groups.map(group => <section class="recruit-group" data-result-group data-group={group.id}><h2 class="recruit-group-title">{group.title}</h2><div class="recruit-pools">
+      {group.pools.map(pool => <article class:list={["recruit-pool", { "recruit-pool--featured": pool.pickupMemberCardIds.length || pool.pickupSupportCardIds.length }]} data-entry data-categories={(pool.categories || []).join(" ")} data-search={pool.name}>
+        <button type="button" class="recruit-banner-link" data-open-pool={pool.id} aria-label={`${say("查看招募", "View recruitment")}：${pool.name}`}>
+          {banner(pool.bannerAssetName) && <img class="recruit-banner" src={banner(pool.bannerAssetName)} alt={pool.name} loading="lazy" />}
+          <span class="sys-tags recruit-cover-tags">{(pool.categories || []).map(key => <span class="sys-tag-category" data-category={key}>{categories[key]}</span>)}{pool.isRerun === true && <span class="sys-tag-accent">{say("复刻", "Rerun")}</span>}</span>
+        </button>
+        <div class="recruit-pool-body">
+          <h2><button type="button" class="recruit-title-button" data-open-pool={pool.id}>{pool.name}</button></h2>
+          <Deadline start={pool.startAt} end={pool.endAt} />
+          {(pool.pickupMemberCardIds.length > 0 || pool.pickupSupportCardIds.length > 0) && <div class="recruit-up-preview"><div class="recruit-up-heading"><strong>UP</strong><span>{pool.pickupMemberCardIds.length > 0 && `${say("成员卡", "Members")} ${pool.pickupMemberCardIds.length}`}{pool.pickupMemberCardIds.length > 0 && pool.pickupSupportCardIds.length > 0 && " · "}{pool.pickupSupportCardIds.length > 0 && `${say("留影", "Snapshots")} ${pool.pickupSupportCardIds.length}`}</span></div><div class="recruit-cards recruit-cards--preview">
+            {pool.pickupMemberCardIds.map(id => <RecruitCard id={id} kind={2} pickup compact />)}
+            {pool.pickupSupportCardIds.map(id => <RecruitCard id={id} kind={3} pickup compact />)}
+          </div></div>}
+          <div class="recruit-footer"><span>{pool.prizes?.filter(p => p.resourceType === 2 || p.resourceType === 3).length || 0} {say("张卡片", "cards")}</span><button type="button" data-open-pool={pool.id}>{say("查看招募", "View recruitment")} <span aria-hidden="true">↗</span></button></div>
+        </div>
+      </article>)}
+      </div></section>)}
+    </div><BrowserPagination />
+  </system-browser>
+    <dialog class="recruit-dialog" data-recruitment-dialog>
+      <div class="recruit-dialog-toolbar"><span>{say("招募详情", "RECRUITMENT")}</span><button type="button" data-close-dialog aria-label={say("关闭招募详情", "Close recruitment details")}><span aria-hidden="true">×</span></button></div>
+      <div data-dialog-content></div>
+    </dialog>
+    {pools.map(pool => <template data-recruitment-template={pool.id}><RecruitmentDetail pool={pool} /></template>)}
+  </recruitment-browser><SourceDisclosure title={say("招募资料说明", "About recruitment data")}><p>{say("招募内容、时间与概率来自已收录的游戏资料，不代表当前仍可参与。时间沿用游戏资料中的标示，不会随你所在地区自动调整。“限时”仅表示招募有结束时间，不代表其中卡牌均为限定；复刻仅在确认后标注。实际开放情况请以游戏内公告为准。", "Recruitment contents, times and rates come from collected game information and do not indicate current availability. Times are shown as listed in the game information and do not adjust to your location. Limited-time refers to the recruitment period, not the exclusivity of its cards. Reruns are marked only when confirmed. Please check in-game announcements for availability.")}</p></SourceDisclosure></section>
+</BaseLayout>
+<script>import "../../lib/system-browser.mjs"; import "../../lib/system-tabs.mjs"; import "../../lib/recruitment-browser.mjs";</script>

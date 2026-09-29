@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "role": "node",
+  "host": "127.0.0.1",
+  "port": 18082,
+  "id": "resources",
+  "database": "/var/lib/ournotes-node/tasks.sqlite",
+  "repository": "/opt/ournotes",
+  "readTokenEnv": "OURNOTES_NODE_READ_TOKEN",
+  "writeTokenEnv": "OURNOTES_NODE_WRITE_TOKEN",
+  "profiles": [{"id": "global", "name": "Global 公开版本", "configFile": "/opt/ournotes/config/global-update.server.json", "workspace": "/opt/ournotes/output/global-update-workflow"}]
+}

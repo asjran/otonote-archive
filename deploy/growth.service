@@ -1,0 +1,19 @@
+[Unit]
+Description=OurNotes ephemeral account growth reader
+After=docker.service network-online.target
+Requires=docker.service
+
+[Service]
+Type=simple
+EnvironmentFile=/etc/ournotes/growth.env
+# Host networking allows the application to bind loopback only.
+ExecStart=/usr/bin/docker run --rm --name ournotes-growth --init --network host --read-only --cap-drop ALL --security-opt no-new-privileges --memory 192m --memory-swap 192m --cpus 0.35 --pids-limit 64 --ulimit core=0 --tmpfs /tmp:rw,noexec,nosuid,size=8m --log-driver local --log-opt max-size=1m --log-opt max-file=2 --mount type=bind,source=/etc/ournotes/growth-sdk.xml,target=/config/sdk.xml,readonly ${GROWTH_IMAGE} --sdk-resources /config/sdk.xml --origin https://otonote.example.com --port 18765
+ExecStop=-/usr/bin/docker stop --time 20 ournotes-growth
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=30
+NoNewPrivileges=true
+LimitCORE=0
+
+[Install]
+WantedBy=multi-user.target

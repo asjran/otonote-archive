@@ -1,0 +1,115 @@
+---
+import "../styles/calculator-workflow.css";
+import CalculatorSongPicker from "./CalculatorSongPicker.astro";
+import GekisouOpponentInputs from "./GekisouOpponentInputs.astro";
+import CalculatorStrategyGuide from "./CalculatorStrategyGuide.astro";
+import { catalog } from "../lib/catalog";
+import { cardDetailProjections } from "../lib/game-database";
+import { scoringEvidence } from "../lib/scoring-capability";
+import { globalSystems } from "../lib/global-systems";
+import { activeReleaseContext } from "../lib/release-context";
+import { getRuntimeUiLabels } from "../lib/runtime-ui-labels";
+import formalRules from "../data/formal-scoring-rules.json";
+import { scoringRulesAvailable } from "../lib/scoring-release-gate.mjs";
+import ScoringUnavailable from "./ScoringUnavailable.astro";
+import ScoringModelNotice from './ScoringModelNotice.astro';
+
+const rulesAvailable = scoringRulesAvailable(formalRules, catalog.release.id);
+const runtimeUi = getRuntimeUiLabels(activeReleaseContext.locale);
+const vipRanks = globalSystems.sourceReleaseId === catalog.release.id
+  ? globalSystems.vipRanks
+  : [];
+const clientData = JSON.stringify({
+  sourceReleaseId: catalog.release.id,
+  formalRules,
+  vipRanks,
+  memberCards: catalog.memberCards,
+  supportCards: catalog.supportCards,
+  projections: [
+    ...cardDetailProjections.memberCards,
+    ...cardDetailProjections.supportCards
+  ].map((projection) => ({
+    cardId: projection.cardId,
+    skillSummaries: projection.skillSummaries
+  })),
+  tracks: catalog.musicTracks.map((track) => ({ id: track.id, title: track.title })),
+  charts: catalog.musicCharts.map((chart) => ({
+    id: chart.id,
+    trackId: chart.trackId,
+    difficulty: chart.difficulty,
+    duration: chart.duration,
+    fullComboCount: chart.fullComboCount,
+    analysisDataUrl: chart.analysisDataUrl
+  })),
+  evidence: scoringEvidence,
+  labels: runtimeUi.scoringResearch
+}).replaceAll("<", "\\u003c");
+---
+
+{rulesAvailable ? <scoring-research-workbench class="scoring-research-workbench">
+  <ScoringModelNotice />
+  <script is:inline type="application/json" data-scoring-research-data set:html={clientData}></script>
+  <section class="calculator-guide"><div class="calculator-guide-intro"><span class="calculator-kicker">查看这支队伍的出分</span><h2>选一首歌，看看分数从哪里来。</h2><p>先在自动配队或手动编队页准备队伍，再在这里比较歌曲、难度与演出模式。</p></div><div class="calculator-links"><a href="/tools/optimizer/" data-score-optimize-link>自动寻找配队 →</a><a href="/tools/deck-builder/" data-edit-scoring-draft>编辑当前队伍 →</a></div></section>
+  <CalculatorStrategyGuide ruleVersion={formalRules.ruleSetVersion} />
+  <CalculatorSongPicker />
+  <div class="calculator-song-fields" hidden><label>歌曲<select data-calculator-song><option value="">选择歌曲</option>{catalog.musicTracks.map(track=><option value={track.id}>{track.title}</option>)}</select></label><label>难度<select data-calculator-difficulty><option value="">选择难度</option>{['easy','normal','hard','expert'].map(d=><option value={d}>{d.toUpperCase()}</option>)}</select></label></div>
+  <section class="scoring-research-summary" aria-labelledby="scoring-research-title">
+    <div>
+      <span class="tool-status tool-status--experimental">整曲分数估算</span>
+      <h2 id="scoring-research-title">当前歌曲期望分数</h2>
+      <p>带入编成、成长与加成，默认 AP、满生命、无辅助，遍历 120 种技能顺序。普通模式计算逐音符分数；激奏模式另算 COMBO／LUCK／JUST 和三段奖励。同刻判定与技能触发使用理想输入假设，结果为估算。</p>
+    </div>
+    <dl>
+      <div><dt>能力规则版本</dt><dd>{formalRules.ruleSetVersion}</dd></div>
+      <div><dt>输入状态</dt><dd data-scoring-input-status>等待加载</dd></div>
+      <div><dt>期望分数（估算）</dt><dd data-song-score>等待加载</dd></div>
+    </dl>
+  </section>
+  <label>演出模式 <select data-scoring-mode><option value="ordinary">普通自由演出</option><option value="gekisou">激奏演出</option></select></label>
+  <details class="calculator-extra" data-gekisou-scenario hidden><summary>调整激奏情景 <span>AP、满生命、无辅助</span></summary><div class="calculator-extra-body">
+    <label>固定判定偏差（毫秒）<input data-gekisou-offset type="number" min="-50" max="50" step="1" value="0" /></label>
+    {[1, 2, 3].map(i => <label>第 {i} 段名次 <select data-gekisou-rank>{[1, 2, 3, 4, 5].map(rank => <option value={rank}>{rank}</option>)}</select></label>)}
+    <GekisouOpponentInputs />
+    <label>抽样批数（每批 120 次）<input data-gekisou-batches type="number" min="1" max="32" step="1" value="1" /></label>
+    <label>随机种子 <input data-gekisou-seed type="number" min="0" max="4294967295" step="1" value="20260927" /></label>
+    <label>LUCK 空帧模拟 <select data-gekisou-fps><option value="60">60 FPS</option><option value="120">120 FPS</option></select></label>
+    <p>零偏差会让可判 JUST 的音符获得 JUST；普通 AP 不保证这一点。按理想时钟逐帧计算，名次可指定或由下方对手数据算出。LUCK 为概率抽样，最低／最高分是样本范围。</p>
+  </div></details>
+  <p data-song-score-details aria-live="polite"></p>
+
+  <div class="scoring-research-grid">
+    <article class="scoring-research-panel">
+      <span>当前队伍与歌曲</span>
+      <h3>本次输入</h3>
+      <dl data-scoring-input-summary>
+        <div><dt>歌曲</dt><dd>未选择</dd></div>
+        <div><dt>难度</dt><dd>未选择</dd></div>
+        <div><dt>卡牌</dt><dd>0</dd></div>
+        <div><dt>T.G.W CARD</dt><dd>未选择</dd></div>
+        <div><dt>谱面对象</dt><dd>0</dd></div>
+        <div><dt>FC 计数</dt><dd>0</dd></div>
+      </dl>
+      <p class="scoring-input-hash"><span>INPUT HASH</span><code data-scoring-input-hash>—</code></p>
+      <div class="scoring-research-actions">
+        <span>更换卡片时，使用上方“编辑当前队伍”。</span>
+      </div>
+    </article>
+
+    <article class="scoring-research-panel scoring-research-panel--trace">
+      <span>逐项解释</span>
+      <h3>计算明细与核验范围</h3>
+      <ol data-scoring-trace aria-live="polite">
+        <li>正在建立输入快照…</li>
+      </ol>
+    </article>
+  </div>
+
+  <details class="scoring-snapshot-details">
+    <summary>查看输入、技能与逐音符计分 JSON（最高分顺序）</summary>
+    <pre data-scoring-snapshot-json>{}</pre>
+  </details>
+</scoring-research-workbench> : <ScoringUnavailable />}
+
+<script>
+  import "../lib/scoring-research-workbench.mjs";
+</script>

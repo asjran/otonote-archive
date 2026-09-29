@@ -1,0 +1,386 @@
+---
+import type {
+  Asset,
+  Band,
+  MemberCard,
+  SupportCard
+} from "../../lib/catalog";
+import {
+  getAsset
+} from "../../lib/catalog";
+import type {
+  CardDetailProjection,
+  SkillDefinition,
+  SkillSummary
+} from "../../lib/game-database";
+import { activeReleaseContext } from "../../lib/release-context";
+import { siteHref } from "../../lib/site-context";
+import { getUi } from "../../lib/ui-i18n";
+import {
+  getGrowthProfile,
+  getSkill,
+  skillKindLabel
+} from "../../lib/game-database";
+import { createGrowthSnapshot, maximumGrowthState } from "../../lib/growth-simulator.mjs";
+import { formatCardPower } from "../../lib/card-power-display.mjs";
+import BandMark from "../BandMark.astro";
+import CardAttributeBadge from "../CardAttributeBadge.astro";
+import CardRarityBadge from "../CardRarityBadge.astro";
+import CardGrowthSimulator from "./CardGrowthSimulator.astro";
+import CardArtwork from "./CardArtwork.astro";
+import CardMaterialLedger from "./CardMaterialLedger.astro";
+
+interface Relation {
+  name: string;
+  href: string;
+  accent?: string;
+}
+
+interface Props {
+  card: MemberCard | SupportCard;
+  asset?: Asset;
+  projection: CardDetailProjection;
+  cardKind: "member" | "support";
+  heading: string;
+  identityLabel: string;
+  relations: Relation[];
+  bands: Band[];
+  releaseLabel: string;
+}
+
+const {
+  card,
+  asset,
+  projection,
+  cardKind,
+  heading,
+  identityLabel,
+  relations,
+  bands
+} = Astro.props;
+const ui = getUi(activeReleaseContext.locale);
+const locale = activeReleaseContext.locale;
+const en = locale === "en";
+const localizedHref = (logicalPath: string) =>
+  import.meta.env.BASE_URL === "/"
+    ? logicalPath
+    : siteHref(logicalPath, activeReleaseContext);
+
+const growth = getGrowthProfile(projection.growthProfileId);
+const skills: Array<{
+  summary: SkillSummary;
+  skill: SkillDefinition;
+  icon: Asset | undefined;
+}> =
+  projection.skillSummaries.flatMap((summary) => {
+    const skill = getSkill(summary.skillId);
+    return skill ? [{ summary, skill, icon: getAsset(skill.iconAssetId) }] : [];
+  });
+const snapshot = growth ? createGrowthSnapshot({ card, profile: growth, projection, skills: skills.map(entry => entry.skill), state: maximumGrowthState(growth, skills.map(entry => entry.skill)) }) : undefined;
+const totalPower = snapshot?.power.total ?? card.performancePowerMax + card.technicPowerMax + card.visualPowerMax;
+const powerStats = [
+  { label: ui.performance, value: snapshot?.power.performance ?? card.performancePowerMax, tone: "performance" },
+  { label: ui.technic, value: snapshot?.power.technic ?? card.technicPowerMax, tone: "technic" },
+  { label: ui.visual, value: snapshot?.power.visual ?? card.visualPowerMax, tone: "visual" }
+];
+const highestPower = Math.max(1, ...powerStats.map(({ value }) => value));
+const rate = (value: number) => `${Number((value / 100).toFixed(2))}%`;
+
+---
+
+<card-detail-dialogs
+  data-card-id={card.id}
+  data-skill-ids={skills.map(({ summary }) => summary.skillId).join(",")}
+>
+
+<section class:list={["card-record", `card-record--${cardKind}`]} data-card-id={card.id}>
+  <div class="content-shell">
+    <div class:list={["card-record-grid", { "card-record-grid--landscape": cardKind === "support" }]}>
+      <div class:list={["card-record-art", `card-record-art--${cardKind}`]}>
+        {asset ? <CardArtwork asset={asset} kind={cardKind} title={heading} diary={"diary" in card ? card.diary : undefined} alt={`${card.displayName} ${cardKind === "member" ? ui.memberCard : ui.supportCard} ${ui.originalArt}`} /> : <p role="status">{activeReleaseContext.locale === "en" ? "Card image is not available in this release." : "当前资料版本暂无此卡牌图片。"}</p>}
+        <slot name="media-actions" />
+      </div>
+
+      <article class="card-record-copy">
+        <header class="card-record-identity">
+          <div class="card-record-kicker">
+            <span>{cardKind === "member" ? "MEMBER CARD" : "SNAP"} / {card.masterId.toString().padStart(3, "0")}</span>
+          </div>
+          <div class="card-record-badges" aria-label={ui.coreCardInfo}>
+            <CardRarityBadge rarity={card.rarity} />
+            <CardAttributeBadge code={card.attributeCode} />
+            <span>{cardKind === "member" ? ui.memberCard : ui.supportCard}</span>
+          </div>
+          <h1>{heading}</h1>
+
+          <div class="card-record-relations" aria-label={identityLabel}>
+            <span>{identityLabel}</span>
+            <div>
+              {relations.map((relation) => (
+                <a href={localizedHref(relation.href)} style={relation.accent ? `--relation-accent:${relation.accent}` : undefined}>
+                  {relation.name}
+                </a>
+              ))}
+            </div>
+          </div>
+
+          {bands.length > 0 && (
+            <div class="card-band-line" aria-label={ui.bandRelation}>
+              {bands.map((band) => (
+                <BandMark band={band} href={localizedHref(`/characters/?band=${band.id}`)} />
+              ))}
+            </div>
+          )}
+        </header>
+
+        <div class="card-info-actions">
+          <a class="card-formation-action" href={localizedHref(`/tools/deck-builder/?${cardKind === "member" ? "member" : "support"}=${card.id}`)}><span aria-hidden="true">＋</span>{cardKind === "member" ? (en ? "Add to formation" : "加入编成") : (en ? "Equip Snap" : "装备到编成")}</a>
+          {asset && <a class="card-art-download" href={asset.originalUrl} download={`${card.id}.png`}><span aria-hidden="true">↓</span>{en ? "Download artwork" : "下载图片"}</a>}
+        </div>
+
+        <section class="card-power-panel" aria-label={en ? "Card growth preview" : "卡牌养成预览"}>
+          <header class="card-growth-heading"><span>{en ? "GROWTH PREVIEW" : "养成预览"}</span>{growth && <button type="button" class="card-growth-edit" data-card-dialog-open data-panel="growth" aria-expanded="false" aria-controls="card-growth-drawer"><svg aria-hidden="true" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 5h14M3 15h14"/><rect x="6" y="2.5" width="3" height="5" rx="1"/><rect x="11" y="12.5" width="3" height="5" rx="1"/></svg>{en ? "Adjust growth" : "调整养成"}</button>}</header>
+          {snapshot && <div class="card-growth-state">
+            <span>Lv.<b data-growth-output="level">{snapshot.state.level}</b><small> / <b data-growth-level-cap>{snapshot.maxLevel}</b></small></span>
+            <span>Rank <b data-growth-output="rank">{snapshot.state.rank + 1}</b><small> / {growth?.ranks.length}</small></span>
+            {cardKind === "member" && <span>{ui.awake} <b data-growth-output="awake">{snapshot.state.awake}</b><small> / {Math.max(0, (growth?.awakes.length ?? 1) - 1)}</small></span>}
+          </div>}
+          <div class="card-power-total">
+            <div><span>{cardKind === "support" ? (en ? "Stat bonuses" : "能力加成") : (en ? "Total power" : "综合力")}</span><small data-growth-mode>{en ? "MAX STATS" : "满养成"}</small></div>
+            {cardKind === "member" && <strong data-growth-power="total">{formatCardPower(totalPower, cardKind, locale)}</strong>}
+          </div>
+          <dl class="card-power-grid">
+            {powerStats.map(({ label, value, tone }) => (
+              <div class={`card-power-stat card-power-stat--${tone}`}>
+                <dt>{label}</dt><dd data-growth-power={tone}>{formatCardPower(value, cardKind, locale)}</dd>
+                <span class="card-power-meter" data-growth-meter={tone} aria-hidden="true" style={`--power-fill:${value / highestPower * 100}%`} />
+              </div>
+            ))}
+          </dl>
+          {cardKind === "support" && <p class="card-support-rate-note">{en ? "Each bonus increases the equipped member’s corresponding stat." : "分别提升所装备成员的对应能力，实际增加值随成员能力而变化。"}</p>}
+          <dialog id="card-growth-drawer" class="card-topic-dialog card-topic-dialog--growth" data-card-dialog data-panel="growth" aria-labelledby="dialog-title-growth">
+            <div class="card-dialog-frame">
+              <header class="card-dialog-header">
+                <div><span>GROWTH PROFILE</span><h2 id="dialog-title-growth">{en ? "Adjust growth" : "调整养成"}</h2></div>
+                <button type="button" data-card-dialog-close aria-label={ui.closeGrowth}>×</button>
+              </header>
+              <div class="card-dialog-body">
+                {growth ? (
+                  <CardGrowthSimulator card={card} profile={growth} projection={projection} />
+                ) : (
+                  <p class="card-dialog-empty">{ui.noGrowth}</p>
+                )}
+              </div>
+            </div>
+          </dialog>
+          {snapshot && <>
+            <dl class="card-growth-bonuses">
+              {cardKind === "member" ? <>
+                <div><dt>{ui.leaderSkill}</dt><dd>Lv.<b data-growth-bonus="leaderSkillLevel">{snapshot.bonuses.leaderSkillLevel}</b></dd></div>
+                <div><dt>{ui.musicAttribute}</dt><dd data-growth-rate="musicTypeBonusRate">{rate(snapshot.bonuses.musicTypeBonusRate)}</dd></div>
+                <div><dt>{ui.musicTag}</dt><dd data-growth-rate="musicTagBonusRate">{rate(snapshot.bonuses.musicTagBonusRate)}</dd></div>
+              </> : <div><dt>{ui.cardTypeLink}</dt><dd data-growth-rate="cardTypeLinkBonusRate">{rate(snapshot.bonuses.cardTypeLinkBonusRate)}</dd></div>}
+            </dl>
+            <div class="card-growth-experience"><span>{en ? "Current EXP" : "累计经验"} <b data-growth-exp="current">{snapshot.exp.current.toLocaleString()}</b></span><span>{en ? "EXP to level cap" : "距等级上限"} <b data-growth-exp="toCurrentCap">{snapshot.exp.toCurrentCap.toLocaleString()}</b> EXP</span></div>
+          </>}
+          <a class="card-material-entry" href="?panel=materials" data-card-dialog-open data-panel="materials"><span><strong>{en ? "Upgrade materials" : "养成材料"}</strong><small>{en ? "Costs by stage and skill" : "各阶段消耗 · 分项清单"}</small></span></a>
+
+          {!growth && <p class="card-growth-unavailable">{en ? "Growth data is not available for this card." : "这张卡的养成数据尚未核实，暂不提供调整。"}</p>}
+        </section>
+      </article>
+
+      <section class="card-unified-skills" aria-labelledby="card-skills-heading">
+        <header><div><span>{en ? "SKILL EFFECTS" : "技能效果"}</span><h2 id="card-skills-heading">{cardKind === "member" ? (en ? "Card skills" : "成员技能") : (en ? "Support skills" : "支援技能")}</h2></div><small>{en ? "Updates with growth" : "随养成进度同步变化"}</small></header>
+        <div class="card-unified-skill-grid">
+          {skills.map(({ summary, skill, icon }) => {
+            const current = snapshot?.effectiveSkills.find(entry => entry.skillId === summary.skillId);
+            return <a href={`?panel=skill&skill=${summary.skillId}`} data-card-dialog-open data-panel="skill" data-skill-id={summary.skillId}>
+              <header>{icon && <img src={icon.previewUrl} alt="" />}<span>{skillKindLabel(skill.kind, locale)}</span><small>Lv.<b data-growth-effective-level={summary.skillId}>{current?.level ?? summary.level}</b></small></header>
+              <strong>{summary.name}</strong>
+              <p data-growth-effective-summary={summary.skillId}>{current?.renderedSummary ?? summary.summary}</p>
+              <footer>{en ? "All skill levels" : "查看各级效果"}</footer>
+            </a>;
+          })}
+        </div>
+      </section>
+    </div>
+  </div>
+</section>
+
+  {skills.map(({ summary, skill }) => (
+    <dialog
+      class="card-topic-dialog"
+      data-card-dialog
+      data-panel="skill"
+      data-skill-id={summary.skillId}
+      aria-labelledby={`dialog-title-${summary.skillId}`}
+    >
+      <div class="card-dialog-frame">
+        <header class="card-dialog-header">
+          <div>
+            <span>{skillKindLabel(skill.kind, locale)} / {skill.id}</span>
+            <h2 id={`dialog-title-${summary.skillId}`}>{skill.name}</h2>
+          </div>
+          <button type="button" data-card-dialog-close aria-label={ui.closeSkill}>×</button>
+        </header>
+        <div class="card-dialog-body">
+          <div class="card-dialog-lead">
+            <p data-growth-effective-summary={summary.skillId}>{snapshot?.effectiveSkills.find(entry => entry.skillId === summary.skillId)?.renderedSummary ?? summary.summary}</p>
+            <a href={localizedHref(`/database/skills/${skill.id}/`)}>{ui.openFullSkill} →</a>
+          </div>
+          <div class="card-dialog-table-wrap">
+            <table class="card-dialog-table">
+              <thead><tr><th>{ui.level}</th><th>{ui.effectSummary}</th><th>{ui.effectRecords}</th></tr></thead>
+              <tbody>
+                {skill.levels.map((level) => (
+                  <tr>
+                    <td>Lv.{level.level}</td>
+                    <td>{level.renderedSummary}</td>
+                    <td>{level.effects.length}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          {skill.interpretationStatus === "partial" && (
+            <p class="card-dialog-boundary">{ui.partialBoundary}</p>
+          )}
+        </div>
+      </div>
+    </dialog>
+  ))}
+
+
+
+  <dialog class="card-topic-dialog card-topic-dialog--materials" data-card-dialog data-panel="materials" aria-labelledby="dialog-title-materials">
+    <div class="card-dialog-frame">
+      <header class="card-dialog-header">
+        <div><span>MATERIAL LEDGER</span><h2 id="dialog-title-materials">{ui.materialRequirements}</h2></div>
+        <button type="button" data-card-dialog-close aria-label={ui.closeMaterials}>×</button>
+      </header>
+      <div class="card-dialog-body">
+        {growth && <details class="card-progress-costs">
+          <summary>{en ? "Costs from the current preview" : "当前预览进度的后续消耗"}<span>＋</span></summary>
+          <div class="growth-material-ledger"><div data-growth-materials></div></div>
+        </details>}
+        <CardMaterialLedger profile={growth} projection={projection} />
+      </div>
+    </div>
+  </dialog>
+
+</card-detail-dialogs>
+
+<script>
+  import {
+    cardDialogHref,
+    parseCardDialogState
+  } from "../../lib/card-dialog-state.mjs";
+
+  class CardDetailDialogs extends HTMLElement {
+    private dialogs: HTMLDialogElement[] = [];
+    private skillIds: string[] = [];
+    private lastTrigger: HTMLElement | null = null;
+    private syncing = false;
+    private controller?: AbortController;
+
+    connectedCallback() {
+      this.controller?.abort();
+      this.controller = new AbortController();
+      const options = { signal: this.controller.signal };
+      this.dialogs = Array.from(this.querySelectorAll("[data-card-dialog]"));
+      this.skillIds = (this.dataset.skillIds ?? "").split(",").filter(Boolean);
+
+      document.querySelectorAll<HTMLElement>("[data-card-dialog-open]").forEach((trigger) => {
+        trigger.addEventListener("click", (event) => {
+          event.preventDefault();
+          this.lastTrigger = trigger;
+          const panel = trigger.dataset.panel;
+          if (!panel) return;
+          if (panel === "growth" && this.dialogs.some(dialog => dialog.dataset.panel === "growth" && dialog.open)) {
+            this.closeCurrent();
+            return;
+          }
+          const href = cardDialogHref(
+            window.location.href,
+            panel,
+            trigger.dataset.skillId ?? null
+          );
+          history.pushState({}, "", href);
+          this.syncFromLocation();
+        }, options);
+      });
+
+      this.querySelectorAll<HTMLElement>("[data-card-dialog-close]").forEach((button) => {
+        button.addEventListener("click", () => this.closeCurrent(), options);
+      });
+
+      this.dialogs.forEach((dialog) => {
+        dialog.addEventListener("click", (event) => {
+          if (event.target === dialog && dialog.dataset.panel !== "growth") this.closeCurrent();
+        }, options);
+        dialog.addEventListener("close", () => {
+          if (this.syncing) return;
+          const state = parseCardDialogState(location.search, this.skillIds);
+          const closedCurrentPanel =
+            state.panel === dialog.dataset.panel &&
+            (state.panel !== "skill" || state.skillId === dialog.dataset.skillId);
+          if (closedCurrentPanel) {
+            history.pushState({}, "", cardDialogHref(location.href, null));
+          }
+          this.syncFromLocation();
+          this.lastTrigger?.focus({ preventScroll: true });
+        }, options);
+      });
+
+      window.addEventListener("popstate", () => this.syncFromLocation(), options);
+      document.addEventListener("keydown", event => {
+        if (event.key === "Escape" && this.dialogs.some(dialog => dialog.open && dialog.dataset.panel === "growth")) {
+          event.preventDefault(); this.closeCurrent();
+        }
+      }, options);
+      this.syncFromLocation();
+    }
+
+    disconnectedCallback() {
+      this.controller?.abort();
+      document.documentElement.removeAttribute("data-card-growth-open");
+    }
+
+    private closeCurrent() {
+      history.pushState({}, "", cardDialogHref(location.href, null));
+      this.syncFromLocation();
+      this.lastTrigger?.focus({ preventScroll: true });
+    }
+
+    private syncFromLocation() {
+      const state = parseCardDialogState(location.search, this.skillIds);
+      const desired = this.dialogs.find((dialog) => {
+        if (dialog.dataset.panel !== state.panel) return false;
+        return state.panel !== "skill" || dialog.dataset.skillId === state.skillId;
+      });
+
+      const scrollPosition = { left: window.scrollX, top: window.scrollY, behavior: "instant" as const };
+      const wasGrowthOpen = this.dialogs.some(dialog => dialog.dataset.panel === "growth" && dialog.open);
+      this.syncing = true;
+      for (const dialog of this.dialogs) {
+        if (dialog !== desired && dialog.open) dialog.close();
+      }
+      const growthOpen = desired?.dataset.panel === "growth";
+      document.documentElement.toggleAttribute("data-card-growth-open", growthOpen);
+      document.querySelectorAll("[data-card-dialog-open][data-panel='growth']").forEach(trigger => trigger.setAttribute("aria-expanded", String(growthOpen)));
+      if (desired && !desired.open) {
+        if (growthOpen) {
+          desired.show();
+          desired.querySelector<HTMLElement>("[data-card-dialog-close]")?.focus({ preventScroll: true });
+        } else desired.showModal();
+      }
+      // Native dialog focus must not change the reader's position on the page.
+      if (growthOpen || wasGrowthOpen) window.scrollTo(scrollPosition);
+      this.syncing = false;
+    }
+  }
+
+  if (!customElements.get("card-detail-dialogs")) {
+    customElements.define("card-detail-dialogs", CardDetailDialogs);
+  }
+</script>

@@ -1,0 +1,16 @@
+FROM python:3.11-slim-bookworm
+ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 PIP_NO_CACHE_DIR=1
+RUN sed -i 's|http://deb.debian.org|https://deb.debian.org|g' /etc/apt/sources.list.d/debian.sources \
+    && apt-get -o Acquire::Retries=1 -o Acquire::https::Timeout=30 update \
+    && apt-get -o Acquire::Retries=1 -o Acquire::https::Timeout=30 install -y --no-install-recommends ca-certificates fonts-noto-cjk tini \
+    && rm -rf /var/lib/apt/lists/* \
+    && groupadd --gid 10002 qqbot && useradd --uid 10002 --gid qqbot --no-create-home qqbot
+WORKDIR /app
+COPY requirements-query.txt requirements-qqbot.txt ./
+RUN pip install -r requirements-qqbot.txt
+COPY backend/qqbot ./backend/qqbot
+COPY backend/__init__.py ./backend/__init__.py
+USER qqbot
+EXPOSE 8091
+ENTRYPOINT ["/usr/bin/tini", "--"]
+CMD ["uvicorn", "backend.qqbot.app:create_app_from_environment", "--factory", "--host", "0.0.0.0", "--port", "8091", "--workers", "1", "--no-access-log"]

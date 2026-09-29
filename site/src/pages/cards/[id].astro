@@ -1,0 +1,26 @@
+---
+import type { GetStaticPaths } from "astro";
+import { catalog } from "../../lib/catalog";
+import { activeReleaseContext } from "../../lib/release-context";
+import { siteHref } from "../../lib/site-context";
+
+export const getStaticPaths = (() =>
+  catalog.memberCards
+    .filter((card) => card.legacyId)
+    .map((card) => ({
+      params: { id: card.legacyId as string },
+      props: { target: `/cards/members/${card.id}/` }
+    }))) satisfies GetStaticPaths;
+
+interface Props {
+  target: string;
+}
+
+const redirectTarget = import.meta.env.BASE_URL === "/"
+  ? Astro.props.target
+  : siteHref(Astro.props.target, activeReleaseContext);
+return Astro.redirect(
+  redirectTarget,
+  301
+);
+---

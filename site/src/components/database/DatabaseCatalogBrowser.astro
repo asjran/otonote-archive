@@ -1,0 +1,276 @@
+---
+import FilterPanel from "../FilterPanel.astro";
+interface Option {
+  value: string;
+  label: string;
+}
+import { activeReleaseContext } from "../../lib/release-context";
+import { getUi } from "../../lib/ui-i18n";
+import PaginationControls from "../PaginationControls.astro";
+
+interface Props {
+  mode: "skills" | "items";
+  count: number;
+  effectOptions?: Option[];
+  targetOptions?: Option[];
+  typeOptions?: Option[];
+  skillFacets?: { name: string; label: string; options: Option[] }[];
+}
+
+const {
+  mode,
+  count,
+  effectOptions = [],
+  targetOptions = [],
+  typeOptions = [],
+  skillFacets = []
+} = Astro.props;
+const ui = getUi(activeReleaseContext.locale);
+---
+
+<database-catalog-browser data-mode={mode} data-filter-scope>
+  <form class="db-controls" data-db-form>
+    <label class="search-control db-search">
+      <span class="visually-hidden">{ui.search} {mode === "skills" ? ui.skills : ui.items}</span>
+      <svg aria-hidden="true" viewBox="0 0 24 24">
+        <circle cx="11" cy="11" r="6.5"></circle>
+        <path d="m16 16 4 4"></path>
+      </svg>
+      <input
+        type="search"
+        name="q"
+        placeholder={mode === "skills" ? "技能名、效果、角色、乐队或卡牌…" : "道具名、编号或关联卡牌…"}
+        autocomplete="off"
+      />
+    </label>
+
+    <FilterPanel drawer count={count} title={activeReleaseContext.locale === "en" ? `Filter ${mode}` : mode === "skills" ? "筛选技能" : "筛选道具"} noun={activeReleaseContext.locale === "en" ? mode : mode === "skills" ? "项技能" : "个道具"}>
+    {mode === "skills" ? (
+      <div class="db-facets">
+        <label><span>类别</span><select name="kind" multiple data-inline-filter>
+          <option value="all">全部技能</option>
+          <option value="leader">队长技能</option>
+          <option value="live">演出技能</option>
+          <option value="support">支援技能</option>
+          <option value="gekisou">激奏技能</option>
+          <option value="gekisou_support">激奏支援</option>
+        </select></label>
+        {skillFacets.map(facet => <label><span>{facet.label}</span><select name={facet.name} multiple data-inline-filter>
+          <option value="all">{activeReleaseContext.locale === "en" ? "All" : "全部"}</option>
+          {facet.options.map(option => <option value={option.value}>{option.label}</option>)}
+        </select></label>)}
+        <label><span>效果</span><select name="effect" multiple data-inline-filter>
+          <option value="all">全部效果</option>
+          {effectOptions.map((option) => <option value={option.value}>{option.label}</option>)}
+        </select></label>
+        <label><span>目标</span><select name="target" multiple data-inline-filter>
+          <option value="all">全部目标</option>
+          {targetOptions.map((option) => <option value={option.value}>{option.label}</option>)}
+        </select></label>
+        <label><span>条件</span><select name="conditional" multiple data-inline-filter>
+          <option value="all">不限</option>
+          <option value="yes">有条件分支</option>
+          <option value="no">无条件分支</option>
+        </select></label>
+        <label><span>排序</span><select name="sort">
+          <option value="id">技能编号</option>
+          <option value="name">技能名称</option>
+          <option value="cards">关联卡牌数</option>
+        </select></label>
+      </div>
+    ) : (
+      <div class="db-facets">
+        <label><span>类型</span><select name="type" multiple data-inline-filter>
+          <option value="all">全部类型</option>
+          {typeOptions.map((option) => <option value={option.value}>{option.label}</option>)}
+        </select></label>
+        <label><span>用途</span><select name="usage" multiple data-inline-filter>
+          <option value="all">全部用途</option>
+          <option value="skill_level">技能升级</option>
+          <option value="member_rank">成员卡 Rank</option>
+          <option value="member_awake">成员卡觉醒</option>
+          <option value="support_rank">留影 Rank</option>
+        </select></label>
+        <label><span>图标</span><select name="icon" multiple data-inline-filter>
+          <option value="all">不限</option>
+          <option value="present">已有图标</option>
+          <option value="missing">缺少图标</option>
+        </select></label>
+        <label><span>状态</span><select name="availability" multiple data-inline-filter>
+          <option value="all">不限</option>
+          <option value="active">当前有效</option>
+          <option value="inactive">未开放或已结束</option>
+        </select></label>
+        <label><span>排序</span><select name="sort">
+          <option value="order">游戏顺序</option>
+          <option value="id">道具编号</option>
+          <option value="name">道具名称</option>
+          <option value="cards">关联卡牌数</option>
+        </select></label>
+      </div>
+    )}
+    </FilterPanel>
+  </form>
+
+  <div class="result-bar db-result-bar" aria-live="polite">
+    <span><b data-db-count data-filter-count>{count}</b> {activeReleaseContext.locale === "en" ? (mode === "skills" ? "skills" : "items") : (mode === "skills" ? "项技能" : "个道具")}</span>
+    <button type="button" data-db-clear data-filter-reset>{ui.clearFilters}</button>
+  </div>
+
+  <slot />
+
+  <PaginationControls defaultPageSize={24} />
+
+  <div class="empty-state" data-db-empty hidden>
+    <span>NO MATCH</span>
+    <h2>{ui.noMatches}</h2>
+    <p>减少筛选条件，或换个名称搜索。</p>
+    <button type="button" data-db-clear>{activeReleaseContext.locale === "en" ? "Show all" : "显示全部"}</button>
+  </div>
+</database-catalog-browser>
+
+<script>
+  import { restoreFilterControl } from "../../lib/filter-controls.mjs";
+  import { SKILL_FILTER_NAMES } from "../../lib/card-skill-filtering.mjs";
+  import {
+    filterItems,
+    filterSkills,
+    itemParams,
+    skillParams,
+    sortItems,
+    sortSkills
+  } from "../../lib/database-filtering.mjs";
+  import { createPaginationAdapter } from "../../lib/pagination-browser.mjs";
+
+  class DatabaseCatalogBrowser extends HTMLElement {
+    connectedCallback() {
+      const form = this.querySelector("[data-db-form]");
+      if (!(form instanceof HTMLFormElement)) return;
+      const mode = this.dataset.mode;
+      const items = [
+        ...this.querySelectorAll<HTMLElement>(".database-catalog-item")
+      ];
+      const count = this.querySelector("[data-db-count]");
+      const empty = this.querySelector<HTMLElement>("[data-db-empty]");
+      const restoreControls = (params: URLSearchParams) => {
+        form.reset();
+        for (const control of form.elements) {
+          if (
+            control instanceof HTMLInputElement ||
+            control instanceof HTMLSelectElement
+          ) {
+            const value = params.get(control.name);
+            if (value) restoreFilterControl(control, value);
+          }
+        }
+      };
+      restoreControls(new URLSearchParams(location.search));
+
+      let pagination: ReturnType<typeof createPaginationAdapter> = null;
+      const update = ({
+        resetPage = false,
+        historyMode = "replace"
+      }: {
+        resetPage?: boolean;
+        historyMode?: "push" | "replace" | "none";
+      } = {}) => {
+        if (resetPage) pagination?.reset();
+        const data = new FormData(form);
+        let visible;
+        let next;
+        if (mode === "skills") {
+          const filters = {
+            ...Object.fromEntries(SKILL_FILTER_NAMES.map(name => [name, data.getAll(name).join(",") || "all"])),
+            query: String(data.get("q") || "").trim(),
+            kind: data.getAll("kind").join(",") || "all",
+            effect: data.getAll("effect").join(",") || "all",
+            target: data.getAll("target").join(",") || "all",
+            conditional: data.getAll("conditional").join(",") || "all",
+            status: data.getAll("status").join(",") || "all",
+            sort: String(data.get("sort") || "id")
+          };
+          const records = items.map((item) => ({
+            item,
+            id: item.dataset.id || "",
+            search: item.dataset.search || "",
+            kind: item.dataset.kind || "",
+            facets: Object.fromEntries(SKILL_FILTER_NAMES.map(name => [name, (item.getAttribute(`data-${name}`) || "").split(",").filter(Boolean)])),
+            effects: (item.dataset.effects || "").split(",").filter(Boolean),
+            targets: (item.dataset.targets || "").split(",").filter(Boolean),
+            conditional: item.dataset.conditional === "true",
+            status: item.dataset.status || "",
+            cards: Number(item.dataset.cards),
+            name: item.dataset.name || ""
+          }));
+          visible = sortSkills(filterSkills(records, filters), filters.sort);
+          next = skillParams(filters);
+        } else {
+          const filters = {
+            query: String(data.get("q") || "").trim(),
+            type: data.getAll("type").join(",") || "all",
+            usage: data.getAll("usage").join(",") || "all",
+            icon: data.getAll("icon").join(",") || "all",
+            availability: data.getAll("availability").join(",") || "all",
+            sort: String(data.get("sort") || "order")
+          };
+          const records = items.map((item) => ({
+            item,
+            id: item.dataset.id || "",
+            search: item.dataset.search || "",
+            type: item.dataset.type || "",
+            usages: (item.dataset.usages || "").split(",").filter(Boolean),
+            icon: item.dataset.icon || "",
+            availability: item.dataset.availability || "",
+            order: Number(item.dataset.order),
+            cards: Number(item.dataset.cards),
+            name: item.dataset.name || ""
+          }));
+          visible = sortItems(filterItems(records, filters), filters.sort);
+          next = itemParams(filters);
+        }
+
+        const paged = pagination?.paginate(visible);
+        const pageRecords = (paged?.records ?? visible) as typeof visible;
+        const visibleSet = new Set(pageRecords.map((record) => record.item));
+        items.forEach((item) => item.toggleAttribute("hidden", !visibleSet.has(item)));
+        const list = items[0]?.parentElement;
+        visible.forEach((record) => list?.append(record.item));
+        if (count) count.textContent = String(visible.length);
+        if (empty) empty.hidden = visible.length > 0;
+        if (paged) pagination?.render(paged);
+        const params = pagination?.params(next) ?? next;
+        if (historyMode !== "none") {
+          history[historyMode === "push" ? "pushState" : "replaceState"](
+            null,
+            "",
+            `${location.pathname}${params.size ? `?${params}` : ""}${location.hash}`
+          );
+        }
+      };
+      pagination = createPaginationAdapter(this, {
+        onChange: (historyMode: "push" | "replace") => update({ historyMode })
+      });
+
+      form.addEventListener("input", () => update({ resetPage: true }));
+      form.addEventListener("change", () => update({ resetPage: true }));
+      this.querySelectorAll("[data-db-clear]").forEach((button) => {
+        button.addEventListener("click", () => {
+          form.reset();
+          update({ resetPage: true });
+          form.querySelector<HTMLInputElement>('input[name="q"]')?.focus();
+        });
+      });
+      window.addEventListener("popstate", () => {
+        const params = new URLSearchParams(location.search);
+        restoreControls(params);
+        pagination?.restore(params);
+        update({ historyMode: "none" });
+      });
+      update();
+    }
+  }
+
+  if (!customElements.get("database-catalog-browser")) {
+    customElements.define("database-catalog-browser", DatabaseCatalogBrowser);
+  }
+</script>

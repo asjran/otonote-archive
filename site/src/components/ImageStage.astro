@@ -1,0 +1,32 @@
+---
+import type { Asset } from "../lib/catalog";
+import ArchiveImage from "./ArchiveImage.astro";
+
+interface Props {
+  asset: Asset;
+  alt: string;
+  variant: "portrait" | "card";
+  controlledLazy?: boolean;
+  class?: string;
+}
+
+const {
+  asset,
+  alt,
+  variant,
+  controlledLazy = false,
+  class: className
+} = Astro.props;
+---
+
+<div class:list={["image-stage", `image-stage--${variant}`, className]}>
+  <div class="image-stage__ambient" aria-hidden="true">
+    <ArchiveImage asset={asset} alt="" controlledLazy={controlledLazy} />
+  </div>
+  <ArchiveImage
+    class={`image-stage__subject image-fit--${variant}`}
+    asset={asset}
+    alt={alt}
+    controlledLazy={controlledLazy}
+  />
+</div>

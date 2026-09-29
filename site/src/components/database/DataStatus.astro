@@ -1,0 +1,16 @@
+---
+interface Props {
+  status: "identified" | "partial" | "missing_asset";
+}
+
+const { status } = Astro.props;
+const labels = {
+  identified: "已解释",
+  partial: "部分解释",
+  missing_asset: "缺少图标"
+};
+---
+
+<span class:list={["data-status", `data-status--${status}`]}>
+  {labels[status]}
+</span>

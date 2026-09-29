@@ -1,0 +1,59 @@
+---
+import ToolPageHeader from "../../components/ToolPageHeader.astro";
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import SourceDisclosure from "../../components/SourceDisclosure.astro";
+import { activeReleaseContext } from "../../lib/release-context";
+import { siteHref } from "../../lib/site-context";
+import "../../styles/tools.css";
+
+const buildBase = import.meta.env.BASE_URL;
+const href = (path: string) =>
+  buildBase === "/" ? path : siteHref(path, activeReleaseContext);
+---
+
+<BaseLayout title="游戏工具">
+  <ToolPageHeader title="游戏工具" description="从自己的卡库出发，配队、估分、选歌；也可以打开角色预览。" meta="5 项工具" directory />
+  <div class="content-shell">
+    <SourceDisclosure>
+      <p>工具依据游戏中的卡牌、歌曲与技能资料，帮助你比较综合能力、估算歌曲分数和选择队伍。分数按理想演奏情况估算，实际结果会受判定、技能发动顺序及玩法规则影响，仅供配队参考。</p>
+    </SourceDisclosure>
+  </div>
+
+  <section class="catalog-section tool-directory-section">
+    <div class="content-shell">
+      <nav class="tool-module-grid" aria-label="可用工具">
+      <a class="tool-module-card tool-module-card--ready" href={href("/tools/live2d/")} data-tool-state="available">
+        <span>角色 · 互动预览</span>
+        <h2>Live2D 预览与调试</h2>
+        <p>选择角色与服装，播放动作和表情，实时调节模型参数。</p>
+        <strong>打开角色工作台 →</strong>
+      </a>
+      <a class="tool-module-card tool-module-card--ready" href={href("/tools/deck-builder/")} data-tool-state="available">
+        <span>配队 · 养成导入</span>
+        <h2>卡组配队</h2>
+        <p>导入自己的养成，按四步引导选择歌曲、准备卡库并获得推荐。</p>
+        <strong>开始配队 →</strong>
+      </a>
+
+      <a class="tool-module-card tool-module-card--ready" href={href("/tools/optimizer/")} data-tool-state="available">
+        <span>配队 · 组合比较</span>
+        <h2>歌曲最佳化 · 配对</h2>
+        <p>从所选卡组、已拥有卡库或理论满养成卡库选队，按综合力或普通歌曲分数排序。</p>
+        <strong>打开配对比较 →</strong>
+      </a>
+      <a class="tool-module-card tool-module-card--ready" href={href("/tools/song-calculator/")} data-tool-state="available">
+        <span>计分 · 队伍分析</span>
+        <h2>歌曲分数估算</h2>
+        <p>查看综合能力、技能覆盖、随机顺序范围和逐音符计分。</p>
+        <strong>打开歌曲计算 →</strong>
+      </a>
+      <a class="tool-module-card tool-module-card--ready" href={href("/tools/song-ranking/")} data-tool-state="available">
+        <span>选歌 · 得分与效率</span>
+        <h2>歌曲排行榜</h2>
+        <p>统一基准比较不同歌曲与难度的出分、时间效率，查看技能、连击及激奏倍率。</p>
+        <strong>打开谱面排行榜 →</strong>
+      </a>
+      </nav>
+    </div>
+  </section>
+</BaseLayout>

@@ -1,0 +1,35 @@
+---
+import {activeReleaseContext} from '../lib/release-context';
+import {siteHref} from '../lib/site-context';
+const fallback=import.meta.env.BASE_URL==='/'?'/tools/account-export/':siteHref('/tools/account-export/',activeReleaseContext);
+const configured=import.meta.env.PUBLIC_GROWTH_TOOL_URL;
+const toolHref=typeof configured==='string'&&/^https:\/\//.test(configured)?configured:fallback;
+---
+<details class="inventory-import-panel account-growth" data-account-growth>
+  <summary>从游戏导入我的养成 <span>台港澳服 · 网页登录 / 本地 JSON</span></summary>
+  <p class="inventory-help">读取角色卡、留影、乐器、角色评级和 TGW，预览后用于配队。</p>
+  <form data-growth-login>
+    <fieldset data-growth-login-fields disabled>
+      <legend>网页登录 · 无需安装</legend>
+      <div class="inventory-growth-fields">
+        <label>BHK 账号邮箱<input type="email" name="account" required maxlength="320" autocomplete="off" data-growth-account /></label>
+        <label>密码<input type="password" name="password" required autocomplete="off" data-growth-password /></label>
+      </div>
+      <p class="inventory-help">网页登录会将账号密码发送到本站服务端，再由服务端请求官方服务。本服务不保存密码或令牌，养成结果保存在当前浏览器。登录可能使游戏中的会话失效；仅支持 BHK 邮箱密码，遇到额外验证时停止。</p>
+      <button type="submit">登录并读取养成</button>
+    </fieldset>
+  </form>
+  <p role="status" aria-live="polite" data-growth-service-status>正在检查网页登录服务…</p>
+  <p class="inventory-help">也可以用本地工具直连官方，再导入 JSON。文件仅在当前浏览器解析，不上传服务器。</p>
+  <div class="inventory-toolbar">
+    <label>导入养成 JSON<input type="file" accept=".json,application/json" data-growth-file /></label>
+    <a href={toolHref} data-growth-tool-link>开源／本地工具</a>
+  </div>
+  <p role="status" aria-live="polite" data-growth-status>请选择本地工具导出的养成 JSON。</p>
+  <div data-growth-preview class="inventory-preview" hidden></div>
+  <div class="inventory-toolbar">
+    <button type="button" data-growth-apply disabled>应用到我的卡库和配队</button>
+    <button type="button" data-growth-download disabled>下载养成 JSON</button>
+    <button type="button" data-growth-undo disabled>撤销此次养成导入</button>
+  </div>
+</details>

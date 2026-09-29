@@ -1,0 +1,82 @@
+---
+import AnonTokyoHeader from "./AnonTokyoHeader.astro";
+
+interface Props {
+  dataset: Record<string, any>;
+  stagedMedia: Array<Record<string, any>>;
+}
+
+const { dataset, stagedMedia } = Astro.props;
+const imageByKey = Object.fromEntries(
+  stagedMedia
+    .filter((item) => item.kind !== "audio")
+    .map((item) => [String(item.logicalKey).toLocaleLowerCase("en-US"), item.publicUrl])
+);
+const clientData = JSON.stringify({ staff: dataset, imageByKey }).replaceAll("<", "\\u003c");
+const levels = Array.from({ length: 20 }, (_, index) => index + 1);
+---
+
+<AnonTokyoHeader
+  active="staff-assignment"
+  title="岗位工作室"
+  description="自由安排收银、导购与补货岗位；每名角色只会处于一个岗位或待机。"
+  count={dataset.records.length}
+/>
+
+<main class="at-assignment-main">
+  <anon-tokyo-staff-assignment
+    class="at-assignment"
+    data-storage-key="ournotes:anontokyo-staff-assignment:v1"
+  >
+    <script is:inline type="application/json" data-assignment-data set:html={clientData}></script>
+
+    <section class="at-assignment-controls" aria-label="岗位预览模式">
+      <fieldset>
+        <legend>预览模式</legend>
+        <label><input type="radio" name="assignment-mode" value="free" data-mode checked />自由预览</label>
+        <label><input type="radio" name="assignment-mode" value="level" data-mode />等级模拟</label>
+      </fieldset>
+      <label class="at-assignment-level" data-level-control hidden>
+        <span>店铺等级</span>
+        <select data-level>
+          {levels.map((level) => <option value={level} selected={level === 20}>Lv.{level}</option>)}
+        </select>
+      </label>
+      <div class="at-assignment-actions">
+        <button type="button" data-action="standby-all">全部待机</button>
+        <button type="button" data-action="restore">恢复默认</button>
+        <a href="/anontokyo/studio/">查看店铺预览 →</a>
+      </div>
+      <p data-save-status role="status">正在读取本机配置…</p>
+    </section>
+
+    <section class="at-assignment-board" aria-label="岗位配置">
+      <header>
+        <div><span>STAFF CONFIGURATION</span><h2>岗位配置</h2></div>
+        <p>先选择角色，再点击目标岗位槽位。</p>
+      </header>
+      <div class="at-assignment-roles" data-role-list></div>
+    </section>
+
+    <section class="at-assignment-roster" aria-label="角色名单">
+      <div class="at-assignment-roster__head">
+        <div><span>STANDBY</span><h2>待机角色</h2></div>
+        <button type="button" data-action="recall" disabled>将选中角色召回待机</button>
+      </div>
+      <div class="at-assignment-character-list" data-standby-list></div>
+      <div class="at-assignment-locked" data-locked-section hidden>
+        <h3>尚未解锁</h3>
+        <div class="at-assignment-character-list" data-locked-list></div>
+      </div>
+    </section>
+
+    <p class="at-assignment-feedback" data-feedback role="status">
+      自由预览已开放全部角色，岗位容量为收银2、导购2、补货1。
+    </p>
+  </anon-tokyo-staff-assignment>
+</main>
+
+<script>
+  import { defineAnonTokyoStaffAssignment } from "../../lib/anontokyo-staff-assignment-element.mjs";
+  defineAnonTokyoStaffAssignment();
+</script>

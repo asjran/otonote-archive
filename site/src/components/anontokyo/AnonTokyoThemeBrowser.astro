@@ -1,0 +1,29 @@
+---
+import AnonTokyoHeader from "./AnonTokyoHeader.astro";
+
+interface Props { dataset: Record<string, any>; stagedMedia: Array<Record<string, string>>; }
+const { dataset, stagedMedia } = Astro.props;
+const records = dataset.records as Array<Record<string, any>>;
+const media = new Map(stagedMedia.map((entry) => [entry.logicalKey.toLocaleLowerCase("en-US"), entry.publicUrl]));
+---
+
+<AnonTokyoHeader active="themes" title="装修主题" description="按主题查看必收家具、完成后开放购买的家具与最终奖励。" count={records.length} />
+
+<main class="at-guide-main">
+  <div class="content-shell">
+    <div class="at-theme-list">
+      {records.map((record) => {
+        const imageUrl = record.imageKey ? media.get(record.imageKey.toLocaleLowerCase("en-US")) : undefined;
+        return (
+          <article class="at-theme-row">
+            {imageUrl ? <img src={imageUrl} alt="" loading="lazy" decoding="async" /> : <span class="at-theme-row__fallback" aria-hidden="true">{record.name.slice(0, 1)}</span>}
+            <div class="at-theme-row__title"><span>套装收集</span><h2>{record.name}</h2></div>
+            <dl><div><dt>必须收集</dt><dd>{record.requiredFurniture.length} 件</dd></div><div><dt>开放购买</dt><dd>{record.unlockedFurniture.length} 件</dd></div></dl>
+            <p>{record.reward ? `完成奖励：${record.reward.name} × ${record.reward.count ?? "—"}` : "完成奖励暂未确认"}</p>
+            <a href={`/anontokyo/themes/${record.id}/`}>查看套装详情 <i aria-hidden="true">→</i></a>
+          </article>
+        );
+      })}
+    </div>
+  </div>
+</main>

@@ -1,0 +1,11 @@
+---
+import { say } from "../../lib/system-display";
+interface Props { start?: string | null; end?: string | null; daily?: boolean; }
+const { start, end, daily } = Astro.props;
+const compact = (date: string) => date.replace(/^\d{4}[/-]/, "").replace(/:\d{2}$/, "");
+---
+<div class:list={["sys-deadline", { "sys-deadline--limited": !!end }]} title={end ? `${start || "—"} → ${end}` : undefined}>
+  <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M12 7v5l3 2"/></svg>
+  <span>{end ? say("截止", "Until") : daily ? say("每日任务", "Daily missions") : say("时限", "Deadline")}</span>
+  <strong>{end ? compact(end) : daily ? say("每日重复", "Repeats daily") : say("无固定时限", "No fixed deadline")}</strong>
+</div>

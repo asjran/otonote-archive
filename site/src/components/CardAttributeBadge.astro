@@ -1,0 +1,43 @@
+---
+import {
+  catalog,
+  getAsset,
+  getCardAttribute
+} from "../lib/catalog";
+
+interface Props {
+  code: number;
+  compact?: boolean;
+  iconOnly?: boolean;
+}
+
+const { code, compact = false, iconOnly = true } = Astro.props;
+const attribute = getCardAttribute(code);
+const icon = getAsset(attribute?.iconAssetId);
+const hideName = iconOnly && Boolean(icon);
+const locale = (Astro.currentLocale ?? catalog.release.locale) as
+  | "zh-CN"
+  | "zh-TW"
+  | "ja"
+  | "en";
+const name =
+  attribute?.names[locale] ??
+  attribute?.names["zh-CN"] ??
+  `TYPE ${code}`;
+---
+
+<span
+  class:list={[
+    "card-attribute-badge",
+    {
+      "card-attribute-badge--compact": compact,
+      "card-attribute-badge--icon-only": hideName
+    }
+  ]}
+  style={attribute ? `--attribute-color:${attribute.color}` : undefined}
+  title={name}
+  aria-label={hideName ? name : undefined}
+>
+  {icon && <img src={icon.previewUrl} alt="" />}
+  <strong class:list={{ "visually-hidden": hideName }}>{name}</strong>
+</span>

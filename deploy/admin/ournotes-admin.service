@@ -1,0 +1,25 @@
+[Unit]
+Description=OurNotes private administration API
+After=network.target
+
+[Service]
+User=ournotes-admin
+Group=ournotes-admin
+WorkingDirectory=/opt/ournotes
+Environment=PYTHONDONTWRITEBYTECODE=1
+EnvironmentFile=/etc/ournotes-admin/admin.env
+ExecStart=/opt/ournotes/.venv/bin/python -m backend.admin admin --config /etc/ournotes-admin/admin.json
+Restart=on-failure
+RestartSec=5
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+IPAddressDeny=any
+IPAddressAllow=localhost
+MemoryMax=192M
+UMask=0077
+
+[Install]
+WantedBy=multi-user.target

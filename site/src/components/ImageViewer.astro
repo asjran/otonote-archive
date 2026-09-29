@@ -1,0 +1,64 @@
+---
+import type { Asset } from "../lib/catalog";
+import ArchiveImage from "./ArchiveImage.astro";
+
+interface Props {
+  asset: Asset;
+  alt: string;
+}
+
+const { asset, alt } = Astro.props;
+---
+
+<archive-viewer class="archive-viewer" data-background="dark">
+  <div class="viewer-canvas" data-viewer-canvas>
+    <ArchiveImage asset={asset} alt={alt} eager={true} />
+    <span class="crop-mark crop-mark-a" aria-hidden="true"></span>
+    <span class="crop-mark crop-mark-b" aria-hidden="true"></span>
+  </div>
+  <div class="viewer-toolbar" aria-label="图片查看工具">
+    <button type="button" data-viewer-zoom aria-pressed="false">
+      <span aria-hidden="true">＋</span> 放大
+    </button>
+    <button type="button" data-viewer-fullscreen>
+      <span aria-hidden="true">□</span> 全屏
+    </button>
+    <button type="button" data-viewer-background>
+      <span aria-hidden="true">◐</span> 背景
+    </button>
+  </div>
+</archive-viewer>
+
+<script>
+  class ArchiveViewer extends HTMLElement {
+    connectedCallback() {
+      const canvas = this.querySelector("[data-viewer-canvas]");
+      const zoomButton = this.querySelector("[data-viewer-zoom]");
+      const fullscreenButton = this.querySelector("[data-viewer-fullscreen]");
+      const backgroundButton = this.querySelector("[data-viewer-background]");
+
+      zoomButton?.addEventListener("click", () => {
+        const zoomed = this.toggleAttribute("data-zoomed");
+        zoomButton.setAttribute("aria-pressed", String(zoomed));
+      });
+      fullscreenButton?.addEventListener("click", async () => {
+        if (!document.fullscreenElement) {
+          await canvas?.requestFullscreen();
+        } else {
+          await document.exitFullscreen();
+        }
+      });
+      backgroundButton?.addEventListener("click", () => {
+        const backgrounds = ["dark", "light", "grid"];
+        const current = this.getAttribute("data-background") ?? "dark";
+        const next =
+          backgrounds[(backgrounds.indexOf(current) + 1) % backgrounds.length];
+        this.setAttribute("data-background", next);
+      });
+    }
+  }
+
+  if (!customElements.get("archive-viewer")) {
+    customElements.define("archive-viewer", ArchiveViewer);
+  }
+</script>

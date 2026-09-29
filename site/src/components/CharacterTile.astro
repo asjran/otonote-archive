@@ -1,0 +1,63 @@
+---
+import { getAsset, getBand, type Character } from "../lib/catalog";
+import { activeReleaseContext } from "../lib/release-context";
+import { getUi } from "../lib/ui-i18n";
+import { classifyTileTitleDensity } from "../lib/tile-title-density.mjs";
+import "../styles/faceted-browser.css";
+import BandMark from "./BandMark.astro";
+import ImageStage from "./ImageStage.astro";
+import StatusTag from "./StatusTag.astro";
+
+interface Props {
+  character: Character;
+  compact?: boolean;
+}
+
+const { character, compact = false } = Astro.props;
+const ui = getUi(activeReleaseContext.locale);
+const asset = (compact ? character.portraitAssetIds.map(getAsset).find((asset) =>
+  asset?.containerPath.endsWith("/character_thumbnail.png")) : undefined)
+  ?? getAsset(character.profileAssetId);
+const band = getBand(character.bandId);
+const titleDensity = classifyTileTitleDensity(character.displayName);
+---
+
+<article
+  class:list={[
+    "catalog-tile",
+    "character-tile",
+    "compact-catalog-tile",
+    "catalog-item",
+    `tile-title-${titleDensity}`
+  ]}
+  data-search={`${character.displayName} ${character.aliases.join(" ")} ${character.id} ${band?.displayName ?? ""}`}
+  data-status={character.catalogStatus}
+  data-band={character.bandId}
+  data-label={character.masterId.toString().padStart(6, "0")}
+>
+  <a class="tile-media portrait-media" href={`/characters/${character.id}/`}>
+    {asset ? (
+      <ImageStage
+        class="tile-image-stage"
+        asset={asset}
+        alt={`${character.displayName} ${ui.viewArchive}`}
+        variant="portrait"
+        controlledLazy
+      />
+    ) : (
+      <span class="media-missing">{ui.previewPending}</span>
+    )}
+    <span class="archive-index">{character.id.slice(-5).toUpperCase()}</span>
+  </a>
+  <div class="tile-body">
+    <StatusTag status={character.catalogStatus} dotOnly />
+    <div class="tile-icon-row">
+      {band && <BandMark band={band} href={`/characters/?band=${band.id}`} compact iconOnly />}
+    </div>
+    <h2><a href={`/characters/${character.id}/`}>{character.displayName}</a></h2>
+    <p>
+      <span title={character.role}>{character.role}</span>
+      <a class="tile-arrow" href={`/characters/${character.id}/`} aria-label={ui.viewArchive}>→</a>
+    </p>
+  </div>
+</article>

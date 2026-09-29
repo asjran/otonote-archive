@@ -1,0 +1,32 @@
+version = 1
+
+[server]
+sshTarget = "your-server"
+
+[backup]
+# Relative paths are resolved from the repository root. Keep backups outside
+# the Git checkout; this can also be an absolute external-disk or NAS path.
+destination = "../ournotes-server-backups"
+
+[[sources]]
+name = "resource-data"
+remotePath = "/srv/ournotes-data"
+enabled = true
+required = true
+excludes = ["locks/**", "*.part"]
+
+[[sources]]
+name = "site-shadow"
+remotePath = "/srv/ournotes-site"
+enabled = true
+required = false
+excludes = ["*.part"]
+
+[[sources]]
+# The current static site can be rebuilt and published from this workstation,
+# so copying its server releases is optional.
+name = "legacy-site"
+remotePath = "/srv/ournotes"
+enabled = false
+required = false
+excludes = []

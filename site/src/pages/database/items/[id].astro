@@ -1,0 +1,8 @@
+---
+import { gameDatabase } from "../../../lib/game-database";
+import { databaseHref } from "../../../lib/database-display";
+export function getStaticPaths() {
+  return gameDatabase.items.map(item => ({ params: { id: item.id }, props: { destination: `${databaseHref("/database/items/")}#detail=${item.id}` } }));
+}
+return Astro.redirect(Astro.props.destination, 301);
+---

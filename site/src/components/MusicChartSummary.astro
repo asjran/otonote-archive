@@ -1,0 +1,149 @@
+---
+import type { MusicChart } from "../lib/catalog";
+
+interface Props {
+  charts: MusicChart[];
+}
+
+const { charts } = Astro.props;
+const difficultyLabels = {
+  easy: "EASY",
+  normal: "NORMAL",
+  hard: "HARD",
+  expert: "EXPERT"
+};
+const initialChart = charts.find((chart) => chart.difficulty === "expert") ?? charts[0];
+const bpmLabel = (chart: MusicChart) =>
+  chart.bpm.min === chart.bpm.max ? String(chart.bpm.min) : `${chart.bpm.min}–${chart.bpm.max}`;
+const noteLabel = (chart: MusicChart) =>
+  `${chart.noteCounts.tap} / ${chart.noteCounts.flick} / ${chart.noteCounts.trace} / ${chart.noteCounts.long}`;
+const noteKinds = ['tap', 'flick', 'trace', 'long'] as const;
+---
+
+<music-chart-summary class="music-chart-summary" aria-label="选择谱面难度">
+  <div class="music-chart-summary-tabs" role="tablist" aria-label="谱面难度">
+    {charts.map((chart) => (
+      <button
+        type="button"
+        role="tab"
+        data-page-difficulty={chart.difficulty}
+        data-summary-combo={chart.fullComboCount}
+        data-summary-bpm={bpmLabel(chart)}
+        data-summary-average={`${chart.averageDensity}/s`}
+        data-summary-peak={chart.peakDensity}
+        data-summary-notes={noteLabel(chart)}
+        data-summary-events={chart.skillCount}
+        tabindex={chart === initialChart ? 0 : -1}
+        aria-selected={chart === initialChart ? "true" : "false"}
+      >
+        <span>{difficultyLabels[chart.difficulty]}</span>
+        <strong>{chart.displayLevel}</strong>
+      </button>
+    ))}
+  </div>
+  <div class="music-current-chart-summary" data-current-chart-summary aria-live="polite">
+    <div><span>FULL COMBO</span><strong data-page-summary="combo">{initialChart?.fullComboCount ?? "—"}</strong></div>
+    <div><span>BPM</span><strong data-page-summary="bpm">{initialChart ? bpmLabel(initialChart) : "—"}</strong></div>
+    <div><span>平均密度</span><strong data-page-summary="average">{initialChart ? `${initialChart.averageDensity}/s` : "—"}</strong></div>
+    <div><span>峰值 / 秒</span><strong data-page-summary="peak">{initialChart?.peakDensity ?? "—"}</strong></div>
+    <div class="music-note-composition"><span>音符构成</span><strong class="visually-hidden" data-page-summary="notes">{initialChart ? noteLabel(initialChart) : "—"}</strong>
+      <div class="music-note-bar" aria-hidden="true">{noteKinds.map(kind => <i data-note-bar={kind} style={`flex-grow:${initialChart?.noteCounts[kind] ?? 0}`} />)}</div>
+      <ul>{noteKinds.map(kind => <li data-note-kind={kind}><span>{kind === 'long' ? 'Long' : kind.charAt(0).toUpperCase() + kind.slice(1)}</span><b data-note-count={kind}>{initialChart?.noteCounts[kind] ?? 0}</b></li>)}</ul>
+    </div>
+    <div><span>技能次数</span><strong data-page-summary="events">{initialChart?.skillCount ?? "—"}</strong></div>
+  </div>
+</music-chart-summary>
+
+<script>
+  import {
+    SCORE_DIFFICULTY_CHANGE_EVENT,
+    SCORE_DIFFICULTY_REQUEST_EVENT,
+    SCORE_CHART_SUMMARY_CHANGE_EVENT
+  } from "../lib/score-workbench-element.ts";
+
+  class MusicChartSummaryElement extends HTMLElement {
+    updateSummary(values: Record<string, string>) {
+      Object.entries(values).forEach(([key, value]) => {
+        const output = this.querySelector<HTMLElement>(
+          `[data-page-summary="${key}"]`
+        );
+        if (output) output.textContent = value;
+        if (key === 'notes') {
+          const counts = value.split('/').map(part => Math.max(0, Number(part.trim()) || 0));
+          ['tap', 'flick', 'trace', 'long'].forEach((kind, index) => {
+            const count = counts[index] ?? 0;
+            const label = this.querySelector<HTMLElement>(`[data-note-count="${kind}"]`);
+            const bar = this.querySelector<HTMLElement>(`[data-note-bar="${kind}"]`);
+            if (label) label.textContent = String(count);
+            if (bar) bar.style.flexGrow = String(count);
+          });
+        }
+      });
+    }
+
+    handleChange = (event: Event) => {
+      const difficulty = (event as CustomEvent<{ difficulty?: string }>).detail
+        ?.difficulty;
+      this.querySelectorAll<HTMLButtonElement>("[data-page-difficulty]").forEach(
+        (button) => {
+          button.tabIndex = button.dataset.pageDifficulty === difficulty ? 0 : -1;
+          button.setAttribute(
+            "aria-selected",
+            String(button.dataset.pageDifficulty === difficulty)
+          );
+        }
+      );
+      const selected = this.querySelector<HTMLButtonElement>(
+        `[data-page-difficulty="${difficulty}"]`
+      );
+      if (selected) {
+        this.updateSummary({
+          combo: selected.dataset.summaryCombo ?? "—",
+          bpm: selected.dataset.summaryBpm ?? "—",
+          average: selected.dataset.summaryAverage ?? "—",
+          peak: selected.dataset.summaryPeak ?? "—",
+          notes: selected.dataset.summaryNotes ?? "—",
+          events: selected.dataset.summaryEvents ?? "—"
+        });
+      }
+    };
+    handleSummaryChange = (event: Event) => {
+      // The header describes the entire chart, not the analysis viewport cursor.
+      const { combo: _cursorCombo, ...statistics } = (event as CustomEvent<Record<string, string>>).detail ?? {};
+      this.updateSummary(statistics);
+    };
+
+    connectedCallback() {
+      this.querySelectorAll<HTMLButtonElement>("[data-page-difficulty]").forEach(
+        (button, index, buttons) => {
+          button.addEventListener("keydown", (event) => {
+            const next = event.key === "ArrowRight" ? (index + 1) % buttons.length : event.key === "ArrowLeft" ? (index + buttons.length - 1) % buttons.length : event.key === "Home" ? 0 : event.key === "End" ? buttons.length - 1 : null;
+            if (next !== null) { event.preventDefault(); buttons[next].focus(); buttons[next].click(); }
+          });
+          button.addEventListener("click", () => {
+            window.dispatchEvent(new CustomEvent(SCORE_DIFFICULTY_REQUEST_EVENT, {
+              detail: { difficulty: button.dataset.pageDifficulty }
+            }));
+          });
+        }
+      );
+      window.addEventListener(SCORE_DIFFICULTY_CHANGE_EVENT, this.handleChange);
+      window.addEventListener(
+        SCORE_CHART_SUMMARY_CHANGE_EVENT,
+        this.handleSummaryChange
+      );
+    }
+
+    disconnectedCallback() {
+      window.removeEventListener(SCORE_DIFFICULTY_CHANGE_EVENT, this.handleChange);
+      window.removeEventListener(
+        SCORE_CHART_SUMMARY_CHANGE_EVENT,
+        this.handleSummaryChange
+      );
+    }
+  }
+
+  if (!customElements.get("music-chart-summary")) {
+    customElements.define("music-chart-summary", MusicChartSummaryElement);
+  }
+</script>

@@ -1,0 +1,61 @@
+---
+import CatalogBrowser from "../../components/CatalogBrowser.astro";
+import CharacterTile from "../../components/CharacterTile.astro";
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import { catalog } from "../../lib/catalog";
+import BandMark from "../../components/BandMark.astro";
+import "../../styles/character-directory.css";
+
+const facets = [
+  {
+    name: "band",
+    label: "乐队",
+    options: catalog.bands.map((band) => ({
+      value: band.id,
+      label: band.displayName
+    }))
+  }
+];
+---
+
+<BaseLayout title="角色档案">
+  <section class="page-hero character-directory-hero">
+    <div class="content-shell page-hero-grid">
+      <div>
+        <div class="eyebrow">CHARACTER DIRECTORY</div>
+        <h1>角色档案</h1>
+        <p>按乐队浏览成员，查看角色档案、担当与关联卡牌。</p>
+      </div>
+      <div class="page-stamp">
+        <strong>{catalog.characters.length}</strong>
+        <span>CHARACTER BUNDLES<br />CURRENT RELEASE</span>
+      </div>
+    </div>
+  </section>
+
+  <section class="catalog-section character-directory">
+    <div class="content-shell">
+      <CatalogBrowser
+        count={catalog.characters.length}
+        noun="个角色档案"
+        placeholder="搜索角色名称、别名或档案编号…"
+        facets={facets}
+        paginate={false}
+      >
+        {catalog.bands.map((band) => (
+          <section class="character-band-group" data-catalog-group style={`--band-color: ${band.mainColor}`} aria-labelledby={`${band.id}-heading`}>
+            <header class="character-band-heading">
+              <h2 id={`${band.id}-heading`}><BandMark band={band} compact /></h2>
+              <span>{catalog.characters.filter((character) => character.bandId === band.id).length} MEMBERS</span>
+            </header>
+            <div class="catalog-grid character-grid">
+              {catalog.characters.filter((character) => character.bandId === band.id).map((character) => (
+                <CharacterTile character={character} compact />
+              ))}
+            </div>
+          </section>
+        ))}
+      </CatalogBrowser>
+    </div>
+  </section>
+</BaseLayout>

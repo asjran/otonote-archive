@@ -1,0 +1,88 @@
+---
+import ArchiveImage from "../ArchiveImage.astro";
+import { databaseHref, plainDescription } from "../../lib/database-display";
+import {
+  getSkillTarget,
+  skillKindLabel,
+  type SkillIndexRecord
+} from "../../lib/game-database";
+import {
+  getAsset,
+  getBand,
+  getCharacter
+} from "../../lib/catalog";
+
+interface Props {
+  skill: SkillIndexRecord;
+  relatedNames: string[];
+  skillFacets?: Record<string, string[]>;
+}
+
+const { skill, relatedNames, skillFacets = {} } = Astro.props;
+const icon = getAsset(skill.iconAssetId);
+const effects = skill.effects.map((effect) => [effect.type, effect.name] as const);
+const targetIds = skill.targetIds;
+const targetLabels = targetIds
+  .map(getSkillTarget)
+  .filter((target) => target !== undefined)
+  .map((target) =>
+    target.bandId
+      ? getBand(target.bandId)?.displayName
+      : target.characterId
+        ? getCharacter(target.characterId)?.displayName
+        : undefined
+  )
+  .filter((label) => label !== undefined);
+const conditional = skill.conditional;
+const search = [
+  skill.name,
+  skill.id,
+  ...effects.map(([, name]) => name),
+  ...targetLabels,
+  ...relatedNames
+].join(" ");
+---
+
+<a
+  class="db-tile db-tile--interactive database-catalog-item"
+  href={databaseHref(`/database/skills/#detail=${skill.id}`)}
+  data-db-open={skill.id}
+  aria-haspopup="dialog"
+  aria-labelledby={`${skill.id}-title`}
+  data-search={search}
+  data-kind={skill.kind}
+  data-skill-role={skillFacets["skill-role"]?.join(",")}
+  data-live-type={skillFacets["live-type"]?.join(",")}
+  data-gekisou-type={skillFacets["gekisou-type"]?.join(",")}
+  data-gekisou-effect={skillFacets["gekisou-effect"]?.join(",")}
+  data-effects={effects.map(([type]) => type).join(",")}
+  data-targets={targetIds
+    .map(getSkillTarget)
+    .flatMap((target) => [target?.bandId, target?.characterId])
+    .filter(Boolean)
+    .join(",")}
+  data-conditional={String(Boolean(conditional))}
+  data-status={skill.interpretationStatus}
+  data-cards={skill.relatedCardIds.length}
+  data-name={skill.name}
+  data-id={skill.id}
+>
+  <div class="db-tile-icon" aria-hidden="true">
+    {icon ? (
+      <ArchiveImage class="image-fit--asset" asset={icon} alt="" controlledLazy />
+    ) : (
+      <span aria-hidden="true">♪</span>
+    )}
+  </div>
+  <div class="db-tile-main">
+    <div class="db-tile-kicker">
+      <span>{skillKindLabel(skill.kind)}</span>
+    </div>
+    <h2 id={`${skill.id}-title`}>{skill.name}</h2>
+  </div>
+  <p class="db-tile-summary">{plainDescription(skill.highestSummary) || "该技能当前没有等级效果记录。"}</p>
+  <footer class="db-tile-foot">
+    <span>LV {skill.highestLevel}</span>
+    <span>{skill.relatedCardIds.length} 张关联卡牌</span>
+  </footer>
+</a>

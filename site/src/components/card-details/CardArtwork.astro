@@ -1,0 +1,191 @@
+---
+import type { Asset } from "../../lib/catalog";
+import ArchiveImage from "../ArchiveImage.astro";
+import "../../styles/card-artwork.css";
+
+interface Props { asset: Asset; alt: string; title: string; diary?: string; kind: "member" | "support"; }
+const { asset, alt, title, diary = "", kind } = Astro.props;
+---
+
+<card-artwork class={`card-artwork card-artwork--${kind}`}>
+  <div class="card-artwork-perspective">
+    <div class="card-artwork-turn" data-art-turn>
+      <button type="button" class="card-artwork-front" data-art-front aria-label={diary ? "翻转卡牌，阅读留影日记" : "放大查看卡图"}>
+        <ArchiveImage asset={asset} alt={alt} eager />
+      </button>
+      {diary && <section class="card-artwork-back" data-art-back aria-label="留影日记" aria-hidden="true" inert>
+        <header><span>SNAP DIARY</span><strong>{title}</strong></header>
+        <div class="card-artwork-diary" tabindex="0" aria-label="留影日记正文"><p>{diary}</p></div>
+        <span class="card-artwork-back-mark" aria-hidden="true">OtoNote</span>
+      </section>}
+    </div>
+  </div>
+  <div class="card-artwork-tools">
+    {diary && <button type="button" data-art-flip aria-pressed="false"><span aria-hidden="true">↻</span><span data-art-flip-label>留影日记</span></button>}
+    <button type="button" data-art-expand aria-haspopup="dialog"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3H3v5m13-5h5v5M3 16v5h5m13-5v5h-5M8 8l-5-5m13 5 5-5M8 16l-5 5m13-5 5 5" /></svg>查看大图</button>
+  </div>
+
+  <dialog class="card-art-lightbox" data-art-lightbox aria-label={`${title} · 大图查看`}>
+    <div class="card-lightbox-frame">
+      <header class="card-lightbox-header">
+        <div><span>ARTWORK</span><strong>{title}</strong></div>
+        <button type="button" data-art-close aria-label="关闭大图">×</button>
+      </header>
+      <div class="card-lightbox-stage" data-art-stage tabindex="0" aria-label="卡图，可使用缩放按钮放大后拖动查看">
+        <div class="card-lightbox-surface" data-art-surface>
+          <img data-art-image data-original={asset.originalUrl} data-preview={asset.previewUrl} width={asset.width} height={asset.height} alt={alt} draggable="false" />
+        </div>
+      </div>
+      <footer class="card-lightbox-toolbar">
+        <div class="card-lightbox-zoom">
+          <button type="button" data-art-zoom-out aria-label="缩小卡图">−</button>
+          <output data-art-scale aria-live="polite">100%</output>
+          <button type="button" data-art-zoom-in aria-label="放大卡图">＋</button>
+          <button type="button" data-art-fit>适应窗口</button>
+        </div>
+        <span>双击缩放 · 放大后拖动</span>
+        <a href={asset.originalUrl} download>下载原图 ↓</a>
+      </footer>
+    </div>
+  </dialog>
+</card-artwork>
+
+<script>
+  class CardArtwork extends HTMLElement {
+    private cleanup?: () => void;
+
+    connectedCallback() {
+      this.cleanup?.();
+      const controller = new AbortController();
+      const options = { signal: controller.signal };
+      const front = this.querySelector<HTMLButtonElement>("[data-art-front]")!;
+      const back = this.querySelector<HTMLElement>("[data-art-back]");
+      const flip = this.querySelector<HTMLButtonElement>("[data-art-flip]");
+      const dialog = this.querySelector<HTMLDialogElement>("[data-art-lightbox]")!;
+      const stage = this.querySelector<HTMLElement>("[data-art-stage]")!;
+      const surface = this.querySelector<HTMLElement>("[data-art-surface]")!;
+      const image = this.querySelector<HTMLImageElement>("[data-art-image]")!;
+      const scaleLabel = this.querySelector<HTMLOutputElement>("[data-art-scale]")!;
+      const zoomOut = this.querySelector<HTMLButtonElement>("[data-art-zoom-out]")!;
+      const zoomIn = this.querySelector<HTMLButtonElement>("[data-art-zoom-in]")!;
+      let scale = 1;
+      let flipped = false;
+      let previousOverflow = "";
+      let returnFocus: HTMLElement | null = null;
+      let drag: { x: number; y: number; left: number; top: number } | null = null;
+      let backGesture: { x: number; y: number; moved: boolean; scrollTop: number } | null = null;
+
+      const turn = () => {
+        if (!back || !flip) return;
+        flipped = !flipped;
+        this.toggleAttribute("data-flipped", flipped);
+        front.inert = flipped;
+        front.setAttribute("aria-hidden", String(flipped));
+        back.inert = !flipped;
+        back.setAttribute("aria-hidden", String(!flipped));
+        flip.setAttribute("aria-pressed", String(flipped));
+        this.querySelector("[data-art-flip-label]")!.textContent = flipped ? "翻回卡图" : "留影日记";
+        if (flipped) back.querySelector<HTMLElement>(".card-artwork-diary")?.focus({ preventScroll: true });
+        else flip.focus({ preventScroll: true });
+      };
+
+      const render = () => {
+        if (!dialog.open) return;
+        const width = image.naturalWidth || Number(image.getAttribute("width"));
+        const height = image.naturalHeight || Number(image.getAttribute("height"));
+        const fit = Math.min((stage.clientWidth - 32) / width, (stage.clientHeight - 32) / height, 1);
+        const renderedWidth = width * fit * scale;
+        const renderedHeight = height * fit * scale;
+        surface.style.width = `${Math.max(stage.clientWidth, renderedWidth + 32)}px`;
+        surface.style.height = `${Math.max(stage.clientHeight, renderedHeight + 32)}px`;
+        image.style.width = `${renderedWidth}px`;
+        image.style.height = `${renderedHeight}px`;
+        scaleLabel.value = `${Math.round(scale * 100)}%`;
+        zoomOut.disabled = scale <= 1;
+        zoomIn.disabled = scale >= 4;
+        stage.toggleAttribute("data-zoomed", scale > 1);
+      };
+      const zoom = (next: number) => {
+        const previousWidth = surface.offsetWidth;
+        const previousHeight = surface.offsetHeight;
+        const x = (stage.scrollLeft + stage.clientWidth / 2) / previousWidth;
+        const y = (stage.scrollTop + stage.clientHeight / 2) / previousHeight;
+        scale = Math.min(4, Math.max(1, next));
+        render();
+        stage.scrollLeft = x * surface.offsetWidth - stage.clientWidth / 2;
+        stage.scrollTop = y * surface.offsetHeight - stage.clientHeight / 2;
+      };
+      const open = () => {
+        if (dialog.open) return;
+        returnFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+        previousOverflow = document.documentElement.style.overflow;
+        document.documentElement.style.overflow = "hidden";
+        dialog.showModal();
+        if (!image.src) image.src = image.dataset.original!;
+        scale = 1;
+        render();
+        stage.scrollTo(0, 0);
+      };
+      front.addEventListener("click", back ? turn : open, options);
+      back?.addEventListener("pointerdown", (event) => {
+        backGesture = { x: event.clientX, y: event.clientY, moved: false, scrollTop: back.querySelector(".card-artwork-diary")?.scrollTop ?? 0 };
+      }, options);
+      back?.addEventListener("pointermove", (event) => {
+        if (backGesture && Math.hypot(event.clientX - backGesture.x, event.clientY - backGesture.y) > 8) backGesture.moved = true;
+      }, options);
+      back?.addEventListener("pointercancel", () => { backGesture = null; }, options);
+      back?.addEventListener("click", () => {
+        const scrolling = backGesture?.scrollTop !== (back.querySelector(".card-artwork-diary")?.scrollTop ?? 0);
+        if (backGesture && !backGesture.moved && !scrolling && !window.getSelection()?.toString()) turn();
+        backGesture = null;
+      }, options);
+      back?.addEventListener("keydown", (event) => {
+        if (event.key === "Enter") { event.preventDefault(); turn(); }
+      }, options);
+      flip?.addEventListener("click", turn, options);
+      this.querySelector("[data-art-expand]")?.addEventListener("click", open, options);
+      this.querySelector("[data-art-close]")?.addEventListener("click", () => dialog.close(), options);
+      dialog.addEventListener("click", (event) => { if (event.target === dialog) dialog.close(); }, options);
+      dialog.addEventListener("close", () => {
+        document.documentElement.style.overflow = previousOverflow;
+        returnFocus?.focus({ preventScroll: true });
+      }, options);
+      image.addEventListener("load", render, options);
+      image.addEventListener("error", () => {
+        if (image.getAttribute("src") !== image.dataset.preview) image.src = image.dataset.preview!;
+      }, options);
+      zoomIn.addEventListener("click", () => zoom(scale + .5), options);
+      zoomOut.addEventListener("click", () => zoom(scale - .5), options);
+      this.querySelector("[data-art-fit]")?.addEventListener("click", () => zoom(1), options);
+      stage.addEventListener("dblclick", () => zoom(scale === 1 ? 2 : 1), options);
+      stage.addEventListener("keydown", (event) => {
+        if (event.key === "+" || event.key === "=") { event.preventDefault(); zoom(scale + .5); }
+        if (event.key === "-") { event.preventDefault(); zoom(scale - .5); }
+        if (event.key === "0") { event.preventDefault(); zoom(1); }
+      }, options);
+      stage.addEventListener("pointerdown", (event) => {
+        if (scale <= 1 || event.pointerType === "touch" || event.button !== 0) return;
+        drag = { x: event.clientX, y: event.clientY, left: stage.scrollLeft, top: stage.scrollTop };
+        stage.setPointerCapture(event.pointerId);
+        stage.setAttribute("data-dragging", "");
+        event.preventDefault();
+      }, options);
+      stage.addEventListener("pointermove", (event) => {
+        if (!drag) return;
+        stage.scrollLeft = drag.left - (event.clientX - drag.x);
+        stage.scrollTop = drag.top - (event.clientY - drag.y);
+      }, options);
+      const endDrag = () => { drag = null; stage.removeAttribute("data-dragging"); };
+      stage.addEventListener("pointerup", endDrag, options);
+      stage.addEventListener("lostpointercapture", endDrag, options);
+      const observer = new ResizeObserver(render);
+      observer.observe(stage);
+      this.cleanup = () => {
+        observer.disconnect(); controller.abort();
+        if (dialog.open) { dialog.close(); document.documentElement.style.overflow = previousOverflow; }
+      };
+    }
+    disconnectedCallback() { this.cleanup?.(); }
+  }
+  if (!customElements.get("card-artwork")) customElements.define("card-artwork", CardArtwork);
+</script>

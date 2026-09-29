@@ -1,0 +1,471 @@
+---
+import type {
+  MemberCard,
+  SupportCard
+} from "../../lib/catalog";
+import {
+  catalog,
+  getAsset
+} from "../../lib/catalog";
+import type {
+  CardDetailProjection,
+  GrowthProfile
+} from "../../lib/game-database";
+import {
+  getItem,
+  getSkill
+} from "../../lib/game-database";
+import { activeReleaseContext } from "../../lib/release-context";
+import { getUi } from "../../lib/ui-i18n";
+
+import { maximumGrowthState } from "../../lib/growth-simulator.mjs";
+
+interface Props {
+  card: MemberCard | SupportCard;
+  profile: GrowthProfile;
+  projection: CardDetailProjection;
+}
+
+const { card, profile, projection } = Astro.props;
+const ui = getUi(activeReleaseContext.locale);
+const iconIds = catalog.cardTaxonomy.growthIcons;
+const levelIcon = getAsset(
+  profile.cardKind === "member"
+    ? iconIds.memberLevel
+    : iconIds.supportLevel
+);
+const rankIcon = getAsset(iconIds.rank);
+const awakeIcon = getAsset(iconIds.awake);
+const itemIds = new Set([
+  profile.cardKind === "member" ? "item-5" : "item-6",
+  ...profile.materialRequirements.map((requirement) => requirement.itemId),
+  ...projection.skillRefs.flatMap((skill) =>
+    (skill.materialRequirements ?? []).map((requirement) => requirement.itemId)
+  )
+]);
+const items = Object.fromEntries(
+  [...itemIds].map((itemId) => {
+    const item = getItem(itemId);
+    const asset = getAsset(item?.iconAssetId);
+    return [
+      itemId,
+      {
+        id: itemId,
+        name: item?.name ?? itemId,
+        previewUrl: asset?.previewUrl ?? null
+      }
+    ];
+  })
+);
+const skillEntries = projection.skillRefs
+  .map((reference) => {
+    const skill = getSkill(reference.skillId);
+    const icon = getAsset(skill?.iconAssetId);
+    const maxLevel = Math.max(
+      1,
+      ...(skill?.levels ?? []).map((level) => level.level)
+    );
+    return {
+      id: reference.skillId,
+      slot: reference.slot,
+      name: skill?.name ?? reference.skillId,
+      icon,
+      maxLevel,
+      skill
+    };
+  })
+  .filter((entry) => entry.skill !== undefined);
+const initialState = maximumGrowthState(profile, skillEntries.map(entry => entry.skill!));
+const config = JSON.stringify({
+  card,
+  profile,
+  projection,
+  skills: skillEntries.map((entry) => entry.skill),
+  initialState,
+  locale: activeReleaseContext.locale,
+  items,
+  expItemId: profile.cardKind === "member" ? "item-5" : "item-6",
+  labels: {
+    levelExperience: ui.levelExperience,
+    rank: ui.rank,
+    supportRank: ui.supportRank,
+    awake: ui.awake,
+    skill: ui.skills,
+    nextStep: ui.nextStep,
+    remainingToMax: ui.remainingToMax,
+    complete: ui.complete
+  }
+}).replaceAll("<", "\\u003c");
+---
+
+<card-growth-simulator>
+  <script is:inline type="application/json" data-growth-config set:html={config}></script>
+
+
+    <section class="growth-controls" aria-label={ui.growthDemo}>
+      <header>
+        <div>
+          <h3>{activeReleaseContext.locale === "en" ? "Preview progress" : "预览进度"}</h3>
+        </div>
+        <div class="growth-presets"><button type="button" data-growth-min>{activeReleaseContext.locale === "en" ? "Initial" : "初始状态"}</button><button type="button" data-growth-reset>{activeReleaseContext.locale === "en" ? "Maximum" : "满养成"}</button></div>
+      </header>
+      <p>{activeReleaseContext.locale === "en" ? "The card updates as you adjust. Progress is kept until you refresh or leave this page." : "调整后即时更新页面数值；关闭面板后保留，刷新或切换卡牌后还原。"}</p>
+      {profile.cardKind === "member" ? (
+        <div class="growth-live-total"><span>{activeReleaseContext.locale === "en" ? "Total power" : "综合力"}</span><strong data-growth-power="total">0</strong></div>
+      ) : (
+        <div class="growth-support-rates">
+          {[["performance", ui.performance], ["technic", ui.technic], ["visual", ui.visual]].map(([axis, label]) => (
+            <div class="growth-live-total"><span>{label}</span><strong data-growth-power={axis}>0%</strong></div>
+          ))}
+        </div>
+      )}
+
+      <label class="growth-control">
+        {levelIcon && <img src={levelIcon.previewUrl} alt="" />}
+        <span><b>{ui.level}</b><output data-growth-output="level">1</output></span>
+        <input
+          type="range"
+          min="1"
+          max={profile.levelCurve.at(-1)?.level ?? 1}
+          value="1"
+          data-growth-input="level"
+          aria-label={ui.level}
+        />
+        <small>{ui.currentCap} Lv.<b data-growth-level-cap>1</b></small>
+      </label>
+
+      <label class="growth-control">
+        {rankIcon && <img class="growth-control-icon--dark" src={rankIcon.previewUrl} alt="" />}
+        <span><b>{profile.cardKind === "member" ? ui.rank : ui.supportRank}</b><output data-growth-output="rank">1</output></span>
+        <input
+          type="range"
+          min="0"
+          max={Math.max(profile.ranks.length - 1, 0)}
+          value="0"
+          data-growth-input="rank"
+          aria-label="Rank"
+        />
+        <small>{profile.cardKind === "support" ? ui.supportRankSkillHint : ui.baseRankHint}</small>
+      </label>
+
+      {profile.cardKind === "member" && (
+        <label class="growth-control">
+          {awakeIcon && <img src={awakeIcon.previewUrl} alt="" />}
+          <span><b>{ui.awake}</b><output data-growth-output="awake">0</output></span>
+          <input
+            type="range"
+            min="0"
+            max={Math.max(profile.awakes.length - 1, 0)}
+            value="0"
+            data-growth-input="awake"
+            aria-label={ui.awake}
+          />
+          <small>{ui.awakeCapHint}</small>
+        </label>
+      )}
+
+      {profile.cardKind === "member" && skillEntries
+        .filter((skill) => skill.maxLevel > 1 && skill.slot !== "leader")
+        .map((skill) => (
+        <label class="growth-control">
+          {skill.icon
+            ? <img src={skill.icon.previewUrl} alt="" />
+            : <span class="growth-icon-fallback" aria-hidden="true">SK</span>}
+          <span><b>{skill.name}</b><output data-growth-skill-output={skill.id}>1</output></span>
+          <input
+            type="range"
+            min="1"
+            max={skill.maxLevel}
+            value="1"
+            data-growth-skill-input={skill.id}
+            aria-label={`${skill.name} ${ui.skillLevel}`}
+          />
+          <small>{ui.skillLevel}</small>
+        </label>
+        ))}
+    </section>
+
+</card-growth-simulator>
+
+<script>
+  import {
+    createGrowthSnapshot,
+    type GrowthState,
+    type MaterialAmount
+  } from "../../lib/growth-simulator.mjs";
+  import { formatCardPower } from "../../lib/card-power-display.mjs";
+  import { nextGrowthDialogState } from "../../lib/growth-dialog-lifecycle.mjs";
+
+  interface MaterialInfo {
+    id: string;
+    name: string;
+    previewUrl: string | null;
+  }
+
+  interface GrowthConfig {
+    card: Parameters<typeof createGrowthSnapshot>[0]["card"];
+    profile: Parameters<typeof createGrowthSnapshot>[0]["profile"];
+    projection: Parameters<typeof createGrowthSnapshot>[0]["projection"];
+    skills: NonNullable<Parameters<typeof createGrowthSnapshot>[0]["skills"]>;
+    initialState: GrowthState;
+    locale: string;
+    items: Record<string, MaterialInfo>;
+    expItemId: string;
+    labels: {
+      levelExperience: string;
+      rank: string;
+      supportRank: string;
+      awake: string;
+      skill: string;
+      nextStep: string;
+      remainingToMax: string;
+      complete: string;
+    };
+  }
+
+  const numberFormat = new Intl.NumberFormat("zh-CN");
+  const rateFormat = (value: number) =>
+    `${(value / 100).toFixed(2).replace(/\.?0+$/, "")}%`;
+
+  class CardGrowthSimulator extends HTMLElement {
+    private config!: GrowthConfig;
+    private scope: HTMLElement[] = [];
+    private controller?: AbortController;
+    private initialState!: GrowthState;
+    private dialog: HTMLDialogElement | null = null;
+    private onDialogClose = () => {
+      this.applyState(
+        nextGrowthDialogState(
+          "dialog-close",
+          this.readState(),
+          this.initialState
+        )
+      );
+      this.render();
+    };
+
+    connectedCallback() {
+      const source = this.querySelector<HTMLScriptElement>(
+        "[data-growth-config]"
+      );
+      if (!source?.textContent) return;
+      this.config = JSON.parse(source.textContent) as GrowthConfig;
+      this.initialState = structuredClone(this.config.initialState);
+      this.controller?.abort();
+      this.controller = new AbortController();
+      const options = { signal: this.controller.signal };
+      const dialogs = this.closest<HTMLElement>("card-detail-dialogs")!;
+      this.scope = [dialogs];
+      this.dialog = this.closest("dialog");
+      this.dialog?.addEventListener("close", this.onDialogClose);
+
+      this.querySelectorAll<HTMLInputElement>("[data-growth-input], [data-growth-skill-input]")
+        .forEach((input) => input.addEventListener("input", () => this.render(), options));
+      this.querySelector<HTMLElement>("[data-growth-reset]")
+        ?.addEventListener("click", () => this.reset(), options);
+      this.querySelector("[data-growth-min]")?.addEventListener("click", () => {
+        this.applyState({ level: 1, rank: 0, awake: 0, skillLevels: Object.fromEntries(this.config.skills.map(skill => [skill.id, 1])) });
+        this.render();
+      }, options);
+      this.applyState(this.initialState);
+      this.render();
+    }
+
+    disconnectedCallback() {
+      this.dialog?.removeEventListener("close", this.onDialogClose);
+      this.controller?.abort();
+    }
+
+    reset() {
+      this.applyState(
+        nextGrowthDialogState(
+          "explicit-reset",
+          this.readState(),
+          this.initialState
+        )
+      );
+      this.render();
+    }
+
+    private applyState({ level, rank, awake, skillLevels }: GrowthState) {
+      const levelInput = this.querySelector<HTMLInputElement>("[data-growth-input='level']");
+      if (levelInput) levelInput.max = String(this.config.profile.levelCurve.at(-1)?.level ?? 1);
+      this.setInput("[data-growth-input='level']", level);
+      this.setInput("[data-growth-input='rank']", rank);
+      this.setInput("[data-growth-input='awake']", awake);
+      for (const [skillId, skillLevel] of Object.entries(skillLevels)) {
+        this.setInput(`[data-growth-skill-input="${skillId}"]`, skillLevel);
+      }
+    }
+
+    private setInput(selector: string, value: number) {
+      const input = this.querySelector<HTMLInputElement>(selector);
+      if (input) input.value = String(value);
+    }
+
+    private readState(): GrowthState {
+      const value = (selector: string, fallback: number) =>
+        Number(this.querySelector<HTMLInputElement>(selector)?.value ?? fallback);
+      const skillLevels = Object.fromEntries(
+        [...this.querySelectorAll<HTMLInputElement>("[data-growth-skill-input]")]
+          .map((input) => [input.dataset.growthSkillInput!, Number(input.value)])
+      );
+      return {
+        level: value("[data-growth-input='level']", 1),
+        rank: value("[data-growth-input='rank']", 0),
+        awake: value("[data-growth-input='awake']", 0),
+        skillLevels
+      };
+    }
+
+    private setText(selector: string, value: string | number) {
+      for (const root of this.scope) {
+        root.querySelectorAll<HTMLElement>(selector).forEach(target => { target.textContent = String(value); });
+      }
+    }
+
+    private render() {
+      if (!this.config) return;
+      const snapshot = createGrowthSnapshot({
+        card: this.config.card,
+        profile: this.config.profile,
+        projection: this.config.projection,
+        skills: this.config.skills,
+        state: this.readState()
+      });
+      this.setInput("[data-growth-input='level']", snapshot.state.level);
+      const levelInput = this.querySelector<HTMLInputElement>(
+        "[data-growth-input='level']"
+      );
+      if (levelInput) levelInput.max = String(snapshot.maxLevel);
+
+      this.setText("[data-growth-output='level']", snapshot.state.level);
+      this.setText("[data-growth-output='rank']", snapshot.state.rank + 1);
+      this.querySelector("[data-growth-input='rank']")?.setAttribute("aria-valuetext", `Rank ${snapshot.state.rank + 1}`);
+      this.setText("[data-growth-output='awake']", snapshot.state.awake);
+      this.setText("[data-growth-level-cap]", snapshot.maxLevel);
+      for (const [skillId, level] of Object.entries(snapshot.state.skillLevels)) {
+        this.setText(`[data-growth-skill-output="${skillId}"]`, level);
+      }
+      for (const [axis, amount] of Object.entries(snapshot.power)) {
+        if (typeof amount === "number") {
+          this.setText(`[data-growth-power="${axis}"]`, formatCardPower(amount, this.config.profile.cardKind, this.config.locale));
+        }
+      }
+      for (const [key, value] of Object.entries(snapshot.bonuses)) {
+        this.setText(`[data-growth-bonus="${key}"]`, value);
+        this.setText(`[data-growth-rate="${key}"]`, rateFormat(value));
+      }
+      for (const skill of snapshot.effectiveSkills) {
+        this.setText(
+          `[data-growth-effective-level="${skill.skillId}"]`,
+          skill.level ?? "—"
+        );
+        this.setText(
+          `[data-growth-effective-summary="${skill.skillId}"]`,
+          skill.renderedSummary || "—"
+        );
+      }
+      for (const [key, value] of Object.entries(snapshot.exp)) this.setText(`[data-growth-exp="${key}"]`, numberFormat.format(value));
+      const isMax = snapshot.state.level === this.initialState.level && snapshot.state.rank === this.initialState.rank && snapshot.state.awake === this.initialState.awake && snapshot.effectiveSkills.every(skill => skill.level === this.initialState.skillLevels[skill.skillId]);
+      this.setText("[data-growth-mode]", this.config.locale === "en" ? (isMax ? "MAX STATS" : "CUSTOM") : (isMax ? "满养成" : "自定义进度"));
+      const highest = Math.max(1, snapshot.power.performance, snapshot.power.technic, snapshot.power.visual);
+      for (const root of this.scope) root.querySelectorAll<HTMLElement>("[data-growth-meter]").forEach(meter => {
+        const axis = meter.dataset.growthMeter as "performance" | "technic" | "visual";
+        meter.style.setProperty("--power-fill", `${snapshot.power[axis] / highest * 100}%`);
+      });
+      this.renderMaterials(snapshot);
+    }
+
+    private renderMaterials(
+      snapshot: ReturnType<typeof createGrowthSnapshot>
+    ) {
+      const target = this.closest("card-detail-dialogs")?.querySelector<HTMLElement>("[data-growth-materials]");
+      if (!target) return;
+      target.replaceChildren();
+      target.append(
+        this.materialAxis(
+          this.config.labels.levelExperience,
+          [
+            {
+              itemId: this.config.expItemId,
+              amount: snapshot.exp.toCurrentCap
+            }
+          ],
+          [
+            {
+              itemId: this.config.expItemId,
+              amount: snapshot.exp.toFinalCap
+            }
+          ]
+        )
+      );
+      for (const axis of snapshot.materialAxes) {
+        const title = axis.key === "rank"
+          ? (this.config.profile.cardKind === "member"
+              ? this.config.labels.rank
+              : this.config.labels.supportRank)
+          : axis.key === "awake"
+            ? this.config.labels.awake
+            : this.config.projection.skillSummaries.find(
+                (skill) => `skill:${skill.skillId}` === axis.key
+              )?.name ?? this.config.labels.skill;
+        target.append(this.materialAxis(title, axis.next, axis.remaining));
+      }
+    }
+
+    private materialAxis(
+      title: string,
+      next: MaterialAmount[],
+      remaining: MaterialAmount[]
+    ) {
+      const section = document.createElement("section");
+      const heading = document.createElement("h4");
+      heading.textContent = title;
+      section.append(heading);
+      const columns = document.createElement("div");
+      columns.className = "growth-material-columns";
+      columns.append(
+        this.materialColumn(this.config.labels.nextStep, next),
+        this.materialColumn(this.config.labels.remainingToMax, remaining)
+      );
+      section.append(columns);
+      return section;
+    }
+
+    private materialColumn(label: string, amounts: MaterialAmount[]) {
+      const column = document.createElement("div");
+      const heading = document.createElement("span");
+      heading.textContent = label;
+      column.append(heading);
+      if (amounts.length === 0 || amounts.every((entry) => entry.amount === 0)) {
+        const empty = document.createElement("small");
+        empty.textContent = this.config.labels.complete;
+        column.append(empty);
+        return column;
+      }
+      for (const entry of amounts.filter((amount) => amount.amount > 0)) {
+        const item = this.config.items[entry.itemId];
+        const link = document.createElement("a");
+        link.href = `${import.meta.env.BASE_URL}database/items/${entry.itemId}/`;
+        if (item?.previewUrl) {
+          const image = document.createElement("img");
+          image.src = item.previewUrl;
+          image.alt = "";
+          link.append(image);
+        }
+        const name = document.createElement("span");
+        name.textContent = item?.name ?? entry.itemId;
+        const amount = document.createElement("strong");
+        amount.textContent = `× ${numberFormat.format(entry.amount)}`;
+        link.append(name, amount);
+        column.append(link);
+      }
+      return column;
+    }
+  }
+
+  if (!customElements.get("card-growth-simulator")) {
+    customElements.define("card-growth-simulator", CardGrowthSimulator);
+  }
+</script>

@@ -1,0 +1,87 @@
+---
+import {
+  getAsset,
+  getBand,
+  getCharacter,
+  type MemberCard
+} from "../lib/catalog";
+import { activeReleaseContext } from "../lib/release-context";
+import { siteHref } from "../lib/site-context";
+import { getUi } from "../lib/ui-i18n";
+import { classifyTileTitleDensity } from "../lib/tile-title-density.mjs";
+import "../styles/faceted-browser.css";
+import ArchiveImage from "./ArchiveImage.astro";
+import CardAttributeBadge from "./CardAttributeBadge.astro";
+import CardRarityBadge from "./CardRarityBadge.astro";
+import BandMark from "./BandMark.astro";
+import StatusTag from "./StatusTag.astro";
+
+interface Props {
+  card: MemberCard;
+  skillFacets?: Record<string, string[]>;
+}
+
+const { card, skillFacets = {} } = Astro.props;
+const ui = getUi(activeReleaseContext.locale);
+const asset = getAsset(card.thumbnailAssetId);
+const character = getCharacter(card.characterId);
+const band = getBand(character?.bandId);
+const localizedHref = (logicalPath: string) =>
+  import.meta.env.BASE_URL === "/"
+    ? logicalPath
+    : siteHref(logicalPath, activeReleaseContext);
+const href = localizedHref(`/cards/members/${card.id}/`);
+const titleDensity = classifyTileTitleDensity(card.subtitle);
+---
+
+<article
+  class:list={[
+    "catalog-tile",
+    "card-tile",
+    "compact-catalog-tile",
+    "catalog-item",
+    `tile-title-${titleDensity}`
+  ]}
+  data-search={`${card.displayName} ${card.name} ${card.subtitle} ${card.masterId} ${character?.aliases.join(" ") ?? ""} ${band?.displayName ?? ""}`}
+  data-skill-role={skillFacets["skill-role"]?.join(",")}
+  data-live-type={skillFacets["live-type"]?.join(",")}
+  data-gekisou-type={skillFacets["gekisou-type"]?.join(",")}
+  data-gekisou-effect={skillFacets["gekisou-effect"]?.join(",")}
+  data-status={card.catalogStatus}
+  data-rarity={String(card.rarity)}
+  data-attribute={String(card.attributeCode)}
+  data-character={card.characterId}
+  data-band={character?.bandId}
+  data-label={card.masterId.toString().padStart(6, "0")}
+  data-card-kind="member"
+>
+  <a class="tile-media card-media" href={href} data-media-ratio="3:4">
+    {asset ? (
+      <ArchiveImage
+        class="image-fit--card"
+        asset={asset}
+        alt={`${card.displayName} ${ui.memberCard}`}
+        controlledLazy
+      />
+    ) : (
+      <span class="media-missing">{ui.previewPending}</span>
+    )}
+    <span class="archive-index">MC-{card.masterId.toString().padStart(3, "0")}</span>
+  </a>
+  <div class="tile-body">
+    <StatusTag status={card.catalogStatus} dotOnly />
+    <div class="tile-icon-row">
+      <span class="card-taxonomy-line">
+        <CardRarityBadge rarity={card.rarity} compact />
+        <CardAttributeBadge code={card.attributeCode} compact />
+      </span>
+    </div>
+    <h2><a href={href}>{card.subtitle}</a></h2>
+    <p>
+      <span title={[character?.displayName ?? card.name, band?.displayName].filter(Boolean).join(" · ")}>
+        {character?.displayName ?? card.name}
+      </span>
+      {band && <BandMark band={band} compact iconOnly />}
+    </p>
+  </div>
+</article>

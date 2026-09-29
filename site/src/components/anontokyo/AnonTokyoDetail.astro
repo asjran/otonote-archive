@@ -1,0 +1,83 @@
+---
+import AnonTokyoHeader from "./AnonTokyoHeader.astro";
+
+interface Props {
+  section: "goods" | "furniture" | "tasks" | "staff";
+  record: Record<string, any>;
+  stagedMedia: Array<Record<string, string>>;
+}
+
+const { section, record, stagedMedia } = Astro.props;
+const rewards = (record.rewards ?? []) as Array<{ name: string; count?: number }>;
+const abilities = (record.abilities ?? []) as Array<{ name: string; effect: string; effectVerified?: boolean; effectPlaceholder?: boolean; roleInclination?: { name: string; imageKey?: string } }>;
+const related = (record.related ?? {}) as { wardrobeIds?: string[]; chatIds?: string[]; stageIds?: string[] };
+const media = new Map(stagedMedia.map((entry) => [entry.logicalKey.toLocaleLowerCase("en-US"), entry.publicUrl]));
+const title = section === "tasks" ? record.condition : record.name;
+const description = section === "goods" ? `${record.category} · ${record.tags.join(" · ")}` : section === "furniture" ? `${record.category} · ${record.subCategory}` : section === "tasks" ? record.category : record.unlock ?? "角色能力资料";
+const imageUrl = record.imageKey ? media.get(record.imageKey.toLocaleLowerCase("en-US")) : undefined;
+---
+
+<AnonTokyoHeader title={title} description={description} active={section} />
+
+<main class="at-guide-main">
+  <div class="content-shell at-detail-shell">
+    <a class="at-detail-back" href={`/anontokyo/${section}/`}>← 返回{section === "goods" ? "商品" : section === "furniture" ? "家具" : section === "tasks" ? "任务" : "角色"}列表</a>
+    {section === "goods" && (
+      <section class="at-detail-panel">
+        {imageUrl && <img class="at-detail-image" src={imageUrl} alt="" />}
+        <dl class="at-detail-data">
+          <div><dt>进货数量</dt><dd>{record.purchaseQuantity ?? "—"}</dd></div>
+          <div><dt>进货成本</dt><dd>{record.purchaseCost ?? "—"}</dd></div>
+          <div><dt>售价</dt><dd>{record.saleCoins ?? "—"}</dd></div>
+          <div><dt>配送时间</dt><dd>{record.deliveryTime ?? "—"}</dd></div>
+          {record.profitPerUnit !== undefined && <div><dt>单件利润</dt><dd>{record.profitPerUnit}</dd></div>}
+        </dl>
+        {record.unlockConditions.length > 0 && <p class="at-inline-note">解锁：{record.unlockConditions.join(" · ")}</p>}
+      </section>
+    )}
+    {section === "furniture" && (
+      <section class="at-detail-panel">
+        {imageUrl && <img class="at-detail-image" src={imageUrl} alt="" />}
+        <dl class="at-detail-data">
+          <div><dt>占地尺寸</dt><dd>{record.size}</dd></div>
+          <div><dt>购买价格</dt><dd>{record.purchase ?? "—"}</dd></div>
+          <div><dt>出售价格</dt><dd>{record.sale ?? "—"}</dd></div>
+          <div><dt>限购数量</dt><dd>{record.limit || "不限"}</dd></div>
+        </dl>
+        {record.unlock && <p class="at-inline-note">解锁：{record.unlock}</p>}
+      </section>
+    )}
+    {section === "tasks" && (
+      <section class="at-detail-panel">
+        <h2>完成条件</h2><p class="at-detail-condition">{record.condition}</p>
+        <h2>奖励</h2>
+        <div class="at-detail-rewards">{rewards.map((reward) => <span>{reward.name} × {reward.count ?? "—"}</span>)}</div>
+      </section>
+    )}
+    {section === "staff" && (
+      <section class="at-detail-panel">
+        {imageUrl && <img class="at-detail-image" src={imageUrl} alt="" />}
+        {record.statsVerified === false && (
+          <p class="at-content-caution">{record.statsNote ?? "被动能力来自原始数值串，客户端语义未闭环"}</p>
+        )}
+        <div class="at-ability-list at-ability-list--detail">
+          {abilities.map((ability) => (
+            <div class="at-ability"><span class="at-ability__fallback" aria-hidden="true">+</span><div><strong>{ability.name} <b>{ability.effect}</b></strong>{ability.effectPlaceholder && <p class="at-content-caution">该数值仅作占位，客户端语义未验证。</p>}{ability.roleInclination && <p><span>{ability.roleInclination.name}</span></p>}</div></div>
+          ))}
+        </div>
+        <a class="at-related-link" href={`/anontokyo/chats/?character=${encodeURIComponent(record.name)}`}>查看该角色的聊天与独白 →</a>
+      </section>
+    )}
+    {section === "staff" && related.wardrobeIds && related.wardrobeIds.length > 0 && (
+      <section class="at-detail-panel">
+        <h2>该角色已确认归属的换装</h2>
+        <ul class="at-related-wardrobe">
+          {related.wardrobeIds.map((wardrobeId) => (
+            <li><a href={`/anontokyo/wardrobe/${wardrobeId}/`}>查看换装 #{wardrobeId}</a></li>
+          ))}
+        </ul>
+        <p class="at-guide-note">关联依据本地归属链精确解析，不依赖中文名或文件名相似度。</p>
+      </section>
+    )}
+  </div>
+</main>

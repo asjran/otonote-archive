@@ -1,0 +1,16 @@
+---
+import type { SystemReward } from "../../lib/global-systems";
+import { rewardView, say } from "../../lib/system-display";
+interface Props { rewards: SystemReward[]; compact?: boolean; }
+const { compact = false } = Astro.props;
+const rewards = Astro.props.rewards.map(rewardView);
+const kinds: Record<number, string> = { 2: say("成员卡", "Member"), 3: say("留影", "Snapshot"), 8: say("乐曲", "Song"), 17: say("贴纸", "Sticker"), 18: say("背景", "Background"), 19: say("场景", "Scene") };
+---
+<ul class:list={["sys-rewards", { "sys-rewards--compact": compact }]}>
+  {rewards.map(reward => <li class:list={{ "sys-reward--text": !reward.image, "sys-reward--card": [2, 3].includes(reward.resourceType), "sys-reward--unlock": [8, 17, 18, 19].includes(reward.resourceType), "sys-reward--degree": reward.resourceType === 17, "sys-reward--icon": compact && !!reward.image && reward.resourceType === 1 }} title={`${reward.name} ×${reward.count.toLocaleString()}`}>
+    {reward.image && <img src={reward.image} alt="" width="28" height="28" loading="lazy" />}
+    {compact && kinds[reward.resourceType] && <small class="sys-reward-kind">{kinds[reward.resourceType]}</small>}
+    {reward.href ? <a href={reward.href}>{reward.name}</a> : <span class:list={{ "visually-hidden": compact && !!reward.image && reward.resourceType === 1 }}>{reward.name}</span>}
+    <strong>×{reward.count.toLocaleString()}</strong>
+  </li>)}
+</ul>

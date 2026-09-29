@@ -1,0 +1,87 @@
+---
+import { transitionModes } from '../lib/transition-preview.mjs';
+import '../styles/transition-preview.css';
+interface Props { nextHref: string; nextLabel: string; }
+const { nextHref, nextLabel } = Astro.props;
+---
+<aside class="transition-preview" aria-label="模块过渡效果对比">
+  <div class="transition-preview__heading">
+    <strong>切换之间</strong><span>过渡效果对比</span>
+    <button type="button" data-transition-exit aria-label="退出过渡效果对比">退出对比 ×</button>
+  </div>
+  <div class="transition-preview__modes" role="group" aria-label="选择过渡效果">
+    {transitionModes.map(mode => <button type="button" data-transition-mode={mode.id} aria-pressed="false">{mode.label}</button>)}
+  </div>
+  <div class="transition-preview__footer">
+    <p data-transition-description aria-live="polite">选择效果，再点击侧栏或右侧入口</p>
+    <label><input type="checkbox" data-transition-slow />慢速观察</label>
+    <a href={nextHref} data-transition-next>{nextLabel}<span aria-hidden="true"> →</span></a>
+  </div>
+  <p class="transition-preview__notice" data-transition-notice hidden></p>
+</aside>
+<script>
+  import { transitionModes, transitionPreviewHref } from '../lib/transition-preview.mjs';
+  const root = document.documentElement;
+  const panel = document.querySelector<HTMLElement>('.transition-preview');
+  if (panel && root.dataset.transitionPreview) {
+    const buttons = panel.querySelectorAll<HTMLButtonElement>('[data-transition-mode]');
+    const slow = panel.querySelector<HTMLInputElement>('[data-transition-slow]')!;
+    const description = panel.querySelector<HTMLElement>('[data-transition-description]')!;
+    const next = panel.querySelector<HTMLAnchorElement>('[data-transition-next]')!;
+    const nextHref = next.getAttribute('href')!;
+    const notice = panel.querySelector<HTMLElement>('[data-transition-notice]')!;
+    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const decoratedLinks = new Map<HTMLAnchorElement, string>();
+    const state = () => ({ mode: root.dataset.pageTransition, slow: root.dataset.transitionSpeed === 'slow' });
+    const update = () => {
+      if (!root.dataset.transitionPreview) return;
+      const selected = transitionModes.find(mode => mode.id === root.dataset.pageTransition)!;
+      buttons.forEach(button => button.setAttribute('aria-pressed', String(button.dataset.transitionMode === selected.id)));
+      slow.checked = state().slow;
+      description.textContent = selected.description;
+      next.href = transitionPreviewHref(nextHref, state(), window.location.href);
+      notice.hidden = false;
+      if (root.dataset.motion === 'off') notice.textContent = '当前链接已关闭动效，请移除 motion=off 后再体验。';
+      else if (reduced.matches) notice.textContent = '系统已开启减少动态效果，切换将保持即时完成。';
+      else if (!('onpagereveal' in window)) notice.textContent = '此浏览器不支持跨页过渡，将使用普通页面跳转。';
+      else notice.hidden = true;
+    };
+    const save = () => {
+      history.replaceState(history.state, '', transitionPreviewHref(window.location.href, state(), window.location.href));
+      update();
+    };
+    buttons.forEach(button => button.addEventListener('click', () => {
+      root.dataset.pageTransition = button.dataset.transitionMode;
+      save();
+    }));
+    slow.addEventListener('change', () => {
+      root.dataset.transitionSpeed = slow.checked ? 'slow' : 'normal';
+      save();
+    });
+    panel.querySelector('[data-transition-exit]')?.addEventListener('click', () => {
+      delete root.dataset.transitionPreview;
+      root.dataset.pageTransition = 'stage';
+      delete root.dataset.transitionSpeed;
+      decoratedLinks.forEach((href, link) => link.setAttribute('href', href));
+      decoratedLinks.clear();
+      const url = new URL(window.location.href);
+      url.searchParams.delete('transition');
+      url.searchParams.delete('transition-speed');
+      history.replaceState(history.state, '', url);
+      document.querySelector<HTMLElement>('#main-content')?.focus({ preventScroll: true });
+    });
+    // Decorate the chosen link without preventing clicks, history, or new-tab behavior.
+    const decorateLink = (event: MouseEvent) => {
+      if (!root.dataset.transitionPreview) return;
+      const link = event.target instanceof Element ? event.target.closest<HTMLAnchorElement>('a[href]') : null;
+      if (!link || link.hasAttribute('download')) return;
+      if (!decoratedLinks.has(link)) decoratedLinks.set(link, link.getAttribute('href')!);
+      link.setAttribute('href', transitionPreviewHref(link.getAttribute('href'), state(), window.location.href));
+    };
+    document.addEventListener('click', decorateLink, { capture: true });
+    document.addEventListener('auxclick', decorateLink, { capture: true });
+    window.addEventListener('pageshow', update);
+    reduced.addEventListener('change', update);
+    update();
+  }
+</script>

@@ -1,0 +1,44 @@
+---
+import SelectionFilters from "./SelectionFilters.astro";
+import {catalog,getAsset,getCardAttribute} from '../lib/catalog';
+import CardAttributeBadge from './CardAttributeBadge.astro';
+import CalculatorAttributeFilter from './CalculatorAttributeFilter.astro';
+import formalRules from '../data/formal-scoring-rules.json';
+import '../styles/calculator-journey.css';
+const difficulties=[['easy','EASY'],['normal','NORMAL'],['hard','HARD'],['expert','EXPERT']];
+---
+<div class="calculator-song-picker" data-song-picker>
+  <div class="song-selection-pin"><p data-song-selection aria-live="polite">还没选歌。点击一个难度开始。</p><button type="button" data-song-locate>定位已选</button></div>
+  <SelectionFilters title="筛选歌曲">
+    <label slot="search" class="selection-search">找歌曲<input type="search" data-song-query placeholder="歌名或乐队，支持多个关键词" /></label>
+    <div data-song-attributes><CalculatorAttributeFilter label="筛选歌曲属性" /></div>
+    <div class="selection-filter-grid">
+      <label>演奏乐队<select data-song-band><option value="">全部乐队</option>{catalog.bands.map(b=><option value={b.id}>{b.displayName}</option>)}</select></label>
+      <label>难度<select data-song-difficulty><option value="">全部难度</option>{difficulties.map(([d,l])=><option value={d}>{l}</option>)}</select></label>
+      <label>激奏段落<select data-song-mission><option value="">全部组合</option><option value="1">包含 COMBO</option><option value="2">包含 LUCK</option><option value="3">包含 JUST</option><option value="1-only">三个 COMBO</option><option value="2-only">三个 LUCK</option><option value="3-only">三个 JUST</option><option value="mixed">混合类型</option></select></label>
+      <label>排序<select data-song-sort><option value="default">默认顺序</option><option value="name">歌曲名称</option><option value="level">谱面等级从高到低</option></select></label>
+      <div class="song-level-range"><label>最低等级<input type="number" min="1" max="50" data-song-min placeholder="不限" /></label><span>—</span><label>最高等级<input type="number" min="1" max="50" data-song-max placeholder="不限" /></label></div>
+    </div>
+    <span slot="results" data-song-count data-filter-count role="status"></span><button slot="results" type="button" data-song-reset data-filter-reset>重置筛选</button>
+  </SelectionFilters>
+  <p class="song-picker-tip">点难度即可选定谱面；COMBO / LUCK / JUST 按三段的实际顺序展示。</p>
+  <div class="song-picker-list" data-song-list>
+    {catalog.musicTracks.map(track=>{
+      const jacket=getAsset(track.jacketAssetId),attribute=getCardAttribute(track.musicType)?.names[catalog.release.locale]??track.musicTypeLabel;
+      const native=formalRules.tables.LiveMusic.find(m=>`music-${m._id}`===track.id);
+      const missions=[native?._gekisouMission1??0,native?._gekisouMission2??0,native?._gekisouMission3??0];
+      return <article class="song-picker-row" data-song-row={track.id} data-attribute={track.musicType} data-bands={track.bandIds.join(' ')} data-missions={missions.join(',')} data-search={`${track.title} ${track.bandLabels.join(' ')}`.toLocaleLowerCase()} data-title={track.title}>
+        {jacket&&<img class="song-picker-jacket" src={jacket.previewUrl} alt="" loading="lazy" width="48" height="48" />}
+        <div class="song-picker-info"><div class="song-title-line"><strong>{track.title}</strong><CardAttributeBadge code={track.musicType} compact /></div><span>{track.bandLabels.join(' / ')}</span><div class="song-missions" aria-label="激奏段落">{missions.map((m,i)=><span data-mission={m}>{i+1} {['—','COMBO','LUCK','JUST'][m]}</span>)}</div></div>
+        <div class="song-picker-difficulties" role="group" aria-label={`${track.title}的难度`}>
+          {difficulties.map(([difficulty,label])=>{
+            const chart=catalog.musicCharts.find(c=>c.trackId===track.id&&c.difficulty===difficulty);
+            return <button type="button" data-song-choice={track.id} data-difficulty={difficulty} data-level={chart?.level??0} data-song-title={track.title} class={`song-difficulty song-difficulty--${difficulty}`} aria-label={`${track.title}，${attribute}，${label}${chart?`，等级 ${chart.level}`:'，谱面不可用'}`} aria-pressed="false" disabled={!chart?.analysisDataUrl}><span>{label}</span><strong>{chart?.level??'—'}</strong></button>;
+          })}
+        </div>
+      </article>;
+    })}
+  </div>
+  <p data-song-empty hidden>没有符合条件的谱面，试试放宽等级范围或重置筛选。</p>
+  <div class="selection-pagination"><button type="button" data-song-prev>上一页歌曲</button><span data-song-page></span><button type="button" data-song-next>下一页歌曲</button></div>
+</div>

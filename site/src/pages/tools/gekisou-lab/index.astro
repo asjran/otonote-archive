@@ -1,0 +1,19 @@
+---
+import BaseLayout from '../../../layouts/BaseLayout.astro';
+import ToolPageHeader from '../../../components/ToolPageHeader.astro';
+import { activeReleaseContext } from '../../../lib/release-context';
+import { siteHref } from '../../../lib/site-context';
+const href=(path:string)=>import.meta.env.BASE_URL==='/'?path:siteHref(path,activeReleaseContext);
+---
+<BaseLayout title="激奏对战实验室 · 暂停开放">
+  <ToolPageHeader title="激奏对战实验室" description="此模块暂时关闭。你仍可以在配卡工具中选择激奏演出，比较队伍。" meta="暂停开放" />
+  <section class="content-shell paused-tool">
+    <a href={href('/tools/deck-builder/')}>前往卡组配队 →</a>
+    <a href={href('/tools/')}>返回游戏工具</a>
+  </section>
+</BaseLayout>
+<style>
+  .paused-tool { display:flex; flex-wrap:wrap; gap:16px; padding-bottom:48px; }
+  .paused-tool a { padding:12px 18px; border:1px solid var(--line); border-radius:10px; font-size:14px; }
+  .paused-tool a:first-child { background:var(--lacquer); color:var(--paper-light); }
+</style>

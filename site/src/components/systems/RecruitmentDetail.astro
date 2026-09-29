@@ -1,0 +1,67 @@
+---
+import Deadline from "./Deadline.astro";
+import SourceDisclosure from "../SourceDisclosure.astro";
+import BrowserControls from "./BrowserControls.astro";
+import BrowserPagination from "./BrowserPagination.astro";
+import RecruitCard from "./RecruitCard.astro";
+import Rewards from "./Rewards.astro";
+import { type GachaPool } from "../../lib/global-systems";
+import { catalog } from "../../lib/catalog";
+import { say, banner, categories, rarityLabel } from "../../lib/system-display";
+import "../../styles/system-modules.css";
+import "../../styles/filter-panel.css";
+interface Props { pool: GachaPool; }
+const { pool } = Astro.props;
+const prizes = pool.prizes || [];
+const featured = prizes.filter(prize => prize.isPickup);
+const getCard = (kind: number, id: number) => (kind === 2 ? catalog.memberCards : catalog.supportCards).find(c => c.masterId === id);
+const percent = (value: number | null) => value === null ? "—" : `${Number(value.toFixed(4))}%`;
+---
+<div class="recruit-detail">
+  <header class="sys-hero">
+    <div class="recruit-detail-heading"><div>{banner(pool.bannerAssetName) && <img class="recruit-banner" src={banner(pool.bannerAssetName)} alt="" />}</div>
+      <div><div class="sys-tags">{(pool.categories || []).map(key => <span class="sys-tag-category" data-category={key}>{categories[key]}</span>)}{pool.isRerun === true && <span class="sys-tag-accent">{say("复刻", "Rerun")}</span>}</div>
+        <h2 id={`recruitment-title-${pool.id}`} class="recruit-title">{pool.name}</h2><Deadline start={pool.startAt} end={pool.endAt} />
+        {pool.description && <p>{pool.description}</p>}
+      </div>
+    </div>
+  </header>
+  <section class="sys-body">
+    <div class="recruit-costs">{pool.products.map(product => <div><strong>{product.drawCount} {say("次招募", "draws")}</strong>
+      <span>{product.price > 0 ? `${product.price.toLocaleString()} ${product.costName}` : (product.itemType === 15 ? say("观看广告", "Watch an ad") : say("通行证权益", "Pass benefit"))}</span>
+      {product.limitCount > 0 && <small>{product.resetType === 2 ? say("每日", "Daily ") : say("限", "Limit ")}{product.limitCount}{say("次", " times")}</small>}
+      {product.ensuredCount > 0 && product.ensuredRarity > 0 && <small>{product.ensuredCount} {say("张", "card(s) ")}{rarityLabel(product.ensuredRarity)}{say("及以上保证", "+ guarantee")}</small>}
+    </div>)}</div>
+    <system-tabs>
+      <nav class="sys-tabs" aria-label={say("招募内容", "Recruitment content")}>
+        <button type="button" data-view="featured" aria-pressed={featured.length > 0}>{say("UP 卡片", "Featured")}</button>
+        <button type="button" data-view="all" aria-pressed={featured.length === 0}>{say("全部内容", "All contents")} · {prizes.length}</button>
+        <button type="button" data-view="rates" aria-pressed="false">{say("概率与规则", "Rates & rules")}</button>
+      </nav>
+      <div data-view-panel="featured" hidden={!featured.length}>
+        {featured.length ? <><p class="recruit-featured-note">{say(`成员卡 UP ${pool.pickupMemberCardIds.length} 张 · 留影 UP ${pool.pickupSupportCardIds.length} 张`, `Featured members: ${pool.pickupMemberCardIds.length} · Featured snapshots: ${pool.pickupSupportCardIds.length}`)}{pool.pickupSupportCardIds.length === 0 && say("。留影可在全部内容中查看，不属于本次 UP。", ". Included snapshots are listed under All contents; they are not featured.")}</p><div class="recruit-cards">{featured.map(prize => <RecruitCard id={prize.resourceId} kind={prize.resourceType} pickup rate={prize.fixedRateBasisPoints} />)}</div></>
+          : <div class="sys-empty"><h2>{say("本招募没有单独指定 UP 卡片", "No individually featured cards")}</h2><p>{say("可在“全部内容”查看收录的成员卡与留影。", "See All contents for the included members and snapshots.")}</p></div>}
+      </div>
+      <div data-view-panel="all" hidden={featured.length > 0}><system-browser data-filter-scope>
+        <BrowserControls count={prizes.length} cards />
+        <div class="recruit-cards" data-results>{prizes.map((prize, index) => {
+          const card = getCard(prize.resourceType, prize.resourceId);
+          return <div data-entry data-kind={prize.resourceType} data-rarity={card ? rarityLabel(card.rarity) : ""} data-search={`${card?.displayName || prize.name} ${card && "subtitle" in card ? card.subtitle : ""}`} hidden={index >= 18}>
+            {prize.resourceType === 2 || prize.resourceType === 3 ? <RecruitCard id={prize.resourceId} kind={prize.resourceType} pickup={prize.isPickup} rate={prize.fixedRateBasisPoints} /> : <Rewards rewards={[prize]} />}
+          </div>;
+        })}</div><BrowserPagination />
+      </system-browser></div>
+      <div data-view-panel="rates" hidden>
+        <h2>{say("普通抽取 · 基础类别概率", "Normal draws · base category rates")}</h2>
+        <p class="sys-muted">{say("以下按收录配置的奖品组权重计算，UP 固定值单独列出。", "Calculated from the archived prize-group weights. Fixed UP configuration is listed separately.")}</p>
+        <div class="sys-rate-grid">{(pool.probabilityGroups || []).map(group => <div><span>{group.resourceType === 2 ? say("成员卡", "Member") : group.resourceType === 3 ? say("留影", "Snapshot") : say("道具", "Item")} {rarityLabel(group.rarity)}</span><strong>{percent(group.percent)}</strong></div>)}</div>
+        {featured.length > 0 && <><h3>{say("UP 单卡固定配置", "Fixed UP configuration per card")}</h3><ul class="sys-rate-list">{featured.map(prize => <li><span>{getCard(prize.resourceType, prize.resourceId)?.displayName || prize.name}</span><strong>{prize.fixedRateBasisPoints > 0 ? `${prize.fixedRateBasisPoints / 100}%` : "—"}</strong></li>)}</ul></>}
+        <div class="sys-notice"><h3>{say("保底与最终概率", "Guarantees and final rates")}</h3>
+          <p>{say("游戏内的单卡最终概率及保底概率由服务器提供。当前资料未收录最终概率，普通抽取与保底抽取不可混用。最终请以游戏内“出现概率”公示为准。", "Final per-card and guaranteed-draw rates are supplied by the game server and are not included in this snapshot. Normal rates do not represent guaranteed draws. Refer to the in-game rate disclosure.")}</p>
+          {pool.products.some(p => p.ensuredCount > 0 && p.ensuredRarity > 0) && <p>{say("本招募含保证抽取选项，保证数量与最低稀有度见上方抽取方式。", "Guaranteed options are listed above with their minimum rarity and count.")}</p>}
+        </div>
+      </div>
+    </system-tabs>
+    <SourceDisclosure title={say("资料来源", "Source")}><p>{say("招募内容、时间与概率来自已收录的游戏资料，不代表当前仍可参与。时间不会随你所在地区自动调整，实际开放情况和抽取规则请以游戏内说明为准。概率最多显示至小数点后四位，显示值可能经过四舍五入。", "Recruitment contents, times and rates come from collected game information and do not indicate current availability. Times do not adjust to your location. Please check the game for availability and draw rules. Rates are shown to at most four decimal places and may be rounded.")}</p></SourceDisclosure>
+  </section>
+</div>

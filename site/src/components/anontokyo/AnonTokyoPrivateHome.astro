@@ -1,0 +1,133 @@
+---
+import AnonTokyoHeader from "./AnonTokyoHeader.astro";
+
+interface Props {
+  manifest: Record<string, any>;
+}
+
+const { manifest } = Astro.props;
+const counts = manifest.recordCounts;
+const modules = [
+  ...(counts.studioFurniture ? [{
+    href: "/anontokyo/studio/",
+    label: "自由预览",
+    title: "AnonTokyo Studio",
+    description: "用全部已投影家具自由布置 8×8 至 12×12 店铺，支持本机存档、JSON 和 PNG 导出。",
+    count: `${counts.studioFurniture} 件`,
+  }] : []),
+  ...(counts.characters ? [{
+    href: "/anontokyo/staff-assignment/",
+    label: "自由排班",
+    title: "岗位工作室",
+    description: "把十名角色安排到收银、导购、补货或待机，也可以按真实等级模拟岗位容量。",
+    count: `${counts.characters} 人`,
+  }] : []),
+  {
+    href: "/anontokyo/store/",
+    label: "升级路线",
+    title: "店铺升级",
+    description: "选择当前等级，直接看下一次升级需求、容量变化与已确认解锁。",
+    count: `${counts.storeLevels} 级`,
+  },
+  {
+    href: "/anontokyo/goods/",
+    label: "经营数据",
+    title: "商品",
+    description: "按分类筛选商品，比较进货、售价、配送时间与解锁条件。",
+    count: `${counts.goods} 种`,
+  },
+  {
+    href: "/anontokyo/growth/",
+    label: "等级容量",
+    title: "玩家成长",
+    description: "查看等级经验、体力和顾客上限，以及仓库、保险箱的完整容量路线。",
+    count: `${counts.playerLevels} 级`,
+  },
+  {
+    href: "/anontokyo/furniture/",
+    label: "空间布置",
+    title: "家具",
+    description: "按区域与用途筛选家具，比较占地、价格、限购和解锁等级。",
+    count: `${counts.furniture} 件`,
+  },
+  {
+    href: "/anontokyo/themes/",
+    label: "套装收集",
+    title: "装修主题",
+    description: "查看主题收集要求、完成后开放购买的家具与可解释奖励。",
+    count: `${counts.themes} 套`,
+  },
+  {
+    href: "/anontokyo/tasks/",
+    label: "取得路径",
+    title: "任务",
+    description: "按任务分类浏览，也可以从奖励反查对应的完成条件。",
+    count: `${counts.tasks} 条`,
+  },
+  {
+    href: "/anontokyo/staff/",
+    label: "岗位能力",
+    title: "角色",
+    description: "查看角色的能力效果、解锁方式和有依据的岗位倾向。",
+    count: `${counts.characters} 人`,
+  },
+  {
+    href: "/anontokyo/customers/",
+    label: "选品参考",
+    title: "顾客偏好",
+    description: "查看角色顾客喜欢的标签，以及按照标签关联的匹配商品。",
+    count: `${counts.characterCustomers} 人`,
+  },
+  {
+    href: "/anontokyo/wardrobe/",
+    label: "角色外观",
+    title: "换装图鉴",
+    description: "按角色、部位和系列筛选换装，查看小图与包内关联商品。",
+    count: `${counts.wardrobe} 件`,
+  },
+  {
+    href: "/anontokyo/inspiration/",
+    label: "经营机制",
+    title: "灵感计算器",
+    description: "输入灵感值，查询基础购买数量、额外购买概率和下一提升节点。",
+    count: `${counts.inspirationTiers} 档`,
+  },
+  {
+    href: "/anontokyo/chats/",
+    label: "角色互动",
+    title: "角色聊天",
+    description: "按角色和岗位阅读组合聊天与独白，保留原始文本顺序。",
+    count: `${counts.chatCombinations} 组`,
+  },
+  {
+    href: "/anontokyo/stages/",
+    label: "FEVER",
+    title: "舞台攻略",
+    description: "查看乐队成员、舞台歌曲、解锁条件和已验证的 FEVER 效果。",
+    count: `${counts.stages} 座`,
+  },
+];
+---
+
+<AnonTokyoHeader
+  title="先体验，再查资料"
+  description="Studio 提供未解锁内容的本地自由预览；资料页保留有依据的名称、条件与数值，不读取账号或游戏进度。"
+/>
+
+<main class="at-guide-main">
+  <div class="content-shell">
+    <div class="at-module-list">
+      {modules.map((module) => (
+        <a class="at-module-row" href={module.href}>
+          <span>{module.label}</span>
+          <h2>{module.title}</h2>
+          <p>{module.description}</p>
+          <strong>{module.count}<i aria-hidden="true">→</i></strong>
+        </a>
+      ))}
+    </div>
+    <p class="at-guide-note">
+      利润与配送效率暂不显示：国际服数据中的计价单位尚未完成客户端一致性验证。
+    </p>
+  </div>
+</main>

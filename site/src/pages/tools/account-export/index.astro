@@ -1,0 +1,25 @@
+---
+import ToolPageHeader from "../../../components/ToolPageHeader.astro";
+import BaseLayout from '../../../layouts/BaseLayout.astro';
+const links=[{label:'查看 GitHub 源码',url:import.meta.env.PUBLIC_GROWTH_SOURCE_URL || 'https://github.com/stonesver/ournotes-growth-exporter'},
+  {label:'前往 GitHub 下载预览版',url:import.meta.env.PUBLIC_GROWTH_DOWNLOAD_URL || 'https://github.com/stonesver/ournotes-growth-exporter/releases'}]
+  .filter(link=>typeof link.url==='string'&&/^https:\/\//.test(link.url));
+---
+<BaseLayout title="养成导入与本地工具">
+  <ToolPageHeader title="养成导入与本地工具" description="网页登录直接读取，或用本地工具导出 JSON，再导入配卡工具。" meta="台港澳服 · BHK 账号" />
+  <section class="content-shell growth-tool-guide">
+    <p>配卡工具的「管理我的卡库 → 从游戏导入我的养成」提供网页登录和本地 JSON 两种方式，支持台港澳服 BHK 邮箱密码账号。</p>
+    <p>网页登录无需安装：账号密码会经过本站服务端，再由服务端向官方读取养成。本服务不保存密码或令牌；读取结果供预览、应用和下载，保存在当前浏览器。</p>
+    <p>本地工具在自己的电脑直连官方，无需手机或 ADB。用它导出 JSON 后在网站选择文件，文件仅在浏览器解析，不上传服务器，账号密码也不经过本站。</p>
+    <p>预览后应用，可撤销此次导入，也可以下载养成备份。当前读取不包含回忆加成，未读取的项目保留原设置。</p>
+    <div class="growth-tool-links">{links.map(link=><a href={link.url} target="_blank" rel="noopener noreferrer">{link.label}<span aria-hidden="true"> ↗</span></a>)}</div>
+    <p>工具包托管在 GitHub Releases。Windows x64 与 Mac Apple Silicon 便携包均约 19.6 MB，解压后启动，无需另装 Python。请先查看 Release 中的支持范围与验证说明。</p>
+    <p>当前为预览版，公开包不含有效 SDK 应用配置，需自行提供有权使用的配置后才能登录。Mac 版尚未完成 Apple 公证，Intel Mac 暂无便携包。</p>
+    <p>导出包含角色卡、留影、乐器、角色评级和 TGW。等级按网站当前资料换算，请与游戏内数据核对。官方登录可能使游戏中的会话失效，遇到额外验证时工具会停止。</p>
+  </section>
+</BaseLayout>
+
+<style>
+.growth-tool-guide { padding-bottom:40px; }.growth-tool-guide p { max-width:78ch; font-size:14px; line-height:1.9; }.growth-tool-guide a { color:var(--lacquer); text-decoration:underline; }
+.growth-tool-links { display:flex; flex-wrap:wrap; gap:12px; margin:20px 0 12px; }.growth-tool-links a { display:inline-flex; align-items:center; min-height:44px; padding:8px 14px; border:1px solid var(--lacquer); border-radius:8px; font-size:14px; text-decoration:none; }.growth-tool-links a:focus-visible { outline:2px solid var(--lacquer); outline-offset:3px; }
+</style>

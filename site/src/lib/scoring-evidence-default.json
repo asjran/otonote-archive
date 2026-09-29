@@ -1,0 +1,44 @@
+{
+  "schemaVersion": 1,
+  "sourceReleaseId": "unconfigured",
+  "ruleSet": {
+    "id": "unconfigured",
+    "status": "unavailable",
+    "producesScore": false
+  },
+  "capability": {
+    "status": "blocked",
+    "producesFormalScore": false,
+    "optimizerSearchEnabled": false,
+    "reason": "private_evidence_not_configured"
+  },
+  "masterEvidence": {
+    "comboBonus": {
+      "rowCount": 0,
+      "types": []
+    },
+    "scoreRank": {
+      "rowCount": 0,
+      "types": []
+    },
+    "skillEffect": {
+      "rowCount": 0,
+      "types": []
+    }
+  },
+  "nativeEvidence": [],
+  "staticAnalysis": [],
+  "knownMechanisms": [],
+  "unknownMechanisms": [],
+  "validationGate": {
+    "replaySampleCount": 0,
+    "fixtureReplayCount": 0,
+    "observedReplayCount": 0,
+    "inputSnapshotReplayable": false,
+    "exactIntegerReconciliation": false,
+    "differenceTraceComplete": false,
+    "formalCapability": false,
+    "gate": "unverified"
+  },
+  "publicationPolicy": {}
+}

@@ -1,0 +1,23 @@
+---
+import AnonTokyoHeader from "./AnonTokyoHeader.astro";
+
+interface Props { record: Record<string, any>; stagedMedia: Array<Record<string, string>>; }
+interface StageMember { id: string; name: string; imageKey?: string; }
+interface StageEffect { name: string; imageKey?: string; }
+interface StageRecord { id: string; name: string; band: string; music: { name: string; duration: string; unlock?: string; imageKey?: string }; members: StageMember[]; feverEffects: StageEffect[]; }
+const { record: rawRecord, stagedMedia } = Astro.props;
+const record = rawRecord as StageRecord;
+const media = new Map(stagedMedia.map((entry) => [entry.logicalKey.toLocaleLowerCase("en-US"), entry.publicUrl]));
+const musicImage = record.music.imageKey ? media.get(record.music.imageKey.toLocaleLowerCase("en-US")) : undefined;
+---
+
+<AnonTokyoHeader active="stages" title={record.name} description={`${record.music.name} · ${record.music.duration}`} />
+<main class="at-guide-main"><div class="content-shell at-detail-shell">
+  <a class="at-detail-back" href="/anontokyo/stages/">← 返回舞台攻略</a>
+  <section class="at-stage-detail">
+    <header>{musicImage ? <img src={musicImage} alt="" /> : <span class="at-image-fallback" aria-hidden="true">♪</span>}<div><span>舞台歌曲</span><h2>{record.music.name}</h2><p>{record.music.duration} · {record.music.unlock ?? "解锁条件暂未确认"}</p></div></header>
+    <h3>参与成员</h3><div class="at-member-strip at-member-strip--detail">{record.members.map((member) => { const avatar = member.imageKey ? media.get(member.imageKey.toLocaleLowerCase("en-US")) : undefined; return <a href={`/anontokyo/staff/${member.id}/`}>{avatar ? <img src={avatar} alt="" /> : <i aria-hidden="true">{member.name.slice(0, 1)}</i>}<small>{member.name}</small></a>; })}</div>
+    <h3>FEVER 效果</h3><div class="at-effect-list at-effect-list--detail">{record.feverEffects.map((effect) => { const icon = effect.imageKey ? media.get(effect.imageKey.toLocaleLowerCase("en-US")) : undefined; return <span>{icon && <img src={icon} alt="" />}<b>{effect.name}</b></span>; })}</div>
+    <p class="at-guide-note">效果名称来自国际服本地数据；数值单位尚未闭环，因此不展示推测值。</p>
+  </section>
+</div></main>

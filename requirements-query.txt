@@ -1,0 +1,7 @@
+# Pinned versions are the latest PyPI releases available on 2026-08-04.
+# The implementation plan referenced fastapi==0.139.2 / uvicorn==0.52.1,
+# which have not yet been published; the closest available releases are
+# recorded below. Re-pinning must wait for the planned releases.
+fastapi==0.128.8
+uvicorn==0.39.0
+httpx==0.28.1

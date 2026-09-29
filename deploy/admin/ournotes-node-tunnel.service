@@ -1,0 +1,19 @@
+[Unit]
+Description=OurNotes resource API SSH tunnel
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=ournotes-tunnel
+Group=ournotes-tunnel
+ExecStart=/usr/bin/ssh -NT -F /etc/ournotes-admin/tunnels.conf resource-api
+Restart=always
+RestartSec=10
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+MemoryMax=64M
+
+[Install]
+WantedBy=multi-user.target

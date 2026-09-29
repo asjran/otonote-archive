@@ -1,0 +1,77 @@
+---
+import AnonTokyoHeader from "./AnonTokyoHeader.astro";
+
+interface Props { dataset: Record<string, any>; }
+interface Entry { key: string; label: string; value: string; unit?: string; }
+interface PoolLevel { id: string; level?: number; minStayDuration?: number; maxStayDuration?: number; basePurchaseCount?: number; }
+interface Pool { id: string; size: number; levels: PoolLevel[]; }
+interface Section { key: string; name: string; entries: Entry[]; customerPools?: Pool[]; roamCustomerPools?: Pool[]; townNpcPools?: Pool[]; }
+const { dataset } = Astro.props;
+const sections = (dataset.sections ?? []) as Section[];
+const totalEntries = sections.reduce((sum, sec) => sum + sec.entries.length, 0);
+---
+
+<AnonTokyoHeader active="mechanics" title="经营机制手册" description="从本地安装包提取的全局参数与经营数据。顾客刷新和 FEVER 衰减相关字段已标注「待验证」，不可凭字段名断定为完整攻略。" count={totalEntries} />
+
+<main class="at-guide-main"><div class="content-shell">
+  <div class="at-mechanics-layout">
+    {sections.map((section) => (
+      <article class="at-mechanics-card">
+        <header class="at-mechanics-card__head">
+          <h2>{section.name}</h2>
+          <span class="at-mechanics-card__count">{section.entries.length} 项</span>
+        </header>
+        <dl class="at-mechanics-card__dl">
+          {section.entries.map((entry) => (
+            <div class="at-mechanics-row">
+              <dt>{entry.label}</dt>
+              <dd>
+                <b>{entry.value}</b>
+                {entry.unit && <span class="at-mechanics-row__unit">{entry.unit}</span>}
+              </dd>
+            </div>
+          ))}
+        </dl>
+        {section.customerPools && section.customerPools.length > 0 && (
+          <div class="at-mechanics-pool-list">
+            <div class="at-mechanics-pool-list__head">常驻顾客等级池</div>
+            {section.customerPools.map((pool) => (
+              <div class="at-mechanics-pool-list__item">
+                <span class="at-mechanics-pool-list__id">池 #{pool.id} · {pool.size} 个等级</span>
+                <span class="at-mechanics-pool-list__levels">
+                  {pool.levels.map((level) => <span class="at-mechanics-pool-list__chip">L{level.level ?? "?"}</span>)}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
+        {section.roamCustomerPools && section.roamCustomerPools.length > 0 && (
+          <div class="at-mechanics-pool-list">
+            <div class="at-mechanics-pool-list__head">流动顾客等级池</div>
+            {section.roamCustomerPools.map((pool) => (
+              <div class="at-mechanics-pool-list__item">
+                <span class="at-mechanics-pool-list__id">池 #{pool.id} · {pool.size} 个等级</span>
+                <span class="at-mechanics-pool-list__levels">
+                  {pool.levels.map((level) => <span class="at-mechanics-pool-list__chip">L{level.level ?? "?"}</span>)}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
+        {section.townNpcPools && section.townNpcPools.length > 0 && (
+          <div class="at-mechanics-pool-list">
+            <div class="at-mechanics-pool-list__head">城镇 NPC 等级池</div>
+            {section.townNpcPools.map((pool) => (
+              <div class="at-mechanics-pool-list__item">
+                <span class="at-mechanics-pool-list__id">池 #{pool.id} · {pool.size} 个等级</span>
+                <span class="at-mechanics-pool-list__levels">
+                  {pool.levels.map((level) => <span class="at-mechanics-pool-list__chip">L{level.level ?? "?"}</span>)}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
+      </article>
+    ))}
+  </div>
+</div></main>

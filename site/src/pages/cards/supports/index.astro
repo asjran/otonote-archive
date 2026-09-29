@@ -1,0 +1,65 @@
+---
+import CatalogBrowser from "../../../components/CatalogBrowser.astro";
+import SupportCardTile from "../../../components/SupportCardTile.astro";
+import BaseLayout from "../../../layouts/BaseLayout.astro";
+import { catalog, getAsset, getCardAttribute } from "../../../lib/catalog";
+import { filterVisualOptions } from "../../../lib/filter-visuals";
+import { cardDetailProjections, publicSkills } from "../../../lib/game-database";
+import { buildCardSkillFilters } from "../../../lib/card-skill-filtering.mjs";
+
+const skillFilters = buildCardSkillFilters(
+  cardDetailProjections.supportCards.filter(projection => catalog.supportCards.some(card => card.id === projection.cardId)),
+  publicSkills, catalog.release.locale
+);
+
+const rarityOptions = filterVisualOptions.rarity;
+const attributeOptions = [
+  ...new Set(catalog.supportCards.map((card) => card.attributeCode))
+]
+  .sort((left, right) => left - right)
+  .map((value) => ({ value: String(value), label: getCardAttribute(value)?.names[catalog.release.locale] ?? `属性 ${value}`, icon: getAsset(getCardAttribute(value)?.iconAssetId)?.previewUrl }));
+const characterOptions = catalog.characters.map((character) => ({
+  value: character.id,
+  label: character.displayName
+}));
+const bandOptions = catalog.bands.map((band) => ({
+  value: band.id,
+  label: band.displayName,
+  icon: getAsset(band.logoAssetId)?.previewUrl
+}));
+const facets = [
+  { name: "character", label: "登场角色", options: characterOptions },
+  { name: "band", label: "关联乐队", options: bandOptions },
+  { name: "rarity", label: "稀有度", options: rarityOptions },
+  { name: "attribute", label: "属性", options: attributeOptions },
+  ...skillFilters.facets
+];
+---
+
+<BaseLayout title="留影">
+  <section class="card-directory-intro">
+    <div class="content-shell card-directory-intro__inner">
+      <div class="card-directory-intro__copy">
+        <div class="eyebrow">SNAP DIRECTORY</div>
+        <h1>留影</h1>
+        <p>用于装备到成员卡。按登场关系、稀有度、属性或技能类型查找。</p>
+      </div>
+      <strong class="card-directory-count">{catalog.supportCards.length}<span> 张</span></strong>
+    </div>
+  </section>
+
+  <section class="catalog-section card-directory-section">
+    <div class="content-shell">
+      <CatalogBrowser
+        count={catalog.supportCards.length}
+        noun="张留影"
+        placeholder="搜索留影标题、登场角色或 Master ID…"
+        facets={facets}
+      >
+        <div class="catalog-grid support-card-grid card-catalog-grid">
+          {catalog.supportCards.map((card) => <SupportCardTile card={card} skillFacets={skillFilters.records.get(card.id)} />)}
+        </div>
+      </CatalogBrowser>
+    </div>
+  </section>
+</BaseLayout>

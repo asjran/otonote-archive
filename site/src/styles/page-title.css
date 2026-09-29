@@ -1,0 +1,31 @@
+/* Shared page-title typography. Local styles still own placement and spacing. */
+:root {
+  --page-title-font: var(--font-body);
+  --page-title-size: 32px;
+  --page-title-weight: 600;
+  --page-title-line-height: 1.25;
+  --page-title-letter-spacing: -.02em;
+}
+
+/* The main scope takes precedence over legacy hero and detail-page rules. */
+#main-content[data-page-kind="module"] h1 {
+  font-family: var(--page-title-font);
+  font-size: var(--page-title-size);
+  font-weight: var(--page-title-weight);
+  font-style: normal;
+  line-height: var(--page-title-line-height);
+  letter-spacing: var(--page-title-letter-spacing);
+}
+
+#main-content[data-page-kind="module"] h1 em {
+  font-family: inherit;
+  font-size: inherit;
+  font-weight: inherit;
+  font-style: inherit;
+  line-height: inherit;
+  letter-spacing: inherit;
+}
+
+@media (max-width: 700px) {
+  :root { --page-title-size: 26px; }
+}

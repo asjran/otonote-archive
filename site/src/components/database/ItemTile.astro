@@ -1,0 +1,62 @@
+---
+import ArchiveImage from "../ArchiveImage.astro";
+import { databaseHref, itemTypeLabel, plainDescription } from "../../lib/database-display";
+import {
+  type ItemIndexRecord
+} from "../../lib/game-database";
+import { getAsset } from "../../lib/catalog";
+
+interface Props {
+  item: ItemIndexRecord;
+  relatedNames: string[];
+}
+
+const { item, relatedNames } = Astro.props;
+const icon = getAsset(item.iconAssetId);
+const usages = item.usageKinds;
+const cardCount = item.relatedCardIds.length;
+const now = new Date();
+const availableFrom = item.availableFrom ? new Date(item.availableFrom) : null;
+const availableUntil = item.availableUntil ? new Date(item.availableUntil) : null;
+const availability =
+  (availableFrom && availableFrom > now) ||
+  (availableUntil && availableUntil < now)
+    ? "inactive"
+    : "active";
+---
+
+<a
+  class="db-tile db-item-tile db-tile--interactive database-catalog-item"
+  href={databaseHref(`/database/items/#detail=${item.id}`)}
+  data-db-open={item.id}
+  aria-haspopup="dialog"
+  aria-labelledby={`${item.id}-title`}
+  data-search={`${item.name} ${item.phoneticName} ${item.id} ${relatedNames.join(" ")}`}
+  data-type={item.typeCode}
+  data-usages={usages.join(",")}
+  data-icon={icon ? "present" : "missing"}
+  data-availability={availability}
+  data-order={item.displayOrder}
+  data-cards={cardCount}
+  data-name={item.name}
+  data-id={item.id}
+>
+  <div class="db-tile-icon" aria-hidden="true">
+    {icon ? (
+      <ArchiveImage class="image-fit--asset" asset={icon} alt="" controlledLazy />
+    ) : (
+      <span>{item.masterId}</span>
+    )}
+  </div>
+  <div class="db-tile-main">
+    <div class="db-tile-kicker">
+      <span>{itemTypeLabel(item.typeCode)}</span>
+    </div>
+    <h2 id={`${item.id}-title`}>{item.name}</h2>
+  </div>
+  <p class="db-tile-summary">{plainDescription(item.description) || "该道具暂无说明文本。"}</p>
+  <footer class="db-tile-foot">
+    {item.maxOwned > 0 && item.maxOwned < 2147483647 && <span>持有上限 {item.maxOwned.toLocaleString()}</span>}
+    {cardCount > 0 && <span>{cardCount} 张关联卡牌</span>}
+  </footer>
+</a>

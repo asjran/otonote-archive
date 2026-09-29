@@ -1,0 +1,171 @@
+log_format ournotes_json escape=json '{'
+    '"time":"$time_iso8601",'
+    '"request_id":"$request_id",'
+    '"remote":"$remote_addr",'
+    '"host":"$host",'
+    '"method":"$request_method",'
+    '"path":"$uri",'
+    '"status":$status,'
+    '"bytes":$body_bytes_sent,'
+    '"request_time":$request_time,'
+    '"protocol":"$server_protocol",'
+    '"content_type":"$sent_http_content_type",'
+    '"range":"$http_range",'
+    '"limit_conn_status":"$limit_conn_status",'
+    '"limit_req_status":"$limit_req_status",'
+    '"referer":"$http_referer",'
+    '"user_agent":"$http_user_agent"'
+    '}';
+
+limit_conn_zone $binary_remote_addr zone=ournotes_media_per_ip:10m;
+limit_conn_zone $server_name zone=ournotes_media_global:1m;
+
+server {
+    listen 80;
+    listen [::]:80;
+    server_name __SITE_DOMAIN__;
+
+    root /srv/ournotes/current;
+
+    location ^~ /.well-known/acme-challenge/ {
+        try_files $uri =404;
+    }
+
+    location / {
+        return 301 https://$host$request_uri;
+    }
+}
+
+server {
+    listen 443 ssl http2;
+    listen [::]:443 ssl;
+    server_name __SITE_DOMAIN__;
+
+    ssl_certificate /etc/letsencrypt/live/__SITE_DOMAIN__/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/__SITE_DOMAIN__/privkey.pem;
+    include /etc/letsencrypt/options-ssl-nginx.conf;
+    ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem;
+
+    root /srv/ournotes/current;
+    index index.html;
+    charset utf-8;
+    access_log /var/log/nginx/ournotes.access.log ournotes_json;
+    error_log /var/log/nginx/ournotes.error.log warn;
+
+    gzip on;
+    gzip_vary on;
+    gzip_types
+        application/javascript
+        application/json
+        application/xml
+        image/svg+xml
+        text/css
+        text/plain;
+
+    add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header X-Frame-Options "SAMEORIGIN" always;
+
+    # Request body budget: matches design §11 — public GET queries do
+    # not need bodies, and the loopback binding API is bounded at 64 KiB.
+    client_max_body_size 64k;
+
+    # Static website data API, independent of the QQ bot process.
+    location = /data/qqbot/current.json {
+        alias /srv/ournotes/data-api/current.json;
+        add_header Cache-Control "no-cache";
+    }
+    location ^~ /data/qqbot/ {
+        alias /srv/ournotes/data-api/;
+        add_header Cache-Control "public, max-age=31536000, immutable";
+        autoindex off;
+    }
+
+    # Official QQ bot: preserve these routes across static site releases.
+    location = /qqbot/callback {
+        proxy_pass http://127.0.0.1:8091;
+        proxy_set_header Host $host;
+        proxy_read_timeout 10s;
+    }
+    location ~ "^/qqbot/images/[0-9a-f]{64}\.png$" {
+        proxy_pass http://127.0.0.1:8091;
+        proxy_set_header Host $host;
+        proxy_read_timeout 15s;
+    }
+
+    # Internal-only routes are rejected at the edge so a future bug
+    # cannot accidentally expose Adapter credentials. The loopback
+    # Adapter reaches the Query Service on 127.0.0.1 directly.
+    location ^~ /internal/ {
+        return 404;
+    }
+
+    # Query Service remains disabled after the production capacity gate
+    # failed. Keep the public API closed in the deployment-owned template
+    # so a normal static release cannot turn the intended 404 into a 502.
+    # Enabling Query requires a separate approved capacity pass and an
+    # explicit template change back to the loopback proxy.
+    location ^~ /api/v1/ {
+        return 404;
+    }
+
+    include /etc/nginx/ournotes-independent/*.conf;
+
+    location ~ ^/(?:_astro|(?:jp|global)/(?:zh-CN|zh-TW|ja|en)/_astro)/ {
+        add_header Cache-Control "public, max-age=31536000, immutable";
+        try_files $uri =404;
+    }
+
+    location ~* "^/(?:media|(?:jp|global)/(?:zh-CN|zh-TW|ja|en)/media)/.*[._-][0-9a-f]{10,}\.(?:moc3|mp3|m4a|aac|flac|wav|ogg|mp4|webm|mov)$" {
+        limit_conn ournotes_media_per_ip 8;
+        limit_conn ournotes_media_global 24;
+        add_header Cache-Control "public, max-age=31536000, immutable";
+        add_header Accept-Ranges "bytes" always;
+        try_files $uri =404;
+    }
+
+    location ~* \.(?:moc3|mp3|m4a|aac|flac|wav|ogg|mp4|webm|mov)$ {
+        limit_conn ournotes_media_per_ip 8;
+        limit_conn ournotes_media_global 24;
+        add_header Cache-Control "public, max-age=86400";
+        add_header Accept-Ranges "bytes" always;
+        try_files $uri =404;
+    }
+
+    location ~* "^/(?:jp|global)/(?:zh-CN|zh-TW|ja|en)/media/.*[._-][0-9a-f]{10,}\.(?:png|jpe?g|webp|avif|gif|svg|json)$" {
+        add_header Cache-Control "public, max-age=31536000, immutable";
+        try_files $uri =404;
+    }
+
+    location ~* ^/(?:media|(?:jp|global)/(?:zh-CN|zh-TW|ja|en)/media)/ {
+        add_header Cache-Control "public, max-age=86400";
+        try_files $uri =404;
+    }
+
+    location = /.release.json {
+        return 404;
+    }
+
+    location ~* (?:^|/)(?:phone_dump|private|secrets?)(?:/|$) {
+        return 404;
+    }
+
+    location ~* \.(?:apk|credentials|secret)$ {
+        return 404;
+    }
+
+    location ~ /\.(?!well-known/) {
+        return 404;
+    }
+
+    location = /404.html {
+        internal;
+    }
+
+    location / {
+        add_header Cache-Control "public, max-age=0, must-revalidate";
+        try_files $uri $uri/ =404;
+    }
+
+    error_page 404 /404.html;
+}

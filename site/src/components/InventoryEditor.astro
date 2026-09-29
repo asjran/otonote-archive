@@ -1,0 +1,79 @@
+---
+import SelectionFilters from "./SelectionFilters.astro";
+import {catalog} from "../lib/catalog";
+import CalculatorAttributeFilter from "./CalculatorAttributeFilter.astro";
+import AccountGrowthImport from './AccountGrowthImport.astro';
+interface Props {
+  attributes?: {value:number;label:string}[];
+  rarities?: {value:number;label:string}[];
+}
+const {rarities=[]} = Astro.props;
+---
+<details class="calculator-extra inventory-editor" data-inventory-editor>
+  <summary>管理我的卡库 <span data-inventory-count>卡面点选 · 批量养成 · 表格导入</span></summary>
+  <div class="inventory-body">
+    <AccountGrowthImport />
+    <p class="inventory-help">先选卡面，再加入卡库；已有卡可以一起修改养成。新卡默认等级 1、未突破／觉醒、技能等级 1。阶数 1 代表未突破／觉醒。数据保存在当前浏览器。</p>
+    <div class="inventory-toolbar">
+      <button type="button" data-inventory-from-draft>加入当前编成</button>
+      <button type="button" data-inventory-use>用我的卡库配队</button>
+      <button type="button" data-inventory-undo disabled>撤销上次修改</button>
+      <button type="button" data-inventory-export>导出备份</button>
+    </div>
+    <p data-inventory-status role="status"></p>
+    <details class="inventory-import-panel">
+      <summary>粘贴名单或导入表格 <span>Excel / CSV / JSON 备份</span></summary>
+      <p class="inventory-help">可直接粘贴 Excel 表格，或每行一个完整卡名／卡片 ID。模板支持等级、突破阶数、觉醒阶数和两种技能等级。名称不唯一时请用 ID；缺少的养成按下方选择补齐。</p>
+      <div class="inventory-toolbar">
+        <label>清单类型 <select data-inventory-import-kind><option value="member">成员卡</option><option value="support">留影</option></select></label>
+        <label>新卡缺省养成 <select data-inventory-import-preset><option value="minimum">等级 1／阶数 1／技能 1</option><option value="maximum">满养成（请确认实际持有）</option></select></label>
+        <label class="inventory-check"><input type="checkbox" data-inventory-overwrite />更新已有卡的已填写字段</label>
+      </div>
+      <label class="inventory-paste-label">卡片清单<textarea data-inventory-paste rows="5" placeholder="member-card-1&#10;member-card-2"></textarea></label>
+      <div class="inventory-toolbar">
+        <label>读取文件 <input type="file" accept=".json,.csv,.tsv,.txt,application/json,text/csv,text/plain" data-inventory-import /></label>
+        <button type="button" data-inventory-template>下载 CSV 模板</button>
+        <button type="button" data-inventory-preview>预览导入</button>
+        <button type="button" data-inventory-apply disabled>确认合并到卡库</button>
+      </div>
+      <div data-inventory-preview-results class="inventory-preview" aria-live="polite"></div>
+    </details>
+      <label>卡片类型<select data-inventory-kind><option value="member">成员卡</option><option value="support">留影</option></select></label>
+    <SelectionFilters title="筛选我的卡库">
+      <label slot="search" class="selection-search">搜索卡片<input type="search" data-inventory-query placeholder="卡名、角色、乐队或 ID" /></label>
+    <div class="inventory-filters">
+      <label>稀有度<select data-inventory-rarity><option value="">全部</option>{rarities.map(r=><option value={r.value}>{r.label}</option>)}</select></label>
+      <label>乐队<select data-inventory-band><option value="">全部乐队</option>{catalog.bands.map(b=><option value={b.id}>{b.displayName}</option>)}</select></label>
+      <label>角色<select data-inventory-character><option value="">全部角色</option>{catalog.characters.map(c=><option value={c.id} data-band={c.bandId}>{c.displayName}</option>)}</select></label>
+      <label>激奏类型<select data-inventory-mission><option value="">全部类型</option><option value="combo">COMBO</option><option value="luck">LUCK</option><option value="just">JUST</option></select></label>
+      <label>技能效果<select data-inventory-effect><option value="">全部激奏效果</option></select></label>
+      <label>普通技能<select data-inventory-normal><option value="">全部普通技能</option><option value="simple">纯加分</option><option value="life">血量条件加分</option><option value="judgement">判定条件加分</option><option value="score">分卡 / 延时</option><option value="judge">判定辅助</option><option value="heal">生命回复</option></select></label>
+      <label>排序<select data-inventory-sort><option value="rarity">稀有度优先</option><option value="newest">卡片编号从新到旧</option><option value="name">名称</option></select></label>
+      <label>持有情况<select data-inventory-owned><option value="">全部卡片</option><option value="owned">已拥有</option><option value="missing">未录入</option></select></label>
+    </div>
+    <div data-inventory-attributes><CalculatorAttributeFilter label="筛选卡库属性" /></div>
+    <span slot="results" data-inventory-filter-count data-filter-count role="status"></span><button slot="results" type="button" data-inventory-reset data-filter-reset>重置卡库筛选</button>
+    </SelectionFilters>
+    <div class="inventory-toolbar inventory-selection">
+      <span data-inventory-selection-count>已选 0 张</span>
+      <button type="button" data-inventory-select-visible>全选筛选结果（跨页）</button>
+      <button type="button" data-inventory-clear-selection>清空选择</button>
+      <button type="button" data-inventory-add>加入卡库（保留已有养成）</button>
+      <button type="button" data-inventory-remove>移出卡库</button>
+    </div>
+    <div class="inventory-grid" data-inventory-cards></div>
+    <div class="inventory-pagination"><button type="button" data-inventory-prev>上一页</button><span data-inventory-page></span><button type="button" data-inventory-next>下一页</button></div>
+    <details class="inventory-growth-panel">
+      <summary>批量设置所选卡片的养成</summary>
+      <p class="inventory-help">留空表示保持原值。修改未录入的卡会同时加入卡库；超过该卡上限时会提示，不会偷偷改成满级。</p>
+      <div class="inventory-growth-fields">
+        {Object.entries({level:'等级',rank:'突破阶数',awake:'觉醒阶数',skillLevel:'演出技能等级',gekisouSkillLevel:'激奏技能等级'}).map(([field,label])=><label data-inventory-growth-label={field}>{label}<input type="number" min="1" max={field==='level'?undefined:5} step="1" placeholder="保持" data-inventory-growth={field} /></label>)}
+      </div>
+      <div class="inventory-toolbar">
+        <button type="button" data-inventory-batch="custom">应用填写的养成</button>
+        <button type="button" data-inventory-batch="level">当前阶数升满级</button>
+        <button type="button" data-inventory-batch="maximum">设为满养成</button>
+      </div>
+    </details>
+  </div>
+</details>

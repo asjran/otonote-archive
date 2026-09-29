@@ -1,0 +1,56 @@
+---
+import ArchiveImage from "../ArchiveImage.astro";
+import { cardDetailProjections, getItem, skillKindLabel, type SkillDefinition, type MaterialRequirement } from "../../lib/game-database";
+import { getAsset, getMemberCard, getSupportCard } from "../../lib/catalog";
+import { databaseHref, plainDescription, say } from "../../lib/database-display";
+interface Props { skill: SkillDefinition }
+const { skill } = Astro.props;
+const icon = getAsset(skill.iconAssetId);
+const selected = skill.levels.at(-1)?.level;
+const cards = skill.relatedCardIds.flatMap(id => {
+  const member = id.startsWith("member-card-");
+  const card = member ? getMemberCard(id) : getSupportCard(id);
+  return card ? [{ ...card, href: databaseHref(`/cards/${member ? "members" : "supports"}/${id}/`) }] : [];
+});
+const materials = new Map<string, MaterialRequirement>();
+for (const card of [...cardDetailProjections.memberCards, ...cardDetailProjections.supportCards]) {
+  for (const ref of card.skillRefs.filter(ref => ref.skillId === skill.id)) {
+    for (const row of ref.materialRequirements ?? []) {
+      const key = `${row.itemId}:${row.stage}:${row.amount}`;
+      const previous = materials.get(key);
+      materials.set(key, { ...row, cardIds: [...new Set([...(previous?.cardIds ?? []), ...row.cardIds])] });
+    }
+  }
+}
+---
+<article data-db-detail>
+  <header class="db-detail-heading">
+    <div class="db-detail-icon">{icon ? <ArchiveImage asset={icon} alt="" /> : <span aria-hidden="true">♪</span>}</div>
+    <div><p class="db-detail-category">{skillKindLabel(skill.kind)}</p><h2 id="db-detail-title">{skill.name}</h2><p class="db-detail-caption">{skill.levels.length} {say("个等级", "levels")} · {cards.length} {say("张关联卡牌", "related cards")}</p></div>
+  </header>
+  <section class="db-detail-section db-skill-effects">
+    <div class="db-section-heading"><h3>{say("技能效果", "Skill effect")}</h3><span>{say("切换等级查看变化", "Choose a level")}</span></div>
+    <div class="db-level-picker" role="group" aria-label={say("技能等级", "Skill level")}>
+      {skill.levels.map(level => <button type="button" data-skill-level={level.level} aria-pressed={level.level === selected}>Lv.{level.level}{level.level === selected && <small>MAX</small>}</button>)}
+    </div>
+    {skill.levels.map(level => <div class="db-skill-panel" data-skill-panel={level.level} hidden={level.level !== selected}>
+      <p>{plainDescription(level.renderedSummary) || say("暂无效果说明", "No effect description available")}</p>
+      <div class="db-detail-tags">{[...new Set(level.effects.map(effect => effect.effectName))].map(name => <span>{name}</span>)}</div>
+    </div>)}
+  </section>
+  <section class="db-detail-section">
+    <div class="db-section-heading"><h3>{say("升级材料", "Upgrade materials")}</h3></div>
+    {materials.size ? <div class="db-upgrade-list">{[...materials.values()].sort((a, b) => a.stage - b.stage).map(row => {
+      const item = getItem(row.itemId); const asset = getAsset(item?.iconAssetId);
+      const names = row.cardIds.map(id => cards.find(card => card.id === id)?.displayName).filter(Boolean);
+      return <div class="db-upgrade-row"><span class="db-upgrade-level">Lv.{row.stage}</span><a href={databaseHref(`/database/items/#detail=${row.itemId}`)}>{asset && <ArchiveImage asset={asset} alt="" />}<span>{item?.name ?? say("升级材料", "Upgrade material")}</span></a><strong>× {row.amount.toLocaleString()}</strong>{cards.length > 1 && names.length > 0 && names.length < cards.length && <small>{names.join("、")}</small>}</div>;
+    })}</div> : <p class="db-detail-empty">{say("暂无升级材料记录。", "No upgrade materials listed.")}</p>}
+  </section>
+  <section class="db-detail-section">
+    <div class="db-section-heading"><h3>{say("关联卡牌", "Related cards")}</h3><span>{cards.length}</span></div>
+    <div class="db-related-cards">{cards.map(card => {
+      const asset = getAsset(card.thumbnailAssetId ?? card.primaryAssetId);
+      return <a href={card.href}>{asset && <ArchiveImage asset={asset} alt="" />}<span>{card.displayName}</span><b aria-hidden="true">↗</b></a>;
+    })}</div>
+  </section>
+</article>

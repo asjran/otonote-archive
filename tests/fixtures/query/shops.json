@@ -1,0 +1,48 @@
+{
+  "schemaVersion": 1,
+  "datasetSchemaVersion": 1,
+  "dataset": "shops",
+  "query": {
+    "region": "global",
+    "channel": "staging",
+    "locale": "zh-CN"
+  },
+  "release": {
+    "contentReleaseId": "global-staging-content-fixture",
+    "observationReleaseId": null
+  },
+  "availability": "available",
+  "freshness": "fresh",
+  "provenance": "configured",
+  "observedAt": "2026-08-01T00:00:00Z",
+  "generatedAt": "2026-08-04T00:00:00Z",
+  "expiresAt": "2026-08-05T00:00:00Z",
+  "warnings": [],
+  "page": {
+    "limit": 20,
+    "nextCursor": null
+  },
+  "items": [
+    {
+      "shopId": "shop-fixture-1",
+      "localizedText": {
+        "zh-CN": "示例商店",
+        "ja": "サンプルショップ",
+        "en": "Sample Shop"
+      },
+      "startAt": "2026-08-01T00:00:00Z",
+      "endAt": "2026-09-01T00:00:00Z",
+      "state": "active",
+      "items": [
+        {
+          "itemRef": "item-fixture-1",
+          "costItemRef": "currency-fixture-1",
+          "costAmount": 100,
+          "stock": 50,
+          "purchaseLimit": 5
+        }
+      ],
+      "sourceRef": "0000000000000000000000000000000000000000000000000000000000000003"
+    }
+  ]
+}

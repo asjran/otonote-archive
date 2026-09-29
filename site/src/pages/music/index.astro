@@ -1,0 +1,125 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import MusicCatalogBrowser from "../../components/MusicCatalogBrowser.astro";
+import MusicTile from "../../components/MusicTile.astro";
+import SourceDisclosure from "../../components/SourceDisclosure.astro";
+import { activeReleaseContext } from "../../lib/release-context";
+import { siteHref } from "../../lib/site-context";
+import { catalog } from "../../lib/catalog";
+import "../../styles/music-archive.css";
+import "../../styles/music-layout.css";
+
+const tracks = catalog.musicTracks;
+const bgmHref = import.meta.env.BASE_URL === "/" ? "/music/bgm/" : siteHref("/music/bgm/", activeReleaseContext);
+const bands = [
+  ...new Map(
+    tracks.flatMap((track) =>
+      track.bandIds.map((id, index) => [
+        id,
+        { value: id, label: track.bandLabels[index] ?? id }
+      ])
+    )
+  ).values()
+].sort((left, right) => left.label.localeCompare(right.label, "ja"));
+const categories = [
+  ...new Map(
+    tracks.flatMap((track) =>
+      track.categoryIds.map((id, index) => [
+        String(id),
+        { value: String(id), label: track.categoryLabels[index] ?? String(id) }
+      ])
+    )
+  ).values()
+].sort((left, right) => left.label.localeCompare(right.label, "ja"));
+const characters = [
+  ...new Map(
+    tracks.flatMap((track) =>
+      track.vocalCharacterIds.map((id, index) => [
+        id,
+        { value: id, label: track.vocalistLabels[index] ?? id }
+      ])
+    )
+  ).values()
+].sort((left, right) => left.label.localeCompare(right.label, "ja"));
+const musicTypes = [
+  ...new Map(
+    tracks.map((track) => [
+      String(track.musicType),
+      { value: String(track.musicType), label: track.musicTypeLabel }
+    ])
+  ).values()
+].sort((left, right) => left.label.localeCompare(right.label, "ja"));
+const tags = [
+  ...new Map(
+    tracks.flatMap((track) =>
+      track.tagIds.map((id, index) => [
+        String(id),
+        { value: String(id), label: track.tagLabels[index] ?? String(id) }
+      ])
+    )
+  ).values()
+].sort((left, right) => left.label.localeCompare(right.label, "ja"));
+const facets = [
+  { name: "band", label: "演唱乐队", options: bands },
+  { name: "character", label: "演唱角色", options: characters },
+  { name: "music-type", label: "歌曲属性", options: musicTypes },
+  { name: "category", label: "曲目分类", options: categories },
+  { name: "tag", label: "Best Music 标签", options: tags }
+];
+const chartCount = catalog.musicCharts.length;
+const highestLevel = chartCount
+  ? Math.max(...catalog.musicCharts.map((chart) => chart.displayLevel))
+  : "—";
+---
+
+<BaseLayout
+  title="音乐·乐谱"
+  description={`浏览 ${tracks.length} 首曲目、${chartCount} 份谱面及四档难度数据。`}
+>
+  <section class="music-hero music-hero--directory" data-copy-layer="primary">
+    <div class="content-shell music-hero-grid">
+      <div>
+        <div class="eyebrow">MUSIC ARCHIVE</div>
+        <h1>音乐·乐谱</h1>
+        <p>
+          按乐队、角色、BPM 与难度查找曲目，再进入谱面查看谱面结构。
+        </p>
+      </div>
+      <div class="music-hero-ledger" aria-label="音乐·乐谱统计">
+        <div><strong>{tracks.length}</strong><span>已收录曲目</span></div>
+        <div><strong>{chartCount}</strong><span>正式谱面</span></div>
+        <div><strong>{highestLevel}</strong><span>最高等级</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="music-catalog-section music-catalog-section--directory">
+    <div class="content-shell">
+      <nav class="music-section-links" aria-label="音乐资料子模块">
+        <span aria-current="page">{activeReleaseContext.locale === "en" ? "Songs · Scores" : "歌曲·乐谱"}</span>
+        <a href={bgmHref}>{activeReleaseContext.locale === "en" ? "BGM Library" : "BGM 音乐库"} →</a>
+      </nav>
+      <MusicCatalogBrowser
+        count={tracks.length}
+        facets={facets}
+      >
+        <div class="music-catalog-list">
+          {tracks.map((track) => <MusicTile track={track} variant="default" />)}
+        </div>
+      </MusicCatalogBrowser>
+    </div>
+  </section>
+  <div class="content-shell">
+    <SourceDisclosure>
+      <p>{activeReleaseContext.locale === 'en' ? 'Song information and charts come from the game. You can view charts and play available song audio. Audio availability is shown on each song page; chart previews may differ from actual gameplay.' : '曲目资料与谱面来自游戏，可查看谱面并播放已收录的歌曲音频。音频是否可播放以各曲目页面为准，谱面预览效果可能与实际演奏有所不同。'}</p>
+    </SourceDisclosure>
+  </div>
+
+</BaseLayout>
+
+<style>
+  .music-section-links { display:flex; gap:20px; padding-bottom:16px; font-size:13px; }
+  .music-section-links span { color:var(--lacquer); font-weight:700; }
+  .music-section-links a { color:var(--silver-dark); text-decoration:none; }
+  .music-section-links a:focus-visible { outline:2px solid var(--lacquer); outline-offset:4px; }
+</style>

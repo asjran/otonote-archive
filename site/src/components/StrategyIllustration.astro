@@ -1,0 +1,77 @@
+---
+interface Props { kind: 'box' | 'ordinary' | 'gekisou' | 'songs' | 'growth' | 'search'; }
+const {kind} = Astro.props;
+---
+<figure class:list={['strategy-figure', `strategy-figure--${kind}`]}>
+  <div class="strategy-figure-label"><span>配队图解</span><small>示意，不代表具体卡片强度或得分比例</small></div>
+  {kind === 'box' && <>
+    <div class="strategy-box-diagram" role="img" aria-label="五个不同角色，每人搭配一张留影，第三位为队长；每张卡都要填写实际养成。">
+      {[1,2,3,4,5].map((n)=><div class:list={['strategy-pair',n===3&&'strategy-pair--leader']}>
+        <span class="strategy-slot-label">{n===3?'队长':`位置 ${n}`}</span>
+        <div class="strategy-member-shape"><svg viewBox="0 0 60 64" aria-hidden="true"><circle cx="30" cy="20" r="11"/><path d="M10 57V48a20 20 0 0 1 40 0v9Z"/></svg><strong>角色 {n}</strong></div>
+        <span class="strategy-pair-line" aria-hidden="true"></span>
+        <div class="strategy-support-shape"><span aria-hidden="true">◇</span> 留影 {n}</div>
+      </div>)}
+    </div>
+    <figcaption>五名成员，五张留影。先按实际养成录入，给高破 R、SR 留下参选的机会。</figcaption>
+  </>}
+  {kind === 'ordinary' && <>
+    <div class="strategy-match-diagram" role="img" aria-label="同属性成员与留影触发属性连携，成员与同属性歌曲获得歌曲属性加成，两项分别计算。">
+      <div class="strategy-match-object"><span class="strategy-attribute-dot" aria-hidden="true"></span><strong>成员</strong><small>例：蓝色属性</small></div>
+      <div class="strategy-match-links"><span>↔ 属性连携</span><span>↔ 歌曲属性加成</span></div>
+      <div class="strategy-match-targets"><div><span class="strategy-attribute-dot" aria-hidden="true"></span>同属性留影</div><div><span class="strategy-attribute-dot" aria-hidden="true"></span>同属性歌曲</div></div>
+    </div>
+    <div class="strategy-skill-diagram">
+      <span>再看技能延时，多吃到了哪些音符</span>
+      <svg viewBox="0 0 560 105" role="img" aria-label="时间轴上原本技能覆盖前半段，延长的时间覆盖后续密集音符；收益取决于新增覆盖的音符。">
+        <line x1="15" x2="545" y1="27" y2="27" stroke="#c5c8d5" stroke-width="2"/>
+        {[30,78,131,188,234,302,321,340,363,385,409,471,527].map(x=><path d={`M${x} 19l8 8-8 8-8-8Z`} fill={x>=290&&x<=425?'#287e79':'#697389'}/>)}
+        <rect x="20" y="49" width="270" height="28" rx="5" fill="#e5d7e4"/><rect x="290" y="49" width="135" height="28" rx="5" fill="#d7eee7"/>
+        <text x="155" y="68" text-anchor="middle" fill="#653452" font-size="13">原有技能时间</text><text x="357" y="68" text-anchor="middle" fill="#21675e" font-size="13">留影延长</text>
+        <text x="20" y="98" fill="#677080" font-size="11">技能发动</text><text x="440" y="98" fill="#677080" font-size="11">时间 →</text>
+      </svg>
+    </div>
+    <figcaption>属性加成先看“跟谁搭”，延时再看“多打到多少音符”。两张留影的差距，要放进同一首歌比较。</figcaption>
+  </>}
+  {kind === 'gekisou' && <>
+    <div class="strategy-missions-diagram" role="img" aria-label="任务组合示例：第一段COMBO、第二段LUCK、第三段JUST。每段音符分加上该段名次奖励，最后再加段外分构成整曲分数。">
+      {[['COMBO','累计与门槛'],['LUCK','点数与 RUSH'],['JUST','判定与累计']].map(([name,note],i)=><div class={`strategy-mission strategy-mission--${i}`}>
+        <small>第 {i+1} 段 · 示例</small><strong>{name}</strong><span>{note}</span><div class="strategy-mission-score">段内音符分<br/><b>＋</b> 名次奖励</div>
+      </div>)}
+    </div>
+    <div class="strategy-equation"><span>三段各自的得分</span><b>＋</b><span>段外得分</span><b>＝</b><strong>整曲得分</strong></div>
+    <figcaption>任务顺序以歌曲为准。提高段内音符分，还可能一起抬高名次奖励；图中三段等宽，不代表占分相同。</figcaption>
+  </>}
+  {kind === 'songs' && <>
+    <div class="strategy-song-diagram" role="img" aria-label="从自己的Box选出候选歌曲，用固定队伍初步比较，再给每首歌重新配队，比较相同目标下的得分。随机曲池则用同一队伍跨歌比较。">
+      <div class="strategy-flow-start"><span aria-hidden="true">▥</span><strong>我的 Box</strong><small>已经练好的卡</small></div>
+      <span class="strategy-flow-arrow" aria-hidden="true">→</span>
+      <div class="strategy-song-stack">{['歌曲 A','歌曲 B','歌曲 C'].map(t=><span><b aria-hidden="true">♪</b>{t}</span>)}</div>
+      <span class="strategy-flow-arrow" aria-hidden="true">→</span>
+      <div class="strategy-song-stack strategy-song-teams">{['A 歌重新配队','B 歌重新配队','C 歌重新配队'].map(t=><span>{t}</span>)}</div>
+    </div>
+    <div class="strategy-diagram-tip">固定歌冲分：各配各的最强队<br/>随机选曲：固定同一队，轮流比较每首歌</div>
+    <figcaption>先用现成队伍试歌，再给值得冲的歌认真配一遍，别让第一套队伍限制了选歌。</figcaption>
+  </>}
+  {kind === 'growth' && <>
+    <div class="strategy-growth-diagram" role="img" aria-label="保存当前Box和成绩，只试升一项，再重新配队比较分数与材料成本，试完恢复实际养成。">
+      <div><span class="strategy-growth-symbol" aria-hidden="true">▤</span><strong>先存一份</strong><small>当前 Box ＋ 成绩</small></div>
+      <span class="strategy-flow-arrow" aria-hidden="true">→</span>
+      <div><span class="strategy-growth-symbol" aria-hidden="true">＋1</span><strong>只试升一项</strong><small>技能 / 突破 / 乐器</small></div>
+      <span class="strategy-flow-arrow" aria-hidden="true">→</span>
+      <div><span class="strategy-growth-symbol" aria-hidden="true">↗</span><strong>重新配队比收益</strong><small>多拿的分 ÷ 材料成本</small></div>
+    </div>
+    <div class="strategy-diagram-tip">试完改回真实养成，再决定材料花在哪。</div>
+    <figcaption>先看练完多拿多少分，再看这些提升能用在几首常打的歌上。</figcaption>
+  </>}
+  {kind === 'search' && <>
+    <div class="strategy-search-diagram" role="img" aria-label="快速或深入搜索得到当前最佳，可以沿用进度继续完整搜索；完整搜索完成后才得到当前规则和范围内的最佳配法。">
+      <div class="strategy-search-stage"><small>先拿一队试试</small><strong>快速 / 深入</strong><span>当前找到的最佳</span></div>
+      <span class="strategy-flow-arrow" aria-hidden="true">→</span>
+      <div class="strategy-search-stage"><small>继续原来的进度</small><strong>完整搜索</strong><span>不限计算组数</span></div>
+      <span class="strategy-flow-arrow" aria-hidden="true">→</span>
+      <div class="strategy-search-stage strategy-search-stage--done"><small>等到显示完成</small><strong>搜索完成</strong><span>当前规则与范围内最佳</span></div>
+    </div>
+    <figcaption>可以暂停后在本页继续。激奏的模拟条件和随机波动，仍要结合分数明细一起看。</figcaption>
+  </>}
+</figure>

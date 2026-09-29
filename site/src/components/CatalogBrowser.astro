@@ -1,0 +1,330 @@
+---
+import FilterPanel from "./FilterPanel.astro";
+import FilterFacet from "./FilterFacet.astro";
+interface FilterOption {
+  value: string;
+  label: string;
+  icon?: string;
+}
+import { activeReleaseContext } from "../lib/release-context";
+import { getUi } from "../lib/ui-i18n";
+import "../styles/faceted-browser.css";
+import PaginationControls from "./PaginationControls.astro";
+
+interface Facet {
+  name: string;
+  label: string;
+  options: FilterOption[];
+}
+
+interface Props {
+  count: number;
+  noun: string;
+  placeholder: string;
+  facets?: Facet[];
+  paginate?: boolean;
+  filterDrawer?: boolean;
+}
+
+const {
+  count,
+  noun,
+  placeholder,
+  facets = [],
+  paginate = true,
+  filterDrawer = true
+} = Astro.props;
+const subject = noun.replace(/^[个张项份]/, "");
+const ui = getUi(activeReleaseContext.locale);
+const localizedNoun = activeReleaseContext.locale === "en"
+  ? ({
+      "张成员卡": "member cards",
+      "张留影": "snaps",
+      "个角色档案": "character records",
+      "个公开资源": "public resources",
+      "条剧情入口": "story entries"
+    }[noun] ?? noun)
+  : noun;
+const localizedSubject = activeReleaseContext.locale === "en"
+  ? ({
+      "成员卡": "member cards",
+      "留影": "snaps",
+      "角色档案": "character records",
+      "公开资源": "public resources",
+      "剧情入口": "story entries"
+    }[subject] ?? subject)
+  : subject;
+---
+
+<catalog-browser data-noun={localizedNoun} data-filter-scope>
+  <form class="catalog-controls" data-filter-form>
+    <label class="search-control">
+      <span class="visually-hidden">{ui.search} {localizedSubject}</span>
+      <svg aria-hidden="true" viewBox="0 0 24 24">
+        <circle cx="11" cy="11" r="6.5"></circle>
+        <path d="m16 16 4 4"></path>
+      </svg>
+      <input
+        type="search"
+        name="q"
+        placeholder={placeholder}
+        autocomplete="off"
+        data-search-input
+      />
+    </label>
+    <FilterPanel drawer={filterDrawer} title={activeReleaseContext.locale === "en" ? `Filter ${localizedSubject}` : `筛选${subject}`} count={count} noun={localizedNoun}>
+      <div class="facet-controls">
+        {facets.map(facet => <FilterFacet facet={facet} mode="catalog" />)}
+        <label>
+        <span>{ui.sort}</span>
+        <select name="sort" data-sort>
+          <option value="asc">编号升序</option>
+          <option value="desc">编号降序</option>
+        </select>
+      </label>
+      </div>
+    </FilterPanel>
+  </form>
+
+  <div class="active-filter-chips" data-active-filter-chips hidden></div>
+
+  <div class="result-bar" aria-live="polite">
+    <span><b data-result-count data-filter-count>{count}</b> {localizedNoun}</span>
+    <button type="button" data-clear-filters data-filter-reset>{ui.clearFilters}</button>
+  </div>
+
+  <slot />
+
+  {paginate && <PaginationControls defaultPageSize={noun === "张留影" ? 12 : 24} />}
+
+  <div class="empty-state" data-empty-state hidden>
+    <span>NO MATCH</span>
+    <h2>{ui.noMatches}</h2>
+    <p>尝试清除一个筛选条件，或使用档案编号搜索。</p>
+    <button type="button" data-clear-filters>{activeReleaseContext.locale === "en" ? `Show all ${localizedSubject}` : `显示全部${subject}`}</button>
+  </div>
+</catalog-browser>
+
+<script>
+  import { setFilterChipContent } from "../lib/filter-chip.mjs";
+  import {
+    evaluateFacets,
+    facetParams,
+    selectedFacetsFromParams
+  } from "../lib/faceted-filter.mjs";
+  import {
+    sortRecords
+  } from "../lib/filtering.mjs";
+  import { createPaginationAdapter } from "../lib/pagination-browser.mjs";
+
+  class CatalogBrowser extends HTMLElement {
+    connectedCallback() {
+      const form = this.querySelector("[data-filter-form]");
+      const search = this.querySelector("[data-search-input]");
+      const sort = this.querySelector("[data-sort]");
+      const items = [...this.querySelectorAll(".catalog-item")];
+      const parents = new Map(items.map((item) => [item, item.parentElement]));
+      const groups = [...this.querySelectorAll<HTMLElement>("[data-catalog-group]")];
+      const count = this.querySelector("[data-result-count]");
+      const empty = this.querySelector("[data-empty-state]");
+      const clears = this.querySelectorAll("[data-clear-filters]");
+      if (!(form instanceof HTMLFormElement)) return;
+
+
+
+      const facetNames = [
+        ...new Set(
+          [...this.querySelectorAll<HTMLInputElement>("[data-facet]")]
+            .map((input) => input.dataset.facet)
+            .filter((value): value is string => Boolean(value))
+        )
+      ];
+      const restoreControls = (params: URLSearchParams) => {
+        const restored = selectedFacetsFromParams(params, facetNames);
+        this.querySelectorAll<HTMLInputElement>("[data-facet]").forEach((input) => {
+          input.checked = (restored[input.dataset.facet ?? ""] ?? []).includes(input.value);
+        });
+        if (search instanceof HTMLInputElement) search.value = params.get("q") ?? "";
+        if (sort instanceof HTMLSelectElement) sort.value = params.get("sort") ?? "asc";
+      };
+      restoreControls(new URLSearchParams(window.location.search));
+
+      let pagination: ReturnType<typeof createPaginationAdapter> = null;
+      const update = ({
+        resetPage = false,
+        historyMode = "replace"
+      }: {
+        resetPage?: boolean;
+        historyMode?: "push" | "replace" | "none";
+      } = {}) => {
+        if (resetPage) pagination?.reset();
+        const query =
+          search instanceof HTMLInputElement ? search.value.trim() : "";
+        const selected = Object.fromEntries(
+          facetNames.map((name) => [
+            name,
+            [...this.querySelectorAll<HTMLInputElement>(
+              `[data-facet="${name}"]:checked`
+            )].map((input) => input.value)
+          ])
+        );
+        const direction =
+          sort instanceof HTMLSelectElement ? sort.value : "asc";
+        const records = items.map((item) => ({
+          item,
+          label: item.getAttribute("data-label") ?? "",
+          search: item.getAttribute("data-search") ?? "",
+          facets: Object.fromEntries(
+            facetNames.map((name) => [
+              name,
+              (item.getAttribute(`data-${name}`) ?? "").split(",").filter(Boolean)
+            ])
+          )
+        }));
+        const evaluation = evaluateFacets(records, { query, selected }) as {
+          records: typeof records;
+          counts: Record<string, Record<string, number>>;
+          disabled: Record<string, string[]>;
+        };
+        const visible = sortRecords(
+          evaluation.records,
+          direction
+        );
+        const paged = pagination?.paginate(visible);
+        const pageRecords = (paged?.records ?? visible) as typeof visible;
+        const visibleItems = new Set(pageRecords.map((record) => record.item));
+        items.forEach((item) => {
+          item.toggleAttribute("hidden", !visibleItems.has(item));
+        });
+
+        visible.forEach((record) => parents.get(record.item)?.append(record.item));
+        groups.forEach((group) => {
+          group.hidden = !group.querySelector(".catalog-item:not([hidden])");
+        });
+        if (count) count.textContent = String(visible.length);
+        if (empty instanceof HTMLElement) empty.hidden = visible.length !== 0;
+        if (paged) pagination?.render(paged);
+
+        for (const name of facetNames) {
+          const inputs = this.querySelectorAll<HTMLInputElement>(
+            `[data-facet="${name}"]`
+          );
+          inputs.forEach((input) => {
+            const option = input.closest<HTMLElement>("[data-facet-option]");
+            const optionCount = option?.querySelector<HTMLElement>("[data-facet-count]");
+            const valueCount = evaluation.counts[name]?.[input.value] ?? 0;
+            if (optionCount) optionCount.textContent = String(valueCount);
+            input.disabled = valueCount === 0 && !input.checked;
+            option?.classList.toggle("is-disabled", input.disabled);
+          });
+          const menu = this.querySelector<HTMLElement>(`[data-facet-menu="${name}"]`);
+          const selectedCount = menu?.querySelector<HTMLElement>(
+            "[data-facet-selected-count]"
+          );
+          if (selectedCount) {
+            selectedCount.textContent = selected[name].length > 0
+              ? String(selected[name].length)
+              : "全部";
+          }
+        }
+
+        const chips = this.querySelector<HTMLElement>("[data-active-filter-chips]");
+        if (chips) {
+          chips.replaceChildren();
+          for (const name of facetNames) {
+            for (const value of selected[name]) {
+              const input = this.querySelector<HTMLInputElement>(
+                `[data-facet="${name}"][value="${CSS.escape(value)}"]`
+              );
+              const button = document.createElement("button");
+              button.type = "button";
+              button.dataset.removeFacet = name;
+              button.dataset.removeValue = value;
+              setFilterChipContent(button, input, value);
+              chips.append(button);
+            }
+          }
+          chips.hidden = chips.childElementCount === 0;
+        }
+
+        const filterParams = facetParams({
+          query,
+          selected,
+          sort: direction
+        });
+        const next = pagination?.params(filterParams) ?? filterParams;
+        if (historyMode !== "none") {
+          history[historyMode === "push" ? "pushState" : "replaceState"](
+            null,
+            "",
+            `${window.location.pathname}${next.size ? `?${next}` : ""}`
+          );
+        }
+      };
+      pagination = createPaginationAdapter(this, {
+        onChange: (historyMode: "push" | "replace") => update({ historyMode })
+      });
+
+      form.addEventListener("input", (event) => {
+        const target = event.target;
+        if (
+          target instanceof HTMLInputElement &&
+          target.matches("[data-facet-option-search]")
+        ) {
+          const query = target.value.trim().toLocaleLowerCase("zh-CN");
+          target
+            .closest("[data-facet-menu]")
+            ?.querySelectorAll<HTMLElement>("[data-facet-option]")
+            .forEach((option) => {
+              option.hidden = !String(option.dataset.optionLabel ?? "").includes(query);
+            });
+          return;
+        }
+        update({ resetPage: true });
+      });
+      form.addEventListener("change", () => update({ resetPage: true }));
+      form.addEventListener("click", (event) => {
+        const target = event.target;
+        if (!(target instanceof HTMLElement)) return;
+        const clear = target.closest<HTMLElement>("[data-clear-facet]");
+        if (!clear) return;
+        const name = clear.dataset.clearFacet;
+        this.querySelectorAll<HTMLInputElement>(`[data-facet="${name}"]`)
+          .forEach((input) => { input.checked = false; });
+        update({ resetPage: true });
+      });
+      this.addEventListener("click", (event) => {
+        const target = event.target;
+        if (!(target instanceof HTMLElement)) return;
+        const chip = target.closest<HTMLElement>("[data-remove-facet]");
+        if (!chip) return;
+        const input = this.querySelector<HTMLInputElement>(
+          `[data-facet="${chip.dataset.removeFacet}"][value="${CSS.escape(chip.dataset.removeValue ?? "")}"]`
+        );
+        if (input) input.checked = false;
+        update({ resetPage: true });
+      });
+      clears.forEach((button) =>
+        button.addEventListener("click", () => {
+          form.reset();
+          this.querySelectorAll<HTMLInputElement>("[data-facet]").forEach((input) => {
+            input.checked = false;
+          });
+          update({ resetPage: true });
+          if (search instanceof HTMLInputElement) search.focus();
+        })
+      );
+      window.addEventListener("popstate", () => {
+        const params = new URLSearchParams(location.search);
+        restoreControls(params);
+        pagination?.restore(params);
+        update({ historyMode: "none" });
+      });
+      update();
+    }
+  }
+
+  if (!customElements.get("catalog-browser")) {
+    customElements.define("catalog-browser", CatalogBrowser);
+  }
+</script>

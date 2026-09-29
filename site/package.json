@@ -1,0 +1,46 @@
+{
+  "name": "our-notes-archive",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22.20.0"
+  },
+  "scripts": {
+    "catalog": "python3 ../tools/site_catalog.py",
+    "dev": "npm run catalog && ASTRO_TELEMETRY_DISABLED=1 astro dev",
+    "check": "ASTRO_TELEMETRY_DISABLED=1 astro check",
+    "check:generated": "npm run catalog && npm run check",
+    "test": "npm run test:python && npm run test:node",
+    "test:python": "cd .. && python3 -m unittest discover -s tests -v",
+    "test:node": "node --test tests/*.test.mjs",
+    "build:projection": "ASTRO_TELEMETRY_DISABLED=1 astro check && ASTRO_TELEMETRY_DISABLED=1 astro build",
+    "build": "python3 ../tools/release_build.py",
+    "perf:budget": "python3 ../tools/performance_budget.py ../output/release-builds/global-production-current/site --output ../output/readiness/build-budget.json",
+    "perf:browser": "node ../tools/performance_browser.cjs --contract ../config/performance/gates.product-v1.json --budget-only",
+    "preview": "ASTRO_TELEMETRY_DISABLED=1 astro preview",
+    "preview:matrix": "OURNOTES_SITE_OUT_DIR=../output/release-builds/global-production-current/site ASTRO_TELEMETRY_DISABLED=1 astro preview",
+    "build:anontokyo": "npm run refresh:anontokyo && PUBLIC_ANONTOKYO_ENABLED=1 OURNOTES_SITE_OUT_DIR=../output/anontokyo/site npm run build:projection",
+    "refresh:anontokyo": "python3 ../tools/anontokyo_refresh_static.py",
+    "catalog:preflight": "python3 ../tools/release_preflight.py",
+    "catalog:candidate": "python3 ../tools/release_candidates.py",
+    "build:candidate": "python3 ../tools/release_site.py"
+  },
+  "dependencies": {
+    "@astrojs/check": "^0.9.9",
+    "@esotericsoftware/spine-threejs": "4.2.67",
+    "astro": "^7.1.0",
+    "pixi-live2d-display": "0.5.0-beta",
+    "pixi.js": "^7.4.3",
+    "three": "0.162.0",
+    "typescript": "^6.0.3"
+  },
+  "devDependencies": {
+    "@astrojs/compiler": "^2.13.1",
+    "postcss": "8.5.25"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/stonesver/otonote.git"
+  }
+}

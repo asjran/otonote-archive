@@ -1,0 +1,182 @@
+/* Shared motion layer. Resting layout and visual styles belong to the existing components. */
+@keyframes motion-arrive {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes motion-home-art {
+  from { opacity: .35; transform: translateX(8px) scale(1.015); }
+  to { opacity: 1; transform: none; }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  html[data-motion="on"] {
+    --motion-ease: cubic-bezier(.22, 1, .36, 1);
+  }
+
+  [data-motion="on"] .home-hero-copy > * {
+    animation: motion-arrive 480ms var(--motion-ease) backwards;
+  }
+  [data-motion="on"] .home-hero-copy > :nth-child(2) { animation-delay: 40ms; }
+  [data-motion="on"] .home-hero-copy > :nth-child(3) { animation-delay: 80ms; }
+  [data-motion="on"] .home-hero-copy > :nth-child(4) { animation-delay: 120ms; }
+  [data-motion="on"] .home-hero-copy > :nth-child(5) { animation-delay: 160ms; }
+  [data-motion="on"] .home-hero-art > img {
+    animation: motion-home-art 700ms var(--motion-ease) backwards;
+  }
+  [data-motion="on"] .home-shortcuts {
+    animation: motion-arrive 440ms 100ms var(--motion-ease) backwards;
+  }
+
+  [data-motion="on"] :is(.home-hero-actions a, .home-workbench a, .home-card, .home-track, .home-new-snaps > a, .global-search-trigger, .global-search-frame button) {
+    transition: transform 180ms var(--motion-ease), background-color 180ms ease, color 180ms ease, border-color 180ms ease;
+  }
+  [data-motion="on"] .home-shortcuts a {
+    transition: background-color 180ms ease;
+  }
+  [data-motion="on"] .home-shortcut-title {
+    transition: transform 180ms var(--motion-ease);
+  }
+  [data-motion="on"] .global-search-result > b {
+    transition: transform 180ms var(--motion-ease);
+  }
+  [data-motion="on"] :is(.home-card-art > img, .home-track-art img) {
+    transition: transform 320ms var(--motion-ease);
+  }
+  [data-motion="on"] :is(.home-hero-actions a, .home-workbench a, .home-card, .home-track, .home-new-snaps > a, .global-search-trigger, .global-search-frame button):active {
+    transform: scale(.98);
+    transition-duration: 90ms;
+  }
+  [data-motion="on"] .home-shortcuts a:active .home-shortcut-title {
+    transform: translateY(1px);
+  }
+
+  /* Native dialog remains responsible for modality, Escape and focus handling. */
+  @supports (transition-behavior: allow-discrete) {
+    [data-motion="on"] .global-search-dialog {
+      opacity: 0;
+      transform: translateY(8px) scale(.99);
+      transition: opacity 200ms ease, transform 240ms var(--motion-ease),
+        display 240ms allow-discrete, overlay 240ms allow-discrete;
+    }
+    [data-motion="on"] .global-search-dialog[open] {
+      opacity: 1;
+      transform: none;
+    }
+    [data-motion="on"] .global-search-dialog::backdrop {
+      opacity: 0;
+      transition: opacity 200ms ease, display 240ms allow-discrete,
+        overlay 240ms allow-discrete;
+    }
+    [data-motion="on"] .global-search-dialog[open]::backdrop { opacity: 1; }
+    @starting-style {
+      [data-motion="on"] .global-search-dialog[open] {
+        opacity: 0;
+        transform: translateY(8px) scale(.99);
+      }
+      [data-motion="on"] .global-search-dialog[open]::backdrop { opacity: 0; }
+    }
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  [data-motion="on"] :is(.nav-home, .nav-primary, .nav-submenu a, .nav-submenu-toggle,
+    .filter-panel .facet-check, .facet-clear-group, .active-filter-chips button,
+    .archive-continuation button, .result-bar button, .viewer-toolbar button,
+    [role="tab"], .filter-panel > summary, .context-switcher summary) {
+    transition: background-color 180ms ease, color 180ms ease, border-color 180ms ease,
+      box-shadow 180ms ease, scale 120ms var(--motion-ease);
+  }
+  [data-motion="on"] :is(.nav-submenu-toggle, .filter-panel .facet-check,
+    .facet-clear-group, .active-filter-chips button, .archive-continuation button,
+    .result-bar button, .viewer-toolbar button, [role="tab"]):not(:disabled):not(.is-disabled):active {
+    scale: .98;
+  }
+
+  /* Entering results fade in; removed results leave immediately to keep filtering fast. */
+  [data-motion="on"] :is(.catalog-item, .music-catalog-item, .database-catalog-item, [data-switcher-item]) {
+    transition: opacity 180ms ease, translate 200ms var(--motion-ease),
+      box-shadow 200ms ease, border-color 180ms ease;
+  }
+  @starting-style {
+    [data-motion="on"] :is(.catalog-item, .music-catalog-item, .database-catalog-item, [data-switcher-item]):not([hidden]),
+    [data-motion="on"] .global-search-result { opacity: .45; }
+  }
+  [data-motion="on"] .global-search-result {
+    transition: opacity 160ms ease, background-color 150ms ease;
+  }
+
+  /* Progressive enhancement keeps native details semantics and exact open height. */
+  @supports (interpolate-size: allow-keywords) and selector(details::details-content) {
+    [data-motion="on"] .filter-panel::details-content {
+      interpolate-size: allow-keywords;
+      block-size: 0;
+      overflow: clip;
+      opacity: 0;
+      transition: block-size 240ms var(--motion-ease), opacity 180ms ease,
+        content-visibility 240ms allow-discrete;
+    }
+    [data-motion="on"] .filter-panel[open]::details-content {
+      block-size: auto;
+      opacity: 1;
+    }
+  }
+
+  @supports (transition-behavior: allow-discrete) {
+    [data-motion="on"] [data-nav-interacted] .nav-submenu {
+      transition: opacity 180ms ease;
+    }
+    @starting-style {
+      [data-motion="on"] [data-nav-interacted] .nav-submenu:not([hidden]) { opacity: 0; }
+    }
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) and (max-width: 1100px) {
+  @supports (transition-behavior: allow-discrete) {
+    [data-motion="on"] .site-nav {
+      opacity: 0;
+      transform: translateX(-10px);
+      pointer-events: none;
+      transition: opacity 180ms ease, transform 240ms var(--motion-ease),
+        display 240ms allow-discrete;
+    }
+    [data-motion="on"] .site-nav[data-open] {
+      opacity: 1;
+      transform: none;
+      pointer-events: auto;
+    }
+    [data-motion="on"] .nav-backdrop {
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 180ms ease, display 240ms allow-discrete;
+    }
+    [data-motion="on"] .nav-backdrop:not([hidden]) { opacity: 1; pointer-events: auto; }
+    @starting-style {
+      [data-motion="on"] .site-nav[data-open] { opacity: 0; transform: translateX(-10px); }
+      [data-motion="on"] .nav-backdrop:not([hidden]) { opacity: 0; }
+    }
+  }
+}
+
+/* Existing hover transforms must also respect touch and reduced-motion preferences. */
+@media (prefers-reduced-motion: reduce), (hover: none) {
+  [data-motion="on"] .catalog-tile:is(:hover, :focus-within) { translate: none; }
+  [data-motion="on"] .home-card:hover .home-card-art > img { transform: none; }
+  [data-motion="on"] .catalog-tile:hover .tile-media img,
+  [data-motion="on"] .asset-tile:hover .asset-preview img { scale: 1; }
+}
+
+@media (prefers-reduced-motion: no-preference) and (hover: hover) and (pointer: fine) {
+  [data-motion="on"] :is(.home-hero-actions a, .home-workbench a, .home-card, .home-track, .home-new-snaps > a):hover {
+    transform: translateY(-2px);
+  }
+  [data-motion="on"] .home-shortcuts a:hover .home-shortcut-title {
+    transform: translateX(2px);
+  }
+  [data-motion="on"] .home-track:hover .home-track-art img { transform: scale(1.025); }
+  [data-motion="on"] .global-search-result:hover > b { transform: translateX(3px); }
+  [data-motion="on"] :is(.home-hero-actions a, .home-workbench a, .home-card, .home-track, .home-new-snaps > a):active {
+    transform: scale(.98);
+  }
+}

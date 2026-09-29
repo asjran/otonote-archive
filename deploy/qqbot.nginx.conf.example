@@ -1,0 +1,13 @@
+# Include inside an existing HTTPS server block; provision certificate separately.
+# Do not expose /health or proxy arbitrary existing application paths.
+location = /qqbot/callback {
+    client_max_body_size 64k;
+    proxy_pass http://127.0.0.1:8091;
+    proxy_set_header Host $host;
+    proxy_read_timeout 10s;
+}
+location ~ "^/qqbot/images/[0-9a-f]{64}\.png$" {
+    proxy_pass http://127.0.0.1:8091;
+    proxy_set_header Host $host;
+    proxy_read_timeout 15s;
+}

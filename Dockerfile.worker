@@ -1,0 +1,67 @@
+ARG NODE_BASE_IMAGE=node:22.22.0-bookworm-slim
+FROM ${NODE_BASE_IMAGE} AS runtime-base
+
+ENV DEBIAN_FRONTEND=noninteractive \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    VIRTUAL_ENV=/opt/ournotes-venv \
+    PATH=/opt/ournotes-venv/bin:$PATH \
+    OURNOTES_DATA_ROOT=/data \
+    OURNOTES_SITE_RELEASE_ROOT=/site-releases
+
+RUN apt-get update \
+    && apt-get install --yes --no-install-recommends \
+        ca-certificates \
+        ffmpeg \
+        python3 \
+        python3-venv \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+FROM runtime-base AS python-wheel-builder
+
+RUN apt-get update \
+    && apt-get install --yes --no-install-recommends \
+        build-essential \
+        python3-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY requirements-worker.txt ./
+COPY analysis/requirements.txt ./analysis/requirements.txt
+COPY analysis/crypto/requirements.txt ./analysis/crypto/requirements.txt
+RUN python3 -m venv /opt/ournotes-wheel-venv \
+    && /opt/ournotes-wheel-venv/bin/pip install --no-cache-dir wheel==0.45.1 \
+    && /opt/ournotes-wheel-venv/bin/pip wheel \
+        --no-cache-dir \
+        --wheel-dir /wheels \
+        --requirement requirements-worker.txt
+
+FROM runtime-base AS worker
+
+COPY requirements-worker.txt ./
+COPY analysis/requirements.txt ./analysis/requirements.txt
+COPY analysis/crypto/requirements.txt ./analysis/crypto/requirements.txt
+COPY --from=python-wheel-builder /wheels /wheels
+RUN python3 -m venv "$VIRTUAL_ENV" \
+    && pip install \
+        --no-cache-dir \
+        --no-index \
+        --find-links /wheels \
+        --requirement requirements-worker.txt \
+    && rm -rf /wheels
+
+COPY site/package.json site/package-lock.json ./site/
+RUN cd site && npm ci --ignore-scripts
+
+COPY tools ./tools
+COPY analysis ./analysis
+COPY catalog ./catalog
+COPY config ./config
+COPY site ./site
+COPY tests ./tests
+COPY Dockerfile.worker requirements-worker.txt ./
+
+VOLUME ["/data", "/site-releases"]
+
+CMD ["python3", "-m", "tools.resource_pipeline.cli", "run", "--all-enabled", "--data-root", "/data"]

@@ -1,0 +1,152 @@
+---
+import AnonTokyoHeader from "./AnonTokyoHeader.astro";
+
+interface Props { dataset: Record<string, any>; stagedMedia: Array<Record<string, string>>; }
+interface Task { id: string; condition: string; rewards: Array<{ name: string; count?: number }>; previousTaskId?: string | null; category?: string; }
+interface Chapter { id: string; name: string; taskCount: number; tasks: Task[]; }
+interface Chain { id: string; name: string; series?: string; seriesKey?: string; length: number; tasks: Task[]; }
+interface SeriesFilter { key: string; label: string; }
+
+const { dataset } = Astro.props;
+const records = (dataset.records ?? []) as Task[];
+const chapters = (dataset.chapters ?? []) as Chapter[];
+const chains = (dataset.achievementChains ?? []) as Chain[];
+const seriesFilters = (dataset.seriesFilters ?? []) as SeriesFilter[];
+const chapterTaskCount = chapters.reduce((s, c) => s + c.taskCount, 0);
+const chainTaskCount = chains.reduce((s, c) => s + c.length, 0);
+---
+
+<AnonTokyoHeader active="tasks" title="任务路线" description="按主线章节和成就链重组，每条链按前置任务关系排序。系列标签基于成就名称关键词匹配。" count={records.length} />
+
+<main class="at-guide-main">
+  <div class="content-shell">
+
+    <!-- 顶部概要 -->
+    <div class="at-tasks-summary">
+      <a href="#chapters" class="at-tasks-summary__card">
+        <strong>{chapters.length}</strong>
+        <span>主线章节</span>
+        <small>{chapterTaskCount} 个任务</small>
+      </a>
+      <a href="#chains" class="at-tasks-summary__card">
+        <strong>{chains.length}</strong>
+        <span>成就链</span>
+        <small>{chainTaskCount} 步</small>
+      </a>
+      <a href="#all" class="at-tasks-summary__card">
+        <strong>{records.length}</strong>
+        <span>全部任务</span>
+        <small>含每日/限时</small>
+      </a>
+    </div>
+
+    <!-- 系列筛选导航 -->
+    {seriesFilters.length > 0 && (
+      <nav class="at-tasks-series" id="series-nav">
+        <span class="at-tasks-series__label">系列筛选</span>
+        <a href="#chapters">主线章节</a>
+        {seriesFilters.map((filter: any) => (
+          <a href={`#chain-${filter.key}`}>{filter.label}</a>
+        ))}
+        <a href="#all">全部</a>
+      </nav>
+    )}
+
+    <!-- ====== 主线章节 ====== -->
+    {chapters.length > 0 && (
+      <section id="chapters" class="at-tasks-section">
+        <div class="at-tasks-section__head">
+          <h2>主线章节</h2>
+          <span>{chapters.length} 章 · {chapterTaskCount} 个任务</span>
+        </div>
+        <div class="at-tasks-chapters">
+          {chapters.map((chapter: any) => (
+            <details class="at-tasks-chapter" open={parseInt(String(chapter.id).replace(/[^0-9]/g,'')) <= 5}>
+              <summary>
+                <span class="at-tasks-chapter__num">{chapter.name}</span>
+                <span class="at-tasks-chapter__count">{chapter.taskCount} 个任务</span>
+              </summary>
+              <ol>
+                {chapter.tasks.map((task: any, idx: number) => (
+                  <li>
+                    <a href={`/anontokyo/tasks/${task.id}/`}>
+                      <em>{idx + 1}</em>
+                      <div>
+                        <p>{task.condition}</p>
+                        {task.rewards.length > 0 && (
+                          <small>{task.rewards.map((r: any) => `${r.name} × ${r.count ?? "—"}`).join("  ·  ")}</small>
+                        )}
+                      </div>
+                    </a>
+                  </li>
+                ))}
+              </ol>
+            </details>
+          ))}
+        </div>
+      </section>
+    )}
+
+    <!-- ====== 成就链 ====== -->
+    {chains.length > 0 && (
+      <section id="chains" class="at-tasks-section">
+        <div class="at-tasks-section__head">
+          <h2>成就链</h2>
+          <span>{chains.length} 条 · {chainTaskCount} 步</span>
+        </div>
+        <p class="at-guide-note">每条链按 MasterATAchievementTask._beforeTaskID 的前置关系排序。系列标签来自成就名称关键词匹配。</p>
+        <div class="at-tasks-chains">
+          {chains.map((chain: any) => (
+            <article class="at-tasks-chain" id={`chain-${chain.seriesKey || chain.id}`}>
+              <header class="at-tasks-chain__head">
+                <div>
+                  <h3>{chain.name}</h3>
+                  {chain.series && <span class="at-tasks-chain__series">{chain.series}</span>}
+                </div>
+                <span class="at-tasks-chain__len">{chain.length} 步</span>
+              </header>
+              <ol class="at-tasks-chain__steps">
+                {chain.tasks.map((task: any, index: number) => (
+                  <li class={index === 0 ? "is-root" : ""}>
+                    <span class="at-tasks-chain__dot">{index + 1}</span>
+                    <div class="at-tasks-chain__body">
+                      <a href={`/anontokyo/tasks/${task.id}/`} class="at-tasks-chain__cond">{task.condition}</a>
+                      {task.rewards.length > 0 && (
+                        <span class="at-tasks-chain__reward">{task.rewards.map((r: any) => `${r.name} × ${r.count ?? "—"}`).join("  ·  ")}</span>
+                      )}
+                    </div>
+                  </li>
+                ))}
+              </ol>
+            </article>
+          ))}
+        </div>
+      </section>
+    )}
+
+    <!-- ====== 全部任务 ====== -->
+    <section id="all" class="at-tasks-section">
+      <div class="at-tasks-section__head">
+        <h2>全部任务</h2>
+        <span>{records.length} 项</span>
+      </div>
+      <div class="at-tasks-table">
+        <div class="at-tasks-table__row at-tasks-table__head">
+          <div>类别</div><div>完成条件</div><div>奖励</div><div></div>
+        </div>
+        {records.map((record: any) => {
+          const rewards = record.rewards ?? [];
+          return (
+            <div class="at-tasks-table__row">
+              <span class="col-cat">{record.category}</span>
+              <span class="col-cond">{record.condition}</span>
+              <span class="col-reward">{rewards.map((r: any) => `${r.name} × ${r.count ?? "—"}`).join(" · ")}</span>
+              <a href={`/anontokyo/tasks/${record.id}/`} class="col-link">详情</a>
+            </div>
+          );
+        })}
+      </div>
+    </section>
+
+  </div>
+</main>

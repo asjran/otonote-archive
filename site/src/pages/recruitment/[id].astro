@@ -1,0 +1,6 @@
+---
+import { globalSystems } from "../../lib/global-systems";
+import { systemHref } from "../../lib/system-display";
+export function getStaticPaths() { return globalSystems.gachaPools.map(pool => ({ params: { id: String(pool.id) }, props: { destination: `${systemHref("/recruitment/")}#pool-${pool.id}` } })); }
+return Astro.redirect(Astro.props.destination, 301);
+---

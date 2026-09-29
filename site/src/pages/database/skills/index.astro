@@ -1,0 +1,87 @@
+---
+import BaseLayout from "../../../layouts/BaseLayout.astro";
+import DatabaseCatalogBrowser from "../../../components/database/DatabaseCatalogBrowser.astro";
+import DatabaseDetailDialog from "../../../components/database/DatabaseDetailDialog.astro";
+import SkillTile from "../../../components/database/SkillTile.astro";
+import {
+  gameDatabase,
+  publicSkills,
+  skillIndex
+} from "../../../lib/game-database";
+import {
+  getBand,
+  getCharacter,
+  getMemberCard,
+  getSupportCard
+} from "../../../lib/catalog";
+import "../../../styles/database.css";
+import { activeReleaseContext } from "../../../lib/release-context";
+import { buildSkillArchiveFilters } from "../../../lib/card-skill-filtering.mjs";
+
+const skillFilters = buildSkillArchiveFilters(publicSkills, activeReleaseContext.locale);
+
+const effects = new Map<number, string>();
+for (const skill of skillIndex) {
+  for (const effect of skill.effects) {
+    effects.set(effect.type, effect.name);
+  }
+}
+const effectOptions = [...effects]
+  .sort(([left], [right]) => left - right)
+  .map(([value, label]) => ({ value: String(value), label }));
+
+const targets = new Map<string, string>();
+for (const target of gameDatabase.targets) {
+  if (target.bandId) {
+    const band = getBand(target.bandId);
+    if (band) targets.set(band.id, band.displayName);
+  }
+  if (target.characterId) {
+    const character = getCharacter(target.characterId);
+    if (character) targets.set(character.id, character.displayName);
+  }
+}
+const targetOptions = [...targets].map(([value, label]) => ({ value, label }));
+const cardName = (id: string) =>
+  id.startsWith("member-card-")
+    ? getMemberCard(id)?.displayName
+    : getSupportCard(id)?.displayName;
+---
+
+<BaseLayout title="技能索引">
+  <section class="db-page-hero">
+    <div class="content-shell db-page-hero-grid">
+      <div>
+        <div class="eyebrow">SKILL DEFINITIONS</div>
+        <h1>技能索引</h1>
+        <p>按演出／支援技能、激奏类型及效果筛选，并反查使用该技能的卡牌。</p>
+      </div>
+      <div class="db-page-count"><strong>{skillIndex.length}</strong><span>SKILL RECORDS</span></div>
+    </div>
+  </section>
+
+  <section class="db-catalog-section">
+    <div class="content-shell">
+      <DatabaseCatalogBrowser
+        mode="skills"
+        count={skillIndex.length}
+        effectOptions={effectOptions}
+        targetOptions={targetOptions}
+        skillFacets={skillFilters.facets}
+      >
+        <div class="db-catalog-list">
+          {skillIndex.map((skill) => (
+            <SkillTile
+              skill={skill}
+              skillFacets={skillFilters.records.get(skill.id)}
+              relatedNames={skill.relatedCardIds
+                .map(cardName)
+                .filter((name) => name !== undefined)}
+            />
+          ))}
+        </div>
+      </DatabaseCatalogBrowser>
+    </div>
+  </section>
+  <DatabaseDetailDialog kind="skills" />
+</BaseLayout>

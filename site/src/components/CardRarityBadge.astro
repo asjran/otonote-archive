@@ -1,0 +1,28 @@
+---
+import {
+  getAsset,
+  getCardRarity
+} from "../lib/catalog";
+import { activeReleaseContext } from "../lib/release-context";
+import { getUi } from "../lib/ui-i18n";
+
+interface Props {
+  rarity: number;
+  compact?: boolean;
+}
+
+const { rarity, compact = false } = Astro.props;
+const ui = getUi(activeReleaseContext.locale);
+const definition = getCardRarity(rarity);
+const icon = getAsset(definition?.iconAssetId);
+const label = definition?.label ?? `RARITY ${rarity}`;
+---
+
+<span
+  class:list={["rarity-badge", { "rarity-badge--compact": compact }]}
+  aria-label={`${ui.rarity} ${label}`}
+  title={`${ui.rarity} ${label}`}
+>
+  {icon && <img src={icon.previewUrl} alt="" />}
+  <strong class:list={{ "visually-hidden": Boolean(icon) }}>{label}</strong>
+</span>

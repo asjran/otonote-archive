@@ -1,0 +1,2 @@
+Signer #1 certificate SHA-256 digest: 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+Signer #1 certificate SHA-1 digest: 0123456789abcdef0123456789abcdef01234567

@@ -1,0 +1,27 @@
+[Unit]
+Description=OurNotes identity database snapshot
+Requires=docker.service
+After=docker.service
+# Run once after ``query.service`` has initialized the SQLite database and
+# before an adapter is allowed to write bindings.
+# The directory remains writable so SQLite can coordinate WAL/SHM state; the
+# backup process itself opens the source with PRAGMA query_only.
+
+[Service]
+Type=oneshot
+EnvironmentFile=/etc/ournotes/query.env
+ExecStart=/usr/bin/docker run \
+    --rm \
+    --name ournotes-query-backup \
+    --env-file /etc/ournotes/query.env \
+    --mount type=bind,source=/srv/ournotes-data/identity,target=/data/identity \
+    --mount type=bind,source=/srv/ournotes-data/identity-backups,target=/data/backups \
+    --memory=128m \
+    --cpus=0.25 \
+    --pids-limit=64 \
+    ${OURNOTES_QUERY_IMAGE} \
+    python3 -m backend.identity_backup \
+        --source-path /data/identity/identity.sqlite3 \
+        --backup-root /data/backups
+NoNewPrivileges=true
+PrivateTmp=true

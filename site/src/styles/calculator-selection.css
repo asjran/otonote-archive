@@ -1,0 +1,111 @@
+/* Selection is a workbench: quiet filters, paired cards, readable skill text. */
+.team-workbench .selection-filters {display:grid;gap:14px;padding:16px;background:#f6f7fa;border:1px solid #e1e4eb;border-radius:12px;}
+.team-workbench .selection-search {display:grid;gap:7px;font-size:12px;font-weight:600;}
+.team-workbench .selection-search input {width:100%;box-sizing:border-box;min-height:42px;}
+.team-workbench .selection-filter-grid,.team-workbench .inventory-filters {display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;}
+.team-workbench .selection-filter-grid label,.team-workbench .inventory-filters label {display:grid;gap:6px;font-size:12px;min-width:0;color:var(--calc-muted);}
+.team-workbench :is(.selection-filter-grid,.inventory-filters) :is(input,select) {width:100%;min-width:0;box-sizing:border-box;min-height:38px;font-size:12px;}
+.team-workbench .selection-results-bar {display:flex;align-items:center;justify-content:space-between;gap:12px;font-size:12px;color:var(--calc-muted);}
+.team-workbench .selection-results-bar button {border:0;background:transparent;text-decoration:underline;text-underline-offset:3px;font-size:12px;color:var(--calc-accent);padding:7px;}
+.team-workbench .compact-attribute-filter {display:flex;flex-wrap:wrap;align-items:center;gap:8px;}
+.team-workbench .compact-attribute-filter>span {font-size:12px;color:var(--calc-muted);margin-right:3px;}
+.team-workbench .compact-attribute-filter button {min-width:38px;min-height:38px;display:grid;place-items:center;padding:5px 8px;border:1px solid var(--calc-line);background:#fff;border-radius:8px;font-size:12px;}
+.team-workbench .compact-attribute-filter button[aria-pressed=true] {border-color:var(--calc-accent);box-shadow:inset 0 -2px var(--calc-accent);background:var(--calc-tint);}
+.team-workbench .compact-attribute-filter .card-attribute-badge {border:0;background:transparent;padding:0;}
+.team-workbench .compact-attribute-filter img {width:23px;height:23px;}
+.team-workbench .calculator-attribute {padding:3px;align-self:start;flex-shrink:0;}
+.team-workbench .selection-pagination {display:flex;justify-content:center;align-items:center;gap:16px;padding:14px 0;font:12px var(--font-mono);}
+.team-workbench .selection-pagination button {border:1px solid var(--calc-line);background:white;border-radius:7px;padding:8px 12px;font:12px var(--font-body);}
+.team-workbench :is(.selection-pagination,.card-preview) button:disabled {opacity:.45;cursor:default;}
+.team-workbench .song-selection-pin {display:flex;justify-content:space-between;align-items:center;gap:10px;background:var(--calc-tint);border-radius:9px;padding:12px 14px;font-size:13px;}
+.team-workbench .song-selection-pin p {margin:0;line-height:1.7;}
+.team-workbench .song-selection-pin button {background:none;border:0;flex-shrink:0;text-decoration:underline;font-size:12px;color:var(--calc-accent);}
+.team-workbench .song-level-range {display:flex;align-items:end;gap:8px;grid-column:span 2;}
+.team-workbench .song-level-range label {flex:1;}.team-workbench .song-level-range>span {padding-bottom:10px;}
+.team-workbench .song-picker-list {max-height:540px!important;}
+.team-workbench .song-picker-row {padding:14px 12px;}
+.team-workbench .song-title-line {display:flex;align-items:center;gap:8px;}.team-workbench .song-title-line strong {font-size:14px;line-height:1.6;}
+.team-workbench .song-missions {display:flex;flex-wrap:wrap;gap:4px;margin-top:5px;}
+.team-workbench .song-missions span {font:600 9px var(--font-mono);padding:4px 6px;border-radius:4px;background:#edf0f6;color:#556176;}
+.team-workbench .song-missions [data-mission="2"] {background:#f8f0dd;color:#8a651a;}.team-workbench .song-missions [data-mission="3"] {background:#f4e9f2;color:#88486f;}
+.team-workbench .team-kind-switch {display:flex;gap:0;width:fit-content;border:1px solid var(--calc-line);border-radius:8px;overflow:hidden;}
+.team-workbench .team-kind-switch button {padding:10px 24px;border:0;border-radius:0;background:#fff;font-size:13px;}
+.team-workbench .team-kind-switch [aria-pressed=true] {background:var(--calc-accent);color:white;}
+.team-workbench .card-picker-workspace {display:grid;grid-template-columns:minmax(0,1.3fr) minmax(270px,1fr);gap:18px;align-items:start;margin-top:18px;}
+[data-shell=sidebar] .team-workbench .team-picker-results,.team-workbench .team-picker-results {display:grid;grid-template-columns:1fr;max-height:660px;overflow:auto;gap:10px;padding:3px;}
+[data-shell=sidebar] .team-workbench .team-picker-card,.team-workbench .team-picker-card {display:flex;flex-direction:column;text-align:left;gap:10px;padding:12px;min-width:0;background:#fff;border:1px solid var(--calc-line);border-radius:10px;color:var(--ink);}
+.team-workbench .team-picker-card[aria-pressed=true] {border-color:var(--calc-accent);box-shadow:inset 3px 0 var(--calc-accent);background:#faf5fa;}
+.team-workbench .card-identity {display:flex;gap:10px;align-items:center;width:100%;min-width:0;}
+.team-workbench .card-identity>img {width:64px;height:76px;object-fit:contain;flex-shrink:0;background:#f4f3f8;border-radius:8px;}
+.team-workbench .card-identity>div {display:grid;gap:5px;flex:1;min-width:0;}
+.team-workbench .card-identity small {font:10px var(--font-mono);color:var(--calc-muted);}
+.team-workbench .card-identity strong {font:600 13px/1.6 var(--font-body);overflow-wrap:anywhere;}
+.team-workbench .card-identity>div>span {font:11px/1.6 var(--font-body);color:var(--calc-muted);}
+.team-workbench .card-selection-state {display:block;width:fit-content;font:11px var(--font-body);color:var(--calc-accent);padding:4px 7px;border-radius:5px;background:var(--calc-tint);}
+.team-workbench .card-preview {position:sticky;top:84px;background:#faf9fc;border:1px solid #d8cbd8;border-radius:12px;padding:16px;min-width:0;}
+.team-workbench .card-preview>button {width:100%;padding:11px 8px;font-size:13px;margin-top:8px;}
+.team-workbench [data-card-apply] {background:var(--calc-accent);color:white;border:1px solid var(--calc-accent);}
+.team-workbench .card-preview .team-clear-card {background:none;border:0;font-size:11px;color:var(--calc-muted);}
+.team-workbench [data-card-placement],.team-workbench .card-growth-note {font-size:11px;line-height:1.7;color:var(--calc-muted);}
+.team-workbench .card-skill-list {display:grid;gap:9px;width:100%;min-width:0;text-align:left;}
+.team-workbench .card-skill {display:grid;gap:4px;border-top:1px solid #e5e2e9;padding-top:8px;min-width:0;}
+.team-workbench .card-skill-label {font:600 10px/1.6 var(--font-body);color:#526274;}
+.team-workbench .card-skill[data-mission="2"] .card-skill-label {color:#8a651a;}.team-workbench .card-skill[data-mission="3"] .card-skill-label {color:#88486f;}
+.team-workbench .card-skill>strong {font:600 12px/1.6 var(--font-body);}
+.team-workbench .card-skill>p {font:12px/1.8 var(--font-body);margin:0;color:#4e5360;white-space:pre-line;overflow-wrap:anywhere;}
+.team-workbench .team-picker-card .card-skill>p {display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;white-space:normal;}
+.team-workbench .inventory-grid {grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;}
+.team-workbench .inventory-card {display:flex;flex-direction:column;align-items:stretch;gap:10px;padding:14px;min-width:0;}
+.team-workbench .inventory-card[data-selected=true] {border-color:var(--calc-accent);background:#faf4fa;}
+.team-workbench .inventory-card-select {display:flex;gap:8px;align-items:center;cursor:pointer;}
+.team-workbench .inventory-card-select>input {position:static;width:18px;height:18px;flex-shrink:0;}
+.team-workbench .inventory-card .card-skill>p {display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;white-space:normal;}
+.team-workbench .inventory-card details .card-skill>p {display:block;white-space:pre-line;}
+.team-workbench .inventory-card summary {font-size:12px;cursor:pointer;}
+.team-workbench .inventory-card-growth {font-size:11px;color:var(--calc-muted);line-height:1.7;}
+/* Compact card faces; skill descriptions live in a shared hover/tap popover. */
+.team-workbench .team-picker-tile {position:relative;min-width:0;border:1px solid var(--calc-line);border-radius:10px;overflow:hidden;background:#fff;}
+[data-shell=sidebar] .team-workbench .team-picker-tile>.team-picker-card {border:0;border-radius:0;width:100%;box-sizing:border-box;padding-bottom:40px;height:100%;}
+.team-workbench .team-picker-tile>.card-skill-trigger {position:absolute;right:10px;bottom:9px;}
+.team-workbench .card-skill-trigger {font:600 11px var(--font-body);padding:6px 11px;border:1px solid #cfc5d4;background:#fff;color:#763b63;border-radius:6px;cursor:pointer;width:fit-content;}
+.team-workbench .card-skill-trigger[aria-expanded=true] {background:#763b63;color:#fff;}
+.team-workbench .score-lineup {grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;}
+.team-workbench .score-face>.card-skill-trigger {align-self:flex-start;}
+.team-workbench .score-face>strong {font-size:12px;}
+[data-shell=sidebar] .team-workbench .team-slot-list {display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;}
+[data-shell=sidebar] .team-workbench .team-slot {display:flex;flex-direction:column;gap:8px;padding:8px;}
+[data-shell=sidebar] .team-workbench .team-slot-number {padding:6px 4px;border:0;border-bottom:1px solid var(--calc-line);border-radius:0;cursor:pointer;min-height:32px;width:100%;background:transparent;color:var(--calc-accent);}
+[data-shell=sidebar] .team-workbench .team-slot-pair {display:grid;grid-template-columns:1fr;gap:10px;}
+[data-shell=sidebar] .team-workbench .team-slot-card {display:flex;flex-direction:column;align-items:flex-start;gap:6px;text-align:left;padding:0;border:0;}
+[data-shell=sidebar] .team-workbench .team-slot-card img {width:100%;height:75px;object-fit:contain;}
+[data-shell=sidebar] .team-workbench .team-slot-card--support img {height:45px;}
+[data-shell=sidebar] .team-workbench .team-slot-card strong {font-size:11px;}
+.team-workbench .card-preview .card-skill-trigger {margin-top:8px;}
+.card-skill-popover {position:fixed;z-index:1000;width:min(370px,calc(100vw - 24px));max-height:min(520px,calc(100dvh - 28px));overflow:auto;box-sizing:border-box;padding:18px;border:1px solid #d4c4d5;border-radius:14px;background:#fff;box-shadow:0 12px 45px #31203e30;color:#26252c;font-family:var(--font-body,system-ui);overscroll-behavior:contain;}
+.card-skill-popover[hidden] {display:none!important;}
+.skill-popover-heading {display:flex;justify-content:space-between;align-items:start;gap:16px;position:sticky;top:-18px;background:#fff;padding:0 0 10px;z-index:1;}
+.skill-popover-heading>strong {font-size:15px;line-height:1.6;}
+.skill-popover-close {flex-shrink:0;width:30px;height:30px;border:0;background:#f2eef5;border-radius:50%;font-size:20px;cursor:pointer;color:#67465f;}
+.card-skill-popover .card-growth-note {font-size:11px;line-height:1.6;color:#797182;margin:0 0 12px;}
+.card-skill-popover .card-skill-list {display:grid;gap:12px;}
+.card-skill-popover .card-skill {border-top:1px solid #e7e0eb;padding-top:12px;display:grid;gap:5px;}
+.card-skill-popover .card-skill-label {font-size:11px;color:#6f5071;font-weight:600;}
+.card-skill-popover .card-skill>strong {font-size:13px;line-height:1.6;}
+.card-skill-popover .card-skill>p {margin:0;white-space:pre-line;font-size:13px;line-height:1.8;color:#4d4953;overflow-wrap:anywhere;}
+.card-skill-popover .card-skill[data-mission="2"] .card-skill-label {color:#906c24;}.card-skill-popover .card-skill[data-mission="3"] .card-skill-label {color:#974d81;}
+@media(max-width:850px) {
+ .team-workbench .selection-filter-grid,.team-workbench .inventory-filters {grid-template-columns:repeat(2,minmax(0,1fr));}
+ .team-workbench .card-picker-workspace {grid-template-columns:1fr;}.team-workbench .card-preview {position:static;order:-1;}
+ [data-shell=sidebar] .team-workbench .team-picker-results {grid-template-columns:repeat(2,minmax(0,1fr));max-height:480px;}
+ .team-workbench .card-preview>button {width:auto;margin-right:8px;}
+ .team-workbench .score-lineup {grid-template-columns:repeat(3,minmax(0,1fr));}
+}
+@media(max-width:520px) {
+ .team-workbench .selection-filters {padding:12px;}.team-workbench .inventory-grid,[data-shell=sidebar] .team-workbench .team-picker-results {grid-template-columns:1fr;}
+ .team-workbench .card-identity>img {width:50px;height:60px;}.team-workbench .selection-results-bar {flex-wrap:wrap;}
+ .team-workbench .score-lineup {grid-template-columns:repeat(2,minmax(0,1fr));}
+ [data-shell=sidebar] .team-workbench .team-slot-list {display:flex;overflow:auto;scroll-snap-type:x proximity;}
+ [data-shell=sidebar] .team-workbench .team-slot {flex:0 0 130px;scroll-snap-align:start;}
+}
+.team-workbench :is(.selection-filters,.card-picker-workspace,.inventory-body) :is(button,input,select,summary):focus-visible,.card-skill-trigger:focus-visible,.skill-popover-close:focus-visible {outline:2px solid #763b63;outline-offset:3px;}
+.team-workbench [hidden] {display:none!important;}

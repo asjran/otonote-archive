@@ -1,0 +1,80 @@
+---
+import ArchiveImage from "../ArchiveImage.astro";
+import { usageKindLabel, type Item } from "../../lib/game-database";
+import { getAsset, getMemberCard, getSupportCard } from "../../lib/catalog";
+import { databaseHref, itemTypeLabel, plainDescription, say } from "../../lib/database-display";
+import { getItemAcquisition } from "../../lib/item-acquisition";
+interface Props { item: Item }
+const { item } = Astro.props;
+const icon = getAsset(item.iconAssetId);
+const acquisition = getItemAcquisition(item.masterId);
+const liveDrops = ["solo", "multi"].map(mode => ({
+  mode,
+  title: mode === "solo" ? say("单人演出", "Solo live") : say("多人演出", "Multi live"),
+  rows: (item.liveDrops ?? []).filter(drop => drop.mode === mode).sort((a, b) => b.scoreRank - a.scoreRank || a.rewardGroup - b.rewardGroup),
+})).filter(group => group.rows.length);
+const scoreRanks: Record<number, string> = { 1: "E", 2: "D", 3: "C", 4: "B", 5: "A", 6: "S", 7: "SS" };
+const dropRate = (probability: number, base: number) => `${Number((probability / base * 100).toFixed(2))}%`;
+const shops = new Map<string, NonNullable<Item["acquisitionSources"]>>();
+for (const source of item.acquisitionSources ?? []) {
+  const group = shops.get(source.kind) ?? []; group.push(source); shops.set(source.kind, group);
+}
+const usages = new Map<Item["usages"][number]["usageKind"], Map<string, { stage: number; amount: number; names: Set<string> }>>();
+for (const row of item.usages) {
+  const group = usages.get(row.usageKind) ?? new Map(); const key = `${row.stage}:${row.amount}`;
+  const entry = group.get(key) ?? { stage: row.stage, amount: row.amount, names: new Set<string>() };
+  row.cardIds.forEach(id => entry.names.add(id)); group.set(key, entry); usages.set(row.usageKind, group);
+}
+const cardInfo = (id: string) => {
+  const member = id.startsWith("member-card-"); const card = member ? getMemberCard(id) : getSupportCard(id);
+  return card ? { name: card.displayName, href: databaseHref(`/cards/${member ? "members" : "supports"}/${id}/`) } : undefined;
+};
+---
+<article data-db-detail>
+  <header class="db-detail-heading">
+    <div class="db-detail-icon">{icon ? <ArchiveImage asset={icon} alt="" /> : <span aria-hidden="true">◇</span>}</div>
+    <div><p class="db-detail-category">{itemTypeLabel(item.typeCode)}</p><h2 id="db-detail-title">{item.name}</h2>{item.maxOwned > 0 && item.maxOwned < 2147483647 && <p class="db-detail-caption">{say("持有上限", "Capacity")} {item.maxOwned.toLocaleString()}</p>}</div>
+  </header>
+  <p class="db-item-description">{plainDescription(item.description) || say("暂无道具说明。", "No item description available.")}</p>
+  <section class="db-detail-section">
+    <div class="db-section-heading"><h3>{say("获取方式", "How to obtain")}</h3></div>
+    {acquisition.length || shops.size || liveDrops.length ? <div class="db-acquisition-list">
+      {liveDrops.length > 0 && <div class="db-live-drops">
+        <div class="db-live-drop-heading"><strong>{say("打歌掉落", "Live drops")}</strong><span>{say("按分数评级结算", "By score rank")}</span></div>
+        <div class="db-live-drop-modes">{liveDrops.map(group => <section class="db-live-drop-mode" aria-label={group.title}>
+          <h4>{group.title}</h4>
+          <table><thead><tr><th scope="col">{say("评级", "Rank")}</th><th scope="col">{say("数量", "Amount")}</th><th scope="col">{say("基础概率", "Base chance")}</th></tr></thead>
+            <tbody>{group.rows.map(row => <tr><th scope="row"><span class="db-live-rank">{scoreRanks[row.scoreRank]}</span></th><td>× {row.count.toLocaleString()}</td><td class="db-live-drop-rate">{dropRate(row.probability, row.probabilityBase)}</td></tr>)}</tbody>
+          </table>
+        </section>)}</div>
+        <p class="db-live-drop-note">{say("基础掉落配置；数量为掉落命中时的奖励，未计入体力消耗、活动或其他加成。", "Base drop configuration. Amounts apply when the reward drops, before stamina, event or other bonuses.")}</p>
+      </div>}
+      {acquisition.map(group => <details class="db-acquisition-group"><summary><span>{group.title}</span><small>{group.entries.length} {say("项", "entries")}</small></summary><ul>{group.entries.map(entry => <li><div>{entry.href ? <a href={databaseHref(entry.href)}>{entry.name}<span aria-hidden="true"> ↗</span></a> : <strong>{entry.name}</strong>}<p>{entry.detail}</p></div></li>)}</ul></details>)}
+      {[...shops].map(([kind, sources]) => <details class="db-acquisition-group"><summary><span>{kind === "shop" ? say("商店购买", "Shop purchases") : say("交换所兑换", "Exchange")}</span><small>{sources.length} {say("项", "entries")}</small></summary><ul>{sources.map(source => <li><div><strong>{source.name}{source.isBonus && ` · ${say("附赠", "Bonus")}`}</strong>{source.windows.map(window => <p>{window.startAt || say("不限开始时间", "No start date")} → {window.endAt || say("不限结束时间", "No end date")}</p>)}</div><b>× {source.count.toLocaleString()}</b></li>)}</ul></details>)}
+    </div> : <p class="db-detail-empty">{say("暂未收录该道具的获取方式。", "Acquisition details are not yet available for this item.")}</p>}
+    <p class="db-detail-note">{say("开放时间、领取条件与可兑换内容以游戏内为准。", "Availability, eligibility and exchange contents are subject to the game.")}</p>
+  </section>
+  <section class="db-detail-section">
+    <div class="db-section-heading"><h3>{say("养成用途", "Upgrade uses")}</h3></div>
+    {usages.size ? [...usages].map(([kind, rows]) => <details class="db-acquisition-group"><summary><span>{usageKindLabel(kind)}</span><small>{rows.size} {say("项", "entries")}</small></summary><div class="db-item-uses">{[...rows.values()].sort((a, b) => a.stage - b.stage).map(row => <div class="db-item-use"><div><strong>{say("阶段", "Stage")} {row.stage}</strong><b>× {row.amount.toLocaleString()}</b></div><div class="db-use-links">{[...row.names].map(cardInfo).filter(Boolean).map(card => card && <a href={card.href}>{card.name}</a>)}</div></div>)}</div></details>) : <p class="db-detail-empty">{say("用途请参阅上方道具说明。", "See the item description above for its use.")}</p>}
+  </section>
+<style is:inline>
+  .db-live-drops { border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+  .db-live-drop-heading { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding: 14px 16px; border-bottom: 1px solid var(--line); }
+  .db-live-drop-heading strong { font-size: 13px; }
+  .db-live-drop-heading span, .db-live-drop-note { color: var(--silver-dark); font-size: 11px; }
+  .db-live-drop-modes { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .db-live-drop-mode { min-width: 0; padding: 14px 16px 8px; }
+  .db-live-drop-mode + .db-live-drop-mode { border-left: 1px solid var(--line); }
+  .db-live-drop-mode h4 { margin: 0 0 10px; font-size: 12px; font-weight: 600; }
+  .db-live-drop-mode table { width: 100%; border-collapse: collapse; font-size: 12px; font-variant-numeric: tabular-nums; }
+  .db-live-drop-mode th, .db-live-drop-mode td { padding: 7px 0; text-align: right; }
+  .db-live-drop-mode th:first-child { text-align: left; }
+  .db-live-drop-mode thead th { color: var(--silver-dark); font-size: 10px; font-weight: 500; padding-top: 0; }
+  .db-live-drop-mode tbody tr + tr { border-top: 1px solid var(--line); }
+  .db-live-rank { display: inline-grid; place-items: center; min-width: 26px; min-height: 23px; border-radius: 5px; background: var(--paper-deep); font-size: 11px; }
+  .db-live-drop-rate { font-weight: 600; color: var(--rose); }
+  .db-live-drop-note { margin: 0; padding: 10px 16px 14px; line-height: 1.6; }
+  @media (max-width: 560px) { .db-live-drop-modes { grid-template-columns: 1fr; } .db-live-drop-mode + .db-live-drop-mode { border-left: 0; border-top: 1px solid var(--line); } }
+</style>
+</article>

@@ -1,0 +1,115 @@
+---
+import type { MusicChart, MusicTrack } from "../lib/catalog";
+import { activeReleaseContext } from "../lib/release-context";
+import skinManifest from "../data/auto-stage-skin.json";
+import { createGameSkin } from "../lib/auto-stage-skin.mjs";
+interface Props { trackTitle: string; charts: MusicChart[]; track?: MusicTrack; externalDifficulty?: boolean; }
+const { trackTitle, charts, track, externalDifficulty = false } = Astro.props;
+const en = activeReleaseContext.locale === "en";
+const audioUrl = track?.audioPlayback ? track.audioUrl : null;
+const config = JSON.stringify({ skin: createGameSkin(skinManifest, import.meta.env.BASE_URL), missions: track?.gekisouMissions ?? [] }).replaceAll('<', '\\u003c');
+---
+<auto-stage class="chart-demo" data-locale={en ? "en" : "zh-CN"}>
+  <script type="application/json" data-auto-config is:inline set:html={config}></script>
+  {audioUrl && <audio data-auto-audio src={audioUrl} data-duration={track?.audioDuration} preload="none"></audio>}
+  <div class="auto-stage-screen">
+    <header class="auto-stage-heading">
+      <div><span class="auto-stage-mode">AUTO</span><strong>{en ? "Chart playback" : "自动演奏"}</strong></div>
+      <span data-auto-skin-status>{en ? "Game skin 01" : "游戏皮肤 01"}</span>
+      <button type="button" data-auto-fullscreen aria-label={en ? "Expand player" : "全屏播放"}>{en ? "Full screen" : "全屏"}</button>
+    </header>
+    <canvas width="1000" height="560" data-auto-canvas aria-label={`${trackTitle} · ${en ? "Automatic 12 lane chart playback" : "12 轨自动演奏"}`}></canvas>
+    <div class="auto-stage-readout"><span>{en ? "AUTO PERFECT" : "自动 PERFECT"}</span><span>COMBO <b data-auto-combo>0</b></span><span data-auto-section>{en ? "Normal section" : "常规区间"}</span></div>
+  </div>
+  <div class="auto-stage-transport">
+    <button type="button" data-auto-play disabled aria-pressed="false">{en ? "Play" : "播放"}</button>
+    <button type="button" data-auto-reset disabled>{en ? "Restart" : "重播"}</button>
+    <div class="chart-demo-seek"><input type="range" min="0" max="0" value="0" step="0.01" data-auto-seek disabled aria-label={en ? "Chart position" : "谱面进度"} /><output data-auto-time>0:00 / 0:00</output></div>
+  </div>
+  <div class="chart-demo-controls">
+    <label hidden={externalDifficulty}>{en ? "Difficulty" : "难度"}<select data-auto-difficulty>
+      {charts.map((chart) => <option value={chart.difficulty} data-url={chart.analysisDataUrl} selected={chart.difficulty === "expert"}>{chart.difficulty.toUpperCase()} · Lv.{chart.displayLevel}</option>)}
+    </select></label>
+    <label>{en ? "Playback speed" : "播放速度"}<select data-auto-rate><option value="0.5">0.5×</option><option value="0.75">0.75×</option><option value="1" selected>1×</option><option value="1.5">1.5×</option></select></label>
+    <div class="auto-note-speed">
+      <label>{en ? "Note speed" : "下落速度"}<input type="range" data-auto-speed min="0.5" max="4" step="0.05" value="1" /></label>
+      <span><input type="number" data-auto-speed-number min="0.5" max="4" step="0.05" value="1.00" aria-label={en ? "Note speed value" : "下落速度数值"} />×</span>
+    </div>
+    {audioUrl && <label>{en ? "Music volume" : "音乐音量"}<input type="range" data-auto-volume min="0" max="1" step="0.05" value="0.75" aria-label={en ? "Music volume" : "音乐音量"} /></label>}
+    <label>{en ? "Background" : "背景亮度"}<input type="range" data-auto-brightness min="20" max="100" step="5" value="75" aria-label={en ? "Background brightness" : "背景亮度"} /></label>
+    <label class="auto-stage-effects"><input type="checkbox" data-auto-effects checked />{en ? "Hit effects" : "命中特效"}</label>
+    <div class="auto-hidden-controls">
+      <label>{en ? "Sudden height" : "上隐高度"}<input type="range" data-auto-hidden-height min="0" max="80" step="1" value="0" aria-label={en ? "Sudden height" : "上隐高度"} /><output data-auto-hidden-height-value aria-hidden="true">{en ? "Off" : "关闭"}</output></label>
+      <label>{en ? "Fade range" : "渐隐范围"}<input type="range" data-auto-hidden-fade min="0" max="30" step="1" value="10" aria-label={en ? "Fade range" : "渐隐范围"} /><output data-auto-hidden-fade-value aria-hidden="true">10%</output></label>
+    </div>
+  </div>
+  <div class="auto-stage-status"><p data-auto-status role="status">{en ? "Loading chart…" : "正在加载谱面…"}</p><button type="button" data-auto-retry hidden>{en ? "Retry" : "重新加载"}</button></div>
+  <noscript>{en ? "Enable JavaScript to play charts." : "启用 JavaScript 后可播放谱面。"}</noscript>
+</auto-stage>
+<script>
+  import { registerChartDemo } from "../lib/auto-stage-player.mjs";
+  registerChartDemo();
+</script>
+<style>
+  .chart-demo { display:block; margin-block:24px; padding:16px; border:1px solid var(--line); border-radius:14px; background:var(--paper-light); }
+  .auto-stage-screen { overflow:hidden; background:#0a1226; border:1px solid #233656; border-radius:12px; color:#edf7ff; }
+  .auto-stage-heading { display:flex; align-items:center; gap:12px; padding:8px 16px; border-bottom:1px solid #ffffff18; }
+  .auto-stage-heading > div { display:flex; align-items:center; gap:10px; }
+  .auto-stage-heading strong { font-size:13px; }
+  .auto-stage-mode { font:700 10px var(--font-mono); letter-spacing:.1em; padding:4px 6px; border:1px solid #75d7ee70; border-radius:4px; color:#a5e8f8; }
+  [data-auto-skin-status] { margin-left:auto; color:#a0b4ce; font-size:11px; }
+  .auto-stage-heading button { min-height:32px; padding:4px 8px; background:transparent; border-color:#ffffff25; color:#d8eafa; font-size:11px; }
+  canvas { display:block; width:100%; height:clamp(240px,calc(100dvh - 400px),560px); background:#0a1226; }
+  .auto-stage-readout { display:flex; justify-content:space-between; align-items:center; gap:8px; padding:8px 16px; font:11px var(--font-mono); color:#a2b8d2; border-top:1px solid #ffffff18; }
+  .auto-stage-readout b { margin-left:6px; color:#edf7ff; font-size:15px; }
+  .auto-stage-transport { display:flex; align-items:center; gap:8px; margin-top:12px; }
+  .chart-demo-seek { display:flex; align-items:center; flex:1; gap:12px; min-width:0; }
+  .chart-demo-seek input { width:100%; }
+  .chart-demo-controls { display:flex; flex-wrap:wrap; align-items:center; gap:14px; margin-top:12px; padding-top:10px; border-top:1px solid var(--line); }
+  label { display:flex; align-items:center; gap:8px; color:var(--silver-dark); font-size:11px; }
+  label input[type="range"] { width:80px; }
+  .auto-note-speed { display:flex; align-items:center; gap:8px; }
+  .auto-hidden-controls { display:flex; flex-wrap:wrap; gap:12px 24px; flex-basis:100%; }
+  .auto-hidden-controls label { gap:8px; }
+  .auto-hidden-controls input[type="range"] { width:130px; }
+  .auto-hidden-controls output { min-width:32px; text-align:right; }
+  .auto-note-speed label input { width:110px; }
+  .auto-note-speed > span { display:flex; align-items:center; gap:4px; color:var(--silver-dark); font:11px var(--font-mono); }
+  [data-auto-speed-number] { width:66px; min-height:38px; padding:7px; border:1px solid var(--line); border-radius:8px; background:var(--paper-light); color:var(--ink); font:12px var(--font-mono); }
+  select, button { min-height:38px; padding:7px 12px; border:1px solid var(--line); border-radius:8px; background:var(--paper-light); color:var(--ink); font:inherit; }
+  button { cursor:pointer; font-size:12px; }
+  button:disabled { opacity:.5; cursor:wait; }
+  :is(select,button,input):focus-visible { outline:2px solid var(--lacquer); outline-offset:3px; }
+  [data-auto-play] { min-width:68px; background:var(--lacquer); color:white; }
+  input { min-width:0; accent-color:var(--lacquer); }
+  output { font:11px var(--font-mono); white-space:nowrap; }
+  .auto-stage-effects { cursor:pointer; }
+  .auto-stage-status { display:flex; align-items:center; gap:12px; margin-top:8px; }
+  [data-auto-status] { margin:0; color:var(--silver-dark); font-size:11px; }
+  .chart-demo:fullscreen { box-sizing:border-box; width:100%; height:100%; margin:0; padding:16px; overflow:auto; border:0; border-radius:0; background:#080e21; color:#edf7ff; }
+  .chart-demo:fullscreen .auto-stage-screen { max-width:1200px; margin:auto; }
+  .chart-demo:fullscreen :is(.auto-stage-transport,.chart-demo-controls,.auto-stage-status) { max-width:1200px; margin-inline:auto; }
+  .chart-demo:fullscreen :is(label,[data-auto-status],.auto-note-speed > span) { color:#a2b8d2; }
+  .chart-demo:fullscreen .chart-demo-controls { border-color:#ffffff25; }
+  .chart-demo:fullscreen canvas { height:max(200px,calc(100dvh - 270px)); }
+  @media (max-width:620px) {
+    .chart-demo { padding:10px; }
+    .auto-stage-heading { padding:10px; gap:8px; }
+    .auto-stage-heading > div { gap:6px; }
+    [data-auto-skin-status] { font-size:9px; }
+    canvas { height:clamp(280px,calc(100dvh - 390px),480px); }
+    .chart-demo:fullscreen canvas { height:max(200px,calc(100dvh - 390px)); }
+    .auto-stage-readout { padding:9px; font-size:9px; }
+    .auto-stage-transport { flex-wrap:wrap; }
+    .chart-demo-seek { flex-basis:100%; margin-top:4px; }
+    .chart-demo-controls { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+    label { justify-content:space-between; }
+    label input[type="range"] { width:70px; }
+    .auto-note-speed { grid-column:1 / -1; }
+    .auto-note-speed label { flex:1; gap:16px; }
+    .auto-note-speed label input { flex:1; width:100%; }
+    .auto-hidden-controls { grid-column:1 / -1; display:grid; gap:12px; }
+    .auto-hidden-controls input[type="range"] { flex:1; width:100%; }
+    .auto-stage-effects { justify-content:flex-start; }
+  }
+</style>

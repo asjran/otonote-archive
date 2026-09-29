@@ -1,0 +1,332 @@
+---
+import FilterPanel from "./FilterPanel.astro";
+import FilterFacet from "./FilterFacet.astro";
+interface Option {
+  value: string;
+  label: string;
+}
+interface Facet {
+  name: string;
+  label: string;
+  options: Option[];
+}
+import { activeReleaseContext } from "../lib/release-context";
+import { getUi } from "../lib/ui-i18n";
+import "../styles/music-archive.css";
+import "../styles/faceted-browser.css";
+import PaginationControls from "./PaginationControls.astro";
+
+interface Props {
+  count: number;
+  facets: Facet[];
+}
+
+const { count, facets } = Astro.props;
+const ui = getUi(activeReleaseContext.locale);
+---
+
+<music-catalog-browser data-filter-scope>
+  <form class="music-controls music-controls--faceted" data-music-form>
+    <label class="search-control music-search">
+      <span class="visually-hidden">{ui.search} tracks</span>
+      <svg aria-hidden="true" viewBox="0 0 24 24">
+        <circle cx="11" cy="11" r="6.5"></circle>
+        <path d="m16 16 4 4"></path>
+      </svg>
+      <input
+        type="search"
+        name="q"
+        placeholder={ui.trackSearchPlaceholder}
+        autocomplete="off"
+        data-music-search
+      />
+    </label>
+
+    <FilterPanel drawer title={activeReleaseContext.locale === "en" ? "Filter music" : "筛选歌曲"} count={count} noun={activeReleaseContext.locale === "en" ? "tracks" : "首曲目"}>
+      <div class="music-facets">
+        {facets.map(facet => <FilterFacet facet={facet} mode="music" />)}
+        <label>
+        <span>{ui.highestLevel}</span>
+        <select name="level" data-inline-filter data-music-range="level">
+          <option value="all">{ui.unlimited}</option>
+          <option value="15">15 以下</option>
+          <option value="20">16–20</option>
+          <option value="25">21–25</option>
+          <option value="26">26 以上</option>
+        </select>
+      </label>
+      <label>
+        <span>BPM</span>
+        <select name="bpm" data-inline-filter data-music-range="bpm">
+          <option value="all">{ui.unlimited}</option>
+          <option value="slow">139 以下</option>
+          <option value="mid">140–179</option>
+          <option value="fast">180 以上</option>
+        </select>
+      </label>
+      <label>
+        <span>{ui.sort}</span>
+        <select name="sort" data-music-sort>
+          <option value="order">游戏内顺序</option>
+          <option value="title">曲名</option>
+          <option value="start">开放时间</option>
+          <option value="level">最高难度</option>
+          <option value="notes">EXPERT 音符数</option>
+          <option value="bpm">BPM</option>
+        </select>
+      </label>
+      </div>
+    </FilterPanel>
+  </form>
+
+  <div class="active-filter-chips" data-active-filter-chips hidden></div>
+
+  <div class="result-bar music-result-bar" aria-live="polite">
+    <span><b data-music-count data-filter-count>{count}</b> {activeReleaseContext.locale === "en" ? "tracks" : "首曲目"}</span>
+    <button type="button" data-music-clear data-filter-reset>{ui.clearFilters}</button>
+  </div>
+
+  <slot />
+
+  <PaginationControls defaultPageSize={12} />
+
+  <div class="empty-state" data-music-empty hidden>
+    <span>NO MATCH</span>
+    <h2>{count ? ui.noMatches : activeReleaseContext.locale === "en" ? "Music data is not available yet" : "当前资料版本尚未接入歌曲"}</h2>
+    <p>{count ? (activeReleaseContext.locale === "en" ? "Clear a filter or search by track ID." : "尝试清除一个筛选条件，或改用曲目编号搜索。") : (activeReleaseContext.locale === "en" ? "No music data is bound to this server and release. Tracks from other servers are not substituted." : "本服当前版本尚无已绑定的歌曲资料，不使用其他服务器的歌曲替代。")}</p>
+    <button type="button" data-music-clear>{activeReleaseContext.locale === "en" ? "Show all tracks" : "显示全部曲目"}</button>
+  </div>
+</music-catalog-browser>
+
+<script>
+  import { setFilterChipContent } from "../lib/filter-chip.mjs";
+  import {
+    evaluateFacets,
+    facetParams,
+    selectedFacetsFromParams
+  } from "../lib/faceted-filter.mjs";
+  import {
+    filterMusicRecords,
+    sortMusicRecords
+  } from "../lib/music-filtering.mjs";
+  import { createPaginationAdapter } from "../lib/pagination-browser.mjs";
+
+  class MusicCatalogBrowser extends HTMLElement {
+    connectedCallback() {
+      const form = this.querySelector("[data-music-form]");
+      if (!(form instanceof HTMLFormElement)) return;
+      const items = [
+        ...this.querySelectorAll<HTMLElement>(".music-catalog-item")
+      ];
+      const count = this.querySelector("[data-music-count]");
+      const empty = this.querySelector<HTMLElement>("[data-music-empty]");
+      const search = form.querySelector<HTMLInputElement>("[data-music-search]");
+      const sortControl = form.querySelector<HTMLSelectElement>("[data-music-sort]");
+      const levelControl = form.querySelector<HTMLSelectElement>("[data-music-range='level']");
+      const bpmControl = form.querySelector<HTMLSelectElement>("[data-music-range='bpm']");
+
+
+      const facetNames = [
+        ...new Set(
+          [...form.querySelectorAll<HTMLInputElement>("[data-music-facet]")]
+            .map((input) => input.dataset.musicFacet)
+            .filter((value): value is string => Boolean(value))
+        )
+      ];
+      const restoreControls = (params: URLSearchParams) => {
+        const restored = selectedFacetsFromParams(params, facetNames);
+        form.querySelectorAll<HTMLInputElement>("[data-music-facet]").forEach((input) => {
+          input.checked = (restored[input.dataset.musicFacet ?? ""] ?? []).includes(input.value);
+        });
+        if (search) search.value = params.get("q") ?? "";
+        if (sortControl) sortControl.value = params.get("sort") ?? "order";
+        if (levelControl) levelControl.value = params.get("level") ?? "all";
+        if (bpmControl) bpmControl.value = params.get("bpm") ?? "all";
+      };
+      restoreControls(new URLSearchParams(location.search));
+
+      let pagination: ReturnType<typeof createPaginationAdapter> = null;
+      const update = ({
+        resetPage = false,
+        historyMode = "replace"
+      }: {
+        resetPage?: boolean;
+        historyMode?: "push" | "replace" | "none";
+      } = {}) => {
+        if (resetPage) pagination?.reset();
+        const query = search?.value.trim() ?? "";
+        const selected = Object.fromEntries(
+          facetNames.map((name) => [
+            name,
+            [...form.querySelectorAll<HTMLInputElement>(
+              `[data-music-facet="${name}"]:checked`
+            )].map((input) => input.value)
+          ])
+        );
+        const level = levelControl?.value ?? "all";
+        const bpm = bpmControl?.value ?? "all";
+        const sort = sortControl?.value ?? "order";
+        const allRecords = items.map((item) => ({
+          item,
+          id: item.dataset.order ?? "",
+          search: item.dataset.search ?? "",
+          facets: Object.fromEntries(
+            facetNames.map((name) => [
+              name,
+              (item.getAttribute(`data-${name}`) ?? "").split(",").filter(Boolean)
+            ])
+          ),
+          bands: (item.dataset.band ?? "").split(","),
+          categories: (item.dataset.category ?? "").split(","),
+          level: Number(item.dataset.level),
+          bpm: Number(item.dataset.bpm),
+          order: Number(item.dataset.order),
+          title: item.dataset.title ?? "",
+          start: item.dataset.start ?? "",
+          notes: Number(item.dataset.notes)
+        }));
+        const rangeFiltered = filterMusicRecords(allRecords, {
+          query: "",
+          band: "all",
+          category: "all",
+          level,
+          bpm
+        });
+        const evaluation = evaluateFacets(rangeFiltered, { query, selected }) as {
+          records: typeof allRecords;
+          counts: Record<string, Record<string, number>>;
+          disabled: Record<string, string[]>;
+        };
+        const visible = sortMusicRecords(evaluation.records, sort);
+        const paged = pagination?.paginate(visible);
+        const pageRecords = (paged?.records ?? visible) as typeof visible;
+        const visibleSet = new Set(pageRecords.map((record) => record.item));
+        items.forEach((item) => item.toggleAttribute("hidden", !visibleSet.has(item)));
+        const list = items[0]?.parentElement;
+        visible.forEach((record) => list?.append(record.item));
+        if (count) count.textContent = String(visible.length);
+        if (empty) empty.hidden = visible.length > 0;
+        if (paged) pagination?.render(paged);
+
+        for (const name of facetNames) {
+          form.querySelectorAll<HTMLInputElement>(
+            `[data-music-facet="${name}"]`
+          ).forEach((input) => {
+            const option = input.closest<HTMLElement>("[data-facet-option]");
+            const optionCount = option?.querySelector<HTMLElement>("[data-facet-count]");
+            const valueCount = evaluation.counts[name]?.[input.value] ?? 0;
+            if (optionCount) optionCount.textContent = String(valueCount);
+            input.disabled = valueCount === 0 && !input.checked;
+            option?.classList.toggle("is-disabled", input.disabled);
+          });
+          const menu = form.querySelector<HTMLElement>(`[data-facet-menu="${name}"]`);
+          const selectedCount = menu?.querySelector<HTMLElement>("[data-facet-selected-count]");
+          if (selectedCount) {
+            selectedCount.textContent = selected[name].length > 0
+              ? String(selected[name].length)
+              : "全部";
+          }
+        }
+
+        const chips = this.querySelector<HTMLElement>("[data-active-filter-chips]");
+        if (chips) {
+          chips.replaceChildren();
+          for (const name of facetNames) {
+            for (const value of selected[name]) {
+              const input = form.querySelector<HTMLInputElement>(
+                `[data-music-facet="${name}"][value="${CSS.escape(value)}"]`
+              );
+              const button = document.createElement("button");
+              button.type = "button";
+              button.dataset.removeFacet = name;
+              button.dataset.removeValue = value;
+              setFilterChipContent(button, input, value);
+              chips.append(button);
+            }
+          }
+          chips.hidden = chips.childElementCount === 0;
+        }
+
+        const filterParams = facetParams({
+          query,
+          selected,
+          sort,
+          defaultSort: "order"
+        });
+        if (level !== "all") filterParams.set("level", level);
+        if (bpm !== "all") filterParams.set("bpm", bpm);
+        const next = pagination?.params(filterParams) ?? filterParams;
+        if (historyMode !== "none") {
+          history[historyMode === "push" ? "pushState" : "replaceState"](
+            null,
+            "",
+            `${location.pathname}${next.size ? `?${next}` : ""}`
+          );
+        }
+      };
+      pagination = createPaginationAdapter(this, {
+        onChange: (historyMode: "push" | "replace") => update({ historyMode })
+      });
+
+      form.addEventListener("input", (event) => {
+        const target = event.target;
+        if (
+          target instanceof HTMLInputElement &&
+          target.matches("[data-facet-option-search]")
+        ) {
+          const query = target.value.trim().toLocaleLowerCase("zh-CN");
+          target
+            .closest("[data-facet-menu]")
+            ?.querySelectorAll<HTMLElement>("[data-facet-option]")
+            .forEach((option) => {
+              option.hidden = !String(option.dataset.optionLabel ?? "").includes(query);
+            });
+          return;
+        }
+        update({ resetPage: true });
+      });
+      form.addEventListener("change", () => update({ resetPage: true }));
+      form.addEventListener("click", (event) => {
+        const target = event.target;
+        if (!(target instanceof HTMLElement)) return;
+        const clear = target.closest<HTMLElement>("[data-clear-facet]");
+        if (!clear) return;
+        form.querySelectorAll<HTMLInputElement>(
+          `[data-music-facet="${clear.dataset.clearFacet}"]`
+        ).forEach((input) => { input.checked = false; });
+        update({ resetPage: true });
+      });
+      this.addEventListener("click", (event) => {
+        const target = event.target;
+        if (!(target instanceof HTMLElement)) return;
+        const chip = target.closest<HTMLElement>("[data-remove-facet]");
+        if (!chip) return;
+        const input = form.querySelector<HTMLInputElement>(
+          `[data-music-facet="${chip.dataset.removeFacet}"][value="${CSS.escape(chip.dataset.removeValue ?? "")}"]`
+        );
+        if (input) input.checked = false;
+        update({ resetPage: true });
+      });
+      this.querySelectorAll("[data-music-clear]").forEach((button) => {
+        button.addEventListener("click", () => {
+          form.reset();
+          form.querySelectorAll<HTMLInputElement>("[data-music-facet]")
+            .forEach((input) => { input.checked = false; });
+          update({ resetPage: true });
+          search?.focus();
+        });
+      });
+      window.addEventListener("popstate", () => {
+        const params = new URLSearchParams(location.search);
+        restoreControls(params);
+        pagination?.restore(params);
+        update({ historyMode: "none" });
+      });
+      update();
+    }
+  }
+
+  if (!customElements.get("music-catalog-browser")) {
+    customElements.define("music-catalog-browser", MusicCatalogBrowser);
+  }
+</script>

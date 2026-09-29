@@ -1,0 +1,92 @@
+---
+import AnonTokyoHeader from "./AnonTokyoHeader.astro";
+
+interface Props {
+  dataset: Record<string, any>;
+  stagedMedia: Array<Record<string, string>>;
+}
+
+const { dataset, stagedMedia } = Astro.props;
+const records = dataset.records as Array<Record<string, any>>;
+const categories = dataset.categories as string[];
+const subCategories = dataset.subCategories as string[];
+const media = new Map(stagedMedia.map((entry) => [entry.logicalKey.toLocaleLowerCase("en-US"), entry.publicUrl]));
+const number = (value: unknown) => typeof value === "number" ? value.toLocaleString("zh-CN") : "—";
+---
+
+<AnonTokyoHeader
+  active="furniture"
+  title="家具"
+  description="按区域和用途查找家具，比较占地、价格、限购与解锁等级。"
+  count={records.length}
+/>
+
+<main class="at-guide-main" data-at-furniture>
+  <div class="content-shell">
+    <div class="at-filter-bar">
+      <label class="at-filter-search"><span>搜索家具</span><input type="search" placeholder="输入家具名或分类" data-at-query /></label>
+      <label><span>主分类</span><select data-at-category><option value="">全部分类</option>{categories.map((category) => <option value={category}>{category}</option>)}</select></label>
+      <label><span>子分类</span><select data-at-subcategory><option value="">全部用途</option>{subCategories.map((category) => <option value={category}>{category}</option>)}</select></label>
+      <label><span>排序</span><select data-at-sort><option value="name">名称</option><option value="purchase">购买价从低到高</option></select></label>
+      <strong><b data-at-count>{records.length}</b> 件</strong>
+    </div>
+    <div class="at-furniture-grid">
+      {records.map((record) => {
+        const imageUrl = record.imageKey ? media.get(record.imageKey.toLocaleLowerCase("en-US")) : undefined;
+        const search = [record.name, record.category, record.subCategory].join(" ").toLocaleLowerCase("zh-CN");
+        return (
+          <article class="at-furniture-card" data-at-record data-search={search} data-category={record.category} data-subcategory={record.subCategory} data-name={record.name} data-purchase={record.purchase ?? Number.MAX_SAFE_INTEGER}>
+            <div class="at-furniture-card__lead">
+              {imageUrl ? <img class="at-furniture-card__image" src={imageUrl} alt="" loading="lazy" decoding="async" /> : <span class="at-furniture-card__image at-image-fallback" aria-hidden="true">{record.name.slice(0, 1)}</span>}
+              <div><span>{record.category} · {record.subCategory}</span><h2>{record.name}</h2><b class="at-size-chip">占地 {record.size}</b></div>
+            </div>
+            <dl class="at-compact-stats">
+              <div><dt>购买</dt><dd>{number(record.purchase)}</dd></div>
+              <div><dt>出售</dt><dd>{number(record.sale)}</dd></div>
+              <div><dt>限购</dt><dd>{record.limit ? number(record.limit) : "不限"}</dd></div>
+            </dl>
+            {record.unlock && <p class="at-inline-note">{record.unlock}</p>}
+            <a href={`/anontokyo/furniture/${record.id}/`}>查看详情</a>
+          </article>
+        );
+      })}
+    </div>
+    <p class="at-empty" data-at-empty hidden>没有符合条件的家具。</p>
+  </div>
+</main>
+
+<script>
+  for (const root of document.querySelectorAll("[data-at-furniture]")) {
+    const query = root.querySelector("[data-at-query]");
+    const category = root.querySelector("[data-at-category]");
+    const subCategory = root.querySelector("[data-at-subcategory]");
+    const sort = root.querySelector("[data-at-sort]");
+    const grid = root.querySelector(".at-furniture-grid");
+    const records = Array.from(root.querySelectorAll<HTMLElement>("[data-at-record]"));
+    const update = () => {
+      const q = query instanceof HTMLInputElement ? query.value.trim().toLocaleLowerCase("zh-CN") : "";
+      const cat = category instanceof HTMLSelectElement ? category.value : "";
+      const sub = subCategory instanceof HTMLSelectElement ? subCategory.value : "";
+      let visible = 0;
+      for (const record of records) {
+        const matches = (!q || (record.dataset.search ?? "").includes(q))
+          && (!cat || record.dataset.category === cat)
+          && (!sub || record.dataset.subcategory === sub);
+        record.toggleAttribute("hidden", !matches);
+        if (matches) visible += 1;
+      }
+      const mode = sort instanceof HTMLSelectElement ? sort.value : "name";
+      records.sort((left, right) => mode === "purchase"
+        ? Number(left.dataset.purchase) - Number(right.dataset.purchase)
+        : (left.dataset.name ?? "").localeCompare(right.dataset.name ?? "", "zh-CN"));
+      records.forEach((record) => grid?.append(record));
+      const count = root.querySelector("[data-at-count]");
+      if (count) count.textContent = String(visible);
+      root.querySelector("[data-at-empty]")?.toggleAttribute("hidden", visible !== 0);
+    };
+    query?.addEventListener("input", update);
+    category?.addEventListener("change", update);
+    subCategory?.addEventListener("change", update);
+    sort?.addEventListener("change", update);
+  }
+</script>

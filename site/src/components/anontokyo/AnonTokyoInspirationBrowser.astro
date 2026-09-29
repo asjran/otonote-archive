@@ -1,0 +1,62 @@
+---
+import AnonTokyoHeader from "./AnonTokyoHeader.astro";
+
+interface Props { dataset: Record<string, any>; }
+const { dataset } = Astro.props;
+const records = dataset.records as Array<Record<string, number | null>>;
+const first = records[0];
+---
+
+<AnonTokyoHeader
+  active="inspiration"
+  title="灵感计算器"
+  description="输入当前灵感值，查询基础购买数量、额外购买概率和下一档门槛。数值来自安装包内置 Master。"
+  count={records.length}
+/>
+
+<main class="at-guide-main" data-at-inspiration data-tiers={JSON.stringify(records)}>
+  <div class="content-shell">
+    <section class="at-inspiration-calculator">
+      <label><span>当前灵感值</span><input type="number" min="0" step="1" value="0" inputmode="numeric" data-at-inspiration-input /></label>
+      <div><span>当前区间</span><strong data-at-range>{first ? `${first.minimum}–${first.maximum}` : "—"}</strong></div>
+      <div><span>基础购买数量</span><strong data-at-purchases>{first?.purchaseCount ?? "—"}</strong><small>件</small></div>
+      <div><span>额外购买概率</span><strong data-at-chance>{first?.extraPurchaseChance ?? "—"}</strong><small>%</small></div>
+      <div><span>下一档</span><strong data-at-next>{first?.nextMinimum ?? "已达上限"}</strong><small data-at-next-unit>{first?.nextMinimum ? "灵感" : ""}</small></div>
+    </section>
+    <p class="at-inline-note" data-at-inspiration-note>距离下一档还需要 {first?.nextMinimum ?? 0} 点灵感。</p>
+
+    <section class="at-growth-section at-inspiration-section">
+      <header><div><h2>完整灵感区间</h2><p>额外购买概率是在基础购买数量之外触发额外购买的概率。</p></div><strong>{records.length} 档</strong></header>
+      <div class="at-inspiration-table">
+        <div class="at-inspiration-row at-inspiration-row--head"><span>灵感范围</span><span>基础购买</span><span>额外概率</span><span>下一节点</span></div>
+        {records.map((record) => <div class="at-inspiration-row" data-at-tier data-minimum={record.minimum} data-maximum={record.maximum}><strong>{record.minimum}–{record.maximum}</strong><span>{record.purchaseCount} 件</span><span>{record.extraPurchaseChance}%</span><span>{record.nextMinimum ?? "资料上限"}</span></div>)}
+      </div>
+    </section>
+  </div>
+</main>
+
+<script>
+  for (const root of document.querySelectorAll<HTMLElement>("[data-at-inspiration]")) {
+    const tiers = JSON.parse(root.dataset.tiers ?? "[]");
+    const input = root.querySelector("[data-at-inspiration-input]");
+    const write = (selector: string, value: string) => { const target = root.querySelector(selector); if (target) target.textContent = value; };
+    const update = () => {
+      const raw = input instanceof HTMLInputElement ? input.value.trim() : "";
+      const value = Number(raw);
+      const valid = raw !== "" && Number.isFinite(value) && value >= 0;
+      const tier = valid ? (tiers.find((item: any) => value >= item.minimum && value <= item.maximum) ?? (value > tiers.at(-1)?.maximum ? tiers.at(-1) : null)) : null;
+      root.querySelectorAll<HTMLElement>("[data-at-tier]").forEach((row) => row.classList.toggle("is-current", Boolean(tier) && Number(row.dataset.minimum) === tier.minimum));
+      if (!tier) {
+        write("[data-at-range]", "—"); write("[data-at-purchases]", "—"); write("[data-at-chance]", "—"); write("[data-at-next]", "—"); write("[data-at-next-unit]", ""); write("[data-at-inspiration-note]", "请输入 0 或更大的整数灵感值。"); return;
+      }
+      write("[data-at-range]", `${tier.minimum}–${tier.maximum}`);
+      write("[data-at-purchases]", String(tier.purchaseCount));
+      write("[data-at-chance]", String(tier.extraPurchaseChance));
+      write("[data-at-next]", tier.nextMinimum == null ? "已达上限" : String(tier.nextMinimum));
+      write("[data-at-next-unit]", tier.nextMinimum == null ? "" : "灵感");
+      write("[data-at-inspiration-note]", tier.nextMinimum == null ? "已达到安装包内资料的最高灵感档。" : `距离下一档还需要 ${Math.max(0, tier.nextMinimum - value)} 点灵感。`);
+    };
+    input?.addEventListener("input", update);
+    update();
+  }
+</script>

@@ -1,0 +1,25 @@
+[Unit]
+Description=OurNotes fixed version-check worker
+After=network-online.target
+
+[Service]
+User=ournotes-node-worker
+Group=ournotes-node
+WorkingDirectory=/opt/ournotes
+Environment=PYTHONDONTWRITEBYTECODE=1
+# Deliberately no API credential EnvironmentFile.
+ExecStart=/opt/ournotes/.venv/bin/python -m backend.admin node-worker --config /etc/ournotes-admin/node.json
+Restart=on-failure
+RestartSec=5
+ReadWritePaths=/var/lib/ournotes-node /opt/ournotes/output/global-update-workflow
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+MemoryMax=256M
+CPUQuota=50%
+TasksMax=32
+UMask=0007
+
+[Install]
+WantedBy=multi-user.target

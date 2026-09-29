@@ -1,0 +1,8 @@
+---
+import { publicSkills } from "../../../lib/game-database";
+import { databaseHref } from "../../../lib/database-display";
+export function getStaticPaths() {
+  return publicSkills.map(skill => ({ params: { id: skill.id }, props: { destination: `${databaseHref("/database/skills/")}#detail=${skill.id}` } }));
+}
+return Astro.redirect(Astro.props.destination, 301);
+---

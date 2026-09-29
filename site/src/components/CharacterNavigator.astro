@@ -1,0 +1,115 @@
+---
+import { catalog, getAsset, type Character } from "../lib/catalog";
+import "../styles/character-navigator.css";
+
+interface Props { character: Character }
+const { character } = Astro.props;
+const translations = {
+  "zh-CN": { bands: "选择乐队", members: "乐队成员", all: "全部角色", switch: "切换角色", search: "搜索角色、乐队…", close: "关闭", empty: "没有找到角色，试试其他名字。", directory: "角色目录", current: "当前" },
+  "zh-TW": { bands: "選擇樂團", members: "樂團成員", all: "全部角色", switch: "切換角色", search: "搜尋角色、樂團…", close: "關閉", empty: "沒有找到角色，試試其他名字。", directory: "角色目錄", current: "目前" },
+  ja: { bands: "バンドを選択", members: "バンドメンバー", all: "全キャラクター", switch: "キャラクター切替", search: "キャラクター・バンドを検索…", close: "閉じる", empty: "見つかりません。別の名前で検索してください。", directory: "キャラクター一覧", current: "表示中" },
+  en: { bands: "Choose a band", members: "Band members", all: "All characters", switch: "Switch character", search: "Search characters or bands…", close: "Close", empty: "No characters found. Try another name.", directory: "Character directory", current: "Current" }
+};
+const ui = translations[catalog.release.locale] ?? translations["zh-CN"];
+const groups = catalog.bands.map((band) => ({
+  ...band,
+  logo: getAsset(band.logoAssetId),
+  members: catalog.characters.filter((member) => member.bandId === band.id).map((member) => ({
+    ...member,
+    avatar: member.portraitAssetIds.map(getAsset).find((asset) => asset?.containerPath.endsWith("/character_face_icon.png")) ?? getAsset(member.profileAssetId)
+  }))
+})).filter((band) => band.members.length);
+---
+
+<character-navigator class="character-nav">
+  <aside class="character-nav__rail" aria-label={ui.members}>
+    {groups.filter((band) => band.id === character.bandId).map((band) => <>
+      <div class="character-nav__band" title={band.displayName}>
+        {band.logo ? <img src={band.logo.previewUrl} alt={band.displayName} /> : band.displayName}
+      </div>
+      <nav class="character-nav__members" aria-label={`${band.displayName} · ${ui.members}`}>
+        {band.members.map((member) => <a
+          class="character-nav__member" href={`/characters/${member.id}/`}
+          aria-current={member.id === character.id ? "page" : undefined}
+          style={`--member-accent:${member.mainColor || band.mainColor}`}
+        >
+          <span class="character-nav__portrait">
+            {member.avatar ? <img src={member.avatar.previewUrl} alt="" width="64" height="64" /> : <span>{member.shortName || member.displayName}</span>}
+          </span>
+          <strong>{member.displayName}</strong>
+        </a>)}
+      </nav>
+    </>)}
+  </aside>
+  <button class="character-nav__all" type="button" data-character-open aria-haspopup="dialog">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h6v6h-6z" /></svg>
+    <span>{ui.switch}</span>
+  </button>
+
+  <dialog class="character-nav__dialog" aria-labelledby="character-directory-title">
+    <header class="character-nav__dialog-header">
+      <div><h2 id="character-directory-title">{ui.all}</h2><a href="/characters/">{ui.directory} ↗</a></div>
+      <button type="button" data-character-close aria-label={ui.close}>×</button>
+    </header>
+    <label class="character-nav__search">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5" /><path d="m16 16 4 4" /></svg>
+      <span class="visually-hidden">{ui.search}</span>
+      <input type="search" placeholder={ui.search} autocomplete="off" data-character-search />
+    </label>
+    <div class="character-nav__directory">
+      {groups.map((band) => <section data-character-group style={`--band-accent:${band.mainColor}`}>
+        <h3>{band.logo && <img src={band.logo.previewUrl} alt="" width="24" height="24" />}{band.displayName}</h3>
+        <div class="character-nav__grid">
+          {band.members.map((member) => <a
+            href={`/characters/${member.id}/`} class="character-nav__entry"
+            aria-current={member.id === character.id ? "page" : undefined}
+            data-character-entry data-search={[member.displayName, member.shortName, ...member.aliases, member.id, band.displayName].join(" ")}
+            style={`--member-accent:${member.mainColor || band.mainColor}`}
+          >
+            <span class="character-nav__portrait">{member.avatar && <img src={member.avatar.previewUrl} alt="" width="64" height="64" loading="lazy" />}</span>
+            <strong>{member.displayName}</strong>
+            <small>{member.role}{member.id === character.id && ` · ${ui.current}`}</small>
+          </a>)}
+        </div>
+      </section>)}
+      <p data-character-empty role="status" hidden>{ui.empty}</p>
+    </div>
+  </dialog>
+</character-navigator>
+
+<script>
+  class CharacterNavigator extends HTMLElement {
+    connectedCallback() {
+      if (this.dataset.ready) return;
+      this.dataset.ready = "true";
+      const dialog = this.querySelector<HTMLDialogElement>("dialog");
+      const search = this.querySelector<HTMLInputElement>("[data-character-search]");
+      this.querySelector("[data-character-open]")?.addEventListener("click", () => {
+        dialog?.showModal();
+        search?.focus({ preventScroll: true });
+      });
+      this.querySelector("[data-character-close]")?.addEventListener("click", () => dialog?.close());
+      dialog?.addEventListener("click", (event) => {
+        if (event.target !== dialog) return;
+        const bounds = dialog.getBoundingClientRect();
+        if (event.clientX < bounds.left || event.clientX > bounds.right || event.clientY < bounds.top || event.clientY > bounds.bottom) dialog.close();
+      });
+      search?.addEventListener("input", () => {
+        const query = search.value.trim().normalize("NFKC").toLocaleLowerCase();
+        let count = 0;
+        this.querySelectorAll<HTMLElement>("[data-character-group]").forEach((group) => {
+          let matches = 0;
+          group.querySelectorAll<HTMLElement>("[data-character-entry]").forEach((entry) => {
+            entry.hidden = !(entry.dataset.search ?? "").normalize("NFKC").toLocaleLowerCase().includes(query);
+            if (!entry.hidden) matches++;
+          });
+          group.hidden = matches === 0;
+          count += matches;
+        });
+        const empty = this.querySelector<HTMLElement>("[data-character-empty]");
+        if (empty) empty.hidden = count !== 0;
+      });
+    }
+  }
+  if (!customElements.get("character-navigator")) customElements.define("character-navigator", CharacterNavigator);
+</script>

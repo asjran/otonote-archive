@@ -1,0 +1,88 @@
+---
+import BaseLayout from '../../../layouts/BaseLayout.astro';
+import SourceDisclosure from '../../../components/SourceDisclosure.astro';
+import { bgmCatalog, isBgmEnglish as en } from '../../../lib/bgm-catalog';
+import { formatBgmSize, formatBgmTime } from '../../../lib/bgm-filtering.mjs';
+import { activeReleaseContext } from '../../../lib/release-context';
+import { siteHref } from '../../../lib/site-context';
+import '../../../styles/bgm-library.css';
+
+const href = (path: string) => import.meta.env.BASE_URL === '/' ? path : siteHref(path, activeReleaseContext);
+const { tracks, categories } = bgmCatalog;
+const available = tracks.filter(track => track.audio).length;
+const copy = en ? {
+  title: 'BGM Library', intro: 'Revisit the music behind every scene. Browse, listen and download.',
+  songs: 'Songs · Scores', total: 'Tracks', playable: 'Playable', missing: 'Not yet collected',
+  all: 'All scenes', search: 'Search titles or audio identifiers', only: 'Playable only',
+  results: 'tracks', reset: 'Clear filters', play: 'Listen', pause: 'Pause', loading: 'Loading…',
+  failed: 'Playback failed. Try again or download the audio.', download: 'Download',
+  select: 'Choose a BGM to start listening', idle: 'Audio loads when you press play.', loop: 'Loop',
+  playing: 'Now playing', paused: 'Paused', empty: 'No BGM matches these filters.',
+  pending: 'Scene unconfirmed', source: 'About this collection',
+} : {
+  title: 'BGM 音乐库', intro: '重温每个场景的旋律，按分类查找、试听与下载。',
+  songs: '歌曲·乐谱', total: '已收录', playable: '可试听', missing: '待收录',
+  all: '全部场景', search: '搜索名称或音频标识', only: '仅看可试听',
+  results: '首 BGM', reset: '清除筛选', play: '试听', pause: '暂停', loading: '加载中…',
+  failed: '播放失败，请重试或下载音频。', download: '下载',
+  select: '选择一首 BGM 开始试听', idle: '点击试听后加载音频。', loop: '单曲循环',
+  playing: '正在播放', paused: '已暂停', empty: '没有符合条件的 BGM。',
+  pending: '用途待确认', source: '收录说明',
+};
+const symbols: Record<string, string> = { home: '⌂', event: '✦', story: '≋', live: '♫', gacha: '◇', other: '⋯' };
+---
+<BaseLayout title={copy.title} description={copy.intro}>
+  <bgm-library class="bgm-library content-shell" data-copy={JSON.stringify(copy)}>
+    <header class="bgm-heading">
+      <div><p class="bgm-eyebrow">MUSIC ARCHIVE / BGM</p><h1>{copy.title}</h1><p class="bgm-intro">{copy.intro}</p></div>
+      <dl class="bgm-stats"><div><dt>{copy.total}</dt><dd>{tracks.length}</dd></div><div><dt>{copy.playable}</dt><dd>{available}</dd></div></dl>
+    </header>
+    <nav class="bgm-subnav" aria-label={en ? 'Music sections' : '音乐资料子模块'}>
+      <a href={href('/music/')}>{copy.songs}</a><a href={href('/music/bgm/')} aria-current="page">{copy.title}</a>
+    </nav>
+    <div class="bgm-categories" role="group" aria-label={en ? 'BGM categories' : 'BGM 分类'}>
+      <button type="button" data-bgm-category="all" aria-pressed="true"><span>{copy.all}</span><b>{tracks.length}</b></button>
+      {categories.map(category => <button type="button" data-bgm-category={category.id} aria-pressed="false">
+        <span class="bgm-category-icon" aria-hidden="true">{symbols[category.id]}</span><span>{category.label}</span>
+        <b>{tracks.filter(track => track.categoryIds.includes(category.id)).length}</b>
+      </button>)}
+    </div>
+    <form class="bgm-filters" role="search">
+      <label class="bgm-search"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 4 4"/></svg><span class="visually-hidden">{copy.search}</span><input type="search" name="q" placeholder={copy.search} autocomplete="off" /></label>
+      <label class="bgm-available"><input type="checkbox" name="available" />{copy.only}</label>
+      <button type="reset" class="bgm-reset">{copy.reset}</button>
+    </form>
+    <section class="bgm-player" aria-label={en ? 'BGM player' : 'BGM 播放器'}>
+      <div class="bgm-now-icon" aria-hidden="true">♫</div>
+      <div class="bgm-now"><strong data-bgm-now>{copy.select}</strong><p data-bgm-status role="status">{copy.idle}</p></div>
+      <audio controls preload="none" aria-label={en ? 'Listen to BGM' : 'BGM 试听'}></audio>
+      <label class="bgm-loop"><input type="checkbox" data-bgm-loop />{copy.loop}</label>
+    </section>
+    <div class="bgm-results" aria-live="polite"><strong data-bgm-count>{tracks.length}</strong> {copy.results}</div>
+    <p class="bgm-empty" data-bgm-empty hidden>{copy.empty}</p>
+    {categories.map(category => <section class="bgm-group" data-bgm-group={category.id} aria-labelledby={`bgm-${category.id}`}>
+      <header class="bgm-group-heading"><h2 id={`bgm-${category.id}`}><span aria-hidden="true">{symbols[category.id]}</span>{category.label}<small data-bgm-group-count>{tracks.filter(track => track.categoryIds.includes(category.id)).length}</small></h2><p>{category.description}</p></header>
+      <div class="bgm-grid">{tracks.filter(track => track.categoryIds.includes(category.id)).map(track => <article class:list={['bgm-track', { 'bgm-track--missing': !track.audio }]}
+        data-bgm-track={track.id} data-title={track.title} data-cue={track.cueName} data-categories={track.categoryIds.join(' ')} data-status={track.status}>
+        {track.audio ? <button class="bgm-track-play" type="button" data-bgm-play data-url={track.audio.url} aria-label={`${copy.play} ${track.title}`} aria-pressed="false" title={`${copy.play} ${track.title}`}><span aria-hidden="true" data-play-icon>▶</span><span class="visually-hidden" data-play-text>{copy.play}</span></button>
+          : <span class="bgm-track-unavailable" aria-hidden="true">—</span>}
+        <div class="bgm-track-body"><h3 title={track.title}>{track.title}</h3>
+          <p class="bgm-cue" title={track.cueName}>{track.cueName}</p>
+          {!track.classificationConfirmed && <span class="bgm-pending">{copy.pending}</span>}
+        </div>
+        {track.audio ? <>
+          <span class="bgm-meta"><time>{formatBgmTime(track.audio.duration)}</time><span>{track.audio.format} · {formatBgmSize(track.audio.byteSize)}</span></span>
+          <a class="bgm-download" href={track.audio.url} download={track.downloadName} aria-label={`${copy.download} ${track.title} (${track.audio.format})`} title={`${copy.download} · ${track.audio.format} · ${formatBgmSize(track.audio.byteSize)}`}><svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M10 2v10m-4-4 4 4 4-4M3 13v4h14v-4"/></svg><span class="bgm-download-label">{copy.download}</span></a>
+        </> : <span class="bgm-missing">{copy.missing}</span>}
+      </article>)}</div>
+    </section>)}
+    <SourceDisclosure title={copy.source}>
+      <p>{en ? 'Background music comes from the game. Tracks are grouped by their known use; some names are descriptive labels used by this site, rather than official titles. Links to specific stories or events are shown only when confirmed.' : '背景音乐来自游戏，按已知用途分类整理。部分曲名为本站便于查找而整理的名称，并非官方曲名；具体用于哪段剧情或活动，仅在确认后标注。'}</p>
+      <p>{en ? 'Collected tracks can be played and downloaded. Tracks marked as not yet collected are not available to play or download.' : '已收录的曲目可播放和下载；标为“待收录”的曲目暂不可播放或下载。'}</p>
+    </SourceDisclosure>
+    <noscript><p>{en ? 'Enable JavaScript for filtering and the shared player. Audio download links remain available.' : '启用 JavaScript 后可使用筛选与试听播放器；音频下载链接仍可直接使用。'}</p></noscript>
+  </bgm-library>
+</BaseLayout>
+<script>
+  import '../../../lib/bgm-player.mjs';
+</script>

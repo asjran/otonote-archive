@@ -1,0 +1,13 @@
+---
+import FilterDrawer from './FilterDrawer.astro';
+interface Props { title: string; }
+const {title}=Astro.props;
+---
+<div class="selection-filters selection-filters--compact" data-filter-scope>
+  <div class="selection-filter-toolbar">
+    <slot name="search" />
+    <FilterDrawer title={title} count={0} noun="" controls><slot /></FilterDrawer>
+  </div>
+  <div class="selection-results-bar"><slot name="results" /></div>
+  <div class="selection-active-filters" data-filter-summary aria-label="已选筛选条件" hidden></div>
+</div>

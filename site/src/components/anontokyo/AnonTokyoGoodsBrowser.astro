@@ -1,0 +1,95 @@
+---
+import AnonTokyoHeader from "./AnonTokyoHeader.astro";
+
+interface Props {
+  dataset: Record<string, any>;
+  stagedMedia: Array<Record<string, string>>;
+}
+
+const { dataset, stagedMedia } = Astro.props;
+const records = dataset.records as Array<Record<string, any>>;
+const categories = dataset.categories as string[];
+const media = new Map(stagedMedia.map((entry) => [entry.logicalKey.toLocaleLowerCase("en-US"), entry.publicUrl]));
+const number = (value: unknown) => typeof value === "number" ? value.toLocaleString("zh-CN") : "—";
+const searchText = (record: Record<string, any>) => [record.name, record.category, ...(record.tags ?? [])].join(" ").toLocaleLowerCase("zh-CN");
+---
+
+<AnonTokyoHeader
+  active="goods"
+  title="商品"
+  description="比较进货、售价和配送时间；派生收益只会在计价单位确认后出现。"
+  count={records.length}
+/>
+
+<main class="at-guide-main" data-at-goods>
+  <div class="content-shell">
+    <div class="at-filter-bar">
+      <label class="at-filter-search"><span>搜索商品</span><input type="search" placeholder="输入商品名或标签" data-at-query /></label>
+      <label><span>分类</span><select data-at-category><option value="">全部分类</option>{categories.map((category) => <option value={category}>{category}</option>)}</select></label>
+      <label><span>排序</span><select data-at-sort><option value="name">名称</option><option value="sale">售价从高到低</option><option value="delivery">配送时间从短到长</option></select></label>
+      <strong><b data-at-count>{records.length}</b> 项</strong>
+    </div>
+    <div class="at-goods-grid">
+      {records.map((record) => {
+        const imageUrl = record.imageKey ? media.get(record.imageKey.toLocaleLowerCase("en-US")) : undefined;
+        return (
+          <article
+            class="at-goods-card"
+            data-at-record
+            data-search={searchText(record)}
+            data-category={record.category}
+            data-name={record.name}
+            data-sale={record.saleCoins ?? -1}
+            data-delivery={record.deliverySeconds ?? Number.MAX_SAFE_INTEGER}
+          >
+            <div class="at-goods-card__lead">
+              {imageUrl ? <img class="at-goods-card__image" src={imageUrl} alt="" loading="lazy" decoding="async" /> : <span class="at-goods-card__image at-image-fallback" aria-hidden="true">{record.name.slice(0, 1)}</span>}
+              <div><span>{record.category}</span><h2>{record.name}</h2><p>{record.tags.join(" · ")}</p></div>
+            </div>
+            <dl class="at-compact-stats">
+              <div><dt>进货</dt><dd>{number(record.purchaseCost)}<small> × {number(record.purchaseQuantity)}</small></dd></div>
+              <div><dt>售价</dt><dd>{number(record.saleCoins)}</dd></div>
+              <div><dt>配送</dt><dd>{record.deliveryTime ?? "—"}</dd></div>
+            </dl>
+            {record.unlockConditions.length > 0 && <p class="at-inline-note">{record.unlockConditions.join(" · ")}</p>}
+            <a href={`/anontokyo/goods/${record.id}/`}>查看详情</a>
+          </article>
+        );
+      })}
+    </div>
+    <p class="at-empty" data-at-empty hidden>没有符合条件的商品。</p>
+  </div>
+</main>
+
+<script>
+  for (const root of document.querySelectorAll("[data-at-goods]")) {
+    const query = root.querySelector("[data-at-query]");
+    const category = root.querySelector("[data-at-category]");
+    const sort = root.querySelector("[data-at-sort]");
+    const grid = root.querySelector(".at-goods-grid");
+    const records = Array.from(root.querySelectorAll<HTMLElement>("[data-at-record]"));
+    const update = () => {
+      const q = query instanceof HTMLInputElement ? query.value.trim().toLocaleLowerCase("zh-CN") : "";
+      const cat = category instanceof HTMLSelectElement ? category.value : "";
+      let visible = 0;
+      for (const record of records) {
+        const matches = (!q || (record.dataset.search ?? "").includes(q)) && (!cat || record.dataset.category === cat);
+        record.toggleAttribute("hidden", !matches);
+        if (matches) visible += 1;
+      }
+      const mode = sort instanceof HTMLSelectElement ? sort.value : "name";
+      records.sort((left, right) => mode === "sale"
+        ? Number(right.dataset.sale) - Number(left.dataset.sale)
+        : mode === "delivery"
+          ? Number(left.dataset.delivery) - Number(right.dataset.delivery)
+          : (left.dataset.name ?? "").localeCompare(right.dataset.name ?? "", "zh-CN"));
+      records.forEach((record) => grid?.append(record));
+      const count = root.querySelector("[data-at-count]");
+      if (count) count.textContent = String(visible);
+      root.querySelector("[data-at-empty]")?.toggleAttribute("hidden", visible !== 0);
+    };
+    query?.addEventListener("input", update);
+    category?.addEventListener("change", update);
+    sort?.addEventListener("change", update);
+  }
+</script>

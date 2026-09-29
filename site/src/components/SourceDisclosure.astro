@@ -1,0 +1,19 @@
+---
+import { getUi } from "../lib/ui-i18n";
+import { activeReleaseContext } from "../lib/release-context";
+
+interface Props {
+  title?: string;
+  className?: string;
+}
+
+const ui = getUi(activeReleaseContext.locale);
+const { title = ui.sourceAndLimits, className } = Astro.props;
+---
+
+<details class:list={["source-disclosure", className]} data-copy-layer="technical">
+  <summary>{title}</summary>
+  <div class="source-disclosure__body">
+    <slot />
+  </div>
+</details>

@@ -1,0 +1,79 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import SourceDisclosure from "../../components/SourceDisclosure.astro";
+import BrowserControls from "../../components/systems/BrowserControls.astro";
+import BrowserPagination from "../../components/systems/BrowserPagination.astro";
+import Deadline from "../../components/systems/Deadline.astro";
+import { missionVisual } from "../../lib/mission-display";
+import Rewards from "../../components/systems/Rewards.astro";
+import { globalSystems } from "../../lib/global-systems";
+import { say, systemHref } from "../../lib/system-display";
+import { catalog } from "../../lib/catalog";
+import "../../styles/system-modules.css";
+import "../../styles/filter-panel.css";
+const missions = (globalSystems.missions || []).map(m => ({ ...m, visual: missionVisual(m) }));
+const keys = [...new Set(["limited", "permanent", "event", "daily", ...missions.map(m => m.category)])];
+const relatedPages = new Set([
+  ...catalog.musicTracks.map(track => `/music/${track.id}/`),
+  ...catalog.characters.map(character => `/characters/${character.id}/`)
+]);
+---
+<BaseLayout title={say("任务", "Missions")}>
+  <header class="sys-hero content-shell"><div class="eyebrow">MISSIONS</div><h1>{say("任务", "Missions")}</h1><p>{say("限时挑战、每日积累与成长目标，一眼找到值得完成的任务。", "Explore mission requirements, rewards and milestones.")}</p></header>
+  <section class="content-shell sys-body"><mission-browser>
+    <system-browser data-filter-scope>
+      <BrowserControls count={missions.length} categoryKeys={keys} />
+      <div class="mission-list" data-results>
+        {missions.map((mission, index) => <article class="mission-card" data-category={mission.category} data-entry data-categories={mission.category} hidden={index >= 12} data-search={`${mission.title} ${mission.groupName} ${mission.sections.map(s => s.title).join(" ")} ${mission.stages.map(s => `${s.description} ${s.rewards.map(r => r.name).join(" ")}`).join(" ")}`}>
+          <div class:list={["mission-banner", { "mission-banner--art": !!mission.visual.image, "mission-banner--native": !!mission.visual.native }]}>
+            {mission.visual.image && <img class="mission-banner-art" src={mission.visual.image} alt="" loading="lazy" />}
+            <div class="mission-banner-shade"></div>
+            <div class="sys-tags"><span class="sys-tag-category" data-category={mission.category}>{mission.categoryLabel}</span><span class="mission-task-count">{mission.stages.length} {say("项任务", "tasks")}</span></div>
+            {mission.visual.logo && <img class="mission-band-logo" src={mission.visual.logo} alt="" loading="lazy" />}
+            <div class="mission-banner-title"><h2>{mission.title || mission.description}</h2></div>
+          </div>
+          <div class="mission-card-body">
+            <Deadline start={mission.startAt} end={mission.endAt} daily={mission.category === "daily"} />
+            {mission.isCharacterTemplate && <p class="sys-muted">{say("各角色分别适用，以下为单个角色的任务奖励。", "Applies separately to each character; rewards below are per character.")}</p>}
+            <div class="mission-resource-preview" aria-label={say("组内重点奖励合计", "Group reward totals")}>
+              <Rewards rewards={mission.previewRewards.filter(r => ![2, 3].includes(r.resourceType))} compact />
+              {mission.rewardKindCount > mission.previewRewards.length && <small class="mission-more-rewards" title={say("更多奖励见任务详情", "More rewards in mission details")}>+{mission.rewardKindCount - mission.previewRewards.length}</small>}
+            </div>
+            {mission.previewRewards.some(r => [2, 3].includes(r.resourceType)) && <div class="mission-card-prizes"><Rewards rewards={mission.previewRewards.filter(r => [2, 3].includes(r.resourceType))} compact /></div>}
+          </div>
+          <button class="mission-open-details" type="button" data-open-mission={mission.id}>{say("查看任务与奖励", "View tasks & rewards")} <span aria-hidden="true">↗</span></button>
+        </article>)}
+      </div>
+      <BrowserPagination />
+    </system-browser>
+
+    <dialog class="recruit-dialog mission-dialog" data-mission-dialog>
+      <div class="recruit-dialog-toolbar"><span>{say("任务与奖励", "MISSIONS & REWARDS")}</span><button type="button" data-close-mission aria-label={say("关闭任务详情", "Close mission details")}><span aria-hidden="true">×</span></button></div>
+      <div data-mission-content></div>
+    </dialog>
+    {missions.map(mission => <template data-mission-template={mission.id}>
+      <section class="mission-detail">
+        <header class="mission-detail-heading"><div class="sys-tags"><span class="sys-tag-category" data-category={mission.category}>{mission.categoryLabel}</span><span>{mission.stages.length} {say("项任务", "tasks")}</span></div>
+          <h2 id={`mission-title-${mission.id}`}>{mission.title || mission.description}</h2>
+          <Deadline start={mission.startAt} end={mission.endAt} daily={mission.category === "daily"} />
+          {mission.isCharacterTemplate && <p class="sys-muted">{say("各角色分别适用，以下为单个角色的任务奖励。", "Applies separately to each character; rewards below are per character.")}</p>}
+        </header>
+
+            {mission.completeRewards.length > 0 && <div class="mission-completion"><h3>{say("整组完成奖励", "Group completion reward")}</h3><Rewards rewards={mission.completeRewards} compact /></div>}
+            {mission.sections.length > 1 && <label class="mission-section-picker">{say("任务内容", "Objectives")}
+              <select data-mission-section-select>{mission.sections.map(section => <option value={section.id}>{section.title} · {section.taskCount}{say("项", " tasks")}</option>)}</select>
+            </label>}
+            <p class="sys-muted mission-template-note" data-character-note hidden={!mission.sections[0]?.isCharacterTemplate}>{say("以下目标对各角色分别计算，奖励按单个角色列出，不计入列表卡片的奖励合计。", "These objectives apply separately to each character. Per-character rewards are excluded from the card totals.")}</p>
+            <ol class="mission-stages">{mission.stages.map((stage, i) => <li data-mission-section={stage.sectionId} data-character-template={stage.isCharacterTemplate ? "true" : "false"} hidden={stage.sectionId !== mission.sections[0]?.id}>
+              <div>{stage.releaseDay > 0 && (i === 0 || stage.releaseDay !== mission.stages[i - 1].releaseDay) && <small class="sys-muted">{say("第", "Day ")}{stage.releaseDay}{say("天开放", "")}</small>}<p>{stage.description}</p>
+                {stage.related.length > 0 && <div class="mission-links">{stage.related.map(link => relatedPages.has(link.href)
+                  ? <a href={systemHref(link.href)}>{link.name} ↗</a> : <span>{link.name}</span>)}</div>}
+              </div><Rewards rewards={stage.rewards} compact />
+            </li>)}</ol>
+      </section>
+    </template>)}
+    </mission-browser>
+    <SourceDisclosure title={say("任务资料说明", "About mission data")}><p>{say("任务条件与奖励来自游戏，按任务组、剧情章节和连续目标整理，展开后可查看各项内容。页面仅供查阅，不会显示或更新你的账号进度。时间沿用游戏资料中的标示，实际开放情况请以游戏内为准。", "Mission requirements and rewards come from the game and are grouped by programme, story chapter and related objectives. Expand each group to view its contents. This page does not show or update your account progress. Times follow the collected game information; check the game for current availability.")}</p>{!missions.some(m => m.category === "event") && <p>{say("本站暂未收录活动任务，不代表游戏内没有正在进行的活动。", "Event missions have not yet been collected here. This does not mean there are no active events in the game.")}</p>}</SourceDisclosure>
+  </section>
+</BaseLayout>
+<script>import "../../lib/system-browser.mjs"; import "../../lib/mission-browser.mjs";</script>

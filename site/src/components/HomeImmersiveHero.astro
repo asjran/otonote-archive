@@ -1,0 +1,11 @@
+---
+import ImmersiveScene from './ImmersiveScene.astro';
+import { activeReleaseContext } from '../lib/release-context';
+import { siteHref } from '../lib/site-context';
+const en = activeReleaseContext.locale === 'en';
+const href = (path: string) => import.meta.env.BASE_URL === '/' ? path : siteHref(path, activeReleaseContext);
+---
+<section class="home-immersive-hero">
+  <div class="home-immersive-copy"><p class="home-kicker">OTONOTE / {en ? 'PLAYER ARCHIVE' : '玩家资料站'}</p><h1>{en ? 'Before the next song.' : '下一首歌开始之前。'}</h1><p>{en ? 'Take a break with the band. Then find your next song, card or team.' : '在熟悉的日常里停一会儿，再去寻找下一段旋律。'}</p><div><a class="home-immersive-primary" href={href('/music/')}>{en ? 'Explore songs' : '探索歌曲'}</a><a href={href('/immersive/')}>{en ? 'Explore & export' : '进入场景与导出'} →</a></div><small>MyGO!!!!! · {en ? 'Fingertips After Hard Work' : '努力过后的指尖'}</small></div>
+  <ImmersiveScene compact />
+</section>

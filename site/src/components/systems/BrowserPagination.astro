@@ -1,0 +1,6 @@
+---
+import { say } from "../../lib/system-display";
+import PaginationControls from "../PaginationControls.astro";
+---
+<p class="sys-empty" data-empty hidden>{say("当前资料中没有符合条件的内容，试试其他分类或清空搜索。", "No matching records in this snapshot. Try another category or clear the search.")}</p>
+<PaginationControls defaultPageSize={24} />

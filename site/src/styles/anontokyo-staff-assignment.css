@@ -1,0 +1,367 @@
+.at-assignment-main {
+  min-height: 70vh;
+  padding: 20px max(18px, calc((100vw - 1180px) / 2)) 48px;
+  background:
+    radial-gradient(circle at 15% 5%, rgb(236 127 131 / 13%), transparent 26%),
+    linear-gradient(135deg, #23253a 0 16%, #f5f1f3 16% 100%);
+}
+
+.at-assignment {
+  display: grid;
+  gap: 14px;
+}
+
+.at-assignment-controls,
+.at-assignment-board,
+.at-assignment-roster,
+.at-assignment-feedback {
+  border: 1px solid #d8d3d9;
+  background: rgb(255 255 255 / 96%);
+  box-shadow: 0 12px 34px rgb(26 27 44 / 14%);
+}
+
+.at-assignment-controls {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 12px 16px;
+}
+
+.at-assignment-controls fieldset {
+  display: flex;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.at-assignment-controls legend,
+.at-assignment-level > span {
+  margin-bottom: 4px;
+  color: #777481;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: .08em;
+}
+
+.at-assignment-controls label {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.at-assignment-level {
+  display: grid !important;
+}
+
+.at-assignment-level select {
+  min-width: 92px;
+  min-height: 36px;
+  border: 1px solid #c9c4cc;
+  background: white;
+}
+
+.at-assignment-actions {
+  display: flex;
+  gap: 7px;
+  margin-left: auto;
+}
+
+.at-assignment-actions button,
+.at-assignment-actions a,
+.at-assignment-roster__head button {
+  min-height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 11px;
+  border: 1px solid #bbb5bf;
+  background: white;
+  color: #302f3d;
+  font-size: 12px;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.at-assignment-actions a {
+  border-color: #ec7f83;
+  background: #fff3f4;
+  color: #8d3453;
+}
+
+.at-assignment-controls > p {
+  max-width: 180px;
+  margin: 0;
+  color: #777481;
+  font-size: 12px;
+}
+
+.at-assignment-board > header,
+.at-assignment-roster__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 13px 16px;
+  border-bottom: 1px solid #d8d3d9;
+  background: #292b42;
+  color: white;
+}
+
+.at-assignment-board > header span,
+.at-assignment-roster__head span,
+.at-assignment-role header span {
+  display: block;
+  color: #8ad3cf;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: .11em;
+}
+
+.at-assignment-board h2,
+.at-assignment-roster h2,
+.at-assignment-role h3 {
+  margin: 0;
+  font-family: var(--font-display);
+}
+
+.at-assignment-board > header p {
+  margin: 0;
+  color: #d8d6df;
+  font-size: 12px;
+}
+
+.at-assignment-roles {
+  display: grid;
+}
+
+.at-assignment-role {
+  min-height: 122px;
+  display: grid;
+  grid-template-columns: 230px 1fr;
+  border-bottom: 1px solid #ded9df;
+}
+
+.at-assignment-role:last-child {
+  border-bottom: 0;
+}
+
+.at-assignment-role > header {
+  display: grid;
+  grid-template-columns: 48px 1fr auto;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 16px;
+  color: white;
+  background: linear-gradient(135deg, #454762, #2d2f47);
+}
+
+.at-assignment-role--cashier > header { box-shadow: inset 5px 0 #ec7f83; }
+.at-assignment-role--sales > header { box-shadow: inset 5px 0 #8ad3cf; }
+.at-assignment-role--restock > header { box-shadow: inset 5px 0 #f0c56e; }
+
+.at-assignment-role > header img {
+  width: 44px;
+  height: 44px;
+  object-fit: contain;
+}
+
+.at-assignment-role > header > strong {
+  font-family: var(--font-mono);
+  font-size: 13px;
+}
+
+.at-assignment-slots {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(180px, 1fr));
+  gap: 10px;
+  align-content: center;
+  padding: 14px;
+  background:
+    radial-gradient(circle, rgb(88 82 105 / 14%) 1px, transparent 1px) 0 0 / 8px 8px,
+    #faf8fa;
+}
+
+.at-assignment-slot,
+.at-assignment-character {
+  min-height: 82px;
+  border: 1px solid #ccc6ce;
+  background: white;
+}
+
+.at-assignment-slot {
+  display: grid;
+  place-content: center;
+  gap: 2px;
+  color: #777481;
+  cursor: pointer;
+}
+
+.at-assignment-slot span {
+  color: #ec7f83;
+  font-size: 23px;
+}
+
+.at-assignment-character {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: 66px minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+  padding: 7px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.at-assignment-character:hover,
+.at-assignment-character.is-selected {
+  border-color: #ec7f83;
+  box-shadow: inset 0 0 0 2px rgb(236 127 131 / 23%);
+  background: #fff7f8;
+}
+
+.at-assignment-character:disabled {
+  cursor: not-allowed;
+  filter: grayscale(.8);
+  opacity: .58;
+}
+
+.at-assignment-character img,
+.at-assignment-character__fallback {
+  width: 64px;
+  height: 64px;
+  object-fit: contain;
+  background: #f3f1f4;
+}
+
+.at-assignment-character__fallback {
+  display: grid;
+  place-items: center;
+  color: #9a405f;
+  font-family: var(--font-display);
+  font-size: 24px;
+}
+
+.at-assignment-character > span:last-child {
+  min-width: 0;
+}
+
+.at-assignment-character strong,
+.at-assignment-character small {
+  display: block;
+}
+
+.at-assignment-character strong {
+  margin-bottom: 4px;
+  font-family: var(--font-display);
+  font-size: 15px;
+}
+
+.at-assignment-character small {
+  overflow-wrap: anywhere;
+  color: #777481;
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.at-assignment-roster__head {
+  background: #404259;
+}
+
+.at-assignment-character-list {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(150px, 1fr));
+  gap: 8px;
+  padding: 12px;
+}
+
+.at-assignment-locked {
+  border-top: 1px solid #ded9df;
+  background: #f0edf0;
+}
+
+.at-assignment-locked h3 {
+  margin: 0;
+  padding: 10px 12px 0;
+  color: #74717b;
+  font-size: 12px;
+}
+
+.at-assignment-feedback {
+  margin: 0;
+  padding: 11px 14px;
+  color: #4f4d5b;
+  font-size: 12px;
+}
+
+.at-assignment-feedback[data-tone="success"] {
+  border-color: #8ad3cf;
+  background: #eff9f8;
+}
+
+.at-assignment-feedback[data-tone="error"] {
+  border-color: #ec7f83;
+  background: #fff1f2;
+  color: #8d3453;
+}
+
+@media (max-width: 900px) {
+  .at-assignment-main {
+    padding-inline: 12px;
+    background: #f5f1f3;
+  }
+
+  .at-assignment-controls {
+    align-items: stretch;
+    flex-wrap: wrap;
+  }
+
+  .at-assignment-actions {
+    width: 100%;
+    margin-left: 0;
+    overflow-x: auto;
+  }
+
+  .at-assignment-role {
+    grid-template-columns: 1fr;
+  }
+
+  .at-assignment-role > header {
+    grid-template-columns: 40px 1fr auto;
+  }
+
+  .at-assignment-role > header img {
+    width: 38px;
+    height: 38px;
+  }
+
+  .at-assignment-character-list {
+    display: flex;
+    overflow-x: auto;
+    scroll-snap-type: x proximity;
+  }
+
+  .at-assignment-character-list .at-assignment-character {
+    min-width: 190px;
+    scroll-snap-align: start;
+  }
+}
+
+@media (max-width: 560px) {
+  .at-assignment-board > header,
+  .at-assignment-roster__head {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .at-assignment-slots {
+    grid-template-columns: 1fr;
+  }
+
+  .at-assignment-controls fieldset {
+    width: 100%;
+  }
+}

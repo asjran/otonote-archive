@@ -1,0 +1,58 @@
+---
+import AnonTokyoHeader from "./AnonTokyoHeader.astro";
+
+interface Props { dataset: Record<string, any>; }
+interface LevelRecord { id: string; level: number; requiredExp: number; expToNext?: number; staminaLimit: number; customerLimit: number; customerTiers: number[]; }
+interface CapacityStep { id: string; step: number; capacity: number; cost?: { name: string; count: number }; }
+const { dataset } = Astro.props;
+const levels = dataset.records as LevelRecord[];
+const warehouses = dataset.warehouseSteps as CapacityStep[];
+const safes = dataset.safeDepositSteps as CapacityStep[];
+const number = (value: number | undefined) => typeof value === "number" ? value.toLocaleString("zh-CN") : "—";
+---
+
+<AnonTokyoHeader
+  active="growth"
+  title="玩家成长与容量"
+  description="查看玩家等级经验、体力与顾客上限，并查询仓库和保险箱每一档容量。等级奖励中仍有未命名物品，因此暂不展示。"
+  count={levels.length}
+/>
+
+<main class="at-guide-main" data-at-growth>
+  <div class="content-shell">
+    <section class="at-growth-summary" aria-label="成长资料概况">
+      <div><span>玩家等级</span><strong>{levels.length}</strong><small>级</small></div>
+      <div><span>最终体力上限</span><strong>{number(levels.at(-1)?.staminaLimit)}</strong></div>
+      <div><span>最终顾客上限</span><strong>{number(levels.at(-1)?.customerLimit)}</strong><small>人</small></div>
+      <div><span>仓库最大容量</span><strong>{number(warehouses.at(-1)?.capacity)}</strong></div>
+      <div><span>保险箱最大容量</span><strong>{number(safes.at(-1)?.capacity)}</strong></div>
+    </section>
+
+    <section class="at-growth-section">
+      <header><div><h2>玩家等级</h2><p>累计经验为到达该等级的门槛；升级经验表示前往下一级所需增量。</p></div><strong>{levels.length} 级</strong></header>
+      <div class="at-growth-table" role="table" aria-label="玩家等级成长表">
+        <div class="at-growth-row at-growth-row--head" role="row"><span>等级</span><span>累计经验</span><span>升级经验</span><span>体力上限</span><span>顾客上限</span><span>顾客等级</span></div>
+        {levels.map((level) => <div class="at-growth-row" role="row"><strong>LV {level.level}</strong><span>{number(level.requiredExp)}</span><span>{number(level.expToNext)}</span><span>{number(level.staminaLimit)}</span><span>{number(level.customerLimit)} 人</span><span>{level.customerTiers.length ? level.customerTiers.map((tier) => `LV${tier}`).join(" / ") : "—"}</span></div>)}
+      </div>
+    </section>
+
+    <section class="at-growth-section">
+      <header><div><h2>容量升级</h2><p>切换仓库或保险箱，逐档查看容量与下一次升级消耗。</p></div><div class="at-segmented"><button type="button" class="is-active" data-at-capacity-button="warehouse">仓库 · {warehouses.length}</button><button type="button" data-at-capacity-button="safe">保险箱 · {safes.length}</button></div></header>
+      {[["warehouse", "仓库", warehouses], ["safe", "保险箱", safes]].map(([key, label, records]) => <div class="at-capacity-grid" data-at-capacity={key} hidden={key !== "warehouse"}>
+        {(records as CapacityStep[]).map((record) => <article><span>{label} {record.step}</span><strong>{number(record.capacity)}</strong><small>{record.cost ? `${record.cost.name} ${number(record.cost.count)}` : "初始容量"}</small></article>)}
+      </div>)}
+    </section>
+  </div>
+</main>
+
+<script>
+  for (const root of document.querySelectorAll("[data-at-growth]")) {
+    const buttons = root.querySelectorAll<HTMLElement>("[data-at-capacity-button]");
+    const panels = root.querySelectorAll<HTMLElement>("[data-at-capacity]");
+    for (const button of buttons) button.addEventListener("click", () => {
+      const key = button.dataset.atCapacityButton;
+      buttons.forEach((candidate) => candidate.classList.toggle("is-active", candidate === button));
+      panels.forEach((panel) => panel.toggleAttribute("hidden", panel.dataset.atCapacity !== key));
+    });
+  }
+</script>

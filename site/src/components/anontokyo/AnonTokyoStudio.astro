@@ -1,0 +1,173 @@
+---
+import AnonTokyoHeader from "./AnonTokyoHeader.astro";
+
+interface Props {
+  dataset: Record<string, any>;
+  staffDataset: Record<string, any>;
+  stagedMedia: Array<Record<string, any>>;
+  sourceReleaseId: string;
+}
+
+const { dataset, staffDataset, stagedMedia, sourceReleaseId } = Astro.props;
+const imageByKey = Object.fromEntries(
+  stagedMedia
+    .filter((item) => item.kind !== "audio")
+    .map((item) => [String(item.logicalKey).toLocaleLowerCase("en-US"), item.publicUrl])
+);
+const audio = stagedMedia.filter((item) => item.kind === "audio");
+const categories = [...new Set<string>(dataset.furniture.map((item: any) => String(item.category)))];
+const clientData = JSON.stringify({ sourceReleaseId, studio: dataset, staff: staffDataset, imageByKey, audio })
+  .replaceAll("<", "\\u003c");
+---
+
+<AnonTokyoHeader
+  active="studio"
+  title="AnonTokyo Studio"
+  description="全部家具都可以直接试摆。画布只接受本地规则验证通过的布局，不读取账号、进度或游戏存档。"
+  count={dataset.furniture.length}
+/>
+
+<main class="at-studio-main">
+  <anon-tokyo-studio
+    class="at-studio"
+    data-storage-key="ournotes:anontokyo-studio"
+    data-legacy-storage-key="ournotes:anontokyo-studio:v1"
+  >
+    <script is:inline type="application/json" data-studio-data set:html={clientData}></script>
+
+    <div class="at-studio-modebar" aria-label="地图编辑模式">
+      <div class="at-studio-modebar__switch">
+        <button type="button" class="is-active" data-studio-mode="gameFaithful" aria-pressed="true">贴合游戏</button>
+        <button type="button" data-studio-mode="free" aria-pressed="false">完全自由</button>
+      </div>
+      <p data-mode-description>固定店外环境与真实配送起点；家具和未解锁尺寸仍可预览。</p>
+      <div class="at-studio-modebar__delivery">
+        <label>配送员
+          <select data-delivery-select>
+            {dataset.deliveryOptions.map((option: any) => (
+              <option value={option.id}>{option.name}</option>
+            ))}
+          </select>
+        </label>
+        <label class="at-studio-check"><input type="checkbox" data-delivery-visible checked /> 显示配送</label>
+        <label class="at-studio-check" hidden><input type="checkbox" data-warehouse-visible /> 显示仓库</label>
+        <button type="button" data-action="move-delivery" data-free-only hidden>移动配送点</button>
+        <button type="button" data-action="move-warehouse" data-free-only hidden>移动仓库</button>
+      </div>
+    </div>
+
+    <div class="at-studio-toolbar" aria-label="地图编辑工具">
+      <div class="at-studio-toolbar__group">
+        <button type="button" data-action="undo" title="撤销 (Ctrl/Cmd + Z)">↶ 撤销</button>
+        <button type="button" data-action="redo" title="重做 (Ctrl/Cmd + Shift + Z)">↷ 重做</button>
+        <button type="button" data-action="restore">恢复游戏初始布局</button>
+        <button type="button" data-action="clear">清空</button>
+      </div>
+      <label>店铺面积
+        <select data-store-size>
+          {dataset.storeSizes.map((size: any) => (
+            <option value={`${size.level}:${size.width}:${size.height}`} selected={size === dataset.storeSizes.at(-1)}>
+              Lv.{size.level} · {size.width}×{size.height}
+            </option>
+          ))}
+        </select>
+      </label>
+      <div class="at-studio-toolbar__group at-studio-toolbar__group--export">
+        <a class="at-studio-toolbar__link" href="/anontokyo/staff-assignment/">编辑岗位</a>
+        <button type="button" data-action="import">导入 JSON</button>
+        <input type="file" accept="application/json,.json" data-import-file hidden />
+        <button type="button" data-action="export-json">导出 JSON</button>
+        <button type="button" data-action="export-png">导出 PNG</button>
+      </div>
+      <div class="at-studio-save" data-save-status role="status">准备编辑器…</div>
+    </div>
+
+    <div class="at-studio-shell">
+      <aside class="at-studio-catalog" aria-label="家具库">
+        <header>
+          <div><strong>家具库</strong><span>无限试摆 · {dataset.furniture.length} 件</span></div>
+          <input type="search" data-furniture-search placeholder="搜索家具" aria-label="搜索家具" />
+          <select data-furniture-category aria-label="家具分类">
+            <option value="">全部分类</option>
+            {categories.map((category) => <option value={category}>{category}</option>)}
+          </select>
+        </header>
+        <div class="at-studio-catalog__items" data-furniture-list>
+          {dataset.furniture.map((item: any) => {
+            const imageUrl = imageByKey[String(item.imageKey).toLocaleLowerCase("en-US")];
+            return (
+              <button
+                type="button"
+                class="at-studio-furniture"
+                data-furniture-id={item.id}
+                data-name={item.name.toLocaleLowerCase("zh-CN")}
+                data-category={item.category}
+                draggable={Boolean(imageUrl)}
+                disabled={!imageUrl}
+              >
+                {imageUrl ? <img src={imageUrl} alt="" loading="lazy" /> : <span class="at-image-fallback">缺图</span>}
+                <span>
+                  <strong>{item.name}</strong>
+                  <small>{item.category} · {item.footprint.width}×{item.footprint.height}</small>
+                  {item.unlock && <em>{item.unlock} · 可预览</em>}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      </aside>
+
+      <section class="at-studio-canvas-panel" aria-label="店铺地图画布">
+        <div class="at-studio-mobile-note">手机端可单指拖动画布，并提供文件导入导出；请使用平板横屏或桌面设备编辑家具。</div>
+        <div class="at-studio-canvas" data-canvas tabindex="0" aria-label="等距店铺布局画布"></div>
+        <div class="at-studio-canvas-tools">
+          <button type="button" data-action="zoom-out" aria-label="缩小">−</button>
+          <button type="button" data-action="view-store">店铺</button>
+          <button type="button" data-action="view-warehouse">仓库</button>
+          <button type="button" data-action="view-delivery">配送点</button>
+          <button type="button" data-action="fit-scene">全景</button>
+          <button type="button" data-action="zoom-in" aria-label="放大">＋</button>
+          <span data-layout-summary>0 件家具</span>
+        </div>
+        <p class="at-studio-feedback" data-feedback role="status">拖动空白区域可平移；从左侧拖入家具，或点选家具后再点画布。</p>
+      </section>
+
+      <aside class="at-studio-inspector" aria-label="家具属性">
+        <header><strong>属性</strong><span>本地规则验证</span></header>
+        <div data-inspector-empty class="at-studio-inspector__empty">选择画布中的家具以查看位置和朝向。</div>
+        <div data-inspector hidden>
+          <img data-inspector-image alt="" />
+          <h2 data-inspector-name></h2>
+          <p data-inspector-meta></p>
+          <dl>
+            <div><dt>位置</dt><dd data-inspector-position></dd></div>
+            <div><dt>朝向</dt><dd data-inspector-direction></dd></div>
+            <div><dt>占地</dt><dd data-inspector-size></dd></div>
+          </dl>
+          <div class="at-studio-inspector__actions">
+            <button type="button" data-action="rotate">旋转 R</button>
+            <button type="button" data-action="duplicate">复制</button>
+            <button type="button" data-action="center-selected">居中</button>
+            <button type="button" data-action="remove" class="is-danger">回到库存</button>
+          </div>
+        </div>
+        <div class="at-studio-music">
+          <strong>工作台音乐</strong>
+          {audio.length ? (
+            <>
+              <select data-audio-select aria-label="选择工作台音乐">
+                {audio.map((track) => <option value={track.publicUrl}>{track.title}</option>)}
+              </select>
+              <audio data-audio controls preload="metadata"></audio>
+            </>
+          ) : <p>当前构建未暂存已验证音乐。</p>}
+        </div>
+      </aside>
+    </div>
+  </anon-tokyo-studio>
+</main>
+
+<script>
+  import { defineAnonTokyoStudio } from "../../lib/anontokyo-studio-element.mjs";
+  defineAnonTokyoStudio();
+</script>

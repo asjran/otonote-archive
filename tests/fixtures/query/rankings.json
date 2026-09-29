@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "datasetSchemaVersion": 1,
+  "dataset": "rankings",
+  "query": {
+    "region": "global",
+    "channel": "production",
+    "locale": "ja"
+  },
+  "release": {
+    "contentReleaseId": "global-production-content-fixture",
+    "observationReleaseId": null
+  },
+  "availability": "unavailable",
+  "freshness": "unknown",
+  "provenance": "unknown",
+  "observedAt": null,
+  "generatedAt": "2026-08-04T00:00:00Z",
+  "expiresAt": null,
+  "warnings": [
+    {
+      "code": "no_observation",
+      "message": "no ObservationRelease is published for this environment yet"
+    }
+  ],
+  "page": {
+    "limit": 20,
+    "nextCursor": null
+  },
+  "items": []
+}

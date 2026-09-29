@@ -1,0 +1,9 @@
+[paths]
+access_log = "/var/log/nginx/ournotes.access.log"
+database = "/var/lib/ournotes-monitor/monitor.sqlite3"
+backup = "/var/lib/ournotes-monitor/monitor.sqlite3.backup"
+report_dir = "/var/lib/ournotes-monitor/report"
+deployment_log = "/var/log/ournotes/deployments.jsonl"
+
+[privacy]
+daily_salt = "replace-with-a-random-server-local-secret"

@@ -1,0 +1,152 @@
+---
+import type { GetStaticPaths } from "astro";
+import ArchiveImage from "../../components/ArchiveImage.astro";
+import BandMark from "../../components/BandMark.astro";
+import CharacterNavigator from "../../components/CharacterNavigator.astro";
+import CardAttributeBadge from "../../components/CardAttributeBadge.astro";
+import Live2DWorkbench from "../../components/Live2DWorkbench.astro";
+import MemberCardTile from "../../components/MemberCardTile.astro";
+import SupportCardTile from "../../components/SupportCardTile.astro";
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import {
+  catalog,
+  getAsset,
+  getBand,
+  getCharacterMemberCards,
+  getCharacterSupportCards,
+  formatBpmRange,
+  type Character
+} from "../../lib/catalog";
+import "../../styles/character-profile.css";
+import { characterProfileUi } from "../../lib/character-profile-ui";
+
+export const getStaticPaths = (() =>
+  catalog.characters.map((character) => ({
+    params: { id: character.id },
+    props: { character }
+  }))) satisfies GetStaticPaths;
+
+interface Props {
+  character: Character;
+}
+
+const { character } = Astro.props;
+const profileAsset = character.portraitAssetIds.map(getAsset).find(
+  (asset) => asset?.containerPath.endsWith("/character_sprite.png")
+) ?? getAsset(character.profileAssetId);
+const band = getBand(character.bandId);
+const profile = character.profile ?? {};
+const ui = characterProfileUi(catalog.release.locale);
+const birthday = character.birthday.month && character.birthday.day
+  ? catalog.release.locale === "en"
+    ? new Intl.DateTimeFormat("en", { month: "long", day: "numeric", timeZone: "UTC" }).format(new Date(Date.UTC(2000, character.birthday.month - 1, character.birthday.day)))
+    : `${character.birthday.month}月${character.birthday.day}日`
+  : "";
+const facts = [
+  [ui.birthday, birthday], [ui.constellation, profile.constellation],
+  [ui.height, profile.height], [ui.bloodType, profile.bloodType],
+  [ui.school, profile.school], [ui.schoolClass, profile.schoolClass],
+  [ui.favoriteFood, profile.favoriteFood], [ui.hobby, profile.hobby, "wide"]
+].filter(([, value]) => Boolean(value));
+const memberCards = getCharacterMemberCards(character.id);
+const supportCards = getCharacterSupportCards(character.id);
+const vocalTracks = catalog.musicTracks.filter((track) =>
+  track.vocalCharacterIds.includes(character.id)
+);
+---
+
+<BaseLayout title={character.displayName} description={profile.description || undefined} image={profileAsset?.previewUrl}>
+  <div class="character-page content-shell">
+  <article class="character-profile" style={`--character-color: ${character.mainColor || "#77BBDD"}`}>
+    <section class="character-profile__hero" aria-labelledby="character-name">
+      <header class="character-profile__identity">
+        <div class="character-profile__kicker">{ui.archive} <span>{character.role}</span></div>
+        <h1 id="character-name">{character.displayName}</h1>
+        <div class="character-profile__byline">
+          {band && <BandMark band={band} href={`/characters/?band=${band.id}`} compact />}
+          {profile.voiceActor && <span>{profile.voiceActor}</span>}
+        </div>
+      </header>
+      <div class="character-profile__portrait">
+        {profileAsset ? (
+          <ArchiveImage asset={profileAsset} alt={character.displayName} eager />
+        ) : <span class="media-missing">{ui.portraitMissing}</span>}
+        {band && <span class="character-profile__band-name" aria-hidden="true">{band.displayName}</span>}
+      </div>
+      <div class="character-profile__body">
+        {profile.catchphrase && <blockquote class="character-profile__quote">{profile.catchphrase}</blockquote>}
+        {profile.description && <section aria-labelledby="character-intro">
+          <h2 id="character-intro" class="character-profile__subheading">{ui.intro}</h2>
+          <p class="character-profile__description">{profile.description}</p>
+        </section>}
+        {facts.length > 0 && <section aria-labelledby="character-facts">
+          <h2 id="character-facts" class="character-profile__subheading">{ui.facts}</h2>
+          <dl class="character-profile__facts">
+            {facts.map(([label, value, size]) => <div class:list={{ "character-profile__fact--wide": size === "wide" }}><dt>{label}</dt><dd>{value}</dd></div>)}
+          </dl>
+        </section>}
+        <nav class="character-profile__links" aria-label={ui.archive}>
+          <a href="#member-cards">{ui.members}<strong>{memberCards.length}</strong></a>
+          <a href="#featured-snaps">{ui.supports}<strong>{supportCards.length}</strong></a>
+          {vocalTracks.length > 0 && <a href="#vocal-tracks">{ui.music}<strong>{vocalTracks.length}</strong></a>}
+        </nav>
+      </div>
+    </section>
+
+    <section id="member-cards" class="character-profile__related" aria-labelledby="member-cards-heading">
+      <header class="character-profile__section-heading">
+        <h2 id="member-cards-heading">{ui.members} <span>{memberCards.length}</span></h2>
+        <a href={`/cards/members/?character=${character.id}`}>{ui.all} →</a>
+      </header>
+      {memberCards.length ? <div class="catalog-grid related-strip-grid">
+        {memberCards.slice(0, 4).map((card) => <MemberCardTile card={card} />)}
+      </div> : <p>{ui.emptyMembers}</p>}
+    </section>
+
+    <section id="featured-snaps" class="character-profile__related" aria-labelledby="featured-snaps-heading">
+      <header class="character-profile__section-heading">
+        <h2 id="featured-snaps-heading">{ui.supports} <span>{supportCards.length}</span></h2>
+        <a href={`/cards/supports/?character=${character.id}`}>{ui.all} →</a>
+      </header>
+      {supportCards.length ? <div class="catalog-grid support-card-grid related-strip-grid">
+        {supportCards.slice(0, 4).map((card) => <SupportCardTile card={card} />)}
+      </div> : <p>{ui.emptySupports}</p>}
+    </section>
+
+    {vocalTracks.length > 0 && <section id="vocal-tracks" class="character-profile__related" aria-labelledby="vocal-tracks-heading">
+      <header class="character-profile__section-heading">
+        <h2 id="vocal-tracks-heading">{ui.music} <span>{vocalTracks.length}</span></h2>
+        <a href={`/music/?q=${encodeURIComponent(character.displayName)}`}>{ui.all} →</a>
+      </header>
+      <div class="character-profile__music-grid">
+        {vocalTracks.slice(0, 4).map((track) => {
+          const jacket = getAsset(track.jacketAssetId);
+          return <a class="character-music-card" href={`/music/${track.id}/`}>
+            <div class="character-music-card__artwork">
+              {jacket ? <ArchiveImage asset={jacket} alt="" controlledLazy /> : <span class="media-missing">{track.title}</span>}
+            </div>
+            <div class="character-music-card__body">
+              <h3>{track.title}</h3>
+              <p>{track.vocalistLabels.join(" / ")}</p>
+              <div class="character-music-card__metadata">
+                <CardAttributeBadge code={track.musicType} compact />
+                <span>BPM {formatBpmRange(track.bpm)}</span>
+              </div>
+            </div>
+          </a>;
+        })}
+      </div>
+    </section>}
+    <section class="character-profile__related" aria-labelledby="live2d-heading">
+      <header class="character-profile__section-heading"><h2 id="live2d-heading">Live2D</h2></header>
+      <Live2DWorkbench characterId={character.masterId} compact />
+    </section>
+    <details class="character-profile__source">
+      <summary>{ui.source}</summary>
+      <p>{ui.sourceNote}</p>
+      <p>MasterCharacter · MasterText · {catalog.release.label}</p>
+    </details>
+  </article>
+  <CharacterNavigator character={character} />
+  </div>
+</BaseLayout>

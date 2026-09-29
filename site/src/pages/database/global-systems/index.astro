@@ -1,0 +1,94 @@
+---
+import BaseLayout from "../../../layouts/BaseLayout.astro";
+import SourceDisclosure from "../../../components/SourceDisclosure.astro";
+import Rewards from "../../../components/systems/Rewards.astro";
+import { globalSystems } from "../../../lib/global-systems";
+import { en, say, systemHref, rewardView } from "../../../lib/system-display";
+import "../../../styles/system-modules.css";
+import "../../../styles/growth-systems.css";
+import growthArt from "../../../../public/growth/manifest.json";
+const ranks = globalSystems.vipRanks;
+const artBase = systemHref("/growth/");
+const tierFor = (rank: number) => rank >= 16 ? "black" : rank >= 11 ? "platinum" : rank >= 6 ? "gold" : "normal";
+const tiers = [
+  { id: "normal", name: say("普通卡", "Normal"), range: "01–05" },
+  { id: "gold", name: say("金卡", "Gold"), range: "06–10" },
+  { id: "platinum", name: say("白金卡", "Platinum"), range: "11–15" },
+  { id: "black", name: say("黑卡", "Black"), range: "16–21" },
+];
+const studio = globalSystems.studioUnits.map(unit => ({ ...unit, itemRewards: Object.fromEntries(Object.entries(unit.itemRewards || {}).map(([key, rewards]) => [key, rewards.map(rewardView)])) }));
+const bonusValue = (type: number, value: number) => [2, 5, 7].includes(type) ? `${type === 2 ? "−" : "+"}${value / 100}%` : type === 6 ? `+${value / 3600} h` : type === 4 ? say("已解锁", "Unlocked") : `+${value}`;
+---
+<BaseLayout title={say("TGW · 录音室练习", "TGW · Studio practice")}>
+  <header class="sys-hero content-shell"><div class="eyebrow">GROWTH & DAILY REWARDS</div><h1>{say("TGW 与录音室练习", "TGW & Studio practice")}</h1><p>{say("选择等级，查看特典、领取奖励与练习收益。", "Choose a level to explore benefits and practice rewards.")}</p></header>
+  <section class="content-shell sys-body growth-body">
+    <system-tabs>
+      <nav class="sys-tabs" aria-label={say("系统选择", "System selection")}><button type="button" data-view="tgw" aria-pressed="true">T.G.W CARD</button><button type="button" data-view="studio" aria-pressed="false">{say("录音室练习", "Studio practice")}</button></nav>
+      <div data-view-panel="tgw" id="tgw">
+        <div class="growth-section-heading"><h2>{say("选择 TGW 等级", "Choose your TGW rank")}</h2><p>{say("点选等级，查看对应卡面与特典", "Select a rank to view its card and benefits")}</p></div>
+        <div class="tgw-tier-picker" role="group" aria-label={say("TGW 等级", "TGW rank")}>
+          {tiers.map(tier => <div class="tgw-tier" data-tier={tier.id}>
+            <div class="tgw-tier-heading"><img src={`${artBase}tgwcard_${tier.id}_small.webp`} alt="" width="60" height="28" /><strong>{tier.name}</strong><small>{tier.range}</small></div>
+            <div class="tgw-tier-ranks">{ranks.filter(rank => tierFor(rank.rank) === tier.id).map((rank) => <button type="button" data-tgw-select={rank.rank} aria-label={`TGW Rank ${rank.rank}`} aria-pressed={rank.rank === ranks[0]?.rank}>{String(rank.rank).padStart(2, "0")}</button>)}</div>
+          </div>)}
+        </div>
+        <p class="growth-explainer">{say("消耗付费／免费星钻或每日免费领取可获得积分；升级后等级不会下降。", "Earn points by spending paid/free gems or claiming daily points. Unlocked ranks are permanent.")}</p>
+        {ranks.map((rank, index) => <div data-tgw-rank={rank.rank} hidden={index !== 0}>
+          <div class="tgw-summary">
+            <div class="tgw-card-art" role="img" aria-label={`T.G.W CARD · Rank ${rank.rank}`}>
+              <img class="tgw-card-base" src={`${artBase}tgwcard_${tierFor(rank.rank)}.webp`} alt="" width="980" height="630" loading={index === 0 ? "eager" : "lazy"} />
+              <img class="tgw-card-rank" src={`${artBase}tgwcard_${tierFor(rank.rank)}_rank.webp`} alt="" loading="lazy" />
+              <img class="tgw-card-number" src={`${artBase}tgwcard_${tierFor(rank.rank)}_${rank.rank}.webp`} alt="" loading="lazy" />
+            </div>
+            <div class="tgw-points"><div class="growth-kicker">T.G.W CARD · RANK {String(rank.rank).padStart(2, "0")}</div><small>{say("累计所需积分", "Required total points")}</small><strong>{rank.requiredPoints.toLocaleString()} <span>pt</span></strong><p>{index < ranks.length - 1 ? `${say("升至下一等级需再积累", "Points to the next rank: ")} ${(ranks[index + 1].requiredPoints - rank.requiredPoints).toLocaleString()} pt` : say("已是最高等级", "Maximum rank")}</p></div>
+          </div>
+          <div class="sys-two-columns"><div class="sys-panel"><h2>{say("等级效果", "Rank benefits")}</h2>{rank.bonuses.length ? <dl class="sys-benefits">{rank.bonuses.map(bonus => <div><dt>{bonus.label}</dt><dd>{bonusValue(bonus.type, bonus.rawValue)}</dd></div>)}</dl> : <p class="sys-muted">{say("初始等级，升级后解锁更多特典。", "Starting rank. More benefits unlock as you progress.")}</p>}</div>
+            <div class="sys-panel"><h2>{say("奖励", "Rewards")}</h2><h3>{say("每日领取", "Daily claim")}</h3>{rank.dailyRewards?.length ? <Rewards rewards={rank.dailyRewards} /> : <p class="sys-muted">{say("本等级暂无每日道具奖励，仍可领取每日积分。", "No daily item rewards at this rank. Daily points remain available.")}</p>}<h3>{say("升级奖励", "Rank-up rewards")}</h3>{rank.rankUpRewards.length ? <Rewards rewards={rank.rankUpRewards} /> : <p class="sys-muted">{say("本等级无升级奖励。", "No rank-up rewards.")}</p>}</div></div>
+        </div>)}
+        <div class="sys-panel tgw-daily"><h2>{say("每日免费积分", "Free daily points")}</h2><p class="sys-muted">{say("每天领取一次，连续领取可提高获得量；付费与免费星钻的积分换算不同。", "Claim once a day; consecutive claims increase the reward. Paid and free gems have different conversion rates.")}</p><div class="tgw-streak">{globalSystems.vipDailyPoints?.map(day => <div><small>{say("连续", "Streak ")} {day.consecutiveDays} {say("天", "days")}</small><strong>{day.points} <span>pt</span></strong></div>)}</div></div>
+      </div>
+      <div data-view-panel="studio" id="studio" hidden>
+        {studio.length ? <studio-practice data-units={JSON.stringify(studio)} data-en={String(en)} data-ranks={JSON.stringify(growthArt.bandRanks)} data-art-base={artBase}>
+          <div class="growth-section-heading"><h2>{say("选择练习乐队", "Choose a band")}</h2><p>{say("各乐队独立选择段位与练习等级", "Each band keeps its own rank and practice level")}</p></div>
+          <div class="studio-band-picker" role="group" aria-label={say("乐队", "Band")}>
+            {studio.map((unit, index) => <button type="button" data-studio-band={unit.id} aria-pressed={index === 0}><img src={`${import.meta.env.BASE_URL}images/filter-bands/band-${unit.bandId}.png`} alt="" width="100" height="56" /><span>{unit.name}</span></button>)}
+          </div>
+          <div class="studio-controls">
+            <div class="studio-rank-control"><img data-studio-rank-image src={`${artBase}${growthArt.bandRanks[0].image}`} alt={growthArt.bandRanks[0].label} width="78" height="52" /><label>{say("乐队段位", "Band rank")}<select data-studio-rank>{growthArt.bandRanks.map(rank => <option value={rank.rank}>{rank.label}</option>)}</select></label></div>
+            <div class="studio-level-control"><label for="studio-level">{say("练习等级", "Practice level")}</label><div class="studio-level-stepper"><button type="button" data-level-step="-1" aria-label={say("上一个练习等级", "Previous practice level")}>−</button><select id="studio-level" data-studio-level>{studio[0].levels.map(level => <option value={level.level} disabled={level.unlockBandRank > 1}>Lv. {level.level}</option>)}</select><button type="button" data-level-step="1" aria-label={say("下一个练习等级", "Next practice level")}>+</button></div></div>
+            <div class="studio-cap" aria-live="polite"><span>{say("当前段位练习上限", "Practice cap at this rank")}</span><strong data-studio-cap>—</strong><p data-studio-next></p></div>
+          </div>
+          <p class="growth-explainer">{say("乐队段位决定可解锁的练习上限；练习 EXP 决定实际练习等级。此处仅用于查阅。", "Band rank unlocks the level cap; Practice EXP determines your actual level. Selections are for reference.")}</p>
+          <div class="studio-heading"><h2 data-studio-title>{studio[0].name}</h2><span data-studio-level-label>Lv. 1</span></div>
+          <dl class="studio-metrics"><div><dt>{say("所需乐队段位", "Required band rank")}</dt><dd data-stat="unlockBandRank">—</dd></div><div><dt>{say("等级经验门槛", "Level EXP threshold")}</dt><dd data-stat="requiredExp">—</dd></div><div><dt>{say("基础练习时长", "Efficient practice")}</dt><dd data-stat="efficiencyHours">—</dd></div><div><dt>{say("累计时长上限", "Total time cap")}</dt><dd data-stat="limitHours">—</dd></div></dl>
+          <div class="sys-panel"><h3>{say("每小时奖励", "Hourly rewards")}</h3><dl class="studio-metrics studio-yields"><div><dt>{say("金币", "Coins")}</dt><dd data-stat="rawEarnCoin">—</dd></div><div><dt>{say("成员 EXP", "Member EXP")}</dt><dd data-stat="rawEarnMemberExp">—</dd></div><div><dt>{say("留影 EXP", "Snapshot EXP")}</dt><dd data-stat="rawEarnSupportExp">—</dd></div><div><dt>{say("练习 EXP", "Practice EXP")}</dt><dd data-stat="rawEarnOfflineBonusExp">—</dd></div><div><dt>{say("道具抽选数", "Item draws")}</dt><dd data-stat="itemDraws">—</dd></div></dl><p class="sys-muted">{say("练习效率 100% 时的每小时奖励，未叠加 TGW 等额外加成。", "Hourly rewards at 100% efficiency, before TGW and other bonuses.")}</p></div>
+          <details class="sys-details sys-panel"><summary>{say("可获得的道具", "Available items")}</summary><ul class="sys-rewards studio-items" data-studio-items></ul><p class="sys-muted">{say("道具概率按本组抽选权重计算，不代表每次必得。", "Item rates reflect relative weights within this group, not guaranteed rewards.")}</p></details>
+          <div class="sys-panel studio-unlocks"><h3>{say("段位与练习解锁", "Rank unlocks")}</h3><p class="sys-muted">{say("达到对应段位后，该范围内的练习等级可通过积累练习 EXP 提升。", "Reach the required band rank, then earn Practice EXP to progress through these levels.")}</p><ol class="studio-gates" data-studio-gates></ol></div>
+          <details class="sys-details sys-panel"><summary>{say("查看所选乐队的完整等级表", "Full level table for this band")}</summary><div class="sys-table-wrap"><table><thead><tr><th>Lv.</th><th>EXP</th><th>{say("乐队段位", "Band rank")}</th><th>{say("状态", "Status")}</th><th>{say("金币", "Coins")}</th><th>{say("成员／留影 EXP", "Member / Snapshot EXP")}</th><th>{say("练习 EXP", "Practice EXP")}</th></tr></thead><tbody data-studio-table></tbody></table></div></details>
+        </studio-practice> : <p class="sys-empty">{say("当前版本未收录录音室资料。", "No studio data in this version.")}</p>}
+        <div class="sys-notice"><h3>{say("练习与领取", "Practice & collection")}</h3><p>{say("每满 10 分钟积攒一次奖励，领取后练习时间重置。超过基础练习时长后进入低效率的溢出阶段，合计最多积攒 24 小时。练习 EXP 用于提升练习等级，乐队段位决定可解锁的上限。TGW 可增加练习奖励并延长有效练习时间。", "Rewards accrue every 10 minutes; collection resets the timer. Efficiency drops after the efficient period, with up to 24 hours stored in total. Practice EXP raises the level; band rank unlocks its cap. TGW can improve rewards and efficient time.")}</p></div>
+      </div>
+    </system-tabs>
+    <details class="sys-details" id="gacha"><summary>{say("原卡池入口", "Previous gacha links")}</summary><p><a href={systemHref("/recruitment/")}>{say("前往招募模块", "Go to recruitment")} →</a></p>{globalSystems.gachaPools.map(pool => <p id={`gacha-${pool.id}`}><a href={systemHref(`/recruitment/${pool.id}/`)}>{pool.name} →</a></p>)}</details>
+    <SourceDisclosure title={say("资料来源与说明", "Source & notes")}><p>{say("资料来自游戏内的等级、奖励说明与帮助内容。选择等级可查看对应条件和奖励，不代表你的账号等级，也不会在游戏内领取奖励。内容如有变化，请以游戏内说明为准。", "Information comes from the game’s level descriptions, rewards and help pages. Selecting a level shows its requirements and rewards; it does not reflect your account level or collect rewards in the game. Please refer to the game for any changes.")}</p></SourceDisclosure>
+  </section>
+</BaseLayout>
+<script>
+  import "../../../lib/system-tabs.mjs";
+  import "../../../lib/studio-practice.mjs";
+  const revealLegacyRecruitment = () => {
+    if (!/^#gacha(?:-\d+)?$/.test(location.hash)) return;
+    const entry = document.querySelector<HTMLDetailsElement>("#gacha");
+    if (entry) entry.open = true;
+    document.getElementById(location.hash.slice(1))?.scrollIntoView();
+  };
+  revealLegacyRecruitment();
+  window.addEventListener("hashchange", revealLegacyRecruitment);
+  document.querySelectorAll<HTMLButtonElement>("[data-tgw-select]").forEach(button => {
+    button.addEventListener("click", () => {
+      const value = button.dataset.tgwSelect;
+      document.querySelectorAll<HTMLElement>("[data-tgw-rank]").forEach(panel => { panel.hidden = panel.dataset.tgwRank !== value; });
+      document.querySelectorAll<HTMLElement>("[data-tgw-select]").forEach(item => item.setAttribute("aria-pressed", String(item.dataset.tgwSelect === value)));
+    });
+  });
+</script>

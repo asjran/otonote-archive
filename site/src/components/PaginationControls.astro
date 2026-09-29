@@ -1,0 +1,23 @@
+---
+import { activeReleaseContext } from "../lib/release-context";
+
+interface Props {
+  defaultPageSize: 12 | 24;
+}
+const { defaultPageSize } = Astro.props;
+const more = { "zh-CN": "加载更多", "zh-TW": "載入更多", ja: "もっと見る", en: "Load more" }[activeReleaseContext.locale];
+---
+
+<div
+  class="archive-continuation"
+  data-pagination
+  data-default-page-size={defaultPageSize}
+  data-pagination-locale={activeReleaseContext.locale}
+  hidden
+>
+  <button type="button" data-load-more hidden>
+    <span>{more}</span><span class="continuation-count" data-load-more-count aria-hidden="true"></span>
+    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 10 6 6 6-6" /></svg>
+  </button>
+  <span class="continuation-status" data-pagination-range role="status" tabindex="-1"></span>
+</div>

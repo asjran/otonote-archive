@@ -1,0 +1,31 @@
+---
+import type { MusicTrack } from "../lib/catalog";
+import { rewardView } from "../lib/music-rewards";
+interface Props { track: MusicTrack; }
+const { track } = Astro.props;
+const scoreRankLabels: Record<number, string> = {
+  3: "C",
+  4: "B",
+  5: "A",
+  6: "S",
+  7: "SS"
+};
+const rewards = track.soloRewards.scoreRewards.map(reward => ({
+  ...reward,
+  view: rewardView(reward.entry)
+}));
+const sharedReward = rewards.length > 0 && rewards.every(reward => reward.view.href === rewards[0].view.href)
+  ? rewards[0].view : undefined;
+---
+
+<p class="song-score-note">
+  <span>分数奖励</span>
+  {sharedReward?.asset && <img src={sharedReward.asset.previewUrl} alt={sharedReward.label} loading="lazy" />}
+  {rewards.map(reward => (
+    <a href={reward.view.href} aria-label={`${scoreRankLabels[reward.liveScoreRank] ?? reward.liveScoreRank}：${reward.view.label} ×${reward.entry.resourceCount}`}>
+      {scoreRankLabels[reward.liveScoreRank] ?? reward.liveScoreRank}
+      {!sharedReward && reward.view.asset && <img src={reward.view.asset.previewUrl} alt="" loading="lazy" />}
+      <span>×{reward.entry.resourceCount.toLocaleString()}</span>
+    </a>
+  ))}
+</p>

@@ -1,0 +1,16 @@
+[Unit]
+Description=OurNotes resource platform worker
+Requires=docker.service
+After=docker.service network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+EnvironmentFile=/etc/ournotes/resource-worker.env
+ExecStart=/usr/bin/docker run --rm --name ournotes-resource-worker --env-file /etc/ournotes/resource-worker.secrets.env --mount type=bind,source=/srv/ournotes-data,target=/data --mount type=bind,source=/srv/ournotes-site,target=/site-releases ${OURNOTES_WORKER_IMAGE} python3 -m tools.resource_pipeline.cli run --all-enabled --data-root /data
+TimeoutStartSec=2h
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,78 @@
+.db-detail-dialog { width: min(780px, calc(100vw - 48px)); max-height: min(860px, calc(100dvh - 48px)); padding: 0; border: 1px solid var(--line); border-radius: 18px; background: var(--paper-light); color: var(--ink); box-shadow: 0 28px 100px rgb(0 0 0 / 25%); overscroll-behavior: contain; }
+.db-detail-dialog::backdrop { background: rgb(14 20 28 / 58%); backdrop-filter: blur(6px); }
+.db-dialog-bar { display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 2; padding: 12px 24px; border-bottom: 1px solid var(--line); background: var(--paper-light); }
+.db-dialog-bar > span { font-size: 12px; font-weight: 700; color: var(--silver-dark); }
+.db-dialog-bar button { display: grid; place-items: center; width: 36px; height: 36px; border: 1px solid var(--line); border-radius: 50%; background: transparent; color: inherit; font-size: 24px; cursor: pointer; }
+.db-dialog-bar button:hover { background: var(--paper-deep); }
+.db-detail-dialog [data-db-detail] { padding: 26px 32px 32px; }
+.db-detail-heading { display: grid; grid-template-columns: 76px minmax(0, 1fr); gap: 20px; align-items: center; }
+.db-detail-icon { width: 76px; height: 76px; display: grid; place-items: center; border: 1px solid var(--line); border-radius: 16px; background: var(--paper-deep); }
+.db-detail-icon img { width: 64px; height: 64px; object-fit: contain; }
+.db-detail-category { margin: 0 0 6px; font-size: 12px; font-weight: 800; color: var(--lacquer); }
+.db-detail-heading h2 { margin: 0; font-family: var(--font-display); font-size: clamp(21px, 3vw, 28px); line-height: 1.35; overflow-wrap: anywhere; }
+.db-detail-caption { margin: 8px 0 0; font-size: 12px; color: var(--silver-dark); }
+.db-detail-section { margin-top: 26px; padding-top: 22px; border-top: 1px solid var(--line); }
+.db-section-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin-bottom: 14px; }
+.db-section-heading h3 { margin: 0; font-size: 16px; }
+.db-section-heading > span { color: var(--silver-dark); font-size: 11px; }
+.db-level-picker { display: flex; flex-wrap: wrap; gap: 7px; }
+.db-level-picker button { display: inline-flex; align-items: center; gap: 5px; padding: 9px 14px; border: 1px solid var(--line); border-radius: 8px; background: transparent; color: inherit; font: 700 13px var(--font-mono); cursor: pointer; }
+.db-level-picker button[aria-pressed="true"] { background: var(--lacquer); border-color: var(--lacquer); color: white; }
+.db-level-picker small { font-size: 9px; opacity: .7; }
+.db-skill-panel { margin-top: 16px; padding: 20px; border-radius: 10px; border-left: 3px solid var(--lacquer); background: var(--paper-deep); }
+.db-skill-panel p { margin: 0; font-size: 16px; line-height: 1.9; white-space: pre-line; }
+.db-detail-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 14px; }
+.db-detail-tags span { color: var(--silver-dark); font-size: 11px; }
+.db-detail-tags span + span::before { content: "·"; margin-right: 6px; }
+.db-upgrade-list { display: grid; gap: 0; }
+.db-upgrade-row { display: grid; grid-template-columns: 50px minmax(0, 1fr) auto; align-items: center; gap: 8px; padding: 10px 0; border-bottom: 1px solid var(--line); font-size: 13px; }
+.db-upgrade-row a { display: flex; align-items: center; gap: 10px; }
+.db-upgrade-row img { width: 36px; height: 36px; object-fit: contain; }
+.db-upgrade-row small { grid-column: 2 / -1; font-size: 11px; color: var(--silver-dark); }
+.db-upgrade-level { font-family: var(--font-mono); color: var(--silver-dark); }
+.db-upgrade-row strong { font-family: var(--font-mono); font-size: 12px; }
+.db-related-cards { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.db-related-cards a { display: flex; align-items: center; gap: 10px; padding: 9px; border: 1px solid var(--line); border-radius: 9px; font-size: 12px; }
+.db-related-cards img { width: 48px; height: 48px; border-radius: 6px; object-fit: cover; }
+.db-related-cards b { margin-left: auto; color: var(--lacquer); }
+.db-detail-dialog a:hover { color: var(--lacquer); }
+.db-item-description { white-space: pre-line; margin: 22px 0 0; font-size: 14px; line-height: 1.9; }
+.db-acquisition-group { border: 1px solid var(--line); border-radius: 10px; margin: 8px 0; overflow: hidden; }
+.db-acquisition-group summary { padding: 14px 16px; cursor: pointer; font-size: 13px; font-weight: 700; }
+.db-acquisition-group summary small { float: right; color: var(--silver-dark); font-weight: 400; }
+.db-acquisition-group[open] summary { border-bottom: 1px solid var(--line); background: var(--paper-deep); }
+.db-acquisition-group ul { margin: 0; padding: 0 16px; list-style: none; }
+.db-acquisition-group li { display: flex; justify-content: space-between; align-items: baseline; gap: 14px; padding: 13px 0; border-bottom: 1px solid var(--line); font-size: 13px; }
+.db-acquisition-group li:last-child { border: 0; }
+.db-acquisition-group li > div { min-width: 0; overflow-wrap: anywhere; }
+.db-acquisition-group li > b { flex-shrink: 0; font: 700 12px var(--font-mono); }
+.db-acquisition-group li p { margin: 4px 0 0; color: var(--silver-dark); font-size: 12px; line-height: 1.7; }
+.db-acquisition-group li a { font-weight: 700; }
+.db-item-uses { padding: 0 16px; }
+.db-item-use { padding: 12px 0; border-bottom: 1px solid var(--line); }
+.db-item-use:last-child { border: 0; }
+.db-item-use > div:first-child { display: flex; justify-content: space-between; gap: 12px; font-size: 12px; }
+.db-use-links { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 9px; }
+.db-use-links a { padding: 4px 7px; border-radius: 4px; background: var(--paper-deep); font-size: 11px; }
+.db-detail-empty, .db-detail-note { color: var(--silver-dark); font-size: 12px; line-height: 1.8; }
+.db-detail-note { margin: 12px 0 0; }
+.db-detail-dialog [data-db-loading], .db-detail-dialog [data-db-error] { padding: 30px; }
+.db-detail-dialog button:focus-visible, .db-detail-dialog a:focus-visible, .db-detail-dialog summary:focus-visible { outline: 2px solid var(--lacquer); outline-offset: 3px; }
+@media (max-width: 620px) {
+  .db-detail-dialog { width: calc(100vw - 20px); max-height: calc(100dvh - 24px); border-radius: 14px; }
+  .db-detail-dialog [data-db-detail] { padding: 20px 18px 26px; }
+  .db-dialog-bar { padding: 10px 16px; }
+  .db-detail-heading { grid-template-columns: 58px minmax(0, 1fr); gap: 14px; }
+  .db-detail-icon { width: 58px; height: 58px; border-radius: 12px; }
+  .db-detail-icon img { width: 48px; height: 48px; }
+  .db-related-cards { grid-template-columns: 1fr; }
+  .db-level-picker button { padding: 9px 11px; }
+  .db-skill-panel { padding: 15px; }
+  .db-skill-panel p { font-size: 14px; }
+}
+@media (prefers-reduced-motion: no-preference) { .db-detail-dialog[open] { animation: db-dialog-enter 180ms ease-out; } @keyframes db-dialog-enter { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } } }
+@media (max-width: 620px) {
+  .db-level-picker { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 5px; }
+  .db-level-picker button { justify-content: center; flex-wrap: wrap; padding: 9px 3px; font-size: 12px; }
+  .db-level-picker small { font-size: 8px; }
+}

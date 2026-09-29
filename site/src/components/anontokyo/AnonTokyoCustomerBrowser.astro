@@ -1,0 +1,69 @@
+---
+import AnonTokyoHeader from "./AnonTokyoHeader.astro";
+
+interface Props { dataset: Record<string, any>; stagedMedia: Array<Record<string, string>>; }
+const { dataset, stagedMedia } = Astro.props;
+const records = dataset.records as Array<Record<string, any>>;
+const bands = dataset.bands as string[];
+const tags = dataset.tags as string[];
+const media = new Map(stagedMedia.map((entry) => [entry.logicalKey.toLocaleLowerCase("en-US"), entry.publicUrl]));
+---
+
+<AnonTokyoHeader
+  active="customers"
+  title="角色顾客偏好"
+  description="按角色查看两项喜好标签，并关联同时命中这些标签的商品。匹配只依据包内标签，不代表购买概率排行。"
+  count={records.length}
+/>
+
+<main class="at-guide-main" data-at-customers>
+  <div class="content-shell">
+    <div class="at-filter-bar">
+      <label class="at-filter-search"><span>搜索角色或商品</span><input type="search" placeholder="输入角色、标签或商品名" data-at-query /></label>
+      <label><span>乐队</span><select data-at-band><option value="">全部乐队</option>{bands.map((band) => <option value={band}>{band}</option>)}</select></label>
+      <label><span>喜好标签</span><select data-at-tag><option value="">全部标签</option>{tags.map((tag) => <option value={tag}>{tag}</option>)}</select></label>
+      <strong><b data-at-count>{records.length}</b> 人</strong>
+    </div>
+    <div class="at-customer-grid">
+      {records.map((record) => {
+        const imageUrl = record.character.imageKey ? media.get(record.character.imageKey.toLocaleLowerCase("en-US")) : undefined;
+        const search = [record.character.name, record.band, ...record.preferences, ...record.matchingGoods.map((item: any) => item.name)].join(" ").toLocaleLowerCase("zh-CN");
+        return <article class="at-customer-card" data-at-record data-search={search} data-band={record.band} data-tags={record.preferences.join("|")}>
+          <header>
+            {imageUrl ? <img src={imageUrl} alt="" loading="lazy" decoding="async" /> : <span class="at-customer-card__fallback" aria-hidden="true">{record.character.name.slice(0, 1)}</span>}
+            <div><span>{record.band || "角色顾客"}</span><h2>{record.character.name}</h2><div class="at-preference-tags">{record.preferences.map((tag: string) => <b>{tag}</b>)}</div></div>
+          </header>
+          <div class="at-customer-goods"><strong>匹配商品 <span>{record.matchingGoods.length}</span></strong>{record.matchingGoods.slice(0, 5).map((item: any) => <a href={`/anontokyo/goods/${item.id}/`}><span>{item.name}</span><small>{item.matchedTags.join(" + ")}</small></a>)}{record.matchingGoods.length > 5 && <p>另有 {record.matchingGoods.length - 5} 件，可在商品页按标签筛选。</p>}</div>
+          <a class="at-customer-staff-link" href={`/anontokyo/staff/${record.character.id}/`}>查看角色能力 →</a>
+        </article>;
+      })}
+    </div>
+    <p class="at-empty" data-at-empty hidden>没有符合条件的角色顾客。</p>
+  </div>
+</main>
+
+<script>
+  for (const root of document.querySelectorAll("[data-at-customers]")) {
+    const query = root.querySelector("[data-at-query]");
+    const band = root.querySelector("[data-at-band]");
+    const tag = root.querySelector("[data-at-tag]");
+    const records = Array.from(root.querySelectorAll<HTMLElement>("[data-at-record]"));
+    const update = () => {
+      const q = query instanceof HTMLInputElement ? query.value.trim().toLocaleLowerCase("zh-CN") : "";
+      const selectedBand = band instanceof HTMLSelectElement ? band.value : "";
+      const selectedTag = tag instanceof HTMLSelectElement ? tag.value : "";
+      let visible = 0;
+      for (const record of records) {
+        const matches = (!q || (record.dataset.search ?? "").includes(q)) && (!selectedBand || record.dataset.band === selectedBand) && (!selectedTag || (record.dataset.tags ?? "").split("|").includes(selectedTag));
+        record.toggleAttribute("hidden", !matches);
+        if (matches) visible += 1;
+      }
+      const count = root.querySelector("[data-at-count]");
+      if (count) count.textContent = String(visible);
+      root.querySelector("[data-at-empty]")?.toggleAttribute("hidden", visible !== 0);
+    };
+    query?.addEventListener("input", update);
+    band?.addEventListener("change", update);
+    tag?.addEventListener("change", update);
+  }
+</script>

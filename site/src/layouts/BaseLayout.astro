@@ -1,0 +1,371 @@
+---
+import { SITE_NAME, siteDescription } from "../lib/site-brand.mjs";
+import { navIcons } from "../lib/navigation-icons.mjs";
+import { catalog, pageTitle } from "../lib/catalog";
+import RegionLocaleSwitcher from "../components/RegionLocaleSwitcher.astro";
+import UnifiedSearch from "../components/UnifiedSearch.astro";
+import TransitionPreview from "../components/TransitionPreview.astro";
+import SiteFooter from "../components/SiteFooter.astro";
+import pageFirstRenderScript from "../lib/page-first-render.mjs?raw";
+import { activeReleaseContext } from "../lib/release-context";
+import { logicalPath, siteHref } from "../lib/site-context";
+import { getUi } from "../lib/ui-i18n";
+import {
+  NAVIGATION_GROUPS,
+  activeNavigationChild,
+  activeNavigationGroup
+} from "../lib/navigation.mjs";
+import "../styles/global.css";
+import "../styles/site-shell.css";
+import "../styles/page-title.css";
+import "../styles/filter-panel.css";
+import "../styles/interaction-motion.css";
+import "../styles/page-transitions.css";
+import { filterVisualOptions } from "../lib/filter-visuals";
+
+interface Props {
+  title?: string;
+  description?: string;
+  image?: string;
+  tone?: "paper" | "ink";
+  footerMeta?: {
+    releaseLabel: string;
+    regionLocale: string;
+    contentReleaseId: string;
+  };
+}
+
+const {
+  title,
+  description = siteDescription(activeReleaseContext.locale),
+  image,
+  tone = "paper"
+} = Astro.props;
+const pathname = logicalPath(Astro.url.pathname, activeReleaseContext);
+const ui = getUi(activeReleaseContext.locale);
+const siteTitle = SITE_NAME;
+const buildBase = import.meta.env.BASE_URL;
+const href = (path: string) =>
+  buildBase === "/" ? path : siteHref(path, activeReleaseContext);
+const moduleStatus = new Map(
+  catalog.modules.map((module) => [module.route, module.status])
+);
+const navItems = NAVIGATION_GROUPS.map((group) => ({
+  ...group,
+  label: ui[group.labelKey as keyof typeof ui],
+  children: group.children.map((item) => ({
+    ...item,
+    label: ui[item.labelKey as keyof typeof ui]
+  }))
+}));
+const activeNavId = activeNavigationGroup(pathname);
+const activeGroup = navItems.find((item) => item.id === activeNavId);
+const activeChild = activeNavigationChild(pathname, activeGroup?.children ?? []);
+const homeLabel = activeReleaseContext.locale === "en" ? "Overview" : "首页概览";
+const currentLabel = title ?? activeChild?.label ?? activeGroup?.label ?? homeLabel;
+
+const htmlLanguage = activeReleaseContext.locale;
+
+---
+
+<!doctype html>
+<html lang={htmlLanguage} data-tone={tone} data-shell="sidebar" data-motion="on" data-page-transition="stage">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="generator" content={Astro.generator} />
+    <meta name="description" content={description} />
+    <meta name="theme-color" content="#11131b" />
+    <!-- Keep the outgoing frame until streamed module HTML has been fully parsed. -->
+    <link rel="expect" blocking="render" href="#page-content-ready" />
+    <script is:inline set:html={pageFirstRenderScript} />
+    <link rel="icon" href={href("/favicon.svg")} type="image/svg+xml" />
+    <meta property="og:title" content={pageTitle(title)} />
+    <meta property="og:description" content={description} />
+    {image && <meta property="og:image" content={image} />}
+    <title>{pageTitle(title)}</title>
+    <style is:inline>
+      /* Match the page canvas even before the shared stylesheet arrives. */
+      html { background: #f0eee8; }
+    </style>
+    <script is:inline>
+      // Keep a direct comparison available without changing the visible interface.
+      if (new URLSearchParams(window.location.search).get("motion") === "off") {
+        document.documentElement.dataset.motion = "off";
+      }
+      const unavailablePath = new URLSearchParams(window.location.search).get(
+        "unavailable"
+      );
+      if (unavailablePath) {
+        document.documentElement.dataset.unavailablePath = unavailablePath;
+      }
+    </script>
+    <script is:inline data-page-transition-init>
+      // Register before first render; keep normal document navigation and script lifecycles.
+      const preparePageTransition = (event) => {
+        if (!event.viewTransition) return;
+        if (document.documentElement.dataset.motion === "off" ||
+            window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+          event.viewTransition.skipTransition();
+          return;
+        }
+        if (event.type === "pagereveal") {
+          // Keep this marker for this document: removing it would restart entry animations.
+          document.documentElement.dataset.navigationEntry = "true";
+        }
+      };
+      window.addEventListener("pageswap", preparePageTransition);
+      window.addEventListener("pagereveal", preparePageTransition);
+    </script>
+    <script is:inline data-transition-preview-init>
+      (() => {
+        const params = new URLSearchParams(window.location.search);
+        const mode = params.get("transition");
+        if (!["fade", "stage", "book", "beat"].includes(mode)) return;
+        document.documentElement.dataset.transitionPreview = "true";
+        document.documentElement.dataset.pageTransition = mode;
+        document.documentElement.dataset.transitionSpeed = params.get("transition-speed") === "slow" ? "slow" : "normal";
+      })();
+    </script>
+  </head>
+  <body>
+    <a class="skip-link" href="#main-content">{ui.skipMain}</a>
+    <header class="site-header" data-site-header>
+      <a class="site-brand" href={href("/")} aria-label={ui.brandHome}>
+        <img class="site-brand__mark" src={href("/brand/ournotes-mark.svg")} alt="" width="34" height="34" />
+        <span class="site-brand__full">{siteTitle}</span>
+        <span class="site-brand__compact" aria-hidden="true">{SITE_NAME}</span>
+        <small>{htmlLanguage === "en" ? "Events · Data · Team tools" : "活动 · 资料 · 配队工具"}</small>
+      </a>
+
+      <nav id="site-navigation" class="site-nav" aria-label={ui.mainNavigation} data-site-nav>
+        <p class="nav-caption">{htmlLanguage === "en" ? "EXPLORE" : "浏览目录"}</p>
+        <a class="nav-home" href={href("/")} aria-current={pathname === "/" ? "page" : undefined}>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 10l9-7 9 7 M5 9v12h5v-7h4v7h5V9" /></svg>
+          {homeLabel}
+        </a>
+        {navItems.map((item) => (
+          <div class="nav-group" data-active={activeNavId === item.id || undefined} data-has-children={item.children.length > 0 || undefined}>
+            <a
+              class="nav-primary"
+              href={href(item.href)}
+              aria-current={pathname === item.href ? "page" : undefined}
+            >
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d={navIcons[item.id]} /></svg>
+              {item.label}
+              {moduleStatus.get(item.href) === "reserved" && (
+                <small>{ui.reserved}</small>
+              )}
+            </a>
+            {item.children.length > 0 && (
+              <button
+                class="nav-submenu-toggle"
+                type="button"
+                aria-expanded="true"
+                aria-controls={`nav-submenu-${item.id}`}
+                aria-label={`${ui.collapseNavigationGroup}${item.label}`}
+                data-nav-submenu-toggle
+                data-nav-group-id={item.id}
+              >
+                <span aria-hidden="true">−</span>
+              </button>
+            )}
+            {item.children.length > 0 && (
+              <div
+                id={`nav-submenu-${item.id}`}
+                class="nav-submenu"
+                aria-label={`${item.label}${ui.subNavigation}`}
+                data-nav-submenu
+              >
+                {item.children.map((child) => (
+                  <a
+                    href={href(child.href)}
+                    aria-current={child.href === activeChild?.href ? "page" : undefined}
+                  >
+                    {child.label}
+                  </a>
+                ))}
+              </div>
+            )}
+          </div>
+        ))}
+        <script is:inline data-nav-state-init>
+          // Restore saved groups while the navigation is parsed, before first paint.
+          document.querySelectorAll("[data-nav-submenu-toggle]").forEach((button) => {
+            let stored = null;
+            try {
+              stored = window.sessionStorage.getItem(`ournotes-nav-group:${button.getAttribute("data-nav-group-id")}`);
+            } catch {
+              // Keep the server-rendered navigation usable without storage.
+            }
+            const expanded = button.closest("[data-active]") !== null || stored !== "false";
+            const submenu = document.getElementById(button.getAttribute("aria-controls"));
+            const label = button.closest(".nav-group")?.querySelector(".nav-primary")?.textContent?.trim() ?? "";
+            const english = document.documentElement.lang === "en";
+            button.setAttribute("aria-expanded", String(expanded));
+            button.setAttribute("aria-label", `${expanded ? (english ? "Collapse navigation group: " : "收起导航分组：") : (english ? "Expand navigation group: " : "展开导航分组：")}${label}`);
+            const icon = button.querySelector("span");
+            if (icon) icon.textContent = expanded ? "−" : "+";
+            if (submenu) {
+              submenu.hidden = !expanded;
+              submenu.inert = !expanded;
+            }
+          });
+        </script>
+        <div class="nav-bottom">
+          <a href={href("/updates/")} aria-current={pathname === "/updates/" ? "page" : undefined}>{htmlLanguage === "en" ? "Version history" : "版本记录"}<span aria-hidden="true">↗</span></a>
+          <small>{SITE_NAME} · {activeReleaseContext.region.toUpperCase()}</small>
+        </div>
+      </nav>
+
+      <nav class="site-breadcrumb" aria-label={htmlLanguage === "en" ? "Breadcrumb" : "当前位置"}>
+        <a href={href("/")}>{homeLabel}</a>
+        {pathname !== "/" && <><span aria-hidden="true">/</span>{activeGroup && activeGroup.label !== currentLabel && <><a href={href(activeGroup.href)}>{activeGroup.label}</a><span aria-hidden="true">/</span></>}<strong aria-current="page">{currentLabel}</strong></>}
+      </nav>
+
+      <UnifiedSearch />
+
+      <RegionLocaleSwitcher />
+
+      <button
+        class="nav-toggle"
+        type="button"
+        aria-label={ui.openNavigation}
+        aria-expanded="false"
+        aria-controls="site-navigation"
+        data-nav-toggle
+      >
+        <span></span><span></span>
+      </button>
+
+    </header>
+    <button class="nav-backdrop" data-nav-backdrop tabindex="-1" aria-label={ui.closeNavigation} hidden></button>
+
+    <aside class="availability-notice" data-availability-notice hidden>
+      <strong>{ui.unavailableTitle}</strong>
+      <small>{ui.unavailableHint}</small>
+      <span data-unavailable-path></span>
+    </aside>
+
+    <main id="main-content" data-page-kind={pathname === "/" ? "home" : "module"} tabindex="-1">
+      <slot />
+    </main>
+    <span id="page-content-ready" hidden aria-hidden="true"></span>
+
+    <TransitionPreview nextHref={href(pathname.startsWith("/music/") ? "/catalog/" : "/music/")} nextLabel={pathname.startsWith("/music/") ? "切换到资料" : "切换到音乐"} />
+
+    <script is:inline type="application/json" data-filter-visuals set:html={JSON.stringify(filterVisualOptions).replace(/</g, "\\u003c")} />
+    <SiteFooter title={siteTitle} locale={activeReleaseContext.locale} href={href} />
+
+    <script>
+  import "../lib/filter-panel-ui.mjs";
+      const labels = {
+        open: document.documentElement.lang === "en" ? "Open navigation" : "打开导航",
+        close: document.documentElement.lang === "en" ? "Close navigation" : "关闭导航",
+        expandGroup: document.documentElement.lang === "en" ? "Expand navigation group: " : "展开导航分组：",
+        collapseGroup: document.documentElement.lang === "en" ? "Collapse navigation group: " : "收起导航分组："
+      };
+      const toggle = document.querySelector("[data-nav-toggle]");
+      const navigation = document.querySelector("[data-site-nav]");
+      const backdrop = document.querySelector<HTMLButtonElement>("[data-nav-backdrop]");
+      const backgroundElements = document.querySelectorAll<HTMLElement>("#main-content, .site-footer, .availability-notice, .site-brand, .site-breadcrumb, .global-search, .context-switcher");
+      const closeNavigation = () => {
+        toggle?.setAttribute("aria-expanded", "false");
+        toggle?.setAttribute("aria-label", labels.open);
+        navigation?.removeAttribute("data-open");
+        if (navigation instanceof HTMLElement) navigation.inert = mobileNavigation.matches;
+        document.body.removeAttribute("data-nav-open");
+        if (backdrop) backdrop.hidden = true;
+        backgroundElements.forEach((element) => { element.inert = false; });
+      };
+      toggle?.addEventListener("click", () => {
+        const expanded = toggle.getAttribute("aria-expanded") === "true";
+        if (expanded) { closeNavigation(); return; }
+        toggle.setAttribute("aria-expanded", String(!expanded));
+        toggle.setAttribute("aria-label", expanded ? labels.open : labels.close);
+        navigation?.toggleAttribute("data-open", !expanded);
+        if (navigation instanceof HTMLElement) navigation.inert = false;
+        document.body.toggleAttribute("data-nav-open", !expanded);
+        if (backdrop) backdrop.hidden = false;
+        backgroundElements.forEach((element) => { element.inert = true; });
+        const currentLink = navigation?.querySelector<HTMLElement>('a[aria-current="page"]')
+          ?? navigation?.querySelector<HTMLElement>("a");
+        currentLink?.focus();
+      });
+      backdrop?.addEventListener("click", () => {
+        closeNavigation();
+        if (toggle instanceof HTMLElement) toggle.focus();
+      });
+      navigation?.addEventListener("click", (event) => {
+        if (event.target instanceof Element && event.target.closest("a")) {
+          closeNavigation();
+        }
+      });
+      document.addEventListener("keydown", (event) => {
+        if (!document.body.hasAttribute("data-nav-open")) return;
+        if (event.key === "Escape") {
+          closeNavigation();
+          if (toggle instanceof HTMLElement) toggle.focus();
+        }
+        if (event.key === "Tab") {
+          const focusable = [...(navigation?.querySelectorAll<HTMLElement>("a, button") ?? []), toggle]
+            .filter((element): element is HTMLElement => element instanceof HTMLElement && !element.closest("[inert]") && element.getClientRects().length > 0);
+          const index = focusable.indexOf(document.activeElement as HTMLElement);
+          if ((event.shiftKey && index <= 0) || (!event.shiftKey && (index === focusable.length - 1 || index < 0))) {
+            event.preventDefault();
+            focusable[event.shiftKey ? focusable.length - 1 : 0]?.focus();
+          }
+        }
+      });
+
+      const mobileNavigation = window.matchMedia("(max-width: 1100px)");
+      if (navigation instanceof HTMLElement) navigation.inert = mobileNavigation.matches;
+      const submenuToggles = document.querySelectorAll("[data-nav-submenu-toggle]");
+      const setStoredGroupState = (groupId: string, expanded: boolean) => {
+        try {
+          window.sessionStorage.setItem(`ournotes-nav-group:${groupId}`, String(expanded));
+        } catch {
+          // The navigation remains functional when session storage is unavailable.
+        }
+      };
+      const applySubmenuState = (button: Element, expanded: boolean) => {
+        const submenuId = button.getAttribute("aria-controls");
+        const submenu = submenuId ? document.getElementById(submenuId) : null;
+        const label = button.closest(".nav-group")?.querySelector(".nav-primary")?.textContent?.trim() ?? "";
+        button.setAttribute("aria-expanded", String(expanded));
+        button.setAttribute("aria-label", `${expanded ? labels.collapseGroup : labels.expandGroup}${label}`);
+        const icon = button.querySelector("span");
+        if (icon) icon.textContent = expanded ? "−" : "+";
+        if (submenu) {
+          submenu.hidden = !expanded;
+          submenu.inert = !expanded;
+        }
+      };
+      submenuToggles.forEach((button) => {
+        const groupId = button.getAttribute("data-nav-group-id") ?? "unknown";
+        button.addEventListener("click", () => {
+          button.closest(".nav-group")?.setAttribute("data-nav-interacted", "");
+          const expanded = button.getAttribute("aria-expanded") !== "true";
+          applySubmenuState(button, expanded);
+          setStoredGroupState(groupId, expanded);
+        });
+      });
+      mobileNavigation.addEventListener("change", () => {
+        closeNavigation();
+        submenuToggles.forEach((button) => {
+          applySubmenuState(button, button.getAttribute("aria-expanded") === "true");
+        });
+      });
+
+      const unavailable =
+        document.documentElement.dataset.unavailablePath ??
+        new URLSearchParams(window.location.search).get("unavailable");
+      const notice = document.querySelector("[data-availability-notice]");
+      if (unavailable && notice instanceof HTMLElement) {
+        notice.hidden = false;
+        const path = notice.querySelector("[data-unavailable-path]");
+        if (path) path.textContent = unavailable;
+      }
+    </script>
+  </body>
+</html>

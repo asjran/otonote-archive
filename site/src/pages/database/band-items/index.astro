@@ -1,0 +1,237 @@
+---
+import BaseLayout from "../../../layouts/BaseLayout.astro";
+import { bandItemDatabase, getBandItemsForBand } from "../../../lib/band-items";
+import "../../../styles/database.css";
+import "../../../styles/band-items.css";
+
+const maxLevel = (item: (typeof bandItemDatabase.items)[number]) => item.levels.at(-1);
+const number = new Intl.NumberFormat("zh-CN");
+---
+
+<BaseLayout title="乐队道具">
+  <section class="db-page-hero band-item-hero">
+    <div class="content-shell db-page-hero-grid">
+      <div>
+        <div class="eyebrow">BAND ITEMS</div>
+        <h1>乐队道具</h1>
+        <p>提升乐队全员能力。选择道具，查看各等级加成与升级材料。</p>
+      </div>
+      <div class="db-page-count">
+        <strong>{bandItemDatabase.items.length}</strong>
+        <span>件乐队道具</span>
+      </div>
+    </div>
+  </section>
+
+  <section class="bi-archive">
+    <div class="content-shell">
+      {bandItemDatabase.bands.map((band) => {
+        const items = getBandItemsForBand(band.id);
+        return (
+          <section class="bi-band" style={`--band-color: ${band.mainColor}`} aria-labelledby={`band-item-band-${band.masterId}`}>
+            <header class="bi-band-heading">
+              <img src={`/images/filter-bands/${band.id}.png`} alt="" width="48" height="48" />
+              <h2 id={`band-item-band-${band.masterId}`}>{band.name}</h2>
+              <span>{items.length} 件道具</span>
+            </header>
+            <div class="bi-grid">
+              {items.map((item) => {
+                const top = maxLevel(item);
+                return (
+                  <article class="bi-card" id={item.id}>
+                    <a class="bi-card-link" href={`/database/band-items/?item=${item.id}&level=${top?.level ?? 1}`}
+                      data-band-item-open data-item-id={item.id} aria-haspopup="dialog" aria-label={`查看${item.name}的加成与升级材料`}>
+                      <div class="bi-card-art">
+                        {item.previewUrl ? <img src={item.previewUrl} alt="" width="270" height="516" loading="lazy" /> : <span>暂无图片</span>}
+                      </div>
+                      <div class="bi-card-copy">
+                        <h3>{item.name}</h3>
+                        <p>乐队全员能力</p>
+                        <div class="bi-card-bonus"><strong>+{top?.effects[0]?.displayValue ?? "—"}</strong><span>Lv.{top?.level ?? 1}</span></div>
+                        <span class="bi-card-action">加成与升级材料 <span aria-hidden="true">→</span></span>
+                      </div>
+                    </a>
+                    <noscript><details class="bi-noscript"><summary>查看等级与材料</summary><ol>
+                      {item.levels.map((level) => <li>Lv.{level.level} · {level.renderedSummary}
+                        <p>{level.upgradeMaterials?.filter((material) => material.amount > 0).map((material) => `${material.name} × ${number.format(material.amount)}`).join("、") || "暂无材料数据"}</p>
+                      </li>)}
+                    </ol></details></noscript>
+                  </article>
+                );
+              })}
+            </div>
+          </section>
+        );
+      })}
+    </div>
+  </section>
+
+  <band-item-dialogs>
+    {bandItemDatabase.items.map((item) => {
+      const top = maxLevel(item);
+      const band = bandItemDatabase.bands.find((band) => band.id === item.bandId);
+      return (
+        <dialog class="bi-dialog" data-band-item-dialog data-item-id={item.id}
+          style={`--band-color: ${band?.mainColor ?? "#3388BB"}`} aria-labelledby={`${item.id}-dialog-title`}>
+          <div class="bi-dialog-frame">
+            <button class="bi-close" type="button" data-band-item-close aria-label={`关闭${item.name}详情`} autofocus>×</button>
+            <header class="bi-dialog-header">
+              <div class="bi-dialog-art">
+                {item.previewUrl ? <img src={item.previewUrl} alt={item.name} width="270" height="516" loading="lazy" /> : <span>暂无图片</span>}
+              </div>
+              <div class="bi-dialog-title">
+                <span class="bi-band-label"><img src={`/images/filter-bands/${item.bandId}.png`} alt="" width="26" height="26" />{item.bandName}</span>
+                <h2 id={`${item.id}-dialog-title`}>{item.name}</h2>
+                <p>乐队全员能力提升</p>
+              </div>
+            </header>
+
+            <div class="bi-level-control">
+              <div class="bi-level-control-heading">
+                <label for={`${item.id}-level`}>查看等级</label>
+                <div class="bi-stepper">
+                  <button type="button" data-band-item-step="-1" aria-label="上一级">−</button>
+                  <select id={`${item.id}-level`} data-band-item-select aria-label="道具等级">
+                    {item.levels.map((level) => <option value={level.level} selected={level.level === top?.level}>Lv.{level.level}</option>)}
+                  </select>
+                  <button type="button" data-band-item-step="1" aria-label="下一级">+</button>
+                </div>
+              </div>
+              <input type="range" min="0" max={item.levels.length - 1} value={item.levels.length - 1}
+                data-band-item-range aria-label="拖动查看等级" aria-valuetext={`Lv.${top?.level ?? 1}`} />
+              <div class="bi-range-labels"><span>Lv.{item.levels[0]?.level ?? 1}</span><span>Lv.{top?.level ?? 1}</span></div>
+            </div>
+
+            <div class="bi-dialog-body" aria-live="polite" aria-atomic="true">
+              {item.levels.map((level) => (
+                <section data-band-item-level-panel data-level={level.level} hidden>
+                  <div class="bi-effects">
+                    {level.effects.map((effect) => <div class="bi-effect"><span>{effect.effectName}</span><strong>+{effect.displayValue}</strong></div>)}
+                  </div>
+                  <div class="bi-material-heading">
+                    <h3>{level.level === 1 ? "解锁材料" : "升级材料"}</h3>
+                    <span>{level.level === 1 ? "解锁 Lv.1" : `Lv.${level.level - 1} → Lv.${level.level}`}</span>
+                  </div>
+                  {level.upgradeMaterials ? (
+                    <ul class="bi-materials">
+                      {level.upgradeMaterials.filter((material) => material.amount > 0).map((material) => (
+                        <li>
+                          {material.previewUrl ? <img src={material.previewUrl} alt="" width="40" height="40" loading="lazy" /> : <span class="bi-material-placeholder" aria-hidden="true">◇</span>}
+                          <div><span>{material.name}</span><strong>× {number.format(material.amount)}</strong></div>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : <p class="bi-unavailable">暂无该等级的材料数据</p>}
+                  {level.playerRank > 1 && <p class="bi-rank">需要玩家等级 Rank {level.playerRank}</p>}
+                </section>
+              ))}
+            </div>
+          </div>
+        </dialog>
+      );
+    })}
+  </band-item-dialogs>
+</BaseLayout>
+
+<script>
+  import { bandItemDialogHref, parseBandItemDialogState } from "../../../lib/band-item-dialog-state.mjs";
+
+  class BandItemDialogs extends HTMLElement {
+    dialogs = new Map<string, HTMLDialogElement>();
+    triggers = new Map<string, HTMLElement>();
+    levelsByItem = new Map<string, number[]>();
+    activeItemId: string | null = null;
+    events = new AbortController();
+
+    connectedCallback() {
+      this.events = new AbortController();
+      const { signal } = this.events;
+      this.querySelectorAll<HTMLDialogElement>("[data-band-item-dialog]").forEach((dialog) => {
+        const itemId = dialog.dataset.itemId;
+        if (!itemId) return;
+        this.dialogs.set(itemId, dialog);
+        const levels = Array.from(dialog.querySelectorAll<HTMLElement>("[data-band-item-level-panel]"))
+          .map((panel) => Number(panel.dataset.level)).filter(Number.isInteger);
+        this.levelsByItem.set(itemId, levels);
+        const select = dialog.querySelector<HTMLSelectElement>("[data-band-item-select]");
+        select?.addEventListener("change", () => this.navigate(itemId, Number(select.value), true), { signal });
+        const range = dialog.querySelector<HTMLInputElement>("[data-band-item-range]");
+        range?.addEventListener("input", () => this.navigate(itemId, levels[Number(range.value)], true), { signal });
+        dialog.querySelectorAll<HTMLButtonElement>("[data-band-item-step]").forEach((button) => {
+          button.addEventListener("click", () => {
+            const index = levels.indexOf(Number(select?.value));
+            const next = levels[index + Number(button.dataset.bandItemStep)];
+            if (next !== undefined) this.navigate(itemId, next, true);
+          }, { signal });
+        });
+        dialog.querySelector("[data-band-item-close]")?.addEventListener("click", () => this.navigate(null), { signal });
+        dialog.addEventListener("cancel", (event) => {
+          event.preventDefault();
+          this.navigate(null);
+        }, { signal });
+        dialog.addEventListener("click", (event) => {
+          if (event.target === dialog) this.navigate(null);
+        }, { signal });
+      });
+      document.querySelectorAll<HTMLElement>("[data-band-item-open]").forEach((trigger) => {
+        const itemId = trigger.dataset.itemId;
+        if (!itemId) return;
+        this.triggers.set(itemId, trigger);
+        trigger.addEventListener("click", (event) => {
+          if (event instanceof MouseEvent && (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0)) return;
+          event.preventDefault();
+          const levels = this.levelsByItem.get(itemId) ?? [];
+          if (levels.length) this.navigate(itemId, Math.max(...levels));
+        }, { signal });
+      });
+      addEventListener("popstate", () => this.sync(), { signal });
+      this.sync();
+    }
+
+    disconnectedCallback() {
+      this.events.abort();
+      document.documentElement.classList.remove("bi-dialog-open");
+    }
+
+    navigate(itemId: string | null, level: number | null = null, replace = false) {
+      const href = bandItemDialogHref(location.href, itemId, level);
+      if (replace) history.replaceState({}, "", href);
+      else history.pushState({}, "", href);
+      this.sync();
+    }
+
+    sync() {
+      const state = parseBandItemDialogState(location.search, this.levelsByItem);
+      for (const [itemId, dialog] of this.dialogs) {
+        if (itemId !== state.itemId && dialog.open) dialog.close();
+      }
+      document.documentElement.classList.toggle("bi-dialog-open", Boolean(state.itemId));
+      if (!state.itemId || state.level === null) {
+        const previous = this.activeItemId;
+        this.activeItemId = null;
+        if (previous) this.triggers.get(previous)?.focus({ preventScroll: true });
+        return;
+      }
+      const dialog = this.dialogs.get(state.itemId);
+      if (!dialog) return;
+      const levels = this.levelsByItem.get(state.itemId) ?? [];
+      const index = levels.indexOf(state.level);
+      const select = dialog.querySelector<HTMLSelectElement>("[data-band-item-select]");
+      if (select) select.value = String(state.level);
+      const range = dialog.querySelector<HTMLInputElement>("[data-band-item-range]");
+      if (range) {
+        range.value = String(index);
+        range.setAttribute("aria-valuetext", `Lv.${state.level}`);
+      }
+      dialog.querySelectorAll<HTMLButtonElement>("[data-band-item-step]").forEach((button) => {
+        button.disabled = levels[index + Number(button.dataset.bandItemStep)] === undefined;
+      });
+      dialog.querySelectorAll<HTMLElement>("[data-band-item-level-panel]").forEach((panel) => {
+        panel.hidden = Number(panel.dataset.level) !== state.level;
+      });
+      if (!dialog.open) dialog.showModal();
+      this.activeItemId = state.itemId;
+    }
+  }
+  if (!customElements.get("band-item-dialogs")) customElements.define("band-item-dialogs", BandItemDialogs);
+</script>

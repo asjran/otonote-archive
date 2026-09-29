@@ -1,0 +1,90 @@
+<section class="preset-portfolio" aria-labelledby="preset-portfolio-title">
+  <h3 id="preset-portfolio-title">哪支队伍更适合这首歌？</h3>
+  <p>比较已保存的队伍，或看看换一张卡能多拿多少分。</p>
+  <div class="preset-controls">
+    <label>比较歌曲 <select data-preset-song><option value="">请选择歌曲</option></select></label>
+    <label>比较难度 <select data-preset-difficulty><option value="">请选择难度</option>{['easy','normal','hard','expert'].map(d => <option value={d}>{d.toUpperCase()}</option>)}</select></label>
+    <label>模式 <select data-preset-mode><option value="gekisou">激奏</option><option value="ordinary">普通</option></select></label>
+  </div>
+  <p data-preset-selection aria-live="polite" class="preset-selection"></p>
+  <details class="preset-condition-details"><summary>判定、名次与养成设置</summary>
+  <div class="preset-controls">
+    <label data-preset-window-label>判卡上限 <select data-preset-window><option value="1">0 或 1 张</option><option value="0">不用扩窗卡</option></select></label>
+    <label><input type="checkbox" data-preset-maximize checked /> 等级、成员技能按上限计算</label>
+  </div>
+  <p>觉醒、突破沿用队伍的实际记录；留影技能随突破计算。勾选上限不会提高觉醒或突破。</p>
+  <fieldset data-preset-scenario>
+    <legend>激奏比较条件</legend>
+    <label>平常偏差（ms）<input type="number" data-preset-offset min="-50" max="50" value="5" /></label>
+    <label>各段假设名次 <select data-preset-rank>{[1,2,3,4,5].map(n=><option value={n} selected={n===3}>{n} 名</option>)}</select></label>
+    <label>LUCK 抽样批数 <input type="number" data-preset-batches min="2" max="32" value="2" /></label>
+    <p>初次使用可保留默认值。偏差填平常观察到的典型毫秒数，用于粗略比较判卡；不是个人 JUST 命中率预测。按 AP 模拟，FC 可作近似参考。</p>
+    <p>所有队伍采用相同的假设名次。加数量技能的抢榜收益不能完整计入，请同时查看各段任务数。</p>
+  </fieldset></details>
+
+  <h4>已保存的队伍</h4>
+  <ul data-preset-list class="preset-list"></ul>
+  <details class="preset-add"><summary>添加队伍</summary>
+    <div class="preset-controls">
+      <label>队伍名称 <input data-preset-name placeholder="例如：原队、JUST 单判卡" maxlength="80" /></label>
+      <button type="button" data-preset-save>保存当前队伍</button>
+      <button type="button" data-preset-edit>手动编辑队伍</button>
+    </div>
+    <div class="preset-controls">
+      <button type="button" data-preset-inventory>录入我的卡库</button>
+      <button type="button" data-preset-generate>从个人卡库生成候选</button>
+    </div>
+    <p>已有卡库可直接生成；也可保存手动队伍或自动配队结果。生成时等级、成员技能按上限，觉醒与突破保持实际值。</p>
+  </details>
+  <p data-preset-storage-status aria-live="polite"></p>
+  <details><summary>备份或导入候选队伍</summary><div class="preset-controls">
+    <button type="button" data-preset-export>导出候选</button>
+    <label>导入候选 <input type="file" data-preset-import accept="application/json,.json" /></label>
+  </div><p>候选保存在当前浏览器；更换设备前请导出备份。卡库更新后，需要重新生成或保存候选。</p></details>
+
+  <h4>开始比较</h4>
+  <div class="preset-controls">
+    <button type="button" data-preset-run>比较这首歌的队伍</button>
+    <button type="button" data-preset-cancel disabled>停止计算</button>
+    <button type="button" data-preset-report disabled>导出结果</button>
+  </div>
+  <details class="preset-replacement"><summary>只想知道换一张卡值不值？</summary>
+    <ol><li>把原队「保存当前队伍」，作为比较基准。</li><li>点击原队的「载入编辑」，在第二步替换成员或留影。</li><li>点击顶部「比较队伍 / 换卡」，选择原队作为基准，点击「比较当前队伍与基准」。当前队伍不必另存。</li></ol>
+    <div class="preset-controls">
+      <label>换卡比较基准 <select data-preset-baseline aria-label="换卡比较基准"></select></label>
+      <button type="button" data-preset-compare>比较当前队伍与基准</button>
+    </div>
+    <p>正数表示换卡后提高，负数表示降低。激奏会同时显示三个段落的分数变化。</p>
+  </details>
+  <p data-preset-status role="status" aria-live="polite"></p>
+  <div data-preset-results></div>
+</section>
+<style>
+  .preset-portfolio { border-top:1px solid var(--line,#ddd); margin-top:1.25rem; padding-top:1rem; }
+  .preset-controls { display:flex; flex-wrap:wrap; align-items:end; gap:.75rem; margin:.8rem 0; }
+  .preset-controls label { display:flex; flex-wrap:wrap; align-items:center; gap:.4rem; }
+  .preset-controls input[type=number], fieldset input[type=number] { width:5rem; }
+  .preset-list { list-style:none; padding:0; display:grid; gap:.5rem; }
+  .preset-list :global(li) { display:flex; align-items:center; flex-wrap:wrap; gap:.5rem; padding:.6rem; background:var(--surface-raised,#f5f5f7); border-radius:.5rem; }
+  .preset-list :global(strong) { flex:1; min-width:12rem; }
+  fieldset { display:flex; flex-wrap:wrap; gap:.75rem; border:1px solid var(--line,#ddd); margin:1rem 0; padding:.75rem; }
+  fieldset[hidden] { display:none; }
+  fieldset p { flex-basis:100%; margin:.25rem 0; }
+  .preset-guide { display:grid; grid-template-columns:repeat(auto-fit,minmax(10rem,1fr)); gap:1rem; padding:1rem 1rem 1rem 2rem; background:var(--surface-raised,#f5f5f7); border-radius:.5rem; }
+  .preset-guide span { display:block; margin-top:.3rem; line-height:1.6; }
+  h4 { margin:1.5rem 0 .75rem; font-size:15px; }
+  .preset-portfolio>p { color:var(--calc-muted); font-size:13px; line-height:1.7; }
+  .preset-controls label { font-size:12px; }
+  .preset-controls button { font-size:12px; }
+  .preset-condition-details,.preset-add { padding:12px 0; font-size:13px; }
+  .preset-controls [data-preset-run] { background:var(--calc-accent); color:white; border:0; padding:12px 20px; }
+  .preset-selection { padding:10px 12px; background:var(--calc-tint); border-radius:8px; }
+  .preset-replacement { font-size:13px; }
+  .preset-controls select { max-width:100%; }
+  .preset-controls [hidden] { display:none; }
+  .preset-replacement { margin-top:1rem; }
+  .preset-replacement li { margin:.5rem 0; }
+  [data-preset-results] :global(.preset-table-wrap) { overflow-x:auto; }
+  [data-preset-results] :global(table) { border-collapse:collapse; width:100%; font-size:.9rem; }
+  [data-preset-results] :global(th), [data-preset-results] :global(td) { text-align:left; padding:.6rem; border-bottom:1px solid var(--line,#ddd); min-width:6rem; vertical-align:top; }
+</style>

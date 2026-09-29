@@ -1,0 +1,26 @@
+---
+import { getAsset, type MusicTrack } from "../lib/catalog";
+
+interface Props {
+  mission: MusicTrack["gekisouMissions"][number];
+}
+const { mission } = Astro.props;
+// Reuse the matching skill-category artwork, with text identifying the mission.
+const iconIds = {
+  combo: "asset-6a80161fae",
+  just: "asset-5835e5faa0",
+  luck: "asset-85b415c14e"
+};
+const icon = getAsset(iconIds[mission.type]);
+---
+<span class="gekisou-type-badge" data-type={mission.type} title={`第 ${mission.index} 激奏：${mission.label}`}>
+  {icon && <img src={icon.previewUrl} alt="" loading="lazy" />}
+  <span>{mission.label}</span>
+</span>
+
+<style>
+  .gekisou-type-badge { display:inline-flex; align-items:center; gap:var(--gekisou-gap,5px); min-width:0; color:var(--lacquer); font:600 var(--gekisou-font-size,10px) var(--font-mono); white-space:nowrap; }
+  .gekisou-type-badge[data-type="just"] { color:var(--gel-blue-dark); }
+  .gekisou-type-badge[data-type="luck"] { color:var(--success); }
+  .gekisou-type-badge img { width:var(--gekisou-icon-size,18px); height:var(--gekisou-icon-size,18px); flex-shrink:0; border-radius:4px; }
+</style>

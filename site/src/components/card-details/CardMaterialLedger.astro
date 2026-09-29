@@ -1,0 +1,37 @@
+---
+import type { CardDetailProjection, GrowthProfile } from "../../lib/game-database";
+import { getItem } from "../../lib/game-database";
+import { getAsset } from "../../lib/catalog";
+import { activeReleaseContext } from "../../lib/release-context";
+import { siteHref } from "../../lib/site-context";
+import { createCardMaterialLedger } from "../../lib/card-material-ledger.mjs";
+
+interface Props { profile?: GrowthProfile; projection: CardDetailProjection; }
+const { profile, projection } = Astro.props;
+const en = activeReleaseContext.locale === "en";
+const sections = createCardMaterialLedger({ profile, projection, locale: activeReleaseContext.locale });
+const itemHref = (id: string) => import.meta.env.BASE_URL === "/" ? `/database/items/${id}/` : siteHref(`/database/items/${id}/`, activeReleaseContext);
+---
+
+<div class="card-material-ledger">
+  {sections.length > 0 && <p class="card-material-note">{en ? "Costs from the initial state to maximum. Expand a section for step-by-step costs." : "按初始状态至满级分项计算，展开可查看各阶段消耗。"}</p>}
+  {profile?.cardKind === "support" && <p class="card-material-note">{en ? "Snap skills improve with Rank; there is no separate skill material cost." : "留影技能随 Rank 提升，不额外消耗技能升级材料。"}</p>}
+  {sections.map((section) => (
+    <details class="card-material-group" open={section.key === "rank"}>
+      <summary><strong>{section.title}</strong><span>{section.steps.length} {en ? "steps" : "个阶段"}</span><b aria-hidden="true">＋</b></summary>
+      <div class="card-material-total"><span>{en ? "Total" : "本项合计"}</span><div>{section.total.map((cost) => {
+        const item = getItem(cost.itemId);
+        const icon = getAsset(item?.iconAssetId);
+        return <a href={itemHref(cost.itemId)}>{icon && <img src={icon.previewUrl} alt="" loading="lazy" />}<span>{item?.name ?? cost.itemId}</span><strong>× {cost.amount.toLocaleString()}</strong></a>;
+      })}</div></div>
+      <ol class="card-material-steps">{section.steps.map((step) => (
+        <li><strong>{step.label}</strong><ul>{step.items.map((cost) => {
+          const item = getItem(cost.itemId);
+          const icon = getAsset(item?.iconAssetId);
+          return <li><a href={itemHref(cost.itemId)}>{icon && <img src={icon.previewUrl} alt="" loading="lazy" />}<span>{item?.name ?? cost.itemId}</span><strong>× {cost.amount.toLocaleString()}</strong></a></li>;
+        })}</ul></li>
+      ))}</ol>
+    </details>
+  ))}
+  {sections.length === 0 && <p>{en ? "The upgrade materials for this card have not been verified yet." : "这张卡牌的养成材料尚未核实，暂不展示消耗数量。"}</p>}
+</div>

@@ -1,0 +1,9 @@
+{
+  "assetManifestVersion": "assets-v1",
+  "bootstrapRevision": "bootstrap-v1",
+  "catalogHash": "catalog-v1",
+  "clientVersion": "0.9.0+8135",
+  "masterVersion": "master-v1",
+  "minimumClientVersion": "0.9.0",
+  "remoteCodeHash": null
+}

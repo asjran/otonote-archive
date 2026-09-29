@@ -1,0 +1,18 @@
+[Unit]
+Description=OurNotes complete content update and atomic publication
+Requires=docker.service
+After=docker.service network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+EnvironmentFile=/etc/ournotes/global-update.env
+ExecStart=/usr/bin/docker run --rm --name ournotes-global-update --network host --user ${OURNOTES_UID}:${OURNOTES_GID} --read-only --cap-drop ALL --security-opt no-new-privileges --cpus 0.5 --memory 256m --memory-reservation 128m --memory-swap 1536m --memory-swappiness 80 --oom-score-adj 900 --pids-limit 256 --tmpfs /tmp:rw,nosuid,size=64m --env TMPDIR=/srv/ournotes-updater/app/output/tmp --env HOME=/tmp --env PYTHONDONTWRITEBYTECODE=1 --mount type=bind,source=/srv/ournotes-updater,target=/srv/ournotes-updater ${OURNOTES_UPDATE_IMAGE}
+ExecStop=-/usr/bin/docker stop --time 30 ournotes-global-update
+TimeoutStartSec=6h
+TimeoutStopSec=45
+Nice=15
+IOSchedulingClass=idle
+NoNewPrivileges=true
+PrivateTmp=true
+UMask=0022

@@ -1,0 +1,98 @@
+---
+import BaseLayout from "../../../layouts/BaseLayout.astro";
+import { storyLibrary, storyEntries, storyCharacters, storyCopy as copy, readTextStory, episodeLabel, storyKind, storyKindLabel } from "../../../lib/story-library";
+import { activeReleaseContext } from "../../../lib/release-context";
+import { siteHref } from "../../../lib/site-context";
+import "../../../styles/story-text.css";
+import { catalog, getAsset } from "../../../lib/catalog";
+import { resolveStorySpeaker, storyAvatar, storyCharacter } from "../../../lib/story-avatars";
+import { getStoryShareCopy } from "../../../lib/story-share-copy";
+import "../../../styles/story-share.css";
+export function getStaticPaths() { return storyLibrary.entries.map(entry => ({ params: { id: entry.id } })); }
+const entry = storyEntries.get(Astro.params.id!)!;
+const lines = readTextStory(entry.id);
+const href = (path: string) => import.meta.env.BASE_URL === "/" ? path : siteHref(path, activeReleaseContext);
+const previous = entry.previousId ? storyEntries.get(entry.previousId) : undefined;
+const next = entry.nextId ? storyEntries.get(entry.nextId) : undefined;
+const group = storyLibrary.entries.filter(other => other.group === entry.group);
+const kind = storyKind(entry);
+const band = catalog.bands.find(band => band.masterId === entry.bandIds[0]);
+const logo = getAsset(band?.logoAssetId);
+const names = entry.characterIds.map(id => storyCharacters.get(id)).filter(Boolean).join(" / ");
+const shareCopy = getStoryShareCopy(activeReleaseContext.locale);
+---
+<BaseLayout title={entry.title} description={`${storyKindLabel(kind)} · ${entry.title}`}>
+  <article class="st-reader content-shell" id="story-top" data-text-reader data-kind={kind} data-story-id={entry.id} data-share-copy={JSON.stringify(shareCopy)} style={`--band-accent:${band?.mainColor || "var(--lacquer)"}`}>
+    <a class="st-back" href={href(`/stories/?category=${kind}`)}><span aria-hidden="true">←</span> {copy.back}</a>
+    <header class="st-reader-header">
+      <div class="st-reader-title">
+        <div class="st-reader-kicker"><span class="st-tag" data-kind={kind}>{storyKindLabel(kind)}</span><span class="st-episode-label">{episodeLabel(entry)}</span></div>
+        <p class="st-reader-subtitle">{entry.category === "friendship" ? names : entry.chapterName}{entry.category === "viewpoint" && ` · ${names}`}</p>
+        <h1>{entry.title || episodeLabel(entry)}</h1>
+        {entry.description && <p class="st-reader-deck">{entry.description}</p>}
+        <div class="st-reader-meta"><span>{copy.textOnly}</span><span>{entry.lineCount} {copy.lines}</span>{entry.friendshipLevel > 0 && <span>{copy.bondLevel} {entry.friendshipLevel}</span>}</div>
+      </div>
+      <div class="st-reader-cover">
+        {logo && <img class="st-reader-logo" src={logo.previewUrl} alt={band?.displayName} width="160" height="80" />}
+        <div class="st-reader-cast" aria-label={copy.cast}>{entry.characterIds.map(id => {
+          const character = storyCharacter(id); const avatar = storyAvatar(character);
+          return <span title={storyCharacters.get(id)}>{avatar ? <img src={avatar.thumbnailUrl || avatar.previewUrl} alt={storyCharacters.get(id)} width="40" height="40" /> : storyCharacters.get(id)}</span>;
+        })}</div>
+      </div>
+    </header>
+    <div class="st-reader-toolbar">
+    <div class="st-reader-tools">
+      <details class="st-directory"><summary><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M9 6h12M9 12h12M9 18h12M3 6h1M3 12h1M3 18h1"/></svg>{copy.directory}<span class="st-directory-count">{group.length}</span><span class="st-directory-toggle" aria-hidden="true">⌄</span></summary><ol>{group.map(other => <li><a href={href(`/stories/episodes/${other.id}/`)} aria-current={other.id === entry.id ? "page" : undefined}><span class="st-directory-number">{String(other.episodeNumber).padStart(2, "0")}</span><span class="st-directory-title">{other.title}<small>{storyKindLabel(storyKind(other))}</small></span>{other.id === entry.id && <span aria-hidden="true">←</span>}</a></li>)}</ol></details>
+      <label><span class="st-font-icon" aria-hidden="true">Aa</span><span class="visually-hidden">{copy.font}</span><select data-story-font><option value="normal">{copy.normal}</option><option value="large">{copy.large}</option></select></label>
+      <button class="st-share-trigger" type="button" data-share-toggle aria-pressed="false" aria-controls="story-selection" hidden><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 8h6M9 12h6M9 16h4"/></svg><span>{shareCopy.select}</span></button>
+    </div>
+    <section class="st-selection" id="story-selection" aria-label={shareCopy.select} hidden>
+      <p data-selection-hint>{shareCopy.hint}</p>
+      <div class="st-selection-actions"><span data-selection-status role="status">{shareCopy.empty}</span><button type="button" data-selection-reset>{shareCopy.reset}</button><button type="button" class="st-primary" data-selection-generate disabled>{shareCopy.generate}</button></div>
+      <p class="st-share-error" data-selection-error role="alert" hidden></p>
+    </section>
+    </div>
+    <div class="st-reading-sheet">
+    <ol class="st-transcript" aria-label={entry.title}>
+      {lines.map((line, index) => {
+        const character = resolveStorySpeaker(line.speaker);
+        const avatar = storyAvatar(character);
+        const isMessage = Boolean(line.speaker) && line.kind !== "location" && line.kind !== "narration";
+        return <li id={line.id} class:list={["st-line", `st-line--${line.kind}`, { "st-line--message": isMessage, "st-line--system": !isMessage }]} data-story-line data-line-kind={line.kind} data-story-speaker={line.speaker} style={character ? `--speaker-accent:${character.mainColor}` : undefined}>
+          <button class="st-line-select" type="button" data-select-line={index} aria-label={shareCopy.line.replace("{n}", String(index + 1))} aria-pressed="false"><span aria-hidden="true">{String(index + 1).padStart(2, "0")}</span></button>
+          {line.kind === "location" ? <h2><span>{line.text}</span></h2> : isMessage ? <>
+            <div class="st-avatar" aria-hidden="true">{avatar ? <img src={avatar.thumbnailUrl} alt="" loading="lazy" width="48" height="48" /> : <span>{line.speaker}</span>}</div>
+            <div class="st-message"><div class="st-speaker"><strong>{line.speaker}</strong>{line.kind === "chat" && <small>{copy.chat}</small>}</div><p lang={activeReleaseContext.locale}>{line.kind === "stamp" ? copy.stamp : line.text}</p></div>
+          </> : <div class="st-system-message"><span>{line.speaker || (line.kind === "subtitle" ? copy.subtitle : copy.narration)}</span><p lang={activeReleaseContext.locale}>{line.kind === "stamp" ? copy.stamp : line.text}</p></div>}
+        </li>;
+      })}
+    </ol>
+    <p class="st-end"><span>{copy.end}</span></p>
+    </div>
+    <nav class="st-adjacent" aria-label={copy.group}>
+      {previous ? <a href={href(`/stories/episodes/${previous.id}/`)} rel="prev"><small>← {copy.previous}</small><strong>{previous.title}</strong><span class="st-adjacent-kind">{storyKindLabel(storyKind(previous))} · {episodeLabel(previous)}</span></a> : <span />}
+      {next ? <a href={href(`/stories/episodes/${next.id}/`)} rel="next"><small>{copy.next} →</small><strong>{next.title}</strong><span class="st-adjacent-kind">{storyKindLabel(storyKind(next))} · {episodeLabel(next)}</span></a> : <span />}
+    </nav>
+    <div class="st-reader-bottom"><a href={href(`/stories/?category=${kind}`)}>{copy.back}</a><a href="#story-top">↑ {copy.top}</a></div>
+    <details class="st-source"><summary>{copy.source}</summary><p>{copy.notice} {copy.sourceNote}</p></details>
+    <dialog class="st-share-dialog" data-share-dialog aria-labelledby="story-share-title" aria-describedby="story-share-tip">
+      <header><div><p>OTONOTE / {shareCopy.excerpt}</p><h2 id="story-share-title">{shareCopy.preview}</h2></div><button type="button" data-share-close aria-label={shareCopy.close}>×</button></header>
+      <div class="st-share-preview"><img data-share-image alt={shareCopy.preview} /></div>
+      <div class="st-share-dialog-footer"><p id="story-share-tip">{shareCopy.tip}</p><p data-share-result role="status"></p><p class="st-share-error" data-share-error role="alert" hidden></p><div><button type="button" data-share-edit>{shareCopy.edit}</button><button type="button" data-share-native hidden>{shareCopy.share}</button><a class="st-primary" data-share-save download>{shareCopy.save}</a></div></div>
+    </dialog>
+  </article>
+</BaseLayout>
+<script>
+  import { setupStoryShare } from "../../../lib/story-share";
+  const reader = document.querySelector<HTMLElement>("[data-text-reader]");
+  const control = reader?.querySelector<HTMLSelectElement>("[data-story-font]");
+  const directory = reader?.querySelector<HTMLDetailsElement>(".st-directory");
+  document.addEventListener("keydown", event => {
+    if (event.key === "Escape" && directory?.open) { event.preventDefault(); directory.open = false; directory.querySelector("summary")?.focus(); }
+  });
+  document.addEventListener("click", event => {
+    if (directory?.open && event.target instanceof Node && !directory.contains(event.target)) directory.open = false;
+  });
+  control?.addEventListener("change", () => { if (reader) reader.dataset.font = control.value; });
+  if (reader) setupStoryShare(reader);
+</script>

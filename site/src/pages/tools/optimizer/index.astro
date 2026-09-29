@@ -1,0 +1,22 @@
+---
+import ToolPageHeader from "../../../components/ToolPageHeader.astro";
+import BaseLayout from "../../../layouts/BaseLayout.astro";
+import SourceDisclosure from "../../../components/SourceDisclosure.astro";
+import TeamDraftWorkbench from "../../../components/TeamDraftWorkbench.astro";
+import { scoringCapability } from "../../../lib/scoring-capability";
+import "../../../styles/tools.css";
+---
+
+<BaseLayout title="歌曲最佳化">
+  <ToolPageHeader title="歌曲最佳化" description="确定卡库和演出条件，比较成员、留影与队长的搭配。" meta="按实际养成比较" />
+  <section class="catalog-section">
+    <div class="content-shell">
+      <TeamDraftWorkbench mode="optimizer" />
+      {scoringCapability.optimizerEnabled && <SourceDisclosure>
+        <p>配队建议依据已收录的卡牌、歌曲与技能资料，并按你选择的卡库和养成情况进行比较。默认按全部音符获得 Perfect、满生命且不开启辅助来估算。</p>
+        <p>普通演出会比较不同技能发动顺序下的分数；激奏还会考虑歌曲任务、留影技能、幸运效果和所选名次奖励。部分同时发动的技能效果与游戏可能存在差异，实际分数和最合适的队伍也可能不同。</p>
+        <p>搜索尚未完成时，推荐的是目前找到的较好组合。即使搜索完成，建议也仅限所选卡库、养成条件与计算范围；规则尚未确认的活动暂不支持计算。</p>
+      </SourceDisclosure>}
+    </div>
+  </section>
+</BaseLayout>

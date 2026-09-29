@@ -1,0 +1,340 @@
+---
+import FilterFacet from "./FilterFacet.astro";
+import "../styles/faceted-browser.css";
+import "../styles/detail-switcher.css";
+import "../styles/card-detail-nav.css";
+
+interface FilterOption {
+  value: string;
+  label: string;
+}
+interface Facet {
+  name: string;
+  label: string;
+  options: FilterOption[];
+}
+export interface QuickSwitchItem {
+  id: string;
+  href: string;
+  title: string;
+  subtitle: string;
+  imageUrl?: string | null;
+  mediaKind?: "portrait" | "landscape" | "square";
+  facets: Record<string, string[]>;
+}
+interface Props {
+  currentId: string;
+  label: string;
+  items: QuickSwitchItem[];
+  facets: Facet[];
+  variant?: "default" | "card" | "music";
+  listHref?: string;
+}
+
+const { currentId, label, items, facets, variant = "default", listHref } = Astro.props;
+const filterId = `switcher-filters-${crypto.randomUUID()}`;
+const currentIndex = Math.max(0, items.findIndex((item) => item.id === currentId));
+const current = items[currentIndex];
+const previous = items[(currentIndex - 1 + items.length) % items.length];
+const next = items[(currentIndex + 1) % items.length];
+---
+
+<detail-quick-switcher class:list={["detail-switcher", { "detail-switcher--card": variant === "card", "detail-switcher--music": variant === "music" }]}>
+  {variant === "music" ? (
+    <nav class="music-switcher-nav" aria-label="歌曲连续浏览">
+      <a href={previous.href} rel="prev" aria-label={`上一首：${previous.title}`} title={previous.title}>←</a>
+      <button type="button" data-switcher-open aria-haspopup="dialog">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5" /><path d="m16 16 4 4" /></svg>
+        切换歌曲
+      </button>
+      <a href={next.href} rel="next" aria-label={`下一首：${next.title}`} title={next.title}>→</a>
+    </nav>
+  ) : (
+  <div class:list={["detail-switcher-bar", { "content-shell": variant !== "card" }]} aria-label={`${label}连续浏览`}>
+    <a class="detail-switcher-step" href={previous.href} rel="prev" aria-label={variant === "card" ? `上一张：${previous.title}` : undefined}>
+      <span aria-hidden={variant === "card" ? "true" : undefined}>{variant === "card" ? "←" : "← 上一项"}</span>
+      <strong>{variant === "card" ? "上一张" : previous.title}</strong>
+    </a>
+    <button type="button" class="detail-switcher-current" data-switcher-open aria-haspopup="dialog" aria-label={variant === "card" ? `浏览全部${label}，当前第 ${currentIndex + 1} 张，共 ${items.length} 张` : undefined}>
+      {variant !== "card" && current.imageUrl && (
+        <img
+          class={`detail-switcher-image--${current.mediaKind ?? "square"}`}
+          src={current.imageUrl}
+          alt=""
+          loading="lazy"
+        />
+      )}
+      {variant === "card" ? <span class="card-switcher-selection"><strong><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h6v6h-6z" /></svg>浏览全部</strong><small>{String(currentIndex + 1).padStart(2, "0")} / {items.length}</small></span> : <span>
+        <small>{label}</small>
+        <strong>{current.title}</strong>
+        <b>搜索与筛选切换</b>
+      </span>}
+    </button>
+    <a class="detail-switcher-step detail-switcher-step--next" href={next.href} rel="next" aria-label={variant === "card" ? `下一张：${next.title}` : undefined}>
+      <span aria-hidden={variant === "card" ? "true" : undefined}>{variant === "card" ? "→" : "下一项 →"}</span>
+      <strong>{variant === "card" ? "下一张" : next.title}</strong>
+    </a>
+  </div>
+  )}
+
+  <dialog class="detail-switcher-dialog" data-switcher-dialog aria-label={`切换${label}`}>
+    <div class="detail-switcher-frame">
+      <div class="detail-switcher-toolbar">
+        <header class="detail-switcher-header">
+          <div>
+            <span>QUICK SWITCH</span>
+            <h2>切换{label}</h2>
+            {variant === "card" && listHref && <a class="card-switcher-directory" href={listHref}>前往{label}目录</a>}
+          </div>
+          <button type="button" data-switcher-close aria-label="关闭">×</button>
+        </header>
+
+        <div class="detail-switcher-search-row">
+          <label class="search-control detail-switcher-search">
+            <span class="visually-hidden">搜索{label}</span>
+            <svg aria-hidden="true" viewBox="0 0 24 24">
+              <circle cx="11" cy="11" r="6.5"></circle>
+              <path d="m16 16 4 4"></path>
+            </svg>
+            <input
+              type="search"
+              placeholder={`搜索${label}名称或编号…`}
+              autocomplete="off"
+              data-switcher-search
+            />
+          </label>
+          <button type="button" class="detail-switcher-filter-trigger" data-switcher-filter-toggle aria-expanded="false" aria-controls={filterId}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M4 7h7m4 0h5M4 17h3m4 0h9"/><circle cx="13" cy="7" r="2"/><circle cx="9" cy="17" r="2"/></svg>
+            <span>筛选</span><b data-switcher-filter-count hidden>0</b>
+          </button>
+        </div>
+      </div>
+
+      <div id={filterId} class="filter-panel detail-switcher-filter-panel" data-switcher-filters hidden>
+        <div class="filter-panel-body">
+          <div class="detail-switcher-facets">
+            {facets.map(facet => <FilterFacet facet={facet} mode="switcher" />)}
+          </div>
+        </div>
+      </div>
+
+      <div class="active-filter-chips" data-active-filter-chips hidden></div>
+      <div class="detail-switcher-result-bar" aria-live="polite">
+        <span><b data-switcher-count>{items.length}</b> 项</span>
+        <button type="button" data-switcher-clear>全部清空</button>
+      </div>
+
+      <div class="detail-switcher-results" data-switcher-results>
+        {items.map((item) => (
+          <a
+            href={item.href}
+            class:list={["detail-switcher-result", { "is-current": item.id === currentId }]}
+            data-switcher-item
+            data-item-id={item.id}
+            data-search={`${item.title} ${item.subtitle} ${item.id}`}
+            data-facets={JSON.stringify(item.facets)}
+          >
+            <span class={`detail-switcher-thumb detail-switcher-thumb--${item.mediaKind ?? "square"}`}>
+              {item.imageUrl ? <img src={item.imageUrl} alt="" loading="lazy" /> : <b>NO IMAGE</b>}
+            </span>
+            <span>
+              <strong>{item.title}</strong>
+              <small>{item.subtitle}</small>
+            </span>
+            {item.id === currentId && <b>当前</b>}
+          </a>
+        ))}
+      </div>
+      <p class="detail-switcher-empty" data-switcher-empty hidden>
+        当前条件没有匹配项。请移除一个筛选条件。
+      </p>
+    </div>
+  </dialog>
+</detail-quick-switcher>
+
+<script>
+  import { setFilterChipContent } from "../lib/filter-chip.mjs";
+  import { evaluateFacets } from "../lib/faceted-filter.mjs";
+
+  class DetailQuickSwitcher extends HTMLElement {
+    connectedCallback() {
+      const dialog = this.querySelector<HTMLDialogElement>("[data-switcher-dialog]");
+      const search = this.querySelector<HTMLInputElement>("[data-switcher-search]");
+      const frame = this.querySelector<HTMLElement>(".detail-switcher-frame");
+      const filters = this.querySelector<HTMLElement>("[data-switcher-filters]");
+      const filterToggle = this.querySelector<HTMLButtonElement>("[data-switcher-filter-toggle]");
+      const items = [...this.querySelectorAll<HTMLElement>("[data-switcher-item]")];
+      const facetNames = [
+        ...new Set(
+          [...this.querySelectorAll<HTMLInputElement>("[data-switcher-facet]")]
+            .map((input) => input.dataset.switcherFacet)
+            .filter((value): value is string => Boolean(value))
+        )
+      ];
+      if (!dialog) return;
+
+
+
+      const update = () => {
+        const selected = Object.fromEntries(
+          facetNames.map((name) => [
+            name,
+            [...this.querySelectorAll<HTMLInputElement>(
+              `[data-switcher-facet="${name}"]:checked`
+            )].map((input) => input.value)
+          ])
+        );
+        const records = items.map((item) => ({
+          item,
+          id: item.dataset.itemId ?? "",
+          search: item.dataset.search ?? "",
+          facets: JSON.parse(item.dataset.facets ?? "{}")
+        }));
+        const evaluation = evaluateFacets(records, {
+          query: search?.value.trim() ?? "",
+          selected
+        }) as {
+          records: typeof records;
+          counts: Record<string, Record<string, number>>;
+          disabled: Record<string, string[]>;
+        };
+        const visible = new Set(evaluation.records.map((record) => record.item));
+        items.forEach((item) => { item.hidden = !visible.has(item); });
+        const count = this.querySelector<HTMLElement>("[data-switcher-count]");
+        if (count) count.textContent = String(evaluation.records.length);
+        const filterCount = this.querySelector<HTMLElement>("[data-switcher-filter-count]");
+        if (filterCount) {
+          const total = Object.values(selected).reduce((sum, values) => sum + values.length, 0);
+          filterCount.textContent = String(total);
+          filterCount.hidden = total === 0;
+        }
+        const empty = this.querySelector<HTMLElement>("[data-switcher-empty]");
+        if (empty) empty.hidden = evaluation.records.length > 0;
+
+        for (const name of facetNames) {
+          this.querySelectorAll<HTMLInputElement>(
+            `[data-switcher-facet="${name}"]`
+          ).forEach((input) => {
+            const option = input.closest<HTMLElement>("[data-facet-option]");
+            const optionCount = option?.querySelector<HTMLElement>("[data-facet-count]");
+            const valueCount = evaluation.counts[name]?.[input.value] ?? 0;
+            if (optionCount) optionCount.textContent = String(valueCount);
+            input.disabled = valueCount === 0 && !input.checked;
+            option?.classList.toggle("is-disabled", input.disabled);
+          });
+          const menu = this.querySelector<HTMLElement>(
+            `[data-switcher-facet-menu="${name}"]`
+          );
+          const counter = menu?.querySelector<HTMLElement>("[data-facet-selected-count]");
+          if (counter) {
+            counter.textContent = selected[name].length > 0
+              ? String(selected[name].length)
+              : "全部";
+          }
+        }
+
+        const chips = this.querySelector<HTMLElement>("[data-active-filter-chips]");
+        if (chips) {
+          chips.replaceChildren();
+          for (const name of facetNames) {
+            for (const value of selected[name]) {
+              const input = this.querySelector<HTMLInputElement>(
+                `[data-switcher-facet="${name}"][value="${CSS.escape(value)}"]`
+              );
+              const button = document.createElement("button");
+              button.type = "button";
+              button.dataset.removeFacet = name;
+              button.dataset.removeValue = value;
+              setFilterChipContent(button, input, value);
+              chips.append(button);
+            }
+          }
+          chips.hidden = chips.childElementCount === 0;
+        }
+      };
+
+      this.querySelector("[data-switcher-open]")?.addEventListener("click", () => {
+        if (filters) filters.hidden = true;
+        filterToggle?.setAttribute("aria-expanded", "false");
+        dialog.showModal();
+        update();
+        frame?.scrollTo({ top: 0 });
+        requestAnimationFrame(() => search?.focus({ preventScroll: true }));
+      });
+      filterToggle?.addEventListener("click", () => {
+        if (!filters) return;
+        filters.hidden = !filters.hidden;
+        filterToggle.setAttribute("aria-expanded", String(!filters.hidden));
+        frame?.scrollTo({ top: 0 });
+      });
+      this.querySelector("[data-switcher-close]")?.addEventListener("click", () => {
+        dialog.close();
+      });
+      dialog.addEventListener("close", () => {
+        this.querySelector<HTMLElement>("[data-switcher-open]")?.focus({ preventScroll: true });
+      });
+      dialog.addEventListener("click", (event) => {
+        if (event.target === dialog) dialog.close();
+      });
+      search?.addEventListener("input", update);
+      this.querySelectorAll<HTMLInputElement>("[data-switcher-facet]").forEach((input) => {
+        input.addEventListener("change", update);
+      });
+      this.querySelectorAll<HTMLInputElement>("[data-facet-option-search]").forEach((input) => {
+        input.addEventListener("input", () => {
+          const query = input.value.trim().toLocaleLowerCase("zh-CN");
+          input
+            .closest("[data-switcher-facet-menu]")
+            ?.querySelectorAll<HTMLElement>("[data-facet-option]")
+            .forEach((option) => {
+              option.hidden = !String(option.dataset.optionLabel ?? "").includes(query);
+            });
+        });
+      });
+      this.addEventListener("click", (event) => {
+        const target = event.target;
+        if (!(target instanceof HTMLElement)) return;
+        const clearFacet = target.closest<HTMLElement>("[data-clear-facet]");
+        if (clearFacet) {
+          this.querySelectorAll<HTMLInputElement>(
+            `[data-switcher-facet="${clearFacet.dataset.clearFacet}"]`
+          ).forEach((input) => { input.checked = false; });
+          update();
+          return;
+        }
+        const chip = target.closest<HTMLElement>("[data-remove-facet]");
+        if (chip) {
+          const input = this.querySelector<HTMLInputElement>(
+            `[data-switcher-facet="${chip.dataset.removeFacet}"][value="${CSS.escape(chip.dataset.removeValue ?? "")}"]`
+          );
+          if (input) input.checked = false;
+          update();
+        }
+      });
+      this.querySelector("[data-switcher-clear]")?.addEventListener("click", () => {
+        if (search) search.value = "";
+        this.querySelectorAll<HTMLInputElement>("[data-switcher-facet]")
+          .forEach((input) => { input.checked = false; });
+        update();
+        search?.focus();
+      });
+      dialog.addEventListener("keydown", (event) => {
+        if (!["ArrowDown", "ArrowUp"].includes(event.key)) return;
+        const visible = items.filter((item) => !item.hidden);
+        if (visible.length === 0) return;
+        const activeIndex = visible.indexOf(document.activeElement as HTMLElement);
+        const direction = event.key === "ArrowDown" ? 1 : -1;
+        const nextIndex = activeIndex < 0
+          ? (direction > 0 ? 0 : visible.length - 1)
+          : (activeIndex + direction + visible.length) % visible.length;
+        visible[nextIndex].focus();
+        event.preventDefault();
+      });
+      update();
+    }
+  }
+
+  if (!customElements.get("detail-quick-switcher")) {
+    customElements.define("detail-quick-switcher", DetailQuickSwitcher);
+  }
+</script>

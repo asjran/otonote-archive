@@ -1,0 +1,250 @@
+---
+import { catalog } from "../lib/catalog";
+import { cardDetailProjections, skillIndex } from "../lib/game-database";
+import { GEKISOU_RULE_SET } from "../lib/gekisou-simulation.mjs";
+
+const projectionByCardId = new Map(
+  [...cardDetailProjections.memberCards, ...cardDetailProjections.supportCards]
+    .map((projection) => [projection.cardId, projection])
+);
+const cardSkills = (cardId: string) =>
+  (projectionByCardId.get(cardId)?.skillRefs ?? [])
+    .filter((reference) => reference.slot === "gekisou" || reference.slot === "gekisou_support")
+    .map((reference) => reference.skillId);
+
+const tracks = catalog.musicTracks
+  .filter((track) => track.gekisouMissions?.length === 3)
+  .map((track) => ({
+    id: track.id,
+    title: track.title,
+    missions: track.gekisouMissions
+  }));
+const charts = catalog.musicCharts.map((chart) => ({
+  id: chart.id,
+  trackId: chart.trackId,
+  difficulty: chart.difficulty,
+  duration: chart.duration,
+  analysisDataUrl: chart.analysisDataUrl
+}));
+const memberCards = catalog.memberCards.map((card) => ({
+  id: card.id,
+  label: card.subtitle || card.displayName,
+  displayName: card.displayName,
+  skillIds: cardSkills(card.id)
+}));
+const supportCards = catalog.supportCards.map((card) => ({
+  id: card.id,
+  label: card.description || card.displayName,
+  displayName: card.displayName,
+  skillIds: cardSkills(card.id)
+}));
+const skills = skillIndex
+  .filter((skill) => skill.kind === "gekisou" || skill.kind === "gekisou_support")
+  .map((skill) => ({
+    id: skill.id,
+    kind: skill.kind,
+    name: skill.name,
+    summary: skill.highestSummary,
+    relatedCardIds: skill.relatedCardIds
+  }));
+const clientData = JSON.stringify({
+  sourceReleaseId: catalog.release.id,
+  ruleSet: GEKISOU_RULE_SET,
+  tracks,
+  charts,
+  memberCards,
+  supportCards,
+  skills,
+  memberCardIds: catalog.memberCards.map((card) => card.id),
+  supportCardIds: catalog.supportCards.map((card) => card.id)
+}).replaceAll("<", "\\u003c");
+---
+
+<gekisou-battle-lab class="gekisou-lab">
+  <script is:inline type="application/json" data-gekisou-lab-data set:html={clientData}></script>
+
+  <section class="tool-capability gekisou-lab-capability" aria-labelledby="gekisou-lab-boundary">
+    <div>
+      <span class="tool-status tool-status--experimental">RULE RECONSTRUCTION</span>
+      <p id="gekisou-lab-boundary">规则模式只展示已确认的三段结构，正式分数保持关闭；自由实验只计算你明确填写的反事实分数事件。</p>
+    </div>
+    <dl>
+      <div><dt>规则版本</dt><dd>{GEKISOU_RULE_SET.id}</dd></div>
+      <div><dt>参与人数</dt><dd>1–5</dd></div>
+      <div><dt>日志级验证</dt><dd>暂无</dd></div>
+    </dl>
+  </section>
+
+  <section class="gekisou-lab-toolbar" aria-label="激奏场景设置">
+    <label>
+      <span>歌曲</span>
+      <select data-gekisou-track>
+        {tracks.map((track) => <option value={track.id}>{track.title}</option>)}
+      </select>
+    </label>
+    <label>
+      <span>难度</span>
+      <select data-gekisou-difficulty>
+        <option value="easy">EASY</option>
+        <option value="normal">NORMAL</option>
+        <option value="hard">HARD</option>
+        <option value="expert" selected>EXPERT</option>
+      </select>
+    </label>
+    <label>
+      <span>参与人数</span>
+      <select data-gekisou-participant-count>
+        {[1, 2, 3, 4, 5].map((count) => <option value={count}>{count} 人</option>)}
+      </select>
+    </label>
+    <label>
+      <span>推演模式</span>
+      <select data-gekisou-mode>
+        <option value="rules">规则模式</option>
+        <option value="experiment">自由实验</option>
+      </select>
+    </label>
+    <label>
+      <span>固定随机种子</span>
+      <input type="number" step="1" value="0" data-gekisou-random-seed />
+    </label>
+    <p class="gekisou-lab-load-status" data-gekisou-load-status aria-live="polite">正在读取谱面…</p>
+  </section>
+
+  <div class="gekisou-participant-tabs" data-gekisou-participants role="tablist" aria-label="参与者"></div>
+
+  <div class="gekisou-lab-grid">
+    <aside class="gekisou-lab-panel gekisou-lab-config" aria-labelledby="gekisou-config-title">
+      <header><span>SCENARIO</span><h2 id="gekisou-config-title">参与者配置</h2></header>
+      <label>
+        <span>显示名称</span>
+        <input type="text" maxlength="24" data-gekisou-participant-label />
+      </label>
+      <label>
+        <span>演奏预设</span>
+        <select data-gekisou-performance-preset>
+          <option value="ap">ALL PERFECT</option>
+          <option value="fc">FULL COMBO</option>
+          <option value="custom">自定义逐音符</option>
+        </select>
+      </label>
+      <p class="gekisou-input-hint">AP 展开为 PERFECT；FC 展开为不破连的 HIT。它们描述输入，不推导官方分数。</p>
+      <section class="gekisou-editor-section" aria-labelledby="gekisou-segment-input-title">
+        <header><span>PERFORMANCE</span><h3 id="gekisou-segment-input-title">激奏段输入</h3></header>
+        <div data-gekisou-segment-inputs></div>
+      </section>
+      <section class="gekisou-editor-section" aria-labelledby="gekisou-note-input-title">
+        <header><span>NOTE EXCEPTIONS</span><h3 id="gekisou-note-input-title">逐判定例外</h3></header>
+        <div class="gekisou-note-input-form">
+          <label><span>判定序号</span><input type="number" min="1" step="1" value="1" data-gekisou-note-index /></label>
+          <label><span>输入判定</span>
+            <select data-gekisou-note-judgement>
+              <option value="perfect">PERFECT</option>
+              <option value="great">GREAT</option>
+              <option value="good">GOOD</option>
+              <option value="hit">HIT</option>
+              <option value="miss">MISS</option>
+            </select>
+          </label>
+          <label class="gekisou-check"><input type="checkbox" data-gekisou-note-break /> <span>明确破连</span></label>
+          <button type="button" data-gekisou-add-note-override>添加例外</button>
+        </div>
+        <div data-gekisou-note-overrides></div>
+      </section>
+      <section class="gekisou-editor-section" aria-labelledby="gekisou-team-slots-title">
+        <header><span>TEAM DRAFT</span><h3 id="gekisou-team-slots-title">五组卡牌</h3></header>
+        <div data-gekisou-team-slots></div>
+      </section>
+      <label>
+        <span>TeamDraft JSON（高级）</span>
+        <textarea rows="8" spellcheck="false" data-gekisou-team-json></textarea>
+      </label>
+      <div class="gekisou-inline-actions">
+        <button type="button" data-gekisou-apply-team>应用卡组</button>
+        <a href="/tools/deck-builder/" data-gekisou-team-link>在编成研究台编辑 →</a>
+      </div>
+      <p class="gekisou-team-status" data-gekisou-team-status aria-live="polite"></p>
+
+      <section class="gekisou-editor-section" data-gekisou-luck-section aria-labelledby="gekisou-luck-title">
+        <header><span>FIXED INPUT</span><h3 id="gekisou-luck-title">LUCK 输入</h3></header>
+        <div data-gekisou-luck-inputs></div>
+      </section>
+
+      <section class="gekisou-experiment-panel" data-gekisou-experiment hidden>
+        <header><span>COUNTERFACTUAL SKILL</span><h3>显式实验技能</h3></header>
+        <label><span>技能来源</span><select data-gekisou-skill-source></select></label>
+        <label><span>技能时机</span><select data-gekisou-skill-marker></select></label>
+        <label><span>持续秒数</span><input type="number" min="0" step="0.001" value="5" data-gekisou-skill-duration /></label>
+        <label><span>实验技能增分</span><input type="number" step="1" value="0" data-gekisou-skill-score /></label>
+        <label><span>说明</span><input type="text" maxlength="120" placeholder="为什么这样假设" data-gekisou-skill-note /></label>
+        <button type="button" data-gekisou-add-skill>添加技能分支</button>
+        <div data-gekisou-skills></div>
+        <header class="gekisou-subheader"><span>MANUAL DELTA</span><h3>其他实验分数事件</h3></header>
+        <label><span>时间（秒）</span><input type="number" min="0" step="0.001" value="10" data-gekisou-override-time /></label>
+        <label><span>参与者</span><select data-gekisou-override-participant></select></label>
+        <label><span>整数增分</span><input type="number" step="1" value="10000" data-gekisou-override-amount /></label>
+        <label>
+          <span>贡献来源类型</span>
+          <select data-gekisou-override-owner-kind>
+            <option value="card">卡牌</option>
+            <option value="skill">技能</option>
+            <option value="base">基础分</option>
+            <option value="manual">其他实验项</option>
+          </select>
+        </label>
+        <label><span>贡献来源 ID</span><input type="text" value="member-card-1" data-gekisou-override-owner /></label>
+        <button type="button" data-gekisou-add-override>添加反事实事件</button>
+        <div data-gekisou-overrides></div>
+      </section>
+    </aside>
+
+    <main class="gekisou-lab-panel gekisou-lab-analysis" aria-labelledby="gekisou-analysis-title">
+      <header class="gekisou-analysis-header">
+        <div><span>EVENT LEDGER</span><h2 id="gekisou-analysis-title">对战时间线</h2></div>
+        <div class="gekisou-hash"><span>LEDGER HASH</span><code data-gekisou-ledger-hash>—</code></div>
+      </header>
+      <div class="gekisou-mission-strip" data-gekisou-missions></div>
+      <div class="gekisou-timeline-shell">
+        <svg viewBox="0 0 900 280" role="img" aria-label="参与者累计实验分数时间线" data-gekisou-timeline></svg>
+      </div>
+      <div class="gekisou-segment-grid" data-gekisou-segments></div>
+      <div class="gekisou-result-table" data-gekisou-results></div>
+      <section class="gekisou-contribution-section" aria-labelledby="gekisou-contribution-title">
+        <h3 id="gekisou-contribution-title">贡献归因</h3>
+        <div class="gekisou-contribution-grid" data-gekisou-contributions></div>
+      </section>
+    </main>
+
+    <aside class="gekisou-lab-panel gekisou-lab-ledger" aria-labelledby="gekisou-ledger-title">
+      <header><span>WHY IT CHANGED</span><h2 id="gekisou-ledger-title">事件解释</h2></header>
+      <p class="gekisou-result-status" data-gekisou-result-status></p>
+      <ol data-gekisou-ledger></ol>
+    </aside>
+  </div>
+
+  <section class="gekisou-lab-panel gekisou-scenario-panel" aria-labelledby="gekisou-scenario-title">
+    <header><span>PORTABLE SCENARIO</span><h2 id="gekisou-scenario-title">场景保存与导入</h2></header>
+    <div class="gekisou-scenario-actions">
+      <button type="button" data-gekisou-copy-scenario>复制当前 JSON</button>
+      <button type="button" data-gekisou-import-scenario>导入下方 JSON</button>
+      <span data-gekisou-copy-status aria-live="polite"></span>
+    </div>
+    <textarea rows="16" spellcheck="false" data-gekisou-scenario-json></textarea>
+  </section>
+
+  <section class="gekisou-lab-panel gekisou-comparison-panel" aria-labelledby="gekisou-comparison-title">
+    <header><span>LOCAL COMPARISON</span><h2 id="gekisou-comparison-title">场景比较</h2></header>
+    <div class="gekisou-scenario-actions">
+      <input type="text" maxlength="40" placeholder="快照名称" data-gekisou-comparison-label />
+      <button type="button" data-gekisou-save-comparison>保存当前结果</button>
+      <span>仅保存在当前浏览器与 Release 中。</span>
+    </div>
+    <div class="gekisou-comparison-grid" data-gekisou-comparisons></div>
+  </section>
+
+  <noscript><p class="tool-noscript">激奏实验室需要 JavaScript 才能编译场景；歌曲与模式资料仍可从档案页浏览。</p></noscript>
+</gekisou-battle-lab>
+
+<script>
+  import "../lib/gekisou-lab-workbench.mjs";
+</script>

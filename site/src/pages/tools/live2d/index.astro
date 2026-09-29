@@ -1,0 +1,16 @@
+---
+import ToolPageHeader from "../../../components/ToolPageHeader.astro";
+import BaseLayout from '../../../layouts/BaseLayout.astro';
+import Live2DWorkbench from '../../../components/Live2DWorkbench.astro';
+import { activeReleaseContext } from '../../../lib/release-context';
+const en = activeReleaseContext.locale === 'en';
+const say = (zh: string, english: string) => en ? english : zh;
+---
+<BaseLayout title={say('Live2D 预览与调试', 'Live2D preview & debugger')}>
+  <ToolPageHeader title={say("Live2D 预览与调试", "Live2D preview & debugger")} description={say("选择角色与服装，播放动作和表情，按需调整模型参数。", "Choose a character and costume, play motions and expressions, and adjust model parameters.")} meta="角色 · 服装 · 动作" />
+  <div class="content-shell l2d-page">
+
+    <Live2DWorkbench />
+    <details class="l2d-source"><summary>{say('来源与限制', 'Sources & limitations')}</summary><p>{say('角色形象、服装与动作来自国际服游戏内容。网页中的动作衔接、光影和舞台效果可能与游戏中不同，部分动作暂不支持播放。', 'Characters, costumes and motions come from the Global game. Motion transitions, lighting and stage effects may differ from the game, and some motions are not available to play.')}</p><p>{say('首次打开角色时需要加载，请稍候。加载速度会受网络与设备性能影响，进度完成后可能仍需片刻才能显示角色。', 'Characters need time to load when first opened. Loading speed depends on your connection and device; the character may take a moment to appear after progress completes.')}</p></details>
+  </div>
+</BaseLayout>

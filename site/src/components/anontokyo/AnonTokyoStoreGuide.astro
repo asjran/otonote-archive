@@ -1,0 +1,110 @@
+---
+import AnonTokyoHeader from "./AnonTokyoHeader.astro";
+
+interface Props { dataset: Record<string, any>; }
+interface StoreFact { label: string; value: string | number; unit?: string; }
+interface StoreLevel { id: string; level: number; name: string; upgradeRequirements: StoreFact[]; stats: StoreFact[]; unlocks: string[]; }
+interface DeliveryOption { id: string; name: string; unlockShopLevel: number; unlockCost?: { name: string; count: number }; effect?: string; }
+const { dataset } = Astro.props;
+const levels = dataset.levels as StoreLevel[];
+const deliveryOptions = dataset.deliveryOptions as DeliveryOption[];
+const first = levels[0];
+const next = levels[1];
+const initialDeliveryOptions = deliveryOptions.map((option) => ({
+  ...option,
+  available: option.unlockShopLevel <= first.level,
+  status: option.unlockShopLevel <= first.level ? "当前可用" : `店铺等级 ${option.unlockShopLevel}`,
+  cost: option.unlockCost ? `${option.unlockCost.name} ${option.unlockCost.count.toLocaleString("zh-CN")}` : "初始解锁",
+}));
+---
+
+<AnonTokyoHeader
+  active="store"
+  title="店铺升级"
+  description="选择当前店铺等级，查看下一等级需要什么、会改变什么。选择只保存在当前网址中。"
+  count={levels.length}
+/>
+
+<main class="at-guide-main" data-at-store data-levels={JSON.stringify(levels)}>
+  <div class="content-shell">
+    <p class="at-guide-note at-guide-note--related">这里是店铺等级路线；玩家自身等级、体力、顾客上限和仓储容量请查看 <a href="/anontokyo/growth/">玩家成长与容量 →</a></p>
+    <div class="at-store-picker">
+      <label><span>我当前的等级</span><select data-at-level>{levels.map((level, index) => <option value={index}>等级 {level.level}</option>)}</select></label>
+      <div class="at-next-upgrade" data-at-next>
+        <span>下一目标</span>
+        <strong data-at-next-name>{next?.name ?? "已达到当前资料上限"}</strong>
+        <div data-at-next-requirements>
+          {next?.upgradeRequirements.map((item) => <b>{item.label} {item.value} {item.unit}</b>)}
+        </div>
+      </div>
+      <dl class="at-current-stats" data-at-current-stats>
+        {first?.stats.map((item) => <div><dt>{item.label}</dt><dd>{item.value}</dd></div>)}
+      </dl>
+    </div>
+
+    <section class="at-delivery-section">
+      <header><div><h2>配送员</h2><p>比较解锁等级、费用和明确的配送技能效果。</p></div><strong>{deliveryOptions.length} 名</strong></header>
+      <div class="at-delivery-grid">
+        {initialDeliveryOptions.map((option) => (
+          <article data-at-delivery data-unlock-level={option.unlockShopLevel} class:list={{ "is-available": option.available }}>
+            <span data-at-delivery-status>{option.status}</span>
+            <h3>{option.name}</h3>
+            <p>{option.effect ?? "无额外配送技能"}</p>
+            <small>{option.cost}</small>
+          </article>
+        ))}
+      </div>
+    </section>
+
+    <ol class="at-level-rail">
+      {levels.map((level, index) => (
+        <li data-at-level-row data-index={index} class={index === 0 ? "is-current" : undefined}>
+          <button type="button" data-at-level-button data-index={index}><span>LV</span><strong>{level.level}</strong></button>
+          <div>
+            <h2>{level.name}</h2>
+            <div class="at-level-facts">
+              {level.upgradeRequirements.map((item) => <span>{item.label} <b>{item.value}</b> {item.unit}</span>)}
+              {level.stats.map((item) => <span>{item.label} <b>{item.value}</b></span>)}
+            </div>
+            {level.unlocks.length > 0 && <p>本级解锁：{level.unlocks.join("、")}</p>}
+          </div>
+        </li>
+      ))}
+    </ol>
+  </div>
+</main>
+
+<script>
+  for (const root of document.querySelectorAll<HTMLElement>("[data-at-store]")) {
+    const levels = JSON.parse(root.dataset.levels ?? "[]");
+    const select = root.querySelector("[data-at-level]");
+    const choose = (index: number) => {
+      const current = levels[index];
+      const next = levels[index + 1];
+      if (!current) return;
+      root.querySelectorAll("[data-at-level-row]").forEach((row) => row.classList.toggle("is-current", row.getAttribute("data-index") === String(index)));
+      const name = root.querySelector("[data-at-next-name]");
+      if (name) name.textContent = next?.name ?? "已达到当前资料上限";
+      const requirements = root.querySelector("[data-at-next-requirements]");
+      if (requirements) requirements.innerHTML = (next?.upgradeRequirements ?? []).map((item: any) => `<b>${item.label} ${item.value} ${item.unit}</b>`).join("");
+      const stats = root.querySelector("[data-at-current-stats]");
+      if (stats) stats.innerHTML = current.stats.map((item: any) => `<div><dt>${item.label}</dt><dd>${item.value}</dd></div>`).join("");
+      root.querySelectorAll<HTMLElement>("[data-at-delivery]").forEach((delivery) => {
+        const unlockLevel = Number(delivery.dataset.unlockLevel);
+        const available = current.level >= unlockLevel;
+        delivery.classList.toggle("is-available", available);
+        const status = delivery.querySelector("[data-at-delivery-status]");
+        if (status) status.textContent = available ? "当前可用" : `店铺等级 ${unlockLevel}`;
+      });
+      if (select instanceof HTMLSelectElement) select.value = String(index);
+      const url = new URL(window.location.href);
+      url.searchParams.set("level", String(current.level));
+      history.replaceState(null, "", url);
+    };
+    const requested = new URL(window.location.href).searchParams.get("level");
+    const initial = Math.max(0, levels.findIndex((level: any) => String(level.level) === requested));
+    choose(initial);
+    select?.addEventListener("change", () => choose(select instanceof HTMLSelectElement ? Number(select.value) : 0));
+    root.querySelectorAll<HTMLElement>("[data-at-level-button]").forEach((button) => button.addEventListener("click", () => choose(Number(button.dataset.index))));
+  }
+</script>

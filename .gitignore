@@ -1,0 +1,85 @@
+.DS_Store
+.superpowers/
+/.astro/
+/outputs/
+
+# Local environment files; examples remain publishable.
+.env
+.env.*
+!.env.example
+!.env.*.example
+
+# Original packages and extracted runtime data
+*.apk
+*.zip
+/files/
+/input/
+/アワーノーツ/
+
+# Analysis outputs; keep reusable source and reports
+/analysis/*
+!/analysis/*.py
+!/analysis/*.md
+!/analysis/*.json
+!/analysis/requirements.txt
+!/analysis/crypto/
+/analysis/crypto/*
+!/analysis/crypto/*.py
+!/analysis/crypto/*.md
+!/analysis/crypto/requirements.txt
+
+# Site dependencies and build artifacts
+/site/node_modules/
+/site/dist/
+/site/dist-matrix/
+/site/.astro/
+/site/.playwright-cli/
+/site/output/
+/site/public/media/
+/site/public/live2d/
+/site/public/data/
+/site/public/anontokyo-media.json
+/site/public/anontokyo-private-media.json
+/site/src/data/generated/
+/site/src/data/anontokyo-player-guide/
+
+# Catalog build products
+/catalog/generated/
+/catalog/site-data/
+
+# Resource platform runtime data and local secrets
+/data/
+/config/environments/*.local.toml
+/config/server-sync.local.toml
+*.secret
+*.credentials
+/deploy/qqbot.env copy.example
+
+# Local caches
+/.playwright-cli/
+/output/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.coverage
+
+# Private inputs and third-party content are never source publications.
+/node_modules/
+/site/src/data/
+/site/public/vendor/live2d/*.js
+/site/public/auto-stage/
+/site/public/growth/
+/site/public/immersive/
+/site/public/mission-rewards/
+/site/public/system-banners/
+/site/public/images/filter-bands/
+/site/public/gallery/*
+!/site/public/gallery/loading-mark.svg
+/config/release-inputs.json
+/config/global-update*.json
+*.pem
+*.key
+*.p12
+*.pfx
+*.sqlite*
+*.db

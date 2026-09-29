@@ -1,0 +1,54 @@
+---
+import { catalog, getAsset, getBand, type MemberCard } from '../lib/catalog';
+import { globalSystems, type GachaPool } from '../lib/global-systems';
+import { activeReleaseContext } from '../lib/release-context';
+import { siteHref } from '../lib/site-context';
+import ArchiveImage from './ArchiveImage.astro';
+import { upcomingBirthdays, calendarDate, birthdayCountdown, birthdayContent, preferredBirthdayPool, preferredBirthdayCard, birthdayPoolLabel } from '../lib/birthday-calendar.mjs';
+import '../styles/home-birthdays.css';
+
+const en = activeReleaseContext.locale === 'en';
+const href = (path: string) => import.meta.env.BASE_URL === '/' ? path : siteHref(path, activeReleaseContext);
+const now = Date.now();
+const birthdays = upcomingBirthdays(catalog.characters, now);
+const today = calendarDate(now);
+---
+{birthdays.length > 0 && <home-birthdays data-language={en ? 'en' : 'zh'}>
+  <section class="home-birthdays" aria-labelledby="home-birthday-heading">
+    <header class="birthday-heading">
+      <div><span class="birthday-heading-mark" aria-hidden="true">✳</span><h2 id="home-birthday-heading">{en ? 'Birthdays ahead' : '近期生日'}</h2></div>
+      <span class="birthday-today">{en ? 'Today' : '今天'} <time data-calendar-today datetime={today}>{today.slice(5).replace('-', '.')}</time><small>UTC+8</small></span>
+    </header>
+    <div class="birthday-grid" data-birthday-list>
+      {birthdays.map(({character, date, days}, index) => {
+        const portrait = character.portraitAssetIds.map(getAsset).find(asset => asset?.containerPath.endsWith('/character_thumbnail.png')) ?? getAsset(character.profileAssetId);
+        const band = getBand(character.bandId);
+        const related = birthdayContent(character.id, catalog.memberCards, globalSystems.gachaPools);
+        const pool = preferredBirthdayPool(related.pools, now);
+        const card = preferredBirthdayCard(related.cards, pool);
+        return <article class="birthday-card" data-birthday-card data-month={character.birthday.month} data-day={character.birthday.day} data-featured={index === 0 ? '' : undefined} data-is-today={days === 0 ? '' : undefined} style={`--birthday-color:${/^#[\da-f]{6}$/i.test(character.mainColor) ? character.mainColor : '#79aec2'}`} hidden={index >= 3}>
+          <a class="birthday-person" href={href(`/characters/${character.id}/`)}>
+            <div class="birthday-date"><time data-birthday-date datetime={date}>
+              <span class="birthday-date-short">{String(character.birthday.month).padStart(2, '0')}/{String(character.birthday.day).padStart(2, '0')}</span>
+              <span class="birthday-date-month">{en ? new Intl.DateTimeFormat('en', { month: 'short', timeZone: 'UTC' }).format(new Date(Date.UTC(2000, character.birthday.month - 1, 1))) : `${character.birthday.month}月`}</span>
+              <b class="birthday-date-day">{String(character.birthday.day).padStart(2, '0')}</b>
+            </time></div>
+            <div class="birthday-portrait">{portrait && <ArchiveImage asset={portrait} alt="" />}</div>
+            <div class="birthday-person-copy"><span class="birthday-countdown" data-birthday-countdown>{birthdayCountdown(days, en)}</span><h3>{character.displayName}</h3><p>{band?.displayName}</p></div>
+
+          </a>
+          <div class="birthday-related" aria-label={en ? `${character.displayName} birthday collection` : `${character.displayName}的生日内容`}>
+            <span class="birthday-related-mark" aria-hidden="true">✧</span>
+            {related.cards.length ? related.cards.map((item: MemberCard) => <a data-birthday-card-link data-card-id={item.id} data-master-id={item.masterId} hidden={item.id !== card?.id} href={href(`/cards/members/${item.id}/`)} title={item.subtitle}>{en ? 'Birthday card' : '生日卡'}</a>) : <span>{en ? 'Birthday card · Not listed' : '生日卡 · 待收录'}</span>}
+            <span class="birthday-related-divider" aria-hidden="true">/</span>
+            {related.pools.length ? related.pools.map((item: GachaPool) => <a data-birthday-pool data-pool-id={item.id} data-pickups={item.pickupMemberCardIds.join(',')} data-start={item.startAt ?? ''} data-end={item.endAt ?? ''} href={`${href('/recruitment/')}#pool-${item.id}`} hidden={item.id !== pool?.id}>{birthdayPoolLabel(item, now, en)}</a>) : <span>{en ? 'Birthday pool · Not listed' : '生日招募 · 待收录'}</span>}
+          </div>
+        </article>;
+      })}
+    </div>
+    <noscript><p class="birthday-no-script">{en ? 'Calendar at build time. Enable JavaScript for daily updates.' : '当前展示构建时的日历，启用 JavaScript 可每日自动更新。'}</p></noscript>
+  </section>
+</home-birthdays>}
+<script>
+  import '../lib/home-birthdays';
+</script>

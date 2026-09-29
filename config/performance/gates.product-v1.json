@@ -1,0 +1,113 @@
+{
+  "schemaVersion": 1,
+  "locales": [
+    "zh-CN",
+    "en"
+  ],
+  "viewports": [
+    {
+      "name": "desktop",
+      "width": 1440,
+      "height": 900
+    },
+    {
+      "name": "mobile",
+      "width": 390,
+      "height": 844
+    }
+  ],
+  "browser": {
+    "maxByteGrowthRatio": 0.05,
+    "maxRequestGrowth": 1,
+    "routes": [
+      {
+        "id": "home",
+        "path": "/global/{locale}/",
+        "maxBytes": 716800,
+        "maxRequests": 30
+      },
+      {
+        "id": "tools",
+        "path": "/global/{locale}/tools/",
+        "maxBytes": 184320,
+        "maxRequests": 20
+      },
+      {
+        "id": "music",
+        "path": "/global/{locale}/music/",
+        "maxBytes": 614400,
+        "maxRequests": 32
+      },
+      {
+        "id": "characters",
+        "path": "/global/{locale}/characters/",
+        "maxBytes": 614400,
+        "maxRequests": 32
+      },
+      {
+        "id": "character-detail",
+        "path": "/global/{locale}/characters/character-1/",
+        "maxBytes": 716800,
+        "maxRequests": 36
+      },
+      {
+        "id": "member-detail",
+        "path": "/global/{locale}/cards/members/member-card-1/",
+        "maxBytes": 716800,
+        "maxRequests": 36
+      },
+      {
+        "id": "support-detail",
+        "path": "/global/{locale}/cards/supports/support-card-1/",
+        "maxBytes": 716800,
+        "maxRequests": 36
+      },
+      {
+        "id": "music-detail",
+        "path": "/global/{locale}/music/music-100001/",
+        "maxBytes": 716800,
+        "maxRequests": 36
+      },
+      {
+        "id": "events",
+        "path": "/global/{locale}/events/",
+        "maxBytes": 716800,
+        "maxRequests": 36
+      }
+    ]
+  },
+  "load": {
+    "warmupRequests": 6,
+    "paths": [
+      "/global/zh-CN/",
+      "/global/zh-CN/tools/",
+      "/global/zh-CN/cards/",
+      "/global/zh-CN/characters/",
+      "/global/zh-CN/music/",
+      "/global/zh-CN/events/"
+    ],
+    "stages": [
+      {
+        "concurrency": 5,
+        "requests": 100,
+        "hardGate": true
+      },
+      {
+        "concurrency": 10,
+        "requests": 200,
+        "hardGate": true
+      },
+      {
+        "concurrency": 20,
+        "requests": 200,
+        "hardGate": false
+      },
+      {
+        "concurrency": 50,
+        "requests": 100,
+        "hardGate": false
+      }
+    ]
+  },
+  "productProfile": "v1"
+}

@@ -1,0 +1,16 @@
+/var/log/nginx/ournotes.access.log {
+  daily
+  size 32M
+  rotate 14
+  compress
+  delaycompress
+  missingok
+  notifempty
+  sharedscripts
+  prerotate
+    systemctl start ournotes-monitor.service >/dev/null 2>&1 || true
+  endscript
+  postrotate
+    [ ! -s /run/nginx.pid ] || kill -USR1 $(cat /run/nginx.pid)
+  endscript
+}

@@ -1,0 +1,6 @@
+---
+import { activeReleaseContext } from '../../lib/release-context';
+import { siteHref } from '../../lib/site-context';
+// Preserve the old chat-stamp link after correcting the module terminology.
+return Astro.redirect(import.meta.env.BASE_URL === '/' ? '/stamps/' : siteHref('/stamps/', activeReleaseContext), 301);
+---

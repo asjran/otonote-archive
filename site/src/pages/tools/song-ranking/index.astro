@@ -1,0 +1,64 @@
+---
+import ToolPageHeader from "../../../components/ToolPageHeader.astro";
+import BaseLayout from '../../../layouts/BaseLayout.astro';
+import ScoringUnavailable from '../../../components/ScoringUnavailable.astro';
+import ScoringModelNotice from '../../../components/ScoringModelNotice.astro';
+import { catalog, getAsset } from '../../../lib/catalog';
+import { scoringRulesAvailable } from '../../../lib/scoring-release-gate.mjs';
+import { loadSongRankingData } from '../../../lib/song-ranking-data.mjs';
+import { RANKING_METRICS, rankSongRows } from '../../../lib/song-ranking-view.mjs';
+import type { calculateRankingRow } from '../../../lib/song-ranking.mjs';
+import formalRules from '../../../data/formal-scoring-rules.json';
+import '../../../styles/song-ranking.css';
+const available = scoringRulesAvailable(formalRules, catalog.release.id);
+const tracks = catalog.musicTracks.map(t => ({ id: t.id, title: t.title, bandIds: t.bandIds,
+  bandLabels: t.bandLabels, musicTypeLabel: t.musicTypeLabel, audioDuration: t.audioDuration }));
+const charts = catalog.musicCharts.map(c => ({ id: c.id, trackId: c.trackId, difficulty: c.difficulty,
+  duration: c.duration, analysisDataUrl: c.analysisDataUrl }));
+const rankings = available ? await loadSongRankingData({ rules: formalRules, releaseId: catalog.release.id, tracks, charts,
+  sourceRoot: import.meta.env.OURNOTES_RANKING_SOURCE_ROOT }) : null;
+const artwork = Object.fromEntries(catalog.musicTracks.map(t => [t.id, getAsset(t.jacketAssetId)?.thumbnailUrl ?? getAsset(t.jacketAssetId)?.previewUrl]));
+const data = JSON.stringify({ rankings, artwork }).replaceAll('<', '\\u003c');
+const initial: Array<ReturnType<typeof calculateRankingRow> & { rank: number | null; efficiency: number | null }> = rankings ? rankSongRows(rankings.ordinary) : [];
+const format = (n: number | null) => n == null ? '—' : n.toLocaleString('zh-CN', { maximumFractionDigits: 0 });
+---
+<BaseLayout title="歌曲排行榜">
+  <ToolPageHeader title="歌曲排行榜" description="用同一基准比较谱面出分与时间效率，挑选下一首歌。" meta="普通演出 / 激奏演出" />
+  <div class="content-shell ranking-shell">
+    {available ? <song-ranking class="song-ranking">
+      <ScoringModelNotice />
+      <script is:inline type="application/json" data-ranking-data set:html={data}></script>
+      <section class="ranking-controls" aria-label="比较条件">
+        <div class="ranking-mode" role="group" aria-label="演出模式"><button type="button" data-mode="ordinary" aria-pressed="true"><span>普通演出</span><small>谱面与技能</small></button><button type="button" data-mode="gekisou" aria-pressed="false"><span>激奏演出</span><small>任务与奖励</small></button></div>
+        <label class="ranking-time">效率时长<select data-duration><option value="chart">谱面时长</option><option value="audio">音频时长</option></select></label>
+        <details class="ranking-method"><summary>排名口径 <span aria-hidden="true">ⓘ</span></summary><div class="ranking-method-body">
+          <h2>一张所有人都能比较的榜</h2>
+          <p>统一 100,000 综合力，五次 +100% 加分技能、每次 5 秒；AP、满生命、无辅助。排除卡牌、属性及乐队适配差异，固定基准，不读取个人编成。</p>
+          <p>激奏统一三段第一、零判定偏差、60 FPS，不加入卡牌专属激奏技能。LUCK 使用固定种子 20260927、2 批抽样，每个数据版本预先生成同一份结果；随机谱面为 240 个样本。结果稳定可复现，不是实战必然得分。</p>
+          <p>每秒得分 = 基准得分 ÷ 所选时长。谱面时长从零点至最后事件；音频时长包含音频首尾。均不含加载与结算时间；缺少时长不参与效率排名。</p>
+          <p>转分倍率 = 基准得分 ÷ 100,000。难度倍率 = 1 +（等级 − 5）× 0.005。连击倍率按音符分值权重加权；技能倍率为普通得分相对无技能分的增益。各项均保留游戏计分中的取整，不能直接相乘还原总分。</p>
+          <p>按原始数值排序，相同结果采用 1、1、3 并列名次。激奏样本极值不是理论极值，接近的随机谱面不代表确定强弱。此榜用于比较谱面，不是实战成绩或活动收益榜。</p>
+        </div></details>
+      </section>
+      <div class="ranking-picks" data-picks aria-label="本次筛选的选曲推荐"></div>
+      <section class="ranking-board" aria-labelledby="ranking-title">
+        <header class="ranking-board-heading"><div><span class="ranking-eyebrow">THE CHART</span><h2 id="ranking-title">歌曲排行榜 <span data-count>{charts.length} 张谱面</span></h2></div><p data-context role="status">普通演出 · 固定基准</p></header>
+        <div class="ranking-browse">
+          <div class="ranking-board-tabs" role="group" aria-label="榜单"><button type="button" data-board="expectedScore" aria-pressed="true">出分榜</button><button type="button" data-board="efficiency" aria-pressed="false">效率榜</button></div>
+          <label class="ranking-search"><span class="ranking-sr-only">搜索歌曲</span><span aria-hidden="true">⌕</span><input data-filter="query" type="search" placeholder="找一首歌，看看它排第几" /></label>
+          <label><span class="ranking-sr-only">难度</span><select data-filter="difficulty"><option value="all">全部难度</option>{['easy','normal','hard','expert'].map(d => <option value={d}>{d.toUpperCase()}</option>)}</select></label>
+          <label><span class="ranking-sr-only">乐队</span><select data-filter="band"><option value="all">全部乐队</option>{catalog.bands.map(b => <option value={b.id}>{b.displayName}</option>)}</select></label>
+          <label><span class="ranking-sr-only">倍率排序</span><select data-metric><option value="">按倍率查看…</option>{Object.entries(RANKING_METRICS).filter(([key]) => !['expectedScore','efficiency','minimumScore','maximumScore'].includes(key)).map(([key,label]) => <option value={key}>{label}</option>)}</select></label>
+        </div>
+        <div class="ranking-table-wrap"><table class="ranking-table"><caption class="ranking-sr-only">歌曲、难度及统一基准下的分数与效率</caption><thead><tr><th scope="col">#</th><th scope="col">歌曲 / 难度</th><th scope="col"><button type="button" data-sort="expectedScore">基准得分 ↓</button></th><th scope="col"><button type="button" data-sort="efficiency">每秒得分</button></th><th scope="col" data-factor-heading>转分倍率</th><th scope="col"><span class="ranking-sr-only">倍率明细</span></th></tr></thead><tbody data-rows>
+          {initial.slice(0,25).map(row => <tr><td class="ranking-position">{row.rank}</td><td class="ranking-song"><div class="ranking-track"><img src={artwork[row.trackId]} alt="" width="48" height="48" loading="lazy" /><div><strong>{row.title}</strong><small>{row.difficulty.toUpperCase()} · Lv.{row.level} · {row.bandLabels.join(' / ')}</small></div></div></td><td>{format(row.expectedScore)}</td><td>{format(row.efficiency)}</td><td>{row.scoreMultiplier == null ? '—' : `${row.scoreMultiplier.toFixed(4)}×`}</td><td></td></tr>)}
+        </tbody></table></div>
+        <div class="ranking-empty" data-empty hidden><strong>这次没有找到匹配的谱面</strong><p>换个关键词，或放宽难度和乐队筛选。</p><button type="button" data-reset>清除筛选</button></div>
+        <footer class="ranking-pagination"><span data-range>第 1–25 项</span><div><button type="button" data-prev aria-label="上一页">←</button><span data-page>1 / 14</span><button type="button" data-next aria-label="下一页">→</button></div></footer>
+      </section>
+      <p class="ranking-footnote">蓝色看出分，紫色看效率。对比条以当前筛选中的最高值为满格。<span>数据版本：{catalog.release.versionName} · 理想演奏估算</span></p>
+      <noscript>当前展示普通演出出分榜前 25 项；切换和筛选需要启用 JavaScript。</noscript>
+    </song-ranking> : <ScoringUnavailable />}
+  </div>
+</BaseLayout>
+<script>import '../../../lib/song-ranking-ui.mjs';</script>
