@@ -1,0 +1,37 @@
+---
+import EventTypeBadge from "./EventTypeBadge.astro";
+import type { EventDefinition } from '../lib/event-archive';
+import Countdown from './EventCountdown.astro';
+import CardAttributeBadge from './CardAttributeBadge.astro';
+interface Props { event: EventDefinition; logo?: string; attributes?: number[]; locale: string }
+const {event,logo,attributes=[],locale} = Astro.props;
+---
+<div class="ef-sticky" data-event-sticky>
+  {logo && <img src={logo} alt="" width="65" height="36" />}
+  <div class="ef-sticky-title"><strong>{event.name}</strong><EventTypeBadge mode={event.mode} locale={locale} /><Countdown start={event.schedule.startAt} end={event.schedule.endAt} edition={event.edition} timeZone={event.schedule.timeZone} locale={locale} /></div>
+  <div class="ef-sticky-attributes">{attributes.map(code => <CardAttributeBadge code={code} compact />)}</div>
+  <nav aria-label={locale==='en' ? 'Event shortcuts' : '活动快捷导航'}><a href={`#event-${event.id}-cards`}>{locale==='en'?'Cards':'卡牌'}</a><a href={`#event-${event.id}-songs`}>{locale==='en'?'Ranking':'榜单'}</a><a href={`#event-${event.id}-related`}>{locale==='en'?'Related':'关联'}</a><button data-event-dialog={`event-${event.id}-bonus`} aria-haspopup="dialog">{locale==='en'?'Bonuses':'加成'}</button></nav>
+</div>
+<script>
+  document.querySelectorAll<HTMLElement>('[data-event-sticky]').forEach(banner => {
+    const article = banner.closest('article');
+    const hero = article?.querySelector('.ea-hero');
+    const header = document.querySelector<HTMLElement>('[data-site-header]');
+    if (!hero) return;
+    let queued = false;
+    const update = () => {
+      const height = header?.getBoundingClientRect().height ?? 68;
+      banner.style.setProperty('--event-header-height',`${height}px`);
+      const box = article!.getBoundingClientRect();
+      banner.style.setProperty('--event-banner-left', `${box.left}px`);
+      banner.style.setProperty('--event-banner-width', `${box.width}px`);
+      banner.classList.toggle('is-floating',hero.getBoundingClientRect().bottom < height && box.bottom > height + 100);
+      queued = false;
+    };
+    const onScroll = () => {if (!queued) {queued=true; requestAnimationFrame(update);}};
+    window.addEventListener('scroll',onScroll,{passive:true});
+    window.addEventListener('resize',update);
+    update();
+    window.addEventListener('pagehide',()=>{window.removeEventListener('scroll',onScroll);window.removeEventListener('resize',update);},{once:true});
+  });
+</script>

@@ -1,4 +1,6 @@
 ---
+import EditionBadge from "../EditionBadge.astro";
+import {activeReleaseContext} from "../../lib/release-context";
 import ArchiveImage from "../ArchiveImage.astro";
 import { databaseHref, plainDescription } from "../../lib/database-display";
 import {
@@ -45,8 +47,8 @@ const search = [
 
 <a
   class="db-tile db-tile--interactive database-catalog-item"
-  href={databaseHref(`/database/skills/#detail=${skill.id}`)}
-  data-db-open={skill.id}
+  href={skill.sourceEdition && skill.sourceEdition !== activeReleaseContext.region ? skill.sourceHref : databaseHref(`/database/skills/#detail=${skill.id}`)}
+  data-db-open={skill.sourceEdition && skill.sourceEdition !== activeReleaseContext.region ? undefined : skill.id}
   aria-haspopup="dialog"
   aria-labelledby={`${skill.id}-title`}
   data-search={search}
@@ -76,7 +78,7 @@ const search = [
   </div>
   <div class="db-tile-main">
     <div class="db-tile-kicker">
-      <span>{skillKindLabel(skill.kind)}</span>
+      <span>{skillKindLabel(skill.kind)}</span><EditionBadge record={skill} />
     </div>
     <h2 id={`${skill.id}-title`}>{skill.name}</h2>
   </div>

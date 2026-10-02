@@ -1,0 +1,53 @@
+---
+import type { EventDefinition, EventMediaMap } from '../lib/event-archive';
+import MissionList from './EventMissionList.astro';
+import Dialog from './EventDialog.astro';
+import EventIcon from './EventIcon.astro';
+import Reward from './EventReward.astro';
+import RecruitmentDetail from './systems/RecruitmentDetail.astro';
+interface Props { event: EventDefinition; media: EventMediaMap; locale: string; href: (path:string)=>string }
+const {event,media,locale} = Astro.props;
+const en = locale === 'en';
+const t = (zh:string,english:string) => en ? english : zh;
+const related = event.related ?? {recruitment:[],missions:[],passes:[]};
+const groups = related.missions;
+const taskCount = groups.reduce((sum,group)=>sum+group.stages.length,0);
+const id = (name:string) => `event-${event.id}-${name}`;
+---
+<section class="ef-related" id={id('related')}>
+  <div class="ea-section-head"><h2>{t('一起查看', 'Related to this event')}</h2><span>{t('招募 · 通行证与任务', 'Recruitment · pass & missions')}</span></div>
+  <div class="ef-related-grid">
+    {related.recruitment.map(pool => <button class="ef-related-card" type="button" data-event-dialog={id(`pool-${pool.id}`)} aria-haspopup="dialog"><span class="ef-related-symbol"><EventIcon name="ticket" /></span><span><small>{t('加成卡 UP 招募','Bonus-card UP recruitment')}</small><strong>{pool.name}</strong><em>{pool.pickupMemberCardIds.length} {t('成员','members')} · {pool.pickupSupportCardIds.length} {t('留影','snaps')}</em></span><EventIcon name="arrow" size={16} /></button>)}
+    {taskCount > 0 && <button class="ef-related-card" type="button" data-event-dialog={id('missions')} aria-haspopup="dialog"><span class="ef-related-symbol"><EventIcon name="checklist" /></span><span><small>{t('关联任务','Related missions')}</small><strong>{t('活动任务','Event missions')}</strong><em>{taskCount} {t('项 · 查看条件与奖励','objectives & rewards')}</em></span><EventIcon name="arrow" size={16} /></button>}
+    {related.passes.map(pass => <button class="ef-related-card" type="button" data-event-dialog={id(`pass-${pass.id}`)} aria-haspopup="dialog"><span class="ef-related-symbol"><EventIcon name="pass" /></span><span><small>{t('活动通行证','Event pass')}</small><strong>{pass.name}</strong><em>{pass.missions.reduce((sum,group)=>sum+group.stages.length,0)} {t('项任务','missions')} · {pass.levels.length} {t('级奖励','reward levels')}</em></span><EventIcon name="arrow" size={16} /></button>)}
+    {!related.recruitment.length && !taskCount && !related.passes.length && <p class="ea-note">{t('尚未收录可确认关联的招募、任务或通行证。','No confirmed related recruitment, missions or pass collected.')}</p>}
+  </div>
+  {related.recruitment.map(pool => <Dialog id={id(`pool-${pool.id}`)} title={t('关联招募', 'Related recruitment')} locale={locale}><RecruitmentDetail pool={pool} /></Dialog>)}
+  {taskCount > 0 && <Dialog id={id('missions')} title={t('活动任务与奖励','Event missions & rewards')} locale={locale}>
+    <MissionList groups={groups} media={media} locale={locale} />
+  </Dialog>}
+  {related.passes.map(pass=><Dialog id={id(`pass-${pass.id}`)} title={pass.name} locale={locale}>
+    <div class="ef-pass-heading"><span><EventIcon name="pass" size={24} /><strong>{pass.levels.length} {t('级奖励','reward levels')}</strong></span><p>{pass.startAt} — {pass.endAt}</p></div>
+    <p class="ea-note">{t('完成本期通行证任务获得通行证积分，提升等级。高级奖励需要对应的高级通行证权益。','Complete pass missions to earn points and increase the pass level. Premium rewards require the corresponding premium pass.')}</p>
+    <div data-event-pass>
+      <div class="ef-bonus-tabs ef-pass-tabs" role="group" aria-label={t('通行证内容','Pass content')}>
+        <button type="button" data-pass-view="missions" aria-pressed="true" aria-controls={id(`pass-${pass.id}-missions`)}>{t('任务','Missions')} <small>{pass.missions.reduce((sum,group)=>sum+group.stages.length,0)}</small></button>
+        <button type="button" data-pass-view="rewards" aria-pressed="false" aria-controls={id(`pass-${pass.id}-rewards`)}>{t('等级奖励','Level rewards')} <small>{pass.levels.length}</small></button>
+      </div>
+      <div id={id(`pass-${pass.id}-missions`)} data-pass-panel="missions"><MissionList groups={pass.missions} media={media} locale={locale} /></div>
+      <div id={id(`pass-${pass.id}-rewards`)} data-pass-panel="rewards" hidden>
+    <div class="ef-pass-levels">{pass.levels.map(level=><div class="ef-pass-level"><div class="ef-pass-level-number"><strong>Lv.{level.level}</strong><small>{level.points?.toLocaleString()} pt</small></div><div><small>{t('普通奖励','Free rewards')}</small>{level.free.length ? level.free.map(item=><Reward reward={item} media={media} locale={locale} compact />) : <span>—</span>}</div><div><small>{t('高级奖励','Premium rewards')}</small>{level.premium.length ? level.premium.map(item=><Reward reward={item} media={media} locale={locale} compact />) : <span>—</span>}</div></div>)}</div>
+      </div>
+    </div>
+  </Dialog>)}
+</section>
+<script>
+  import '../lib/system-tabs.mjs';
+  import '../lib/system-browser.mjs';
+  document.querySelectorAll<HTMLElement>('[data-event-pass]').forEach(root => {
+    root.querySelectorAll<HTMLButtonElement>('[data-pass-view]').forEach(button => button.addEventListener('click', () => {
+      root.querySelectorAll('[data-pass-view]').forEach(tab => tab.setAttribute('aria-pressed', String(tab === button)));
+      root.querySelectorAll<HTMLElement>('[data-pass-panel]').forEach(panel => panel.hidden = panel.dataset.passPanel !== button.dataset.passView);
+    }));
+  });
+</script>

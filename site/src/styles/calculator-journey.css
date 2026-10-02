@@ -81,3 +81,25 @@
 .journey-saved [data-preset-results] { scroll-margin-top:85px; border-top:1px solid var(--calc-line); margin-top:20px; padding-top:16px; }
 .journey-saved [data-preset-results]:empty { border:0; margin:0; padding:0; }
 @media(max-width:700px) { .journey-saved { padding:16px; } }
+
+/* Quick workspace: inputs remain reachable without completing a wizard. */
+.calculator-journey[data-guided=true] {display:grid;grid-template-columns:minmax(0,1.15fr) minmax(300px,1fr);gap:16px;align-items:start;}
+.calculator-journey>.journey-heading,.calculator-journey>.journey-tasks,.calculator-journey>.journey-steps,.calculator-journey>.journey-saved {grid-column:1/-1;margin:0;}
+.calculator-journey>.journey-steps {display:none;}
+.calculator-journey>.journey-step {margin:0;padding:18px;min-width:0;scroll-margin-top:85px;}
+.calculator-journey>.journey-step[data-journey-step="0"] {grid-column:1;grid-row:3/span 2;}
+.calculator-journey>.journey-step[data-journey-step="1"] {grid-column:2;grid-row:3;}
+.calculator-journey>.journey-step[data-journey-step="2"] {grid-column:2;grid-row:4;}
+.calculator-journey>.journey-step[data-journey-step="3"] {grid-column:1/-1;}
+.calculator-journey .journey-choices {grid-template-columns:1fr;gap:6px;}
+.calculator-journey .journey-choices button {min-height:0;padding:10px 12px;}
+.calculator-journey .journey-choices button strong {font-size:13px;margin:0 0 3px;}
+.calculator-journey .journey-choices button span {font-size:12px;}
+.calculator-journey .journey-intro {font-size:12px;margin:6px 0 12px;}
+.calculator-journey .journey-review {display:none;}
+.calculator-journey .journey-step .song-picker-list {max-height:580px!important;}
+.calculator-journey .journey-step .song-picker-row {flex-wrap:wrap;}
+.calculator-journey .song-picker-difficulties {width:100%;}
+.calculator-journey .song-picker-difficulties button {flex:1;min-width:0;}
+.calculator-journey .journey-footer {display:none;}
+@media(max-width:1000px){.calculator-journey[data-guided=true] {display:flex;flex-direction:column;}.calculator-journey[data-guided=true]> :not([hidden]) {width:100%;box-sizing:border-box;}.calculator-journey .journey-step .song-picker-list {max-height:360px!important;}}

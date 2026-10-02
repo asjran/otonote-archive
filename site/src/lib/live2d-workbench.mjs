@@ -201,6 +201,7 @@ class Live2DWorkbench extends HTMLElement {
     this.q('[data-fps]').textContent = ''; this.q('[data-playing]').textContent = '—';
     for (const selector of ['[data-parameters]', '[data-parts]']) this.q(selector)?.replaceChildren();
     for (const selector of ['[data-parameter-count]', '[data-part-count]']) if (this.q(selector)) this.q(selector).textContent = '';
+    for(const selector of ['[data-motion-shortcuts]','[data-expression-shortcuts]'])this.q(selector)?.replaceChildren();
     for (const selector of ['[data-motion]', '[data-expression]']) this.q(selector).replaceChildren(new Option('—', ''));
   }
 
@@ -341,6 +342,14 @@ class Live2DWorkbench extends HTMLElement {
       return { name, label: clipLabel(name, this.config.en) };
     }).filter(e => e.name === expression || e.label.toLowerCase().includes(term)).map(e => new Option(e.label, e.name)));
     expressionSelect.value = expression;
+    for(const [select,selector,isMotion] of [[motionSelect,'[data-motion-shortcuts]',true],[expressionSelect,'[data-expression-shortcuts]',false]]){
+      const group=this.q(selector);if(!group)continue;group.replaceChildren();
+      for(const option of [...select.options].filter(o=>!isMotion||o.value!=='').slice(0,6)){
+        const b=document.createElement('button');b.type='button';b.textContent=option.textContent;b.setAttribute('aria-pressed',String(option.value===select.value));
+        b.addEventListener('click',()=>{if(this.dataset.state!=='ready')return;select.value=option.value;select.dispatchEvent(new Event('change',{bubbles:true}));if(isMotion)this.play();for(const button of group.children)button.setAttribute('aria-pressed',String(button===b));});group.append(b);
+      }
+    }
+
   }
 
   makeSlider(parameter, kind) {

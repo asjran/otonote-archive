@@ -1,7 +1,10 @@
 export const NAVIGATION_GROUPS = Object.freeze([
-  { id: "missions", labelKey: "missions", href: "/missions/", children: [] },
-  { id: "recruitment", labelKey: "recruitment", href: "/recruitment/", children: [] },
-  { id: "events", labelKey: "events", href: "/events/", children: [] },
+  { id: "events", labelKey: "events", href: "/events/", matchPrefixes:["/events/","/rankings/","/recruitment/","/missions/"], children: [
+    {labelKey:"eventOverview",href:"/events/"},
+    {labelKey:"recruitment",href:"/recruitment/"},
+    {labelKey:"missions",href:"/missions/"},
+    {labelKey:"playerRankings",href:"/rankings/"}
+  ] },
   { id: "catalog", labelKey: "navCatalog", href: "/catalog/",
     matchPrefixes: ["/catalog/", "/characters/", "/cards/", "/database/"],
     children: [
@@ -21,14 +24,23 @@ export const NAVIGATION_GROUPS = Object.freeze([
   { id: "comics", labelKey: "navComics", href: "/comics/", children: [] },
   { id: "stamps", labelKey: "navStamps", href: "/stamps/", children: [] },
   { id: "decorations", labelKey: "navDecorations", href: "/profile-decorations/", children: [] },
-  { id: "stories", labelKey: "navStories", href: "/stories/", children: [] },
+  { id: "stories", labelKey: "navStories", href: "/stories/main/", matchPrefixes: ["/stories/"], children: [
+    { labelKey: "storyMain", href: "/stories/main/" },
+    { labelKey: "storyExtra", href: "/stories/extra/" },
+    { labelKey: "storyViewpoint", href: "/stories/viewpoint/" },
+    { labelKey: "storyFriendship", href: "/stories/friendship/" },
+    { labelKey: "eventStories", href: "/stories/events/" }
+  ] },
+  { id: "my-growth", labelKey: "myGrowth", href: "/my-growth/", children: [] },
   { id: "tools", labelKey: "navTools", href: "/tools/", matchPrefixes: ["/tools/"],
     children: [
       { labelKey: "live2dWorkbench", href: "/tools/live2d/" },
       { labelKey: "teamBuilder", href: "/tools/deck-builder/" },
       { labelKey: "songCalculator", href: "/tools/song-calculator/" },
       { labelKey: "songRanking", href: "/tools/song-ranking/" },
-      { labelKey: "optimizer", href: "/tools/optimizer/" },
+      { labelKey: "apGrade", href: "/tools/ap-grade/" },
+      { labelKey: "eventEfficiency", href: "/tools/event-efficiency/" },
+      { labelKey: "resourceFinder", href: "/tools/resources/" },
     ] }
 ]);
 

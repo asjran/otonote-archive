@@ -1,0 +1,60 @@
+---
+import { activeReleaseContext } from '../lib/release-context';
+import { eventRecords, eventHref as href, eventArtworks, eventIdentities } from '../lib/event-pages';
+import { homeEvents } from '../lib/home-content.mjs';
+import { catalog, getAsset } from '../lib/catalog';
+import { eventBonusCharacters } from '../lib/event-bonus-characters.mjs';
+import HomeEventTiming from './HomeEventTiming.astro';
+import CardAttributeBadge from './CardAttributeBadge.astro';
+import '../styles/home-events.css';
+
+const en = activeReleaseContext.locale === 'en';
+const region = activeReleaseContext.region;
+const now = Date.now();
+const events = homeEvents(eventRecords, region, now);
+---
+<section class="home-events" aria-labelledby="home-events-heading">
+  <header class="home-events-heading">
+    <div><p class="home-kicker">EVENT UPDATES</p><h2 id="home-events-heading">{en ? 'Event updates' : '活动情报'}</h2></div>
+    <a href={href('/events/')}>{en ? 'All events' : '全部活动'}</a>
+  </header>
+  {events.length ? <div class="home-events-grid">{events.map(event => {
+    const art = eventArtworks[event.id];
+    const bands = eventIdentities[event.id]?.bands ?? [];
+    const attributes = eventIdentities[event.id]?.attributes ?? [];
+    const characters = eventBonusCharacters(event.effects, catalog);
+    return <article class="home-event-card">
+      <a class="home-event-art" href={href(`/events/${event.id}/`)} aria-label={event.name}>
+        {art?.cover ? <img class="home-event-cover" src={art.cover} alt="" width="640" height="480" loading="lazy" /> : <span class="home-event-placeholder" aria-hidden="true">EVENT <b>{String(event.id).padStart(2, '0')}</b></span>}
+        {art?.logo && <img class="home-event-logo" src={art.logo} alt="" width="460" height="240" loading="lazy" />}
+      </a>
+      <div class="home-event-info">
+        <div class="home-event-eyebrow">
+          <span class="home-event-tag home-event-tag--type">{event.mode === 'challenge_live' ? (en ? 'Challenge Live' : '挑战演出') : (en ? 'Event' : '活动')}</span>
+          <HomeEventTiming start={event.start} end={event.end} en={en} />
+          <span>{region === 'jp' ? (en ? 'JP' : '日服') : (en ? 'GLOBAL' : '国际服')}</span>
+        </div>
+        <h3><a href={href(`/events/${event.id}/`)} lang={event.nameLocale ?? undefined}>{event.name}</a></h3>
+        <p class="home-event-schedule">{event.schedule.startAt ?? '—'} <span aria-hidden="true">—</span> {event.schedule.endAt ?? '—'} <small>{region === 'jp' ? 'JST' : 'UTC+8'}</small></p>
+        {(bands.length > 0 || attributes.length > 0) && <div class="home-event-bonuses">
+          {bands.map(band => <div class="home-event-bonus home-event-bonus--band">
+            {band.image && <img src={band.image} alt="" width="58" height="36" loading="lazy" />}
+            <div><small>{band.bonus ? (en ? 'Bonus band' : '加成乐队') : (en ? 'Featured band' : '登场乐队')}</small><strong>{band.name}</strong></div>
+          </div>)}
+          {attributes.length > 0 && <div class="home-event-bonus home-event-bonus--attribute" aria-label={en ? 'Bonus attribute' : '加成属性'}><div>{attributes.map(code => <CardAttributeBadge code={code} compact />)}</div></div>}
+        </div>}
+        {characters.length > 0 && <div class="home-event-characters">
+          <small>{en ? 'Bonus characters' : '加成角色'}</small>
+          <div>{characters.map(character => {
+            const portrait = character.portraitAssetIds.map(getAsset).find(asset => asset?.containerPath.endsWith('/character_face_icon.png')) ?? getAsset(character.profileAssetId);
+            return <a href={href(`/characters/${character.id}/`)} title={character.displayName}>
+              {portrait && <img src={portrait.thumbnailUrl || portrait.previewUrl} alt="" width="30" height="30" loading="lazy" />}
+              <span>{character.displayName}</span>
+            </a>;
+          })}</div>
+        </div>}
+        <div class="home-event-actions"><a href={href(`/events/${event.id}/`)}>{en ? 'Event guide & rewards' : '玩法与奖励'}</a>{event.story.episodes.length > 0 && <a href={href(`/stories/events/${event.id}/`)}>{en ? 'Event stories' : '活动故事'}</a>}</div>
+      </div>
+    </article>;
+  })}</div> : <p class="home-events-empty">{en ? 'No events listed for this server yet. Check back for upcoming schedules and rewards.' : '当前服务器暂未收录活动，后续将在这里展示活动日程、玩法与奖励。'}</p>}
+</section>

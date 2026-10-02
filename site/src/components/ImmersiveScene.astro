@@ -23,6 +23,11 @@ const megabytes = Math.ceil((scene.bytes ?? 9_000_000) / 1_000_000);
     <div class="immersive-start" data-scene-start>
       <button class="immersive-load" type="button" data-scene-load><span aria-hidden="true">▷</span> {say('播放动态场景', 'Play the scene')}</button>
       <span>{say(`点击载入 · 约 ${megabytes} MB · 无声`, `Load on click · about ${megabytes} MB · silent`)}</span>
+      <div class="immersive-load-progress" data-load-progress hidden>
+        <div><span data-load-stage role="status" aria-live="polite"></span><span data-load-percent></span></div>
+        <progress data-load-bar max="100" aria-label={say('场景加载进度', 'Scene loading progress')}></progress>
+        <small data-load-bytes></small>
+      </div>
     </div>
     <span class="immersive-scene-label">{bandName} <span>／</span> {name}</span>
   </div>

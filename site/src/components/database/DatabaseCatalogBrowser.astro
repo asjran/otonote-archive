@@ -141,6 +141,7 @@ const ui = getUi(activeReleaseContext.locale);
     sortSkills
   } from "../../lib/database-filtering.mjs";
   import { createPaginationAdapter } from "../../lib/pagination-browser.mjs";
+  import { serverSearchParams } from "../../lib/game-servers.mjs";
 
   class DatabaseCatalogBrowser extends HTMLElement {
     connectedCallback() {
@@ -238,7 +239,7 @@ const ui = getUi(activeReleaseContext.locale);
         if (count) count.textContent = String(visible.length);
         if (empty) empty.hidden = visible.length > 0;
         if (paged) pagination?.render(paged);
-        const params = pagination?.params(next) ?? next;
+        const params = serverSearchParams(pagination?.params(next) ?? next);
         if (historyMode !== "none") {
           history[historyMode === "push" ? "pushState" : "replaceState"](
             null,

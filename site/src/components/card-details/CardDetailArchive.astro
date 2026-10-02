@@ -1,4 +1,5 @@
 ---
+import EditionDetail from "../EditionDetail.astro";
 import type {
   Asset,
   Band,
@@ -105,6 +106,7 @@ const rate = (value: number) => `${Number((value / 100).toFixed(2))}%`;
         <header class="card-record-identity">
           <div class="card-record-kicker">
             <span>{cardKind === "member" ? "MEMBER CARD" : "SNAP"} / {card.masterId.toString().padStart(3, "0")}</span>
+            <EditionDetail kind={cardKind === "member" ? "memberCards" : "supportCards"} id={card.id} />
           </div>
           <div class="card-record-badges" aria-label={ui.coreCardInfo}>
             <CardRarityBadge rarity={card.rarity} />

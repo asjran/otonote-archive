@@ -4,7 +4,7 @@ import { globalSystems, type GachaPool } from '../lib/global-systems';
 import { activeReleaseContext } from '../lib/release-context';
 import { siteHref } from '../lib/site-context';
 import ArchiveImage from './ArchiveImage.astro';
-import { upcomingBirthdays, calendarDate, birthdayCountdown, birthdayContent, preferredBirthdayPool, preferredBirthdayCard, birthdayPoolLabel } from '../lib/birthday-calendar.mjs';
+import { upcomingBirthdays, calendarDate, birthdayCountdown, birthdayProximity, birthdayContent, preferredBirthdayPool, preferredBirthdayCard, birthdayPoolLabel } from '../lib/birthday-calendar.mjs';
 import '../styles/home-birthdays.css';
 
 const en = activeReleaseContext.locale === 'en';
@@ -26,7 +26,7 @@ const today = calendarDate(now);
         const related = birthdayContent(character.id, catalog.memberCards, globalSystems.gachaPools);
         const pool = preferredBirthdayPool(related.pools, now);
         const card = preferredBirthdayCard(related.cards, pool);
-        return <article class="birthday-card" data-birthday-card data-month={character.birthday.month} data-day={character.birthday.day} data-featured={index === 0 ? '' : undefined} data-is-today={days === 0 ? '' : undefined} style={`--birthday-color:${/^#[\da-f]{6}$/i.test(character.mainColor) ? character.mainColor : '#79aec2'}`} hidden={index >= 3}>
+        return <article class="birthday-card" data-birthday-card data-month={character.birthday.month} data-day={character.birthday.day} data-birthday-state={birthdayProximity(days)} style={`--birthday-color:${/^#[\da-f]{6}$/i.test(character.mainColor) ? character.mainColor : '#79aec2'}`} hidden={index >= 4}>
           <a class="birthday-person" href={href(`/characters/${character.id}/`)}>
             <div class="birthday-date"><time data-birthday-date datetime={date}>
               <span class="birthday-date-short">{String(character.birthday.month).padStart(2, '0')}/{String(character.birthday.day).padStart(2, '0')}</span>
@@ -34,15 +34,15 @@ const today = calendarDate(now);
               <b class="birthday-date-day">{String(character.birthday.day).padStart(2, '0')}</b>
             </time></div>
             <div class="birthday-portrait">{portrait && <ArchiveImage asset={portrait} alt="" />}</div>
-            <div class="birthday-person-copy"><span class="birthday-countdown" data-birthday-countdown>{birthdayCountdown(days, en)}</span><h3>{character.displayName}</h3><p>{band?.displayName}</p></div>
+            <div class="birthday-person-copy"><span class="birthday-occasion birthday-occasion--today">{en ? 'TODAY’S BIRTHDAY' : '今日寿星'}</span><span class="birthday-countdown" data-birthday-countdown>{birthdayCountdown(days, en)}</span><h3>{character.displayName}</h3><p>{band?.displayName}</p></div>
 
           </a>
-          <div class="birthday-related" aria-label={en ? `${character.displayName} birthday collection` : `${character.displayName}的生日内容`}>
+          {(related.cards.length > 0 || related.pools.length > 0) && <div class="birthday-related" aria-label={en ? `${character.displayName} birthday collection` : `${character.displayName}的生日内容`}>
             <span class="birthday-related-mark" aria-hidden="true">✧</span>
-            {related.cards.length ? related.cards.map((item: MemberCard) => <a data-birthday-card-link data-card-id={item.id} data-master-id={item.masterId} hidden={item.id !== card?.id} href={href(`/cards/members/${item.id}/`)} title={item.subtitle}>{en ? 'Birthday card' : '生日卡'}</a>) : <span>{en ? 'Birthday card · Not listed' : '生日卡 · 待收录'}</span>}
-            <span class="birthday-related-divider" aria-hidden="true">/</span>
-            {related.pools.length ? related.pools.map((item: GachaPool) => <a data-birthday-pool data-pool-id={item.id} data-pickups={item.pickupMemberCardIds.join(',')} data-start={item.startAt ?? ''} data-end={item.endAt ?? ''} href={`${href('/recruitment/')}#pool-${item.id}`} hidden={item.id !== pool?.id}>{birthdayPoolLabel(item, now, en)}</a>) : <span>{en ? 'Birthday pool · Not listed' : '生日招募 · 待收录'}</span>}
-          </div>
+            {related.cards.map((item: MemberCard) => <a data-birthday-card-link data-card-id={item.id} data-master-id={item.masterId} hidden={item.id !== card?.id} href={href(`/cards/members/${item.id}/`)} title={item.subtitle}>{en ? 'Birthday card' : '生日卡'}</a>)}
+            {related.cards.length > 0 && related.pools.length > 0 && <span class="birthday-related-divider" aria-hidden="true">/</span>}
+            {related.pools.map((item: GachaPool) => <a data-birthday-pool data-pool-id={item.id} data-pickups={item.pickupMemberCardIds.join(',')} data-start={item.startAt ?? ''} data-end={item.endAt ?? ''} href={`${href('/recruitment/')}#pool-${item.id}`} hidden={item.id !== pool?.id}>{birthdayPoolLabel(item, now, en)}</a>)}
+          </div>}
         </article>;
       })}
     </div>

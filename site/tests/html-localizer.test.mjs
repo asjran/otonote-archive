@@ -48,6 +48,21 @@ test("localizes HTML text and accessible attributes without touching raw content
   assert.equal(localizeHtml(source, "zh-CN"), source);
 });
 
+test("new judgement controls and confirmation delays have complete English instructions", async () => {
+  const component = await readFile(new URL("../src/components/ScoringResearchWorkbench.astro", import.meta.url), "utf8");
+  const performanceControls = component.match(/<details[^>]*data-performance-settings[\s\S]*?<\/details>/)?.[0];
+  assert.ok(performanceControls);
+  const localized = localizeHtml(performanceControls, "en");
+  assert.doesNotMatch(localized, /\p{Script=Han}/u);
+  assert.match(localized, /not a record of actual play/);
+  assert.match(localized, /Frame numbers start at 0/);
+  assert.match(localized, /keep scoreIndex, timeMs and the chart identifiers unchanged/);
+  for (const index of [1, 2, 3]) {
+    const label = localizeHtml(`<label>第 ${index} 段结果确认额外等待（帧）<input /></label>`, "en");
+    assert.match(label, new RegExp(`Section ${index} result confirmation delay \\(frames\\)`));
+  }
+});
+
 test("localizes a directory with atomic file replacement and reports changes", async () => {
   const root = await mkdtemp(join(tmpdir(), "ournotes-localizer-"));
   await writeFile(

@@ -6,6 +6,8 @@ from unittest.mock import patch
 import errno
 import hashlib
 from types import SimpleNamespace
+from tools.global_remote_sync import read_json
+from tools.global_remote_sync import file_hash
 from tools.content_publication import MEDIA_GROUPS, inventory, publish_content, rollback_content, write
 
 
@@ -14,8 +16,8 @@ class ContentPublicationTests(unittest.TestCase):
         self.temp=tempfile.TemporaryDirectory();self.addCleanup(self.temp.cleanup)
         self.root=Path(self.temp.name);self.store=self.root/'content'
 
-    def candidate(self, release='test-1', missing=False):
-        candidate=self.root/release;bound=candidate/'global'/release
+    def candidate(self, release='test-1', missing=False, region='global'):
+        candidate=self.root/(release if region == 'global' else region+'-'+release);bound=candidate/region/release
         for group in MEDIA_GROUPS:
             (bound/'public'/group).mkdir(parents=True)
         for group in ('growth','system-banners','mission-rewards'): write(bound/'public'/group/'manifest.json',{})
@@ -23,12 +25,39 @@ class ContentPublicationTests(unittest.TestCase):
         for name in ('live2d-catalog.json','immersive-scenes.json','auto-stage-skin.json'): write(bound/'supplemental-data'/name,{})
         for locale in ('en','zh-CN'):
             write(bound/'generated/releases'/release/locale/'catalog.json',{
-                'projectionContext':{'contentReleaseId':release,'region':'global','channel':'production','locale':locale},
+                'projectionContext':{'contentReleaseId':release,'region':region,'channel':'production','locale':locale},
                 'image':'/media/missing.webp' if missing else '/media/icon.webp'})
         write(candidate/'candidate.json',{'status':'candidate_generated','historicalReplay':False,
-            'regions':[{'region':'global','channel':'production','contentReleaseId':release,'path':'global/'+release,
+            'regions':[{'region':region,'channel':'production','contentReleaseId':release,'path':region+'/'+release,
                         'projections':[{'locale':'zh-CN'},{'locale':'en'}]}], 'files':inventory(candidate)})
         return candidate
+
+    def test_jp_publication_and_rollback_leave_global_pointer_unchanged(self):
+        global_result=publish_content(self.candidate(),self.store)
+        first=publish_content(self.candidate(region='jp'),self.store)
+        publish_content(self.candidate('test-2',region='jp'),self.store)
+        self.assertEqual(read_json(self.store/'current.json'),global_result['pointer'])
+        self.assertEqual(read_json(self.store/'jp/previous.json'),first['pointer'])
+        rollback_content(self.store,region='jp')
+        self.assertEqual(read_json(self.store/'jp/current.json'),first['pointer'])
+        self.assertEqual(read_json(self.store/'current.json'),global_result['pointer'])
+        self.assertEqual(read_json(Path(first['snapshot'])/'manifest.json')['region'],'jp')
+
+    def test_finder_metadata_is_not_published(self):
+        candidate=self.candidate(region='jp')
+        (candidate/'jp/test-1/public/live2d/.DS_Store').write_bytes(b'finder metadata')
+        result=publish_content(candidate,self.store)
+        self.assertFalse((Path(result['snapshot'])/'public/live2d/.DS_Store').exists())
+
+    def test_wrong_edition_catalog_and_rollback_are_rejected(self):
+        candidate=self.candidate(region='jp')
+        path=candidate/'jp/test-1/generated/releases/test-1/en/catalog.json'
+        payload=read_json(path);payload['projectionContext']['region']='global';write(path,payload)
+        meta=read_json(candidate/'candidate.json');meta['files']=inventory(candidate,exclude=('candidate.json',));write(candidate/'candidate.json',meta)
+        with self.assertRaisesRegex(ValueError,'mixed projection identity'):publish_content(candidate,self.store)
+        result=publish_content(self.candidate(),self.store)
+        write(self.store/'jp/previous.json',result['pointer'])
+        with self.assertRaisesRegex(ValueError,'edition mismatch'):rollback_content(self.store,region='jp')
 
     def test_increment_rewrites_resources_and_preserves_previous(self):
         first=publish_content(self.candidate(),self.store)
@@ -42,6 +71,14 @@ class ContentPublicationTests(unittest.TestCase):
         self.assertEqual(publish_content(self.root/'test-2',self.store)['status'],'unchanged')
         rollback_content(self.store)
         self.assertEqual(json.loads((self.store/'current.json').read_text()),first['pointer'])
+
+    def test_publication_rechecks_expected_pointer_inside_lock(self):
+        source=self.candidate();publish_content(source,self.store)
+        current=(self.store/'current.json').read_bytes()
+        with self.assertRaisesRegex(ValueError,'published content changed'):
+            publish_content(source,self.store,expected_current='0'*64)
+        self.assertEqual((self.store/'current.json').read_bytes(),current)
+        self.assertEqual(publish_content(source,self.store,expected_current=hashlib.sha256(current).hexdigest())['status'],'unchanged')
 
     def test_missing_resource_and_corrupt_candidate_preserve_pointer(self):
         publish_content(self.candidate(),self.store);old=(self.store/'current.json').read_bytes()
@@ -71,6 +108,20 @@ class ContentPublicationTests(unittest.TestCase):
         source=self.candidate();result=publish_content(source,self.store)
         (Path(result['snapshot'])/'en/catalog.json').write_text('{}')
         with self.assertRaisesRegex(ValueError,'inventory'): publish_content(source,self.store)
+
+    def test_ranking_helpers_each_change_the_immutable_snapshot_identity(self):
+        candidate=self.candidate()
+        original=publish_content(candidate,self.store)
+        for name in ('song-ranking-meta.mjs','song-skill-windows.mjs','scoring-engine.mjs','song-ranking-view.mjs'):
+            with self.subTest(name=name):
+                def modified_hash(path):
+                    actual=file_hash(path)
+                    return hashlib.sha256((actual+'changed').encode()).hexdigest() if Path(path).name==name else actual
+                with patch('tools.content_publication.file_hash',side_effect=modified_hash):
+                    changed=publish_content(candidate,self.store)
+                self.assertNotEqual(changed['pointer']['manifest'],original['pointer']['manifest'])
+        self.assertEqual(read_json(Path(original['snapshot'])/'manifest.json')['root'],
+                         original['pointer']['manifest'].removesuffix('manifest.json'))
 
     def test_live2d_bundle_is_published_without_mutating_candidate(self):
         candidate = self.candidate()

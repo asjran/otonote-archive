@@ -1,5 +1,6 @@
 import gameModeData from "@projection-data/game-modes.json";
 import { validateArtifact } from "./artifact-contracts";
+import type { EventArchiveData } from "./event-archive";
 
 export interface ModeEvidence {
   table: string;
@@ -35,7 +36,7 @@ export interface GameModeDefinition {
   blockers: string[];
 }
 
-export interface EventCapabilityRecord {
+export interface EventCapabilityRecord extends EventArchiveData {
   definitionCount: number;
   instanceRoutesEnabled: boolean;
   orphanAuxiliaryRowCount: number;

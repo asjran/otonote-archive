@@ -1,4 +1,7 @@
 ---
+import {otherEditionArtifact} from '../../runtime/content.mjs';
+import {activeReleaseContext} from '../../lib/release-context';
+import {annotateOperations} from '../../lib/operation-editions.mjs';
 import BaseLayout from "../../layouts/BaseLayout.astro";
 import SourceDisclosure from "../../components/SourceDisclosure.astro";
 import BrowserControls from "../../components/systems/BrowserControls.astro";
@@ -10,7 +13,8 @@ import { globalSystems } from "../../lib/global-systems";
 import { say, banner, categories } from "../../lib/system-display";
 import "../../styles/system-modules.css";
 import "../../styles/filter-panel.css";
-const pools = globalSystems.gachaPools;
+const other=await otherEditionArtifact(activeReleaseContext.region,'projection/global-systems.json');
+const pools: typeof globalSystems.gachaPools = annotateOperations(globalSystems.gachaPools,other?.gachaPools??null,'recruitment',activeReleaseContext.region,activeReleaseContext.locale);
 const hasPickup = (pool: typeof pools[number]) => pool.pickupMemberCardIds.length > 0 || pool.pickupSupportCardIds.length > 0;
 const groups = [
   { id: "featured", title: say("UP 招募", "Featured recruitment"), pools: pools.filter(hasPickup) },

@@ -12,6 +12,7 @@ from typing import Mapping
 
 class Region(str, Enum):
     GLOBAL = "global"
+    JP = "jp"
 
 
 class Channel(str, Enum):

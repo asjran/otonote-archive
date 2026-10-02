@@ -1,0 +1,11 @@
+---
+import {catalog} from '../lib/shared-catalog';
+import EditionBadge from './EditionBadge.astro';
+import {activeReleaseContext} from '../lib/release-context';
+import {presenceLabel} from '../lib/edition-library.mjs';
+interface Props {kind:'musicTracks'|'memberCards'|'supportCards'|'characters'; id:string}
+const {kind,id} = Astro.props;
+const record = catalog[kind].find(row=>row.id===id);
+const en = activeReleaseContext.locale === 'en';
+---
+{presenceLabel(record?.editionPresence,en) && <EditionBadge record={record} />}

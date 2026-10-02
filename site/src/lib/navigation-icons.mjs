@@ -10,5 +10,6 @@ export const navIcons = {
   decorations: "M3 5h18v14H3z M7 9h4v4H7z M14 9h4 M14 13h4 M7 16h11",
   stamps: "M14 21H4V3h16v12l-6 6 M14 21v-6h6 M8 8h1 M14 8h1 M8 11c2 3 5 3 7 0",
   stories: "M12 5v15 M12 5C8 2 4 3 3 4v15c3-2 6-1 9 1 3-2 6-3 9-1V4c-3-2-6-1-9 1",
+  "my-growth": "M5 3h14v18H5z M9 7h6 M9 11h6 M9 15h3",
   tools: "M5 4v16 M12 4v16 M19 4v16 M2 9h6 M9 15h6 M16 7h6"
 };

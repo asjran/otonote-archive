@@ -63,7 +63,7 @@ test('seeded randomness and scenario validation are reproducible', () => {
   const a = createScoringRandom(0), b = createScoringRandom(0);
   for(let i=0;i<100;i++) assert.equal(a(),b());
   assert.deepEqual(normalizeGekisouScenario().ranks,[1,1,1]);
-  for(const s of [{ ranks:[1,1] },{ ranks:[1,1,6] },{ timingOffsetMs:51 },{ batches:0 },{ seed:-1 },{frameRate:30}]) assert.throws(()=>normalizeGekisouScenario(s));
+  for(const s of [{ ranks:[1,1] },{ ranks:[1,1,6] },{ timingOffsetMs:51 },{ batches:0 },{ seed:-1 },{frameRate:24}]) assert.throws(()=>normalizeGekisouScenario(s));
 });
 test('recommendation links preserve the draft and every Gekisou scenario input', () => {
   const d=draft(), scenario={ranks:[3,1,2],timingOffsetMs:25,batches:4,seed:123,frameRate:120,
@@ -159,12 +159,15 @@ test('native judgement mapping excludes tap slide ends from JUST, retains critic
   const c={bpmEvents:[{tick:0,bpm:120}],notes:[{id:'critical',type:'tap',tick:480,critical:true}]};
   assert.equal(reconstructFormalChart(c)[0].critical,true);
 });
-test('three screenshot bonuses reconcile independently, with separate flooring', () => {
+test('three arithmetic fixtures use integer percent and separate truncation', () => {
   const scores=[635973,741911,1372309], bonuses=[2353100,2745070,5077543];
   scores.forEach((sectionScore,i)=>assert.equal(gekisouRankingBonus(rules,{missions:[1,2,3],sectionIndex:i+1,rank:1,sectionScore}).additionalScore,bonuses[i]));
   assert.equal(bonuses.reduce((a,b)=>a+b),10175713);
-  // Screenshot 6 displays only two credited medals; its bar isn't final score.
+  // Arithmetic only: no old screenshot or recorded run is used as an oracle.
   assert.equal(bonuses[0]+bonuses[1],5098170);
+  const sectionScore=16777217;
+  assert.equal(gekisouRankingBonus(rules,{missions:[1,2,3],sectionIndex:1,rank:1,sectionScore}).additionalScore,
+    Number(BigInt(sectionScore)*370n/100n));
 });
 test('AP zero offset differs from AP outside JUST window and support conversion contributes', () => {
   const r=structuredClone(rules);
@@ -182,11 +185,19 @@ test('trace is additive, scenario ranks change only awards, and uncertainty rema
   const calc=createGekisouSongCalculator(rules,chart), a=calc.calculate(draft(),{includeTrace:true});
   const b=createGekisouSongCalculator(rules,chart,{scenario:{ranks:[2,2,2]}}).calculate(draft());
   const sample=a.bestSample;
+  assert.equal(a.scenario.settlementModel,'multiplayer_first_eligible_frame');
+  for(const section of sample.sections) {
+    assert.equal(section.noteScore,section.scoreQuery.endScore-section.scoreQuery.startScore);
+    assert.equal(section.finalNoteScore,sample.notes.filter(n=>n.scoreSectionIndex===section.index).reduce((sum,n)=>sum+n.score,0));
+  }
   assert.equal(sample.score,sample.notes.reduce((s,n)=>s+n.score,0)+sample.sections.reduce((s,n)=>s+n.rankingBonus,0));
   for(let i=0;i<3;i++) assert.equal(a.sections[i].noteScore,b.sections[i].noteScore);
   assert.ok(a.expectedScore>b.expectedScore); assert.equal(a.standardError,null); assert.equal(a.sampleCount,120);
   const replicated=createGekisouSongCalculator(rules,chart,{scenario:{batches:2}}).calculate(draft());
   assert.ok(replicated.standardError>0);assert.equal(replicated.sampleCount,240);
+  assert.equal(replicated.scoreDistribution.kind,'seed_samples');assert.equal(replicated.scoreDistribution.complete,false);
+  assert.equal(replicated.scoreDistribution.count,240);assert.equal(replicated.scoreDistribution.minimum,replicated.minimumScore);
+  assert.ok(Math.abs(replicated.scoreDistribution.mean-replicated.expectedScore)<1e-8);
   assert.equal(a.verificationStatus,'source_informed_frame_replay');
   assert.deepEqual(calc.calculate(draft()),calc.calculate(draft()));
   assert.ok(calc.upperBound(a.power,50)>a.maximumScore);

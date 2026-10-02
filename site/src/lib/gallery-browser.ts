@@ -1,5 +1,6 @@
 import { restoreFilterControl, selectedControlValues, matchesFilter } from './filter-controls.mjs';
 import { createPaginationAdapter } from './pagination-browser.mjs';
+import { serverSearchParams } from './game-servers.mjs';
 const root = document.querySelector<HTMLElement>('[data-gallery]');
 const form = root?.querySelector<HTMLFormElement>('[data-gallery-form]');
 if (root && form) {
@@ -31,7 +32,7 @@ if (root && form) {
     root.querySelector('[data-gallery-count]')!.textContent = String(filtered.length);
     root.querySelector<HTMLElement>('[data-gallery-empty]')!.hidden = filtered.length > 0;
     if (page) pagination?.render(page);
-    const next = pagination?.params(params) ?? params;
+    const next = serverSearchParams(pagination?.params(params) ?? params);
     if (mode !== 'none') history[mode === 'push' ? 'pushState' : 'replaceState'](null, '', `${location.pathname}${next.size ? `?${next}` : ''}`);
   };
   pagination = createPaginationAdapter(root, { onChange: (mode: 'replace' | 'push') => update(false, mode) });

@@ -48,35 +48,8 @@ def sha256(path: Path) -> str:
     return digest.hexdigest()
 
 
-def field_bytes(metadata: MetadataV39, usage: int, length: int) -> bytes:
-    """Resolve an IL2CPP FieldRef usage to its FieldRVA default bytes."""
-    index = (usage & 0x1FFFFFFF) >> 1
-    refs_offset, _, refs_count = metadata.sections[22]
-    if index >= refs_count:
-        raise ValueError("FieldRef usage is outside metadata")
-    type_index, local_field = struct.unpack_from("<II", metadata.data, refs_offset + index * 8)
-    owners = [
-        i for i in range(metadata.type_count)
-        if struct.unpack_from("<I", metadata.data, metadata.type_offset + i * 82 + 8)[0] == type_index
-    ]
-    if len(owners) != 1 or metadata.type_name(owners[0]) != "<PrivateImplementationDetails>":
-        raise ValueError("FieldRef owner is not the expected private implementation type")
-    # v39 TypeDefinition fieldStart is at byte 26 in its 82-byte record.
-    field_start = struct.unpack_from("<I", metadata.data, metadata.type_offset + owners[0] * 82 + 26)[0]
-    field_index = field_start + local_field
-    defaults_offset, _, defaults_count = metadata.sections[7]
-    matches = [
-        data_index
-        for i in range(defaults_count)
-        for current, _, data_index in (struct.unpack_from("<III", metadata.data, defaults_offset + i * 12),)
-        if current == field_index
-    ]
-    if len(matches) != 1:
-        raise ValueError("FieldRef has no unique default value")
-    data_offset, data_size, _ = metadata.sections[8]
-    if matches[0] + length > data_size:
-        raise ValueError("FieldRef default value exceeds the data section")
-    return metadata.data[data_offset + matches[0]:data_offset + matches[0] + length]
+# Shared pure metadata resolver; retained export for historical offline callers.
+from tools.bundle_decoder import field_bytes
 
 
 def decrypt_header(payload: bytes, bundle_name: str, key: bytes, nonce_seed: bytes) -> bytes:

@@ -1,4 +1,9 @@
 ---
+import {filterVisual} from '../lib/filter-visuals';
+const optionVisual = (kind: string, value: string | number) => {
+  const visual = filterVisual(kind, String(value));
+  return {'data-icon': visual.icon, 'data-icon-only': visual.iconOnly ? 'true' : undefined, 'data-round': visual.round ? 'true' : undefined};
+};
 import SelectionFilters from "./SelectionFilters.astro";
 import "../styles/calculator-workflow.css";
 import "../styles/score-visuals.css";
@@ -10,16 +15,13 @@ import GekisouOpponentInputs from "./GekisouOpponentInputs.astro";
 import FilterPanel from "./FilterPanel.astro";
 import CalculatorAttributeFilter from "./CalculatorAttributeFilter.astro";
 import "../styles/calculator-selection.css";
-import {buildCardSkillFilters} from "../lib/card-skill-filtering.mjs";
+import {memberCards, supportCards, projections, skillFilters} from "../lib/inventory-catalog";
 import {
   catalog,
   getAsset,
-  getBand,
-  getCharacter,
   getCardRarity,
   getCardAttribute
 } from "../lib/catalog";
-import { cardDetailProjections, publicSkills } from "../lib/game-database";
 import { globalSystems } from "../lib/global-systems";
 import { TEAM_RULE_SET } from "../lib/team-draft.mjs";
 import formalRules from "../data/formal-scoring-rules.json";
@@ -36,45 +38,6 @@ const { mode = "builder" } = Astro.props;
 
 const rulesAvailable = scoringRulesAvailable(formalRules, catalog.release.id);
 
-const projectionById = new Map(
-  [...cardDetailProjections.memberCards, ...cardDetailProjections.supportCards]
-    .map((projection) => [projection.cardId, projection])
-);
-
-const skillFilters = buildCardSkillFilters([...projectionById.values()],publicSkills,catalog.release.locale,'archive');
-const skillMap = new Map(publicSkills.map(s=>[s.id,s]));
-const skillsFor = (id: string) => (projectionById.get(id)?.skillRefs ?? []).flatMap(ref=>{
-  const skill=skillMap.get(ref.skillId);return skill?[{slot:ref.slot,kind:skill.kind,name:skill.name,mission:skill.missionTypeCode,levels:skill.levels.map(l=>({level:l.level,summary:l.renderedSummary}))}]:[];
-});
-const memberCards = catalog.memberCards.map((card) => {
-  const character = getCharacter(card.characterId);
-  const band = getBand(character?.bandId);
-  return {
-    ...card,
-    kind: "member",
-    characterIds: [card.characterId], bandIds: character?.bandId ? [character.bandId] : [],
-    skills: skillsFor(card.id), skillFacets: skillFilters.records.get(card.id),
-    shortLabel: card.subtitle || card.displayName,
-    relationLabel: [character?.displayName, band?.displayName].filter(Boolean).join(" · "),
-    imageUrl: getAsset(card.thumbnailAssetId)?.previewUrl ?? null
-  };
-});
-const supportCards = catalog.supportCards.map((card) => ({
-  ...card,
-  kind: "support",
-  characterIds: card.featuredCharacterIds, bandIds: [...new Set(card.featuredCharacterIds.map(id=>getCharacter(id)?.bandId).filter(Boolean))],
-  skills: skillsFor(card.id), skillFacets: skillFilters.records.get(card.id),
-  shortLabel: card.description || card.displayName,
-  relationLabel: card.featuredCharacterIds
-    .map((id) => getCharacter(id)?.displayName)
-    .filter(Boolean)
-    .join("、"),
-  imageUrl: getAsset(card.thumbnailAssetId)?.previewUrl ?? null
-}));
-const projections = [...projectionById.values()].map((projection) => ({
-  cardId: projection.cardId,
-  skillSummaries: projection.skillSummaries
-}));
 const vipRanks = globalSystems.sourceReleaseId === catalog.release.id
   ? globalSystems.vipRanks
   : [];
@@ -109,7 +72,6 @@ const attributes = [...new Set([...memberCards, ...supportCards].map((card) => c
 
 {rulesAvailable ? <team-draft-workbench class="team-workbench" data-mode={mode}>
   <ScoringModelNotice />
-  <nav class="workbench-route-tabs" aria-label="编成工具"><a href="/tools/deck-builder/" data-production-link="/tools/deck-builder/" aria-current={mode === "builder" ? "page" : undefined}>手动配队</a><a href="/tools/optimizer/" data-production-link="/tools/optimizer/" aria-current={mode === "optimizer" ? "page" : undefined}>歌曲最佳化</a></nav>
   <script is:inline type="application/json" data-team-draft-data set:html={clientData}></script>
   <section class="calculator-guide" aria-label="配队计算步骤">
     <div class="calculator-guide-intro"><span class="calculator-kicker">为这一首歌配队</span><h2>选好歌曲，找到更高出分的组合。</h2><p>默认 AP。成员、留影、队长一起比较，结果可以直接带入分数明细。</p></div>
@@ -199,7 +161,7 @@ const attributes = [...new Set([...memberCards, ...supportCards].map((card) => c
   <section class="team-card-picker" id="card-library" aria-labelledby="team-picker-title">
     <header class="tool-panel-header">
       <div><span>CARD LIBRARY</span><h2 id="team-picker-title">选择当前槽位卡牌</h2></div>
-      <label>放入位置<select data-card-slot>{[0,1,2,3,4].map(i=><option value={i}>{i===2?"位置 3 · 队长":`位置 ${i+1}`}</option>)}</select><span data-active-slot-label hidden>01</span></label>
+      <label class="selection-slot-control"><span>放入位置</span><select data-card-slot data-quick>{[0,1,2,3,4].map(i=><option value={i}>{i===2?"位置 3 · 队长":`位置 ${i+1}`}</option>)}</select><span data-active-slot-label hidden>01</span></label>
     </header>
     <div data-card-filter-controls>
       <div class="team-kind-switch" role="group" aria-label="卡牌类型">
@@ -208,16 +170,18 @@ const attributes = [...new Set([...memberCards, ...supportCards].map((card) => c
       </div>
       <SelectionFilters title="筛选成员与留影">
       <label slot="search" class="selection-search">搜索卡片<input type="search" data-card-search placeholder="卡名、角色、乐队、技能名或 ID" /></label>
+      <div slot="quick" class="selection-filter-rows">
       <div data-card-attributes><CalculatorAttributeFilter /></div>
-      <div class="selection-filter-grid">
-        <label>乐队<select data-card-band><option value="">全部乐队</option>{catalog.bands.map(b=><option value={b.id}>{b.displayName}</option>)}</select></label>
-        <label>角色<select data-card-character><option value="">全部角色</option>{catalog.characters.map(c=><option value={c.id} data-band={c.bandId}>{c.displayName}</option>)}</select></label>
-        <label>稀有度<select data-card-rarity><option value="">全部稀有度</option>{rarities.map(r=><option value={r}>{getCardRarity(r)?.label??r}</option>)}</select></label>
-        <label>持有情况<select data-card-owned><option value="">全部卡片</option><option value="owned">已拥有</option><option value="missing">未录入</option></select></label>
-        <label>激奏类型<select data-card-mission><option value="">全部类型</option>{['combo','luck','just'].map(m=><option value={m}>{m.toUpperCase()}</option>)}</select></label>
-        <label>技能效果<select data-card-effect><option value="">全部激奏效果</option>{skillFilters.facets.find(f=>f.name==='gekisou-effect')?.options.map(o=><option value={o.value}>{o.label}</option>)}</select></label>
-        <label>普通技能<select data-card-normal><option value="">全部普通技能</option><option value="simple">纯加分</option><option value="life">血量条件加分</option><option value="judgement">判定条件加分</option><option value="score">分卡 / 延时</option><option value="judge">判定辅助</option><option value="heal">生命回复</option></select></label>
-        <label>排序<select data-card-sort><option value="rarity">稀有度优先</option><option value="newest">卡片编号从新到旧</option><option value="name">名称</option></select></label>
+      <div class="selection-quick-grid selection-filter-rows">
+        <label class="selection-filter-row"><span>乐队</span><select data-card-band data-quick><option value="">全部乐队</option>{catalog.bands.map(b=><option value={b.id} {...optionVisual('band', b.id)}>{b.displayName}</option>)}</select></label>
+        <label class="selection-filter-row"><span>角色</span><select data-card-character><option value="">全部角色</option>{catalog.characters.map(c=><option value={c.id} data-band={c.bandId}>{c.displayName}</option>)}</select></label>
+        <label class="selection-filter-row"><span>稀有度</span><select data-card-rarity data-quick><option value="">全部稀有度</option>{rarities.map(r=><option value={r} {...optionVisual('rarity', r)}>{getCardRarity(r)?.label??r}</option>)}</select></label>
+        <label class="selection-filter-row"><span>持有情况</span><select data-card-owned data-quick><option value="">全部卡片</option><option value="owned">已拥有</option><option value="missing">未录入</option></select></label>
+</div></div>
+      <div class="selection-filter-grid selection-filter-rows"><label class="selection-filter-row"><span>激奏类型</span><select data-card-mission><option value="">全部类型</option>{['combo','luck','just'].map(m=><option value={m}>{m.toUpperCase()}</option>)}</select></label>
+        <label class="selection-filter-row"><span>技能效果</span><select data-card-effect><option value="">全部激奏效果</option>{skillFilters.facets.find(f=>f.name==='gekisou-effect')?.options.map(o=><option value={o.value}>{o.label}</option>)}</select></label>
+        <label class="selection-filter-row"><span>普通技能</span><select data-card-normal><option value="">全部普通技能</option><option value="simple">纯加分</option><option value="life">血量条件加分</option><option value="judgement">判定条件加分</option><option value="score">分卡 / 延时</option><option value="judge">判定辅助</option><option value="heal">生命回复</option></select></label>
+        <label class="selection-filter-row"><span>排序</span><select data-card-sort><option value="rarity">稀有度优先</option><option value="newest">卡片编号从新到旧</option><option value="name">名称</option></select></label>
       </div>
       <span slot="results" data-card-count data-filter-count role="status"></span><button slot="results" type="button" data-card-reset data-filter-reset>重置筛选</button>
       </SelectionFilters>
@@ -269,9 +233,10 @@ const attributes = [...new Set([...memberCards, ...supportCards].map((card) => c
     </div>
     <details class="workbench-share"><summary>分享、导出与更多计算</summary><div class="workbench-share-actions">
       <button type="button" data-copy-draft>复制编成数据</button>
+      <a class="team-to-scoring" href="/tools/ap-grade/" data-ap-grade-link>AP 档位预测 →</a>
       <a class="team-to-scoring" href="/tools/song-calculator/" data-scoring-research-link>歌曲计算与核验 →</a>
       <a class="team-to-scoring" href="/tools/song-ranking/" data-song-ranking-link>查看歌曲排行榜 →</a>
-      <a href="/tools/optimizer/" data-production-link="/tools/optimizer/">带入歌曲最佳化 →</a>
+      <a href="#optimizer-settings">查看配队设置 →</a>
       <span class="team-copy-status" data-copy-status aria-live="polite"></span>
     </div>
     <div class="team-validation" data-team-validation aria-live="polite"></div>
@@ -281,19 +246,19 @@ const attributes = [...new Set([...memberCards, ...supportCards].map((card) => c
   <section class="production-power-panel optimizer-panel" id="optimizer-settings">
     <header class="tool-panel-header"><div><span>第二步 · 用哪些卡寻找最佳配对</span><h2>卡库与演出条件</h2></div><a href="#team-editor">编辑当前五人队伍 ↓</a></header>
     <p>选择当前队伍、自己的卡库或全部卡牌，计算后可直接应用结果。歌曲分数为全 Perfect、满生命情景下的估算。</p>
-    <div class="optimizer-main-fields"><label>使用哪些卡牌 <select data-search-scope>
+    <div class="optimizer-main-fields selection-filter-rows"><label class="selection-filter-row"><span>使用哪些卡牌</span><select data-search-scope>
       <option value="selected">当前所选 5＋5 张卡</option>
       <option value="owned">已拥有卡库（填写实际养成）</option>
       <option value="theoretical">全部卡库（卡片满养成）</option>
     </select></label>
-    <label>演出模式 <select data-pairing-mode><option value="ordinary">自由演出 · 普通</option><option value="gekisou">激奏演出</option></select></label>
-    <label>优化目标 <select data-pairing-objective>
+    <label class="selection-filter-row"><span>演出模式</span><select data-pairing-mode><option value="ordinary">自由演出 · 普通</option><option value="gekisou">激奏演出</option></select></label>
+    <label class="selection-filter-row"><span>优化目标</span><select data-pairing-objective>
       <option value="expected_song_score">歌曲平均分（默认，估算）</option>
       <option value="minimum_song_score">最低分（激奏为样本最低）</option>
       <option value="maximum_song_score">最高分（激奏为样本最高）</option>
       <option value="formation_power">综合能力</option>
     </select></label>
-    <label>搜索深度 <select data-search-effort><option value="practical" selected>实用推荐 · 固定阶段</option><option value="complete">完整搜索 · 不限组数</option><option value="20">高级限量搜索 · 20 组</option><option value="200">高级限量搜索 · 200 组</option><option value="custom">自定义计算组数</option></select></label>
+    <label class="selection-filter-row"><span>搜索深度</span><select data-search-effort><option value="practical" selected>实用推荐 · 固定阶段</option><option value="complete">完整搜索 · 不限组数</option><option value="20">高级限量搜索 · 20 组</option><option value="200">高级限量搜索 · 200 组</option><option value="custom">自定义计算组数</option></select></label>
     </div>
     <p class="calculator-scope-note" data-inventory-scope-note></p>
     <button class="calculator-text-button" type="button" data-open-account>设置账号评级、乐器与成长加成 →</button>
@@ -310,11 +275,11 @@ const attributes = [...new Set([...memberCards, ...supportCards].map((card) => c
     <p class="calculator-scope-note" data-search-effort-note></p>
     <p class="calculator-scope-note" data-search-space></p>
     <InventoryEditor attributes={attributes.map(a=>({value:a,label:getCardAttribute(a)?.names[catalog.release.locale] ?? String(a)}))} rarities={rarities.map(r=>({value:r,label:getCardRarity(r)?.label ?? String(r)}))} />
-    <div data-search-filters><FilterPanel title="限定乐队、属性（可选）"><div class="optimizer-filter-fields">
-    <label>每次计算组数 <input type="number" min="1" max="100000" value="20" data-search-budget /></label>
-    <label>成员乐队 <select data-search-band data-inline-filter data-filter-kind="band"><option value="">不限</option>{catalog.bands.map(band => <option value={band.masterId}>{band.displayName}</option>)}</select></label>
-    <label>成员属性 <select data-search-attribute data-inline-filter data-filter-kind="attribute"><option value="">不限</option>{attributes.map(attribute => <option value={attribute}>{getCardAttribute(attribute)?.names[catalog.release.locale] ?? attribute}</option>)}</select></label>
-    <label>留影属性 <select data-search-support-attribute data-inline-filter data-filter-kind="attribute"><option value="">不限</option>{attributes.map(attribute => <option value={attribute}>{getCardAttribute(attribute)?.names[catalog.release.locale] ?? attribute}</option>)}</select></label>
+    <div data-search-filters><FilterPanel title="限定乐队、属性（可选）"><div class="optimizer-filter-fields selection-filter-rows">
+    <label class="selection-filter-row"><span>每次计算组数</span><input type="number" min="1" max="100000" value="20" data-search-budget /></label>
+    <label class="selection-filter-row"><span>成员乐队</span><select data-search-band data-inline-filter data-filter-kind="band"><option value="">不限</option>{catalog.bands.map(band => <option value={band.masterId}>{band.displayName}</option>)}</select></label>
+    <label class="selection-filter-row"><span>成员属性</span><select data-search-attribute data-inline-filter data-filter-kind="attribute"><option value="">不限</option>{attributes.map(attribute => <option value={attribute}>{getCardAttribute(attribute)?.names[catalog.release.locale] ?? attribute}</option>)}</select></label>
+    <label class="selection-filter-row"><span>留影属性</span><select data-search-support-attribute data-inline-filter data-filter-kind="attribute"><option value="">不限</option>{attributes.map(attribute => <option value={attribute}>{getCardAttribute(attribute)?.names[catalog.release.locale] ?? attribute}</option>)}</select></label>
     </div></FilterPanel></div>
     <details class="optimizer-advanced"><summary>高级约束：必选卡与固定配对</summary>
       <p>JSON 可设置 bandId、attribute、supportAttribute、leaderId、requiredMemberIds、requiredSupportIds、excludedMemberIds、excludedSupportIds、lockedPairs。卡片 ID 支持数字。固定配对示例：&#123;"lockedPairs":[&#123;"memberCardId":1,"supportCardId":1&#125;]&#125;。</p>

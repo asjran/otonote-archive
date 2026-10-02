@@ -1,4 +1,6 @@
 ---
+import EditionBadge from "../EditionBadge.astro";
+import {activeReleaseContext} from "../../lib/release-context";
 import ArchiveImage from "../ArchiveImage.astro";
 import { databaseHref, itemTypeLabel, plainDescription } from "../../lib/database-display";
 import {
@@ -27,8 +29,8 @@ const availability =
 
 <a
   class="db-tile db-item-tile db-tile--interactive database-catalog-item"
-  href={databaseHref(`/database/items/#detail=${item.id}`)}
-  data-db-open={item.id}
+  href={item.sourceEdition && item.sourceEdition !== activeReleaseContext.region ? item.sourceHref : databaseHref(`/database/items/#detail=${item.id}`)}
+  data-db-open={item.sourceEdition && item.sourceEdition !== activeReleaseContext.region ? undefined : item.id}
   aria-haspopup="dialog"
   aria-labelledby={`${item.id}-title`}
   data-search={`${item.name} ${item.phoneticName} ${item.id} ${relatedNames.join(" ")}`}
@@ -50,7 +52,7 @@ const availability =
   </div>
   <div class="db-tile-main">
     <div class="db-tile-kicker">
-      <span>{itemTypeLabel(item.typeCode)}</span>
+      <span>{itemTypeLabel(item.typeCode)}</span><EditionBadge record={item} />
     </div>
     <h2 id={`${item.id}-title`}>{item.name}</h2>
   </div>

@@ -1,0 +1,522 @@
+{
+  "clientSha256": "514a5b73d038c264b60cc91fd4a747cf178190c6b2096e6d7007c2020e2b1bca",
+  "decodedSha256": "393a166e12f1886597709aa82e93bc58283631d629238e10e22fa10efc3f24eb",
+  "nativeMethods": {
+    "feverUpdate": "0x6a577c8",
+    "justToggle": "0x612d5cc"
+  },
+  "scope": "Complete native methods with fixture-backed interfaces, property/cache access, toggle sink; not full frame loop.",
+  "fever": [
+    {
+      "initial": 1,
+      "timeMs": 999,
+      "state": 1
+    },
+    {
+      "initial": 1,
+      "timeMs": 1000,
+      "state": 2
+    },
+    {
+      "initial": 1,
+      "timeMs": 1001,
+      "state": 2
+    },
+    {
+      "initial": 1,
+      "timeMs": 1999,
+      "state": 2
+    },
+    {
+      "initial": 1,
+      "timeMs": 2000,
+      "state": 2
+    },
+    {
+      "initial": 1,
+      "timeMs": 2001,
+      "state": 2
+    },
+    {
+      "initial": 1,
+      "timeMs": 2500,
+      "state": 2
+    },
+    {
+      "initial": 2,
+      "timeMs": 999,
+      "state": 2
+    },
+    {
+      "initial": 2,
+      "timeMs": 1000,
+      "state": 2
+    },
+    {
+      "initial": 2,
+      "timeMs": 1001,
+      "state": 2
+    },
+    {
+      "initial": 2,
+      "timeMs": 1999,
+      "state": 2
+    },
+    {
+      "initial": 2,
+      "timeMs": 2000,
+      "state": 3
+    },
+    {
+      "initial": 2,
+      "timeMs": 2001,
+      "state": 3
+    },
+    {
+      "initial": 2,
+      "timeMs": 2500,
+      "state": 3
+    },
+    {
+      "initial": 3,
+      "timeMs": 999,
+      "state": 3
+    },
+    {
+      "initial": 3,
+      "timeMs": 1000,
+      "state": 3
+    },
+    {
+      "initial": 3,
+      "timeMs": 1001,
+      "state": 3
+    },
+    {
+      "initial": 3,
+      "timeMs": 1999,
+      "state": 3
+    },
+    {
+      "initial": 3,
+      "timeMs": 2000,
+      "state": 3
+    },
+    {
+      "initial": 3,
+      "timeMs": 2001,
+      "state": 3
+    },
+    {
+      "initial": 3,
+      "timeMs": 2500,
+      "state": 3
+    }
+  ],
+  "toggles": [
+    {
+      "mission": 1,
+      "state": 1,
+      "force": false,
+      "calls": []
+    },
+    {
+      "mission": 1,
+      "state": 1,
+      "force": true,
+      "calls": []
+    },
+    {
+      "mission": 1,
+      "state": 2,
+      "force": false,
+      "calls": []
+    },
+    {
+      "mission": 1,
+      "state": 2,
+      "force": true,
+      "calls": []
+    },
+    {
+      "mission": 1,
+      "state": 3,
+      "force": false,
+      "calls": []
+    },
+    {
+      "mission": 1,
+      "state": 3,
+      "force": true,
+      "calls": []
+    },
+    {
+      "mission": 1,
+      "state": 4,
+      "force": false,
+      "calls": []
+    },
+    {
+      "mission": 1,
+      "state": 4,
+      "force": true,
+      "calls": []
+    },
+    {
+      "mission": 1,
+      "state": 5,
+      "force": false,
+      "calls": []
+    },
+    {
+      "mission": 1,
+      "state": 5,
+      "force": true,
+      "calls": []
+    },
+    {
+      "mission": 1,
+      "state": 6,
+      "force": false,
+      "calls": []
+    },
+    {
+      "mission": 1,
+      "state": 6,
+      "force": true,
+      "calls": []
+    },
+    {
+      "mission": 1,
+      "state": 7,
+      "force": false,
+      "calls": []
+    },
+    {
+      "mission": 1,
+      "state": 7,
+      "force": true,
+      "calls": []
+    },
+    {
+      "mission": 1,
+      "state": 8,
+      "force": false,
+      "calls": []
+    },
+    {
+      "mission": 1,
+      "state": 8,
+      "force": true,
+      "calls": []
+    },
+    {
+      "mission": 2,
+      "state": 1,
+      "force": false,
+      "calls": []
+    },
+    {
+      "mission": 2,
+      "state": 1,
+      "force": true,
+      "calls": []
+    },
+    {
+      "mission": 2,
+      "state": 2,
+      "force": false,
+      "calls": []
+    },
+    {
+      "mission": 2,
+      "state": 2,
+      "force": true,
+      "calls": []
+    },
+    {
+      "mission": 2,
+      "state": 3,
+      "force": false,
+      "calls": []
+    },
+    {
+      "mission": 2,
+      "state": 3,
+      "force": true,
+      "calls": []
+    },
+    {
+      "mission": 2,
+      "state": 4,
+      "force": false,
+      "calls": []
+    },
+    {
+      "mission": 2,
+      "state": 4,
+      "force": true,
+      "calls": []
+    },
+    {
+      "mission": 2,
+      "state": 5,
+      "force": false,
+      "calls": []
+    },
+    {
+      "mission": 2,
+      "state": 5,
+      "force": true,
+      "calls": []
+    },
+    {
+      "mission": 2,
+      "state": 6,
+      "force": false,
+      "calls": []
+    },
+    {
+      "mission": 2,
+      "state": 6,
+      "force": true,
+      "calls": []
+    },
+    {
+      "mission": 2,
+      "state": 7,
+      "force": false,
+      "calls": []
+    },
+    {
+      "mission": 2,
+      "state": 7,
+      "force": true,
+      "calls": []
+    },
+    {
+      "mission": 2,
+      "state": 8,
+      "force": false,
+      "calls": []
+    },
+    {
+      "mission": 2,
+      "state": 8,
+      "force": true,
+      "calls": []
+    },
+    {
+      "mission": 3,
+      "state": 1,
+      "force": false,
+      "calls": []
+    },
+    {
+      "mission": 3,
+      "state": 1,
+      "force": true,
+      "calls": []
+    },
+    {
+      "mission": 3,
+      "state": 2,
+      "force": false,
+      "calls": []
+    },
+    {
+      "mission": 3,
+      "state": 2,
+      "force": true,
+      "calls": []
+    },
+    {
+      "mission": 3,
+      "state": 3,
+      "force": false,
+      "calls": [
+        {
+          "grade": 6,
+          "enabled": true
+        }
+      ]
+    },
+    {
+      "mission": 3,
+      "state": 3,
+      "force": true,
+      "calls": [
+        {
+          "grade": 6,
+          "enabled": true
+        }
+      ]
+    },
+    {
+      "mission": 3,
+      "state": 4,
+      "force": false,
+      "calls": []
+    },
+    {
+      "mission": 3,
+      "state": 4,
+      "force": true,
+      "calls": []
+    },
+    {
+      "mission": 3,
+      "state": 5,
+      "force": false,
+      "calls": [
+        {
+          "grade": 6,
+          "enabled": false
+        }
+      ]
+    },
+    {
+      "mission": 3,
+      "state": 5,
+      "force": true,
+      "calls": [
+        {
+          "grade": 6,
+          "enabled": true
+        }
+      ]
+    },
+    {
+      "mission": 3,
+      "state": 6,
+      "force": false,
+      "calls": []
+    },
+    {
+      "mission": 3,
+      "state": 6,
+      "force": true,
+      "calls": []
+    },
+    {
+      "mission": 3,
+      "state": 7,
+      "force": false,
+      "calls": []
+    },
+    {
+      "mission": 3,
+      "state": 7,
+      "force": true,
+      "calls": []
+    },
+    {
+      "mission": 3,
+      "state": 8,
+      "force": false,
+      "calls": []
+    },
+    {
+      "mission": 3,
+      "state": 8,
+      "force": true,
+      "calls": []
+    },
+    {
+      "mission": 4,
+      "state": 1,
+      "force": false,
+      "calls": []
+    },
+    {
+      "mission": 4,
+      "state": 1,
+      "force": true,
+      "calls": []
+    },
+    {
+      "mission": 4,
+      "state": 2,
+      "force": false,
+      "calls": []
+    },
+    {
+      "mission": 4,
+      "state": 2,
+      "force": true,
+      "calls": []
+    },
+    {
+      "mission": 4,
+      "state": 3,
+      "force": false,
+      "calls": []
+    },
+    {
+      "mission": 4,
+      "state": 3,
+      "force": true,
+      "calls": []
+    },
+    {
+      "mission": 4,
+      "state": 4,
+      "force": false,
+      "calls": []
+    },
+    {
+      "mission": 4,
+      "state": 4,
+      "force": true,
+      "calls": []
+    },
+    {
+      "mission": 4,
+      "state": 5,
+      "force": false,
+      "calls": []
+    },
+    {
+      "mission": 4,
+      "state": 5,
+      "force": true,
+      "calls": []
+    },
+    {
+      "mission": 4,
+      "state": 6,
+      "force": false,
+      "calls": []
+    },
+    {
+      "mission": 4,
+      "state": 6,
+      "force": true,
+      "calls": []
+    },
+    {
+      "mission": 4,
+      "state": 7,
+      "force": false,
+      "calls": []
+    },
+    {
+      "mission": 4,
+      "state": 7,
+      "force": true,
+      "calls": []
+    },
+    {
+      "mission": 4,
+      "state": 8,
+      "force": false,
+      "calls": []
+    },
+    {
+      "mission": 4,
+      "state": 8,
+      "force": true,
+      "calls": []
+    }
+  ]
+}

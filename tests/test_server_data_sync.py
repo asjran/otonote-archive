@@ -20,7 +20,7 @@ VALID_CONFIG = """\
 version = 1
 
 [server]
-sshTarget = "your-server"
+sshTarget = "aliyun"
 
 [backup]
 destination = "../backups"
@@ -117,7 +117,7 @@ class ServerDataSyncConfigTests(unittest.TestCase):
 
             config = load_config(config_path, config_path.parent)
 
-            self.assertEqual(config.ssh_target, "your-server")
+            self.assertEqual(config.ssh_target, "aliyun")
             self.assertEqual(config.destination, (root / "backups").resolve())
             self.assertEqual(
                 [source.name for source in config.sources],
@@ -167,7 +167,7 @@ class ServerDataSyncConfigTests(unittest.TestCase):
 class ServerDataSnapshotTests(unittest.TestCase):
     def _config(self, root: Path) -> SyncConfig:
         return SyncConfig(
-            ssh_target="your-server",
+            ssh_target="aliyun",
             destination=root / "backups",
             sources=(
                 SourceConfig(
@@ -207,7 +207,7 @@ class ServerDataSnapshotTests(unittest.TestCase):
             self.assertIn("--exclude=*.part", command)
             self.assertNotIn("--delete", command)
             self.assertEqual(
-                command[-2], "your-server:/srv/ournotes-data/"
+                command[-2], "aliyun:/srv/ournotes-data/"
             )
 
     def test_dry_run_checks_remote_without_creating_destination(self):

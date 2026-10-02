@@ -1,4 +1,5 @@
 ---
+import EditionDetail from "../../components/EditionDetail.astro";
 import ArchiveImage from "../../components/ArchiveImage.astro";
 import BandMark from "../../components/BandMark.astro";
 import CardAttributeBadge from "../../components/CardAttributeBadge.astro";
@@ -10,6 +11,8 @@ import MusicSoloRewards from "../../components/MusicSoloRewards.astro";
 import MusicChartSummary from "../../components/MusicChartSummary.astro";
 import ScoreWorkbench from "../../components/ScoreWorkbench.astro";
 import AutoStage from "../../components/AutoStage.astro";
+import { activeReleaseContext } from "../../lib/release-context";
+import { siteHref } from "../../lib/site-context";
 import BaseLayout from "../../layouts/BaseLayout.astro";
 import {
   catalog,
@@ -38,6 +41,9 @@ const { track } = Astro.props;
 
 const jacket = getAsset(track.jacketAssetId);
 const charts = getMusicCharts(track.id);
+const en = activeReleaseContext.locale === 'en';
+const toolHref = (path: string) => import.meta.env.BASE_URL === '/' ? path : siteHref(path, activeReleaseContext);
+const calculatorSearch = new URLSearchParams({ song: track.id, difficulty: charts.find(chart => chart.difficulty === 'expert')?.difficulty ?? charts[0]?.difficulty ?? 'expert' });
 const dateLabel = track.startAt.replace(/\//g, ".").replace(" 0:00:00", "");
 const bands = track.bandIds
   .map(getBand)
@@ -72,7 +78,7 @@ const bands = track.bandIds
             <h1 id="song-title">{track.title}</h1>
             {track.phoneticTitle && track.phoneticTitle !== track.title && <p class="song-phonetic">{track.phoneticTitle}</p>}
             <p class="song-vocal"><span>VOCAL</span>{track.vocalistLabels.join(" / ")}</p>
-            <div class="song-edition"><span>{track.categoryLabels.join(" / ")}</span><span>{dateLabel} 收录</span>{track.audioDuration && <span>{Math.floor(track.audioDuration / 60)}:{String(Math.floor(track.audioDuration % 60)).padStart(2, '0')}</span>}</div>
+            <div class="song-edition"><EditionDetail kind="musicTracks" id={Astro.params.id!} /><span>{track.categoryLabels.join(" / ")}</span><span>{dateLabel} 收录</span>{track.audioDuration && <span>{Math.floor(track.audioDuration / 60)}:{String(Math.floor(track.audioDuration % 60)).padStart(2, '0')}</span>}</div>
             <section class="song-gekisou-panel" aria-labelledby="gekisou-types-title">
               <h2 id="gekisou-types-title">激奏类型</h2>
               {track.gekisouMissions?.length > 0 ? <ol class="song-gekisou-sequence">
@@ -100,6 +106,10 @@ const bands = track.bandIds
         <nav class="song-chart-links" aria-label="歌曲功能">
           <button type="button" data-song-view="analysis" aria-haspopup="dialog" aria-controls="song-module-dialog" aria-expanded="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19h16M6 15V9m6 6V4m6 11v-7" /></svg><strong>谱面分析</strong><span>音符与密度</span></button>
           <button type="button" data-song-view="rewards" aria-haspopup="dialog" aria-controls="song-module-dialog" aria-expanded="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3h8v7a4 4 0 0 1-8 0Zm0 2H4v4a4 4 0 0 0 4 4m8-8h4v4a4 4 0 0 1-4 4m-4 1v6m-4 0h8" /></svg><strong>演奏奖励</strong><span>Combo 奖励</span></button>
+        </nav>
+        <nav class="song-tool-links" aria-label={en ? 'Use this song in tools' : '带入歌曲工具'}>
+          <a data-song-calculator-link href={toolHref(`/tools/song-calculator/?${calculatorSearch}`)}>{en ? 'Calculate with this song and difficulty' : '带入歌曲与难度计算'} →</a>
+          <a href={toolHref('/tools/song-ranking/')}>{en ? 'Compare song rankings' : '比较歌曲排行'} ↗</a>
         </nav>
       </section>
 
@@ -129,3 +139,8 @@ const bands = track.bandIds
 <script>
   import "../../lib/song-detail-ui.mjs";
 </script>
+<style>
+  .song-tool-links { display:flex; flex-wrap:wrap; gap:12px 24px; padding-top:16px; font-size:12px; }
+  .song-tool-links a { color:var(--lacquer); text-underline-offset:4px; }
+  .song-tool-links a:focus-visible { outline:2px solid var(--lacquer); outline-offset:4px; }
+</style>

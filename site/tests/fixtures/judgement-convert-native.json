@@ -1,0 +1,1030 @@
+{
+  "clientSha256": "514a5b73d038c264b60cc91fd4a747cf178190c6b2096e6d7007c2020e2b1bca",
+  "decodedSha256": "393a166e12f1886597709aa82e93bc58283631d629238e10e22fa10efc3f24eb",
+  "methods": {
+    "tryConvert": "0x8c430f8",
+    "targetTryConvertCore": "0x560908c"
+  },
+  "scope": "Complete TryConvert and TryConvertCore; managed collections/properties and remaining-display aggregation are host fixtures.",
+  "cases": [
+    {
+      "maximum": 0,
+      "count": 0,
+      "grade": 3,
+      "excluded": false,
+      "result": 3,
+      "storedCount": 0,
+      "events": [],
+      "secondResult": 3
+    },
+    {
+      "maximum": 0,
+      "count": 0,
+      "grade": 3,
+      "excluded": true,
+      "result": 3,
+      "storedCount": 0,
+      "events": [],
+      "secondResult": 3
+    },
+    {
+      "maximum": 0,
+      "count": 0,
+      "grade": 5,
+      "excluded": false,
+      "result": 6,
+      "storedCount": 1,
+      "events": [
+        "increment"
+      ],
+      "secondResult": 6
+    },
+    {
+      "maximum": 0,
+      "count": 0,
+      "grade": 5,
+      "excluded": true,
+      "result": 5,
+      "storedCount": 0,
+      "events": [],
+      "secondResult": 5
+    },
+    {
+      "maximum": 0,
+      "count": 0,
+      "grade": 6,
+      "excluded": false,
+      "result": 6,
+      "storedCount": 0,
+      "events": [],
+      "secondResult": 6
+    },
+    {
+      "maximum": 0,
+      "count": 0,
+      "grade": 6,
+      "excluded": true,
+      "result": 6,
+      "storedCount": 0,
+      "events": [],
+      "secondResult": 6
+    },
+    {
+      "maximum": 0,
+      "count": 1,
+      "grade": 3,
+      "excluded": false,
+      "result": 3,
+      "storedCount": 1,
+      "events": [],
+      "secondResult": 3
+    },
+    {
+      "maximum": 0,
+      "count": 1,
+      "grade": 3,
+      "excluded": true,
+      "result": 3,
+      "storedCount": 1,
+      "events": [],
+      "secondResult": 3
+    },
+    {
+      "maximum": 0,
+      "count": 1,
+      "grade": 5,
+      "excluded": false,
+      "result": 6,
+      "storedCount": 2,
+      "events": [
+        "increment"
+      ],
+      "secondResult": 6
+    },
+    {
+      "maximum": 0,
+      "count": 1,
+      "grade": 5,
+      "excluded": true,
+      "result": 5,
+      "storedCount": 1,
+      "events": [],
+      "secondResult": 5
+    },
+    {
+      "maximum": 0,
+      "count": 1,
+      "grade": 6,
+      "excluded": false,
+      "result": 6,
+      "storedCount": 1,
+      "events": [],
+      "secondResult": 6
+    },
+    {
+      "maximum": 0,
+      "count": 1,
+      "grade": 6,
+      "excluded": true,
+      "result": 6,
+      "storedCount": 1,
+      "events": [],
+      "secondResult": 6
+    },
+    {
+      "maximum": 0,
+      "count": 2,
+      "grade": 3,
+      "excluded": false,
+      "result": 3,
+      "storedCount": 2,
+      "events": [],
+      "secondResult": 3
+    },
+    {
+      "maximum": 0,
+      "count": 2,
+      "grade": 3,
+      "excluded": true,
+      "result": 3,
+      "storedCount": 2,
+      "events": [],
+      "secondResult": 3
+    },
+    {
+      "maximum": 0,
+      "count": 2,
+      "grade": 5,
+      "excluded": false,
+      "result": 6,
+      "storedCount": 3,
+      "events": [
+        "increment"
+      ],
+      "secondResult": 6
+    },
+    {
+      "maximum": 0,
+      "count": 2,
+      "grade": 5,
+      "excluded": true,
+      "result": 5,
+      "storedCount": 2,
+      "events": [],
+      "secondResult": 5
+    },
+    {
+      "maximum": 0,
+      "count": 2,
+      "grade": 6,
+      "excluded": false,
+      "result": 6,
+      "storedCount": 2,
+      "events": [],
+      "secondResult": 6
+    },
+    {
+      "maximum": 0,
+      "count": 2,
+      "grade": 6,
+      "excluded": true,
+      "result": 6,
+      "storedCount": 2,
+      "events": [],
+      "secondResult": 6
+    },
+    {
+      "maximum": 0,
+      "count": 3,
+      "grade": 3,
+      "excluded": false,
+      "result": 3,
+      "storedCount": 3,
+      "events": [],
+      "secondResult": 3
+    },
+    {
+      "maximum": 0,
+      "count": 3,
+      "grade": 3,
+      "excluded": true,
+      "result": 3,
+      "storedCount": 3,
+      "events": [],
+      "secondResult": 3
+    },
+    {
+      "maximum": 0,
+      "count": 3,
+      "grade": 5,
+      "excluded": false,
+      "result": 6,
+      "storedCount": 4,
+      "events": [
+        "increment"
+      ],
+      "secondResult": 6
+    },
+    {
+      "maximum": 0,
+      "count": 3,
+      "grade": 5,
+      "excluded": true,
+      "result": 5,
+      "storedCount": 3,
+      "events": [],
+      "secondResult": 5
+    },
+    {
+      "maximum": 0,
+      "count": 3,
+      "grade": 6,
+      "excluded": false,
+      "result": 6,
+      "storedCount": 3,
+      "events": [],
+      "secondResult": 6
+    },
+    {
+      "maximum": 0,
+      "count": 3,
+      "grade": 6,
+      "excluded": true,
+      "result": 6,
+      "storedCount": 3,
+      "events": [],
+      "secondResult": 6
+    },
+    {
+      "maximum": 1,
+      "count": 0,
+      "grade": 3,
+      "excluded": false,
+      "result": 3,
+      "storedCount": 0,
+      "events": [],
+      "secondResult": 3
+    },
+    {
+      "maximum": 1,
+      "count": 0,
+      "grade": 3,
+      "excluded": true,
+      "result": 3,
+      "storedCount": 0,
+      "events": [],
+      "secondResult": 3
+    },
+    {
+      "maximum": 1,
+      "count": 0,
+      "grade": 5,
+      "excluded": false,
+      "result": 6,
+      "storedCount": 1,
+      "events": [
+        "increment",
+        "unregister",
+        "removeParam",
+        "deferFinish"
+      ],
+      "secondResult": 5
+    },
+    {
+      "maximum": 1,
+      "count": 0,
+      "grade": 5,
+      "excluded": true,
+      "result": 5,
+      "storedCount": 0,
+      "events": [],
+      "secondResult": 5
+    },
+    {
+      "maximum": 1,
+      "count": 0,
+      "grade": 6,
+      "excluded": false,
+      "result": 6,
+      "storedCount": 0,
+      "events": [],
+      "secondResult": 6
+    },
+    {
+      "maximum": 1,
+      "count": 0,
+      "grade": 6,
+      "excluded": true,
+      "result": 6,
+      "storedCount": 0,
+      "events": [],
+      "secondResult": 6
+    },
+    {
+      "maximum": 1,
+      "count": 1,
+      "grade": 3,
+      "excluded": false,
+      "result": 3,
+      "storedCount": 1,
+      "events": [],
+      "secondResult": 3
+    },
+    {
+      "maximum": 1,
+      "count": 1,
+      "grade": 3,
+      "excluded": true,
+      "result": 3,
+      "storedCount": 1,
+      "events": [],
+      "secondResult": 3
+    },
+    {
+      "maximum": 1,
+      "count": 1,
+      "grade": 5,
+      "excluded": false,
+      "result": 6,
+      "storedCount": 2,
+      "events": [
+        "increment",
+        "unregister",
+        "removeParam",
+        "deferFinish"
+      ],
+      "secondResult": 5
+    },
+    {
+      "maximum": 1,
+      "count": 1,
+      "grade": 5,
+      "excluded": true,
+      "result": 5,
+      "storedCount": 1,
+      "events": [],
+      "secondResult": 5
+    },
+    {
+      "maximum": 1,
+      "count": 1,
+      "grade": 6,
+      "excluded": false,
+      "result": 6,
+      "storedCount": 1,
+      "events": [],
+      "secondResult": 6
+    },
+    {
+      "maximum": 1,
+      "count": 1,
+      "grade": 6,
+      "excluded": true,
+      "result": 6,
+      "storedCount": 1,
+      "events": [],
+      "secondResult": 6
+    },
+    {
+      "maximum": 1,
+      "count": 2,
+      "grade": 3,
+      "excluded": false,
+      "result": 3,
+      "storedCount": 2,
+      "events": [],
+      "secondResult": 3
+    },
+    {
+      "maximum": 1,
+      "count": 2,
+      "grade": 3,
+      "excluded": true,
+      "result": 3,
+      "storedCount": 2,
+      "events": [],
+      "secondResult": 3
+    },
+    {
+      "maximum": 1,
+      "count": 2,
+      "grade": 5,
+      "excluded": false,
+      "result": 6,
+      "storedCount": 3,
+      "events": [
+        "increment",
+        "unregister",
+        "removeParam",
+        "deferFinish"
+      ],
+      "secondResult": 5
+    },
+    {
+      "maximum": 1,
+      "count": 2,
+      "grade": 5,
+      "excluded": true,
+      "result": 5,
+      "storedCount": 2,
+      "events": [],
+      "secondResult": 5
+    },
+    {
+      "maximum": 1,
+      "count": 2,
+      "grade": 6,
+      "excluded": false,
+      "result": 6,
+      "storedCount": 2,
+      "events": [],
+      "secondResult": 6
+    },
+    {
+      "maximum": 1,
+      "count": 2,
+      "grade": 6,
+      "excluded": true,
+      "result": 6,
+      "storedCount": 2,
+      "events": [],
+      "secondResult": 6
+    },
+    {
+      "maximum": 1,
+      "count": 3,
+      "grade": 3,
+      "excluded": false,
+      "result": 3,
+      "storedCount": 3,
+      "events": [],
+      "secondResult": 3
+    },
+    {
+      "maximum": 1,
+      "count": 3,
+      "grade": 3,
+      "excluded": true,
+      "result": 3,
+      "storedCount": 3,
+      "events": [],
+      "secondResult": 3
+    },
+    {
+      "maximum": 1,
+      "count": 3,
+      "grade": 5,
+      "excluded": false,
+      "result": 6,
+      "storedCount": 4,
+      "events": [
+        "increment",
+        "unregister",
+        "removeParam",
+        "deferFinish"
+      ],
+      "secondResult": 5
+    },
+    {
+      "maximum": 1,
+      "count": 3,
+      "grade": 5,
+      "excluded": true,
+      "result": 5,
+      "storedCount": 3,
+      "events": [],
+      "secondResult": 5
+    },
+    {
+      "maximum": 1,
+      "count": 3,
+      "grade": 6,
+      "excluded": false,
+      "result": 6,
+      "storedCount": 3,
+      "events": [],
+      "secondResult": 6
+    },
+    {
+      "maximum": 1,
+      "count": 3,
+      "grade": 6,
+      "excluded": true,
+      "result": 6,
+      "storedCount": 3,
+      "events": [],
+      "secondResult": 6
+    },
+    {
+      "maximum": 2,
+      "count": 0,
+      "grade": 3,
+      "excluded": false,
+      "result": 3,
+      "storedCount": 0,
+      "events": [],
+      "secondResult": 3
+    },
+    {
+      "maximum": 2,
+      "count": 0,
+      "grade": 3,
+      "excluded": true,
+      "result": 3,
+      "storedCount": 0,
+      "events": [],
+      "secondResult": 3
+    },
+    {
+      "maximum": 2,
+      "count": 0,
+      "grade": 5,
+      "excluded": false,
+      "result": 6,
+      "storedCount": 1,
+      "events": [
+        "increment"
+      ],
+      "secondResult": 6
+    },
+    {
+      "maximum": 2,
+      "count": 0,
+      "grade": 5,
+      "excluded": true,
+      "result": 5,
+      "storedCount": 0,
+      "events": [],
+      "secondResult": 5
+    },
+    {
+      "maximum": 2,
+      "count": 0,
+      "grade": 6,
+      "excluded": false,
+      "result": 6,
+      "storedCount": 0,
+      "events": [],
+      "secondResult": 6
+    },
+    {
+      "maximum": 2,
+      "count": 0,
+      "grade": 6,
+      "excluded": true,
+      "result": 6,
+      "storedCount": 0,
+      "events": [],
+      "secondResult": 6
+    },
+    {
+      "maximum": 2,
+      "count": 1,
+      "grade": 3,
+      "excluded": false,
+      "result": 3,
+      "storedCount": 1,
+      "events": [],
+      "secondResult": 3
+    },
+    {
+      "maximum": 2,
+      "count": 1,
+      "grade": 3,
+      "excluded": true,
+      "result": 3,
+      "storedCount": 1,
+      "events": [],
+      "secondResult": 3
+    },
+    {
+      "maximum": 2,
+      "count": 1,
+      "grade": 5,
+      "excluded": false,
+      "result": 6,
+      "storedCount": 2,
+      "events": [
+        "increment",
+        "unregister",
+        "removeParam",
+        "deferFinish"
+      ],
+      "secondResult": 5
+    },
+    {
+      "maximum": 2,
+      "count": 1,
+      "grade": 5,
+      "excluded": true,
+      "result": 5,
+      "storedCount": 1,
+      "events": [],
+      "secondResult": 5
+    },
+    {
+      "maximum": 2,
+      "count": 1,
+      "grade": 6,
+      "excluded": false,
+      "result": 6,
+      "storedCount": 1,
+      "events": [],
+      "secondResult": 6
+    },
+    {
+      "maximum": 2,
+      "count": 1,
+      "grade": 6,
+      "excluded": true,
+      "result": 6,
+      "storedCount": 1,
+      "events": [],
+      "secondResult": 6
+    },
+    {
+      "maximum": 2,
+      "count": 2,
+      "grade": 3,
+      "excluded": false,
+      "result": 3,
+      "storedCount": 2,
+      "events": [],
+      "secondResult": 3
+    },
+    {
+      "maximum": 2,
+      "count": 2,
+      "grade": 3,
+      "excluded": true,
+      "result": 3,
+      "storedCount": 2,
+      "events": [],
+      "secondResult": 3
+    },
+    {
+      "maximum": 2,
+      "count": 2,
+      "grade": 5,
+      "excluded": false,
+      "result": 6,
+      "storedCount": 3,
+      "events": [
+        "increment",
+        "unregister",
+        "removeParam",
+        "deferFinish"
+      ],
+      "secondResult": 5
+    },
+    {
+      "maximum": 2,
+      "count": 2,
+      "grade": 5,
+      "excluded": true,
+      "result": 5,
+      "storedCount": 2,
+      "events": [],
+      "secondResult": 5
+    },
+    {
+      "maximum": 2,
+      "count": 2,
+      "grade": 6,
+      "excluded": false,
+      "result": 6,
+      "storedCount": 2,
+      "events": [],
+      "secondResult": 6
+    },
+    {
+      "maximum": 2,
+      "count": 2,
+      "grade": 6,
+      "excluded": true,
+      "result": 6,
+      "storedCount": 2,
+      "events": [],
+      "secondResult": 6
+    },
+    {
+      "maximum": 2,
+      "count": 3,
+      "grade": 3,
+      "excluded": false,
+      "result": 3,
+      "storedCount": 3,
+      "events": [],
+      "secondResult": 3
+    },
+    {
+      "maximum": 2,
+      "count": 3,
+      "grade": 3,
+      "excluded": true,
+      "result": 3,
+      "storedCount": 3,
+      "events": [],
+      "secondResult": 3
+    },
+    {
+      "maximum": 2,
+      "count": 3,
+      "grade": 5,
+      "excluded": false,
+      "result": 6,
+      "storedCount": 4,
+      "events": [
+        "increment",
+        "unregister",
+        "removeParam",
+        "deferFinish"
+      ],
+      "secondResult": 5
+    },
+    {
+      "maximum": 2,
+      "count": 3,
+      "grade": 5,
+      "excluded": true,
+      "result": 5,
+      "storedCount": 3,
+      "events": [],
+      "secondResult": 5
+    },
+    {
+      "maximum": 2,
+      "count": 3,
+      "grade": 6,
+      "excluded": false,
+      "result": 6,
+      "storedCount": 3,
+      "events": [],
+      "secondResult": 6
+    },
+    {
+      "maximum": 2,
+      "count": 3,
+      "grade": 6,
+      "excluded": true,
+      "result": 6,
+      "storedCount": 3,
+      "events": [],
+      "secondResult": 6
+    },
+    {
+      "maximum": 3,
+      "count": 0,
+      "grade": 3,
+      "excluded": false,
+      "result": 3,
+      "storedCount": 0,
+      "events": [],
+      "secondResult": 3
+    },
+    {
+      "maximum": 3,
+      "count": 0,
+      "grade": 3,
+      "excluded": true,
+      "result": 3,
+      "storedCount": 0,
+      "events": [],
+      "secondResult": 3
+    },
+    {
+      "maximum": 3,
+      "count": 0,
+      "grade": 5,
+      "excluded": false,
+      "result": 6,
+      "storedCount": 1,
+      "events": [
+        "increment"
+      ],
+      "secondResult": 6
+    },
+    {
+      "maximum": 3,
+      "count": 0,
+      "grade": 5,
+      "excluded": true,
+      "result": 5,
+      "storedCount": 0,
+      "events": [],
+      "secondResult": 5
+    },
+    {
+      "maximum": 3,
+      "count": 0,
+      "grade": 6,
+      "excluded": false,
+      "result": 6,
+      "storedCount": 0,
+      "events": [],
+      "secondResult": 6
+    },
+    {
+      "maximum": 3,
+      "count": 0,
+      "grade": 6,
+      "excluded": true,
+      "result": 6,
+      "storedCount": 0,
+      "events": [],
+      "secondResult": 6
+    },
+    {
+      "maximum": 3,
+      "count": 1,
+      "grade": 3,
+      "excluded": false,
+      "result": 3,
+      "storedCount": 1,
+      "events": [],
+      "secondResult": 3
+    },
+    {
+      "maximum": 3,
+      "count": 1,
+      "grade": 3,
+      "excluded": true,
+      "result": 3,
+      "storedCount": 1,
+      "events": [],
+      "secondResult": 3
+    },
+    {
+      "maximum": 3,
+      "count": 1,
+      "grade": 5,
+      "excluded": false,
+      "result": 6,
+      "storedCount": 2,
+      "events": [
+        "increment"
+      ],
+      "secondResult": 6
+    },
+    {
+      "maximum": 3,
+      "count": 1,
+      "grade": 5,
+      "excluded": true,
+      "result": 5,
+      "storedCount": 1,
+      "events": [],
+      "secondResult": 5
+    },
+    {
+      "maximum": 3,
+      "count": 1,
+      "grade": 6,
+      "excluded": false,
+      "result": 6,
+      "storedCount": 1,
+      "events": [],
+      "secondResult": 6
+    },
+    {
+      "maximum": 3,
+      "count": 1,
+      "grade": 6,
+      "excluded": true,
+      "result": 6,
+      "storedCount": 1,
+      "events": [],
+      "secondResult": 6
+    },
+    {
+      "maximum": 3,
+      "count": 2,
+      "grade": 3,
+      "excluded": false,
+      "result": 3,
+      "storedCount": 2,
+      "events": [],
+      "secondResult": 3
+    },
+    {
+      "maximum": 3,
+      "count": 2,
+      "grade": 3,
+      "excluded": true,
+      "result": 3,
+      "storedCount": 2,
+      "events": [],
+      "secondResult": 3
+    },
+    {
+      "maximum": 3,
+      "count": 2,
+      "grade": 5,
+      "excluded": false,
+      "result": 6,
+      "storedCount": 3,
+      "events": [
+        "increment",
+        "unregister",
+        "removeParam",
+        "deferFinish"
+      ],
+      "secondResult": 5
+    },
+    {
+      "maximum": 3,
+      "count": 2,
+      "grade": 5,
+      "excluded": true,
+      "result": 5,
+      "storedCount": 2,
+      "events": [],
+      "secondResult": 5
+    },
+    {
+      "maximum": 3,
+      "count": 2,
+      "grade": 6,
+      "excluded": false,
+      "result": 6,
+      "storedCount": 2,
+      "events": [],
+      "secondResult": 6
+    },
+    {
+      "maximum": 3,
+      "count": 2,
+      "grade": 6,
+      "excluded": true,
+      "result": 6,
+      "storedCount": 2,
+      "events": [],
+      "secondResult": 6
+    },
+    {
+      "maximum": 3,
+      "count": 3,
+      "grade": 3,
+      "excluded": false,
+      "result": 3,
+      "storedCount": 3,
+      "events": [],
+      "secondResult": 3
+    },
+    {
+      "maximum": 3,
+      "count": 3,
+      "grade": 3,
+      "excluded": true,
+      "result": 3,
+      "storedCount": 3,
+      "events": [],
+      "secondResult": 3
+    },
+    {
+      "maximum": 3,
+      "count": 3,
+      "grade": 5,
+      "excluded": false,
+      "result": 6,
+      "storedCount": 4,
+      "events": [
+        "increment",
+        "unregister",
+        "removeParam",
+        "deferFinish"
+      ],
+      "secondResult": 5
+    },
+    {
+      "maximum": 3,
+      "count": 3,
+      "grade": 5,
+      "excluded": true,
+      "result": 5,
+      "storedCount": 3,
+      "events": [],
+      "secondResult": 5
+    },
+    {
+      "maximum": 3,
+      "count": 3,
+      "grade": 6,
+      "excluded": false,
+      "result": 6,
+      "storedCount": 3,
+      "events": [],
+      "secondResult": 6
+    },
+    {
+      "maximum": 3,
+      "count": 3,
+      "grade": 6,
+      "excluded": true,
+      "result": 6,
+      "storedCount": 3,
+      "events": [],
+      "secondResult": 6
+    }
+  ]
+}

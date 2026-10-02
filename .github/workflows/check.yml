@@ -22,8 +22,31 @@ jobs:
           echo "551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb  $RUNNER_TEMP/gitleaks.tar.gz" | sha256sum -c -
           tar -xzf "$RUNNER_TEMP/gitleaks.tar.gz" -C "$RUNNER_TEMP" gitleaks
           "$RUNNER_TEMP/gitleaks" git --redact --no-banner .
-      - run: npm --prefix site ci --ignore-scripts --no-audit --no-fund
-      - run: bash scripts/build-web-client.sh output/web-client-ci
-      - run: python3 -m tools.code_publication --source output/web-client-ci --verify-only
-      - run: node --test site/tests/story-share.test.mjs site/tests/startup.test.mjs site/tests/independent-content.test.mjs site/tests/loading-shell.test.mjs
-      - run: python3 -m unittest tests.test_item_acquisition tests.test_game_database tests.test_code_publication -q
+      - name: Check public source boundary
+        run: python3 -m tools.repository_hygiene scan --root . --scope tracked
+      - name: Build and verify candidate from the checked-out commit
+        run: python3 -m tools.release_candidate --revision "$GITHUB_SHA" --output output/code-candidate
+      - name: Build immutable program bundle
+        run: python3 -m tools.runtime_bundle build --revision "$GITHUB_SHA" --output output/runtime-candidate
+      - name: Existing public contract gates
+        run: |
+          npm --prefix site ci --ignore-scripts --no-audit --no-fund
+          node --test site/tests/story-share.test.mjs site/tests/startup.test.mjs site/tests/independent-content.test.mjs site/tests/loading-shell.test.mjs
+          python3 -m unittest tests.test_item_acquisition tests.test_game_database tests.test_code_publication tests.test_operations tests.test_docs_status tests.test_global_update tests.test_prerender_publication tests.test_admin_upgrade.ManualStageTests tests.test_current_content_media tests.test_bundle_decoder tests.test_global_remote_sync tests.test_current_resources -q
+      - name: Publish reviewed artifact identifiers to the run summary
+        run: |
+          python3 - <<'PYCODE'
+          import hashlib, os
+          from pathlib import Path
+          with open(os.environ['GITHUB_STEP_SUMMARY'], 'a') as summary:
+              for name in ['output/code-candidate/verification.json', 'output/runtime-candidate/runtime.json']:
+                  summary.write(f"{name}: `{hashlib.sha256(Path(name).read_bytes()).hexdigest()}`\n\n")
+          PYCODE
+      - uses: actions/upload-artifact@v4
+        with:
+          name: verified-candidates-${{ github.sha }}
+          path: |
+            output/code-candidate
+            output/runtime-candidate
+          if-no-files-found: error
+          retention-days: 14

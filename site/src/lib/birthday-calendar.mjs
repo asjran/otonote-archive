@@ -33,9 +33,13 @@ export function upcomingBirthdays(characters, now = Date.now()) {
 }
 
 export function birthdayCountdown(days, en = false) {
-  if (days === 0) return en ? 'Happy birthday today!' : '今天生日 · 生日快乐';
+  if (days === 0) return en ? 'Happy birthday!' : '生日快乐';
   if (days === 1) return en ? 'Tomorrow' : '明天生日';
   return en ? `In ${days} days` : `还有 ${days} 天`;
+}
+
+export function birthdayProximity(days) {
+  return days === 0 ? 'today' : days > 0 && days <= 7 ? 'soon' : 'later';
 }
 
 /** Match birthday pools through UP member cards, never the entire prize list. */

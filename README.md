@@ -13,6 +13,14 @@ BanG Dream! Our Notes 的非官方资料站源码，包含角色与卡牌资料�
 
 代码和游戏内容分别发布。源码可以独立编译，但浏览页面需要自行准备符合内容协议的快照；仅克隆本仓库不会得到线上游戏资料。Live2D Core 需按其官方许可自行获取。公开版加载装饰使用站点图标。
 
+## 开发与发布规范
+
+开发、离线 CI、正式候选、不可变程序包及部署入口见 [开发流程](docs/DEVELOPMENT_WORKFLOW.md)。真实配置以线上生效行为为初始基线，保存在仓库之外；提交和交付先通过 [配置与脱敏边界](docs/CONFIGURATION_POLICY.md)。容量维护与数据新鲜度见 [运行维护](docs/OPERATIONS.md)。
+
+正式候选从指定提交的干净检出构建：`bash scripts/build-web-client.sh --candidate HEAD output/code-candidate`。发布复用通过验证的同一产物，固定独立取得的验证回执摘要，并检查旧版本和发布健康；CI 不保存生产凭据，也不自动部署。
+
+本轮落地结果、线上验收与已知限制见 [规范化验收记录](docs/DEVELOPMENT_ACCEPTANCE.md)。
+
 ## 编译代码
 
 使用 `.nvmrc` 指定的 Node.js 22.22.0（最低 22.20）及 Python 3.11+：
@@ -20,7 +28,7 @@ BanG Dream! Our Notes 的非官方资料站源码，包含角色与卡牌资料�
 ```sh
 nvm use
 npm --prefix site ci
-bash scripts/build-web-client.sh output/web-client-local
+bash scripts/build-web-client.sh --preview output/web-client-local
 python3 -m tools.code_publication --source output/web-client-local --verify-only
 ```
 
@@ -49,6 +57,8 @@ python3 -m unittest tests.test_item_acquisition tests.test_game_database tests.t
 ## 私有配置
 
 按需在本地设置 `OURNOTES_MASTER_SALT_HEX`、`OURNOTES_MASTER_KEY_HEX`、`OURNOTES_MASTER_IV_HEX`（各 32 字节的十六进制字符串）及 `OURNOTES_CRI_KEY`。登录导出工具使用 `packaging/growth-tool/sdk.example.xml` 的本地副本；应用参数与账号信息不可提交。
+
+当前资源同步另需外置 `OURNOTES_BUNDLE_DECODER_PROFILE`，精确绑定客户端版本和元数据；结构及私有维护要求见开发流程。
 
 部署文件只作为模板使用。将 `your-server`、`otonote.example.com` 和 `registry.example.com` 替换为自己的环境，并先校验配置；仓库中没有可直接复用的生产部署身份。
 

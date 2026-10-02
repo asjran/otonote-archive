@@ -29,11 +29,24 @@ test("technical source notes use one native disclosure boundary", async () => {
   assert.match(source, /sourceAndLimits/);
 });
 
-test("every P0 page separates visitor copy from technical source notes", async () => {
+test("P0 pages provide task headings and keep calculation notes in disclosures", async () => {
   for (const path of p0Pages) {
     const source = await readSource(path);
-    assert.match(source, /data-copy-layer="primary"/, `${path} has no primary copy layer`);
-    assert.match(source, /<SourceDisclosure\b/, `${path} has no technical disclosure`);
+    if (path.endsWith("/optimizer/index.astro")) {
+      assert.match(source, /Astro\.redirect\(destination \+ Astro\.url\.search \+ Astro\.url\.hash, 301\)/);
+      continue;
+    }
+    assert.match(source, /<h1\b|<ToolPageHeader\b/, `${path} has no visitor task heading`);
+    if (source.includes("<SourceDisclosure")) {
+      assert.ok(source.indexOf("<SourceDisclosure") > Math.max(source.indexOf("<h1"), source.indexOf("<ToolPageHeader")), `${path} puts source notes before its task heading`);
+    }
+  }
+  const header = await readSource("../src/components/ToolPageHeader.astro");
+  assert.match(header, /data-copy-layer="primary"/);
+  assert.match(header, /<h1[\s\S]*?\{title\}[\s\S]*?<p>\{description\}/);
+  for (const component of ["TeamDraftWorkbench", "ScoringResearchWorkbench"]) {
+    const source = await readSource(`../src/components/${component}.astro`);
+    assert.match(source, /<ScoringModelNotice\s*\/>/, `${component} lacks model assumptions`);
   }
 });
 
@@ -55,14 +68,20 @@ test("tool hero copy does not lead with implementation jargon", async () => {
 test("score estimates disclose scope", async () => {
   const calculator = await readSource("../src/pages/tools/song-calculator/index.astro");
   const optimizer = await readSource("../src/pages/tools/optimizer/index.astro");
-  assert.match(calculator, /逐音符估算歌曲分数/);
-  assert.match(calculator, /正式谱面重建/);
-  assert.match(optimizer, /普通歌曲期望分/);
-  assert.match(optimizer, /已拥有卡库或理论满养成卡库/);
-  assert.match(optimizer, /暂不提供激奏总分最优队/);
-  assert.match(optimizer, /未知活动规则会明确拒绝计算/);
-  assert.match(optimizer, /理想同刻事件情景估算/);
-  assert.match(optimizer, /<TeamDraftWorkbench/);
+  const builder = await readSource("../src/pages/tools/deck-builder/index.astro");
+  const notice = await readSource("../src/components/ScoringModelNotice.astro");
+  const workbench = await readSource("../src/components/ScoringResearchWorkbench.astro");
+  assert.match(calculator, /<SourceDisclosure>/);
+  assert.match(calculator, /默认按全部音符获得 Perfect、满生命且不开启辅助/);
+  assert.match(calculator, /技能发动顺序会影响分数/);
+  assert.match(calculator, /尚不能保证与游戏实得分数完全一致/);
+  assert.match(calculator, /规则尚未确认的活动暂不支持计算/);
+  assert.match(notice, /实际分数会受判定与技能顺序影响/);
+  assert.match(workbench, /模板是可编辑的模拟输入，不是实战记录/);
+  assert.match(workbench, /LUCK 为概率抽样，最低／最高分是样本范围/);
+  assert.match(optimizer, /\/tools\/deck-builder\//);
+  assert.match(optimizer, /Astro\.url\.search \+ Astro\.url\.hash, 301/);
+  assert.match(builder, /<TeamDraftWorkbench/);
 });
 
 test("source disclosures stay compact, keyboard-visible, and mobile-safe", async () => {
@@ -87,10 +106,14 @@ test("catalog and card entrances explain how visitors can browse and equip", asy
   const catalog = await readSource("../src/pages/catalog/index.astro");
   const cards = await readSource("../src/pages/cards/index.astro");
 
-  assert.match(catalog, /按角色、乐队或属性/);
+  for (const route of ["/characters/", "/cards/members/", "/cards/supports/"]) {
+    assert.ok(catalog.includes(`route: "${route}"`), `catalog lacks ${route}`);
+  }
+  assert.match(catalog, /collections\.map\(entry => <a/);
+  assert.match(catalog, /角色与卡牌/);
   assert.match(cards, /成员卡用于乐队编成/);
   assert.match(cards, /留影用于装备/);
-  assert.match(cards, /登场关系不代表装备限制/);
+  assert.match(cards, /登场角色不代表装备限制/);
 });
 
 test("member card details make formation the primary action", async () => {
@@ -174,48 +197,61 @@ test("card details share growth previews and grouped skills with small artwork a
   assert.doesNotMatch(archive, /data-panel="resources"|gekisou-lab|member-card-primary-skill/);
 });
 
-test("music, story, and database entrances describe visitor-visible content", async () => {
+test("music and story entrances describe available content and preserve category navigation", async () => {
   const music = await readSource("../src/pages/music/index.astro");
   const stories = await readSource("../src/pages/stories/index.astro");
-  const database = await readSource("../src/pages/database/index.astro");
+  const storyCategory = await readSource("../src/components/StoryCategory.astro");
 
   for (const term of ["演唱", "BPM", "难度", "谱面结构"]) {
     assert.match(music, new RegExp(term));
   }
-  assert.match(music, /无音频模拟播放/);
-  assert.match(music, /尚未收录歌曲音频/);
-  assert.match(stories, /data-story-library/);
-  assert.match(stories, /copy.unavailable/);
+  assert.match(music, /播放已收录的歌曲音频/);
+  assert.match(music, /音频是否可播放以各曲目页面为准/);
+  assert.match(music, /谱面预览效果可能与实际演奏有所不同/);
+  assert.match(stories, /Astro\.redirect\([\s\S]*?, 301\)/);
+  assert.match(stories, /\['main','extra','viewpoint','friendship','event'\]/);
+  assert.match(stories, /new URLSearchParams\(Astro\.url\.search\)/);
+  assert.match(storyCategory, /data-story-library/);
+  assert.match(storyCategory, /copy.unavailable/);
+});
+
+test("database entrances describe visitor-visible content", async () => {
+  const database = await readSource("../src/pages/database/index.astro");
   assert.match(database, /查找技能、道具和乐队强化/);
   assert.match(database, /从卡牌反查/);
-  assert.match(database, /部分条件[^。]*尚未确认/);
+  for (const route of ["/database/skills/", "/database/items/", "/database/band-items/"]) {
+    assert.ok(database.includes(`href="${route}"`), `database lacks ${route}`);
+  }
 });
 
 test("tools directory exposes score estimates and pairing without an obsolete pending entry", async () => {
-  const [page, css] = await Promise.all([
-    readSource("../src/pages/tools/index.astro"),
-    readSource("../src/styles/tools.css")
-  ]);
+  const page = await readSource("../src/pages/tools/index.astro");
+  const toolPaths = [...page.matchAll(/\{path:'([^/][^']*)',mark:/g)].map((match) => match[1]);
+  const renderedToolIndexes = [...(page.match(/\{\[items\[0\][^\n]+\.map\(item/)?.[0] ?? "").matchAll(/items\[(\d+)\]/g)]
+    .map((match) => Number(match[1]));
+  assert.deepEqual(toolPaths.toSorted(), ["live2d", "deck-builder", "song-ranking", "song-calculator", "ap-grade", "event-efficiency"].toSorted());
+  assert.deepEqual(renderedToolIndexes.toSorted((a, b) => a - b), [0, 1, 2, 3, 4, 5]);
+  assert.match(page, /href=\{href\(`\/tools\/\$\{item.path\}\/`\)\}/);
+  assert.deepEqual([...page.matchAll(/\{path:'(\/[^']*)',kind:/g)].map((match) => match[1]), ["/music/", "/stories/", "/tools/resources/"]);
 
   assert.deepEqual(
     {
-      readyActions: (page.match(/<a[^>]+data-tool-state="available"/g) ?? []).length,
+      readyActionTemplate: (page.match(/<a[^>]+data-tool-state="available"/g) ?? []).length,
       pendingActions: (page.match(/<a[^>]+data-tool-state="pending"/g) ?? []).length,
       pendingRows: (page.match(/<div[^>]+data-tool-state="pending"/g) ?? []).length,
-      routes: ["live2d", "deck-builder", "song-ranking", "song-calculator", "optimizer"]
-        .every((route) => page.includes(`/tools/${route}/`)),
-      compactHero: page.includes("<ToolPageHeader") && !page.includes("page-stamp"),
-      compactReadyCards: /\.tool-module-card--ready\s*\{[^}]*min-height:\s*0/s.test(css),
-      pendingLowWeight: css.includes(".tool-pending-row")
+      directHeading: page.includes("<h1>") && !page.includes("page-stamp"),
+      noLegacyGrid: !page.includes("tool-module-grid"),
+      notesAfterTools: page.indexOf('<footer class="tools-desk-note">') > page.lastIndexOf("</nav>"),
+      estimateScope: page.includes("实际表现受判定与技能顺序影响")
     },
     {
-      readyActions: 5,
+      readyActionTemplate: 1,
       pendingActions: 0,
       pendingRows: 0,
-      routes: true,
-      compactHero: true,
-      compactReadyCards: true,
-      pendingLowWeight: true
+      directHeading: true,
+      noLegacyGrid: true,
+      notesAfterTools: true,
+      estimateScope: true
     }
   );
 });

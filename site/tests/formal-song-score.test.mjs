@@ -51,6 +51,19 @@ test("decoded native coefficient is 0.005; weighted denominator is not the FC co
   assert.deepEqual(result.skillTimes, [7578, 27789, 37894, 51789, 74526]);
 });
 
+test('combo bonus uses judgements strictly before chart time, including simultaneous threshold crossings', () => {
+  const { r, c } = simpleFixture();
+  r.tables.LiveComboScoreBonus = [{ _comboBonusType: 0, _requiredComboCount: 2, _bonusFactor: 0.5 }];
+  c.notes = [0, 100, 100, 101].map((tick, id) => ({ id: `tap-${id}`, type: 'tap', tick }));
+  // Native GetTimingCombo -> FindLastIndexBefore: same-time judgements are
+  // excluded even when that group reaches a new bonus threshold.
+  const events = prepareFormalChart(r, c).events;
+  assert.deepEqual(events.map(e => e.combo), [0, 1, 1, 3]);
+  assert.deepEqual(events.map(e => e.comboFactor), [1, 1, 1, 1.5]);
+  const result = createFormalSongCalculator(r, c).calculate(draft(), { includeTrace: true });
+  assert.deepEqual(result.bestOrderNotes.map(e => e.comboFactor), [1, 1, 1, 1.5]);
+});
+
 test("hand fixture: three taps, 100% skill, start inclusive and end exclusive", () => {
   const { r, c } = simpleFixture();
   const d = draft();
@@ -62,6 +75,10 @@ test("hand fixture: three taps, 100% skill, start inclusive and end exclusive", 
   assert.equal(result.expectedScore, 5 * power);
   assert.deepEqual(result.bestOrderNotes.map((n) => n.score), [2 * power, 2 * power, power]);
   assert.equal(result.orderCount, 120);
+  assert.deepEqual(result.scoreDistribution.outcomes,[{score:5*power,count:120}]);
+  assert.equal(result.scoreDistribution.complete,true);
+  const screened=createFormalSongCalculator(r,c,{scorePrecision:'screen'}).calculate(d);
+  assert.equal(screened.scoreDistribution.count,10);assert.equal(screened.scoreDistribution.complete,false);
 });
 
 test("overlapping skills add instead of multiplying; all 120 orders are scored", () => {
@@ -91,6 +108,15 @@ test("130 percent skill preserves the native floor to 1/100000 precision", () =>
   // float(13000/10000)*100000 rounds to 129999.9921875, then floors to 129999.
   assert.equal(result.bestOrderNotes[0].scoreUpFactor, 2.299990177154541);
   assert.equal(result.bestOrderNotes[2].scoreUpFactor, 1.0000001192092896);
+});
+
+test('native skill end timestamps ceil the combined float32 duration', () => {
+  const { r, c } = simpleFixture();
+  for (const e of r.tables.LiveSkillEffect) e._activationTimeSecond = 0.1001;
+  c.notes = [99, 101, 102].map((tick, id) => ({ id: `duration-${id}`, type: 'tap', tick }));
+  const result = createFormalSongCalculator(r, c).calculate(draft(), { includeTrace: true });
+  assert.equal(result.skills[0].liveEffects[0].durationMs, 101);
+  assert.deepEqual(result.bestOrderNotes.map(e => e.scoreUpFactor), [2, 2, 1]);
 });
 
 test("all published chart projections adapt; source skill events need not be sorted", () => {

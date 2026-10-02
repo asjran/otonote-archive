@@ -1,0 +1,143 @@
+/* Keep filters compact so the selected cards and songs remain the focus. */
+[data-shell] .selection-filter-rows {
+  display:grid;
+  grid-template-columns:minmax(0,1fr);
+  gap:6px 14px;
+  min-width:0;
+}
+[data-shell] .selection-filter-rows > .selection-filter-row,
+[data-shell] .selection-slot-control,
+[data-shell] .selection-filters .selection-filter-rows .compact-attribute-filter {
+  display:grid;
+  grid-template-columns:60px minmax(0,1fr);
+  gap:6px 8px;
+  align-items:start;
+  min-width:0;
+  margin:0;
+  padding:0;
+  font:11px/1.4 var(--font-body);
+  color:var(--calc-muted,var(--silver-dark));
+}
+[data-shell] :is(.selection-filter-row,.selection-slot-control,.compact-attribute-filter) > span:first-child {
+  display:flex;
+  align-items:center;
+  min-height:var(--tool-control-height,30px);
+  margin:0;
+}
+[data-shell] :is(.selection-filter-row,.selection-slot-control) > :is(select,input) {
+  width:min(100%,300px);
+  min-width:0;
+  min-height:var(--tool-control-height,30px);
+  box-sizing:border-box;
+  margin:0;
+  padding:4px 7px;
+  font-size:11px;
+}
+[data-shell] :is(.selection-filter-row,.selection-slot-control) > .tool-options,
+[data-shell] .attribute-filter-options {
+  display:flex;
+  flex-wrap:wrap;
+  align-items:center;
+  gap:4px;
+  min-width:0;
+  max-width:100%;
+  overflow:visible;
+  padding:0;
+}
+[data-shell] .selection-filter-row > .tool-options button,
+[data-shell] .selection-slot-control > .tool-options button,
+[data-shell] .selection-filters .compact-attribute-filter .attribute-filter-options button {
+  min-height:var(--tool-control-height,30px);
+  min-width:var(--tool-control-height,30px);
+  padding:3px 7px;
+  border-radius:var(--tool-control-radius,5px);
+  white-space:normal;
+  font-size:11px;
+  line-height:1.35;
+  margin:0;
+}
+[data-shell] .selection-filter-row > .tool-options button img,
+[data-shell] .selection-filters .compact-attribute-filter .attribute-filter-options img {
+  width:22px;
+  height:22px;
+  max-width:44px;
+  object-fit:contain;
+}
+[data-shell] .selection-filter-row > .tool-options button[data-round="true"] img { border-radius:50%; }
+[data-shell] .selection-slot-control { flex:0 1 400px; }
+[data-shell] .selection-filter-rows .song-level-range { grid-column:auto; max-width:350px; gap:6px; }
+[data-shell] [data-filter-scope].selection-filters.selection-filters--compact { gap:4px; padding:0; }
+[data-shell] .selection-filters .selection-quick { gap:6px; padding:6px 0; }
+[data-shell] .selection-filters .selection-quick > .selection-filter-rows {
+  grid-template-columns:repeat(auto-fit,minmax(min(100%,290px),1fr));
+}
+[data-shell] .selection-filters .selection-quick > .selection-filter-rows > .selection-quick-grid { display:contents; }
+[data-shell] .optimizer-main-fields.selection-filter-rows {
+  grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),1fr));
+}
+[data-shell] .selection-filters .selection-filter-toolbar { gap:6px; align-items:end; }
+[data-shell] .selection-filters .selection-filter-toolbar .selection-search { gap:3px; }
+[data-shell] .selection-filters .selection-filter-toolbar .selection-search input,
+[data-shell] .selection-filters .selection-filter-toolbar .filter-drawer-trigger {
+  min-height:var(--tool-control-height,30px);
+  height:var(--tool-control-height,30px);
+  padding:4px 8px;
+  border-radius:var(--tool-control-radius,5px);
+  font-size:12px;
+}
+[data-shell] .selection-filters .selection-filter-toolbar .filter-drawer-trigger { min-width:0; gap:5px; }
+[data-shell] .selection-filters .filter-drawer-trigger svg { width:16px; height:16px; }
+[data-shell] .selection-filters .selection-results-bar { min-height:0; gap:6px; font-size:11px; }
+[data-shell] .selection-filters .selection-results-bar button {
+  min-height:var(--tool-control-height,30px);
+  padding:3px 5px;
+  font-size:11px;
+}
+/* These overrides apply only to calculator drawers, not catalog filters. */
+[data-shell] .selection-filters .filter-drawer-dialog { border-radius:10px 0 0 10px; }
+[data-shell] .selection-filters .filter-drawer-header { gap:8px; padding:max(12px,env(safe-area-inset-top)) 14px 10px; }
+[data-shell] .selection-filters .filter-drawer-header h2 { margin-bottom:3px; font-size:16px; }
+[data-shell] .selection-filters .filter-drawer-header p { font-size:11px; }
+[data-shell] .selection-filters .filter-drawer-close {
+  width:var(--tool-control-height,30px);
+  height:var(--tool-control-height,30px);
+  min-height:var(--tool-control-height,30px);
+  padding:4px;
+  border-radius:var(--tool-control-radius,5px);
+}
+[data-shell] .selection-filters .filter-panel--drawer .filter-drawer-body { padding:10px 14px; }
+[data-shell] .selection-filters .selection-filter-toolbar .filter-drawer-dialog :is(.selection-filter-grid,.inventory-filters).selection-filter-rows {
+  grid-template-columns:minmax(0,1fr);
+  gap:8px;
+  margin:0;
+}
+[data-shell] .selection-filters .filter-drawer-dialog .selection-filter-row { grid-template-columns:60px minmax(0,1fr); }
+[data-shell] .selection-filters .filter-drawer-dialog .selection-filter-rows :is(select,input) {
+  min-height:var(--tool-control-height,30px);
+  padding:4px 7px;
+  border-radius:var(--tool-control-radius,5px);
+  font-size:11px;
+}
+[data-shell] .selection-filters .filter-drawer-dialog .song-level-range label { gap:3px; font-size:11px; }
+[data-shell] .selection-filters .filter-drawer-footer { gap:8px; padding:8px 14px max(10px,env(safe-area-inset-bottom)); }
+[data-shell] .selection-filters .filter-drawer-footer button {
+  min-height:var(--tool-control-height,30px);
+  padding:4px 7px;
+  border-radius:var(--tool-control-radius,5px);
+  font-size:11px;
+  box-shadow:none;
+}
+@media(max-width:600px) {
+  [data-shell] .selection-slot-control { flex-basis:100%; }
+  [data-shell] .selection-filter-rows > .selection-filter-row,
+  [data-shell] .selection-slot-control,
+  [data-shell] .selection-filters .selection-filter-rows .compact-attribute-filter,
+  [data-shell] .selection-filters .filter-drawer-dialog .selection-filter-row { grid-template-columns:56px minmax(0,1fr); gap:6px; }
+  [data-shell] .selection-filters .selection-filter-toolbar .selection-search input { font-size:16px; }
+  [data-shell] .selection-filters .filter-drawer-dialog { border-radius:10px 10px 0 0; }
+}
+@media(pointer:coarse) {
+  [data-shell] .selection-filters,
+  [data-shell] .selection-slot-control,
+  [data-shell] .optimizer-main-fields { --tool-control-height:36px; }
+}

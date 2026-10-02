@@ -11,8 +11,8 @@ test('paused lab is absent from navigation and contextual entry points',async()=
   const model=createSupportCardDetailModel({cardId:1,skillSummaries:[]});
   assert.ok(model.imageSidebarTopics.every(topic=>!topic.logicalPath?.includes('gekisou-lab')));
 });
-test('old lab URL shows a paused notice without loading the interactive laboratory',async()=>{
+test('old lab URL redirects without loading the interactive laboratory',async()=>{
   const page=await source('../src/pages/tools/gekisou-lab/index.astro');
-  assert.match(page,/暂停开放/);assert.match(page,/\/tools\/deck-builder\//);
+  assert.match(page,/Astro\.redirect/);assert.match(page,/\/tools\/deck-builder\//);
   assert.doesNotMatch(page,/GekisouBattleLab|gekisou-lab-workbench/);
 });

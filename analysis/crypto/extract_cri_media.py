@@ -606,6 +606,8 @@ def main() -> int:
         help="output directory for bundle results (defaults to --output)",
     )
     args = parser.parse_args()
+    if not args.usm_key:
+        parser.error("Configure private OURNOTES_CRI_KEY or provide --usm-key")
 
     if args.inputs:
         inputs = args.inputs

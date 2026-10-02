@@ -1,0 +1,8 @@
+---
+import StoryCategory from '../../components/StoryCategory.astro';
+import {storyKinds} from '../../lib/shared-stories';
+export function getStaticPaths() {
+  return storyKinds.map(category => ({params:{category}, props:{category}}));
+}
+---
+<StoryCategory category={Astro.props.category} />

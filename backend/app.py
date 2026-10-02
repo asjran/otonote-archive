@@ -283,6 +283,20 @@ def create_app(
             content={"status": "ready", "environments": environments},
         )
 
+    @app.get("/api/v1/player-rankings")
+    def player_rankings(server: str = Query(...), board: str = Query("auto"),
+                        event: Optional[str] = Query(None), music: str = Query(""),
+                        cursor: Optional[str] = Query(None), limit: int = Query(50)) -> JSONResponse:
+        from backend.player_rankings import query_player_rankings
+        try:
+            result = query_player_rankings(_state().config.data_root / "observations", server=server,
+                                          board=board, event=event, music=music, cursor=cursor, limit=limit)
+        except (ValueError, KeyError, TypeError):
+            return _error(400, "invalid_ranking_query", "Invalid ranking query or snapshot")
+        except OSError:
+            return _error(503, "rankings_unavailable", "Rankings are temporarily unavailable")
+        return JSONResponse(content=result, headers={"Cache-Control": "no-store"})
+
     # ----- dataset routes -------------------------------------------------
 
     def _register_dataset_route(path: str, dataset: Dataset) -> None:

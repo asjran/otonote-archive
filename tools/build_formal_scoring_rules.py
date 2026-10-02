@@ -26,9 +26,7 @@ TABLES = (
 )
 
 
-def build_rules(root: Path, release_id: str) -> dict:
-    if release_id != AUDITED_RELEASE_ID:
-        raise ValueError("This code profile has not been audited for the requested release")
+def project_tables(root: Path):
     tables, digests = {}, {}
     for name in TABLES:
         path = root / f"Master{name}.json"
@@ -52,6 +50,13 @@ def build_rules(root: Path, release_id: str) -> dict:
         "LiveMusic": ("_id", "_musicType", "_bestMusicTagIDs", "_gekisouMission1", "_gekisouMission2", "_gekisouMission3"),
     }.items():
         tables[name] = [{k: r[k] for k in fields} for r in tables[name]]
+    return tables, digests
+
+
+def build_rules(root: Path, release_id: str) -> dict:
+    if release_id != AUDITED_RELEASE_ID:
+        raise ValueError("This code profile has not been audited for the requested release")
+    tables, digests = project_tables(root)
     return {
         "schemaVersion": 1,
         "sourceReleaseId": release_id,
@@ -63,7 +68,7 @@ def build_rules(root: Path, release_id: str) -> dict:
         "packageVersion": "1.0.1 (25)",
         "nativeSha256": "514a5b73d038c264b60cc91fd4a747cf178190c6b2096e6d7007c2020e2b1bca",
         "masterSha256": digests,
-        "native": json.loads((ROOT / "site/src/data/formal-scoring-native.json").read_text()),
+        "native": json.loads((ROOT / "packages/scoring/data/formal-scoring-native.json").read_text()),
         "tables": tables,
     }
 
@@ -72,8 +77,11 @@ def main() -> None:
     config = json.loads((ROOT / "config/release-inputs.json").read_text())
     source = next(x for x in config["environments"] if x["id"] == "global-production")
     rules = build_rules(ROOT / source["masterRoot"], source["contentReleaseId"])
-    output = ROOT / "site/src/data/formal-scoring-rules.json"
-    output.write_text(json.dumps(rules, ensure_ascii=False, separators=(",", ":")) + "\n")
+    output = ROOT / "packages/scoring/data/formal-scoring-rules.json"
+    serialized = json.dumps(rules, ensure_ascii=False, separators=(",", ":")) + "\n"
+    output.write_text(serialized)
+    # Keep the legacy website projection in sync with the canonical baseline.
+    (ROOT / "site/src/data/formal-scoring-rules.json").write_text(serialized)
     print(f"{output}: {sum(map(len, rules['tables'].values()))} rows")
 
 

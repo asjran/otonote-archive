@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import {readFileSync} from 'node:fs';
 
 import { calculateFormalNoteCore } from "../src/lib/scoring-rules/formal-note-core.mjs";
 
@@ -30,4 +31,9 @@ test("formal core floors the note amount before event and life factors", () => {
 test("formal core rejects invalid native arithmetic inputs", () => {
   assert.throws(() => calculateFormalNoteCore({ ...input, convertedNoteCount: 0 }), RangeError);
   assert.throws(() => calculateFormalNoteCore({ ...input, totalPower: NaN }), TypeError);
+});
+
+test('score kernel matches goldens executed with the client ARM64 arithmetic instructions', () => {
+  const fixture=JSON.parse(readFileSync(new URL('./fixtures/formal-note-core-native.json',import.meta.url)));
+  for(const [i,vector] of fixture.vectors.entries()) assert.equal(calculateFormalNoteCore(vector.input).score,vector.score,`native vector ${i}`);
 });

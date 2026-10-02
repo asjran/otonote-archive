@@ -1,20 +1,29 @@
+import { currentServerContext, withServer } from './game-servers.mjs';
+
 export interface SiteProjection {
   contentReleaseId: string;
-  region: "global";
+  region: "global" | "jp";
   channel: "staging" | "production";
   locale: "zh-CN" | "zh-TW" | "ja" | "en";
   catalogPath: string;
 }
 
 const REGION_LOCALE_PRIORITY = {
+  jp: ["zh-CN", "en", "ja", "zh-TW"],
   global: ["en", "zh-CN", "zh-TW", "ja"]
 } as const;
 
 const ENTITY_DIRECTORY_PATTERNS = [
+  [/^\/events\/[^/]+\/$/, "/events/"],
+  [/^\/stories\/events\/[^/]+\/$/, "/stories/events/"],
   [/^\/characters\/[^/]+\/$/, "/characters/"],
   [/^\/cards\/members\/[^/]+\/$/, "/cards/members/"],
   [/^\/cards\/supports\/[^/]+\/$/, "/cards/supports/"],
-  [/^\/music\/[^/]+\/$/, "/music/"],
+  [/^\/cards\/(?!members\/|supports\/)[^/]+\/$/, "/cards/"],
+  [/^\/recruitment\/[^/]+\/$/, "/recruitment/"],
+  [/^\/immersive\/[^/]+\/$/, "/immersive/"],
+  [/^\/database\/details\/.+\/$/, "/database/"],
+  [/^\/music\/music-[^/]+\/$/, "/music/"],
   [/^\/database\/items\/[^/]+\/$/, "/database/items/"],
   [/^\/database\/skills\/[^/]+\/$/, "/database/skills/"],
   [/^\/stories\/chapters\/[^/]+\/$/, "/stories/"],
@@ -48,7 +57,8 @@ export function siteHref(
   if (typeof contentRoot === 'string' && (/^\/(media|gallery|live2d|auto-stage|growth|system-banners|mission-rewards)\//.test(path)
       || /^\/immersive\/.*\.[a-z0-9]+$/i.test(path))) return `${contentRoot}public${path}`;
   const logical = path.startsWith("/") ? path : `/${path}`;
-  return `/${projection.region}/${projection.locale}${logical}`;
+  const href = `/${projection.region}/${projection.locale}${logical}`;
+  return withServer(href, currentServerContext().serverId);
 }
 
 export function chooseProjection(
@@ -85,9 +95,9 @@ export function switchTarget(
 
   for (const [pattern, directory] of ENTITY_DIRECTORY_PATTERNS) {
     if (pattern.test(logical)) {
-      return `${siteHref(directory, target)}?unavailable=${encodeURIComponent(
-        logical
-      )}`;
+      const url = new URL(siteHref(directory, target), 'https://ournotes.invalid');
+      url.searchParams.set('unavailable', logical);
+      return url.pathname + url.search;
     }
   }
   return siteHref(logical, target);

@@ -1,4 +1,7 @@
 ---
+import {storyLibrary as sharedStories} from "../../../lib/shared-stories";
+import EditionBadge from "../../../components/EditionBadge.astro";
+import {editionLabel} from "../../../lib/edition-library.mjs";
 import BaseLayout from "../../../layouts/BaseLayout.astro";
 import { storyLibrary, storyEntries, storyCharacters, storyCopy as copy, readTextStory, episodeLabel, storyKind, storyKindLabel } from "../../../lib/story-library";
 import { activeReleaseContext } from "../../../lib/release-context";
@@ -7,9 +10,11 @@ import "../../../styles/story-text.css";
 import { catalog, getAsset } from "../../../lib/catalog";
 import { resolveStorySpeaker, storyAvatar, storyCharacter } from "../../../lib/story-avatars";
 import { getStoryShareCopy } from "../../../lib/story-share-copy";
+import { storyLineSpeakers } from "../../../lib/story-reader-search.mjs";
 import "../../../styles/story-share.css";
 export function getStaticPaths() { return storyLibrary.entries.map(entry => ({ params: { id: entry.id } })); }
 const entry = storyEntries.get(Astro.params.id!)!;
+const libraryEntry = sharedStories.entries.find(row=>row.id===entry.id);
 const lines = readTextStory(entry.id);
 const href = (path: string) => import.meta.env.BASE_URL === "/" ? path : siteHref(path, activeReleaseContext);
 const previous = entry.previousId ? storyEntries.get(entry.previousId) : undefined;
@@ -20,17 +25,20 @@ const band = catalog.bands.find(band => band.masterId === entry.bandIds[0]);
 const logo = getAsset(band?.logoAssetId);
 const names = entry.characterIds.map(id => storyCharacters.get(id)).filter(Boolean).join(" / ");
 const shareCopy = getStoryShareCopy(activeReleaseContext.locale);
+const en = activeReleaseContext.locale === 'en';
+const speakers = [...new Set(lines.flatMap(line => storyLineSpeakers(line.speaker)))];
 ---
-<BaseLayout title={entry.title} description={`${storyKindLabel(kind)} · ${entry.title}`}>
+<BaseLayout title={entry.title} description={`${storyKindLabel(kind)} · ${entry.title}`} navigationPath={entry.eventId != null ? '/stories/events/' : `/stories/${kind}/`}>
   <article class="st-reader content-shell" id="story-top" data-text-reader data-kind={kind} data-story-id={entry.id} data-share-copy={JSON.stringify(shareCopy)} style={`--band-accent:${band?.mainColor || "var(--lacquer)"}`}>
-    <a class="st-back" href={href(`/stories/?category=${kind}`)}><span aria-hidden="true">←</span> {copy.back}</a>
+    <a class="st-back" href={href(entry.eventId != null ? `/stories/events/${entry.eventId}/` : `/stories/${kind}/`)}><span aria-hidden="true">←</span> {copy.back}</a>
     <header class="st-reader-header">
       <div class="st-reader-title">
-        <div class="st-reader-kicker"><span class="st-tag" data-kind={kind}>{storyKindLabel(kind)}</span><span class="st-episode-label">{episodeLabel(entry)}</span></div>
+        <div class="st-reader-kicker"><span class="st-tag" data-kind={kind}>{storyKindLabel(kind)}</span><span class="st-episode-label">{episodeLabel(entry)}</span><EditionBadge record={libraryEntry} /></div>
         <p class="st-reader-subtitle">{entry.category === "friendship" ? names : entry.chapterName}{entry.category === "viewpoint" && ` · ${names}`}</p>
         <h1>{entry.title || episodeLabel(entry)}</h1>
+        {libraryEntry?.editionPresence?.different && libraryEntry.editionPresence.counterparts?.map(target=><a href={target.href}>{activeReleaseContext.locale==='en'?'Read in ':'阅读'}{editionLabel(target.edition,activeReleaseContext.locale==='en')}</a>)}
         {entry.description && <p class="st-reader-deck">{entry.description}</p>}
-        <div class="st-reader-meta"><span>{copy.textOnly}</span><span>{entry.lineCount} {copy.lines}</span>{entry.friendshipLevel > 0 && <span>{copy.bondLevel} {entry.friendshipLevel}</span>}</div>
+        <div class="st-reader-meta"><span>{copy.textOnly}</span><span>{entry.lineCount} {copy.lines}</span>{entry.friendshipLevel > 0 && <span>{copy.bondLevel} {entry.friendshipLevel}</span>}{entry.fallbackTextCount && <span>{activeReleaseContext.locale === 'en' ? 'Untranslated text is shown in Japanese.' : '缺少译文的内容显示日文原文。'}</span>}</div>
       </div>
       <div class="st-reader-cover">
         {logo && <img class="st-reader-logo" src={logo.previewUrl} alt={band?.displayName} width="160" height="80" />}
@@ -46,6 +54,14 @@ const shareCopy = getStoryShareCopy(activeReleaseContext.locale);
       <label><span class="st-font-icon" aria-hidden="true">Aa</span><span class="visually-hidden">{copy.font}</span><select data-story-font><option value="normal">{copy.normal}</option><option value="large">{copy.large}</option></select></label>
       <button class="st-share-trigger" type="button" data-share-toggle aria-pressed="false" aria-controls="story-selection" hidden><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 8h6M9 12h6M9 16h4"/></svg><span>{shareCopy.select}</span></button>
     </div>
+    <story-reader-tools class="st-reader-find" data-locale={activeReleaseContext.locale} hidden>
+      <form role="search" aria-label={en ? 'Find dialogue in this episode' : '查找本话对白'}>
+        <label class="st-find-query"><span class="visually-hidden">{en ? 'Find dialogue' : '搜索对白'}</span><input type="search" name="find" placeholder={en ? 'Find dialogue in this episode' : '搜索本话对白'} autocomplete="off" /></label>
+        <label><span class="visually-hidden">{en ? 'Speaker' : '发言角色'}</span><select name="speaker" aria-label={en ? 'Speaker' : '发言角色'}><option value="">{en ? 'All speakers' : '全部角色'}</option>{speakers.map(name => <option value={name}>{name}</option>)}</select></label>
+        <button type="submit">{en ? 'Find' : '定位'}</button><button type="reset">{en ? 'Clear' : '清除'}</button>
+      </form>
+      <div class="st-find-navigation"><span data-story-find-status role="status"></span><button type="button" data-story-find-prev disabled aria-label={en ? 'Previous match' : '上一处匹配'}>↑</button><button type="button" data-story-find-next disabled aria-label={en ? 'Next match' : '下一处匹配'}>↓</button><a data-story-find-link hidden>{en ? 'Link to this line' : '当前对白链接'}</a></div>
+    </story-reader-tools>
     <section class="st-selection" id="story-selection" aria-label={shareCopy.select} hidden>
       <p data-selection-hint>{shareCopy.hint}</p>
       <div class="st-selection-actions"><span data-selection-status role="status">{shareCopy.empty}</span><button type="button" data-selection-reset>{shareCopy.reset}</button><button type="button" class="st-primary" data-selection-generate disabled>{shareCopy.generate}</button></div>
@@ -62,8 +78,8 @@ const shareCopy = getStoryShareCopy(activeReleaseContext.locale);
           <button class="st-line-select" type="button" data-select-line={index} aria-label={shareCopy.line.replace("{n}", String(index + 1))} aria-pressed="false"><span aria-hidden="true">{String(index + 1).padStart(2, "0")}</span></button>
           {line.kind === "location" ? <h2><span>{line.text}</span></h2> : isMessage ? <>
             <div class="st-avatar" aria-hidden="true">{avatar ? <img src={avatar.thumbnailUrl} alt="" loading="lazy" width="48" height="48" /> : <span>{line.speaker}</span>}</div>
-            <div class="st-message"><div class="st-speaker"><strong>{line.speaker}</strong>{line.kind === "chat" && <small>{copy.chat}</small>}</div><p lang={activeReleaseContext.locale}>{line.kind === "stamp" ? copy.stamp : line.text}</p></div>
-          </> : <div class="st-system-message"><span>{line.speaker || (line.kind === "subtitle" ? copy.subtitle : copy.narration)}</span><p lang={activeReleaseContext.locale}>{line.kind === "stamp" ? copy.stamp : line.text}</p></div>}
+            <div class="st-message"><div class="st-speaker"><strong>{line.speaker}</strong>{line.kind === "chat" && <small>{copy.chat}</small>}</div><p lang={line.locale ?? activeReleaseContext.locale}>{line.kind === "stamp" ? copy.stamp : line.text}</p></div>
+          </> : <div class="st-system-message"><span>{line.speaker || (line.kind === "subtitle" ? copy.subtitle : copy.narration)}</span><p lang={line.locale ?? activeReleaseContext.locale}>{line.kind === "stamp" ? copy.stamp : line.text}</p></div>}
         </li>;
       })}
     </ol>
@@ -73,7 +89,7 @@ const shareCopy = getStoryShareCopy(activeReleaseContext.locale);
       {previous ? <a href={href(`/stories/episodes/${previous.id}/`)} rel="prev"><small>← {copy.previous}</small><strong>{previous.title}</strong><span class="st-adjacent-kind">{storyKindLabel(storyKind(previous))} · {episodeLabel(previous)}</span></a> : <span />}
       {next ? <a href={href(`/stories/episodes/${next.id}/`)} rel="next"><small>{copy.next} →</small><strong>{next.title}</strong><span class="st-adjacent-kind">{storyKindLabel(storyKind(next))} · {episodeLabel(next)}</span></a> : <span />}
     </nav>
-    <div class="st-reader-bottom"><a href={href(`/stories/?category=${kind}`)}>{copy.back}</a><a href="#story-top">↑ {copy.top}</a></div>
+    <div class="st-reader-bottom"><a href={href(entry.eventId != null ? `/stories/events/${entry.eventId}/` : `/stories/${kind}/`)}>{copy.back}</a><a href="#story-top">↑ {copy.top}</a></div>
     <details class="st-source"><summary>{copy.source}</summary><p>{copy.notice} {copy.sourceNote}</p></details>
     <dialog class="st-share-dialog" data-share-dialog aria-labelledby="story-share-title" aria-describedby="story-share-tip">
       <header><div><p>OTONOTE / {shareCopy.excerpt}</p><h2 id="story-share-title">{shareCopy.preview}</h2></div><button type="button" data-share-close aria-label={shareCopy.close}>×</button></header>
@@ -83,6 +99,7 @@ const shareCopy = getStoryShareCopy(activeReleaseContext.locale);
   </article>
 </BaseLayout>
 <script>
+  import "../../../lib/story-reader-tools.mjs";
   import { setupStoryShare } from "../../../lib/story-share";
   const reader = document.querySelector<HTMLElement>("[data-text-reader]");
   const control = reader?.querySelector<HTMLSelectElement>("[data-story-font]");

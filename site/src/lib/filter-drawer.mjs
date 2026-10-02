@@ -53,15 +53,15 @@ class FilterDrawer extends HTMLElement {
     const summary = scope.querySelector('[data-filter-summary]');
     const sync = () => {
       const active = selectionControls ? [
-        ...[...this.querySelectorAll('select')].filter(control => control.value !== control.options[0]?.value)
+        ...[...scope.querySelectorAll('select')].filter(control => control.value !== control.options[0]?.value)
           .map(control => ({label:control.selectedOptions[0]?.textContent ?? control.value,clear:()=>{
             control.selectedIndex=0;control.dispatchEvent(new Event('change',{bubbles:true}));
           }})),
-        ...[...this.querySelectorAll('input[type="number"]')].filter(control=>control.value!=='')
+        ...[...scope.querySelectorAll('input[type="number"]')].filter(control=>control.value!=='')
           .map(control=>({label:`${control.closest('label')?.firstChild?.textContent.trim() ?? ''} ${control.value}`,clear:()=>{
             control.value='';control.dispatchEvent(new Event('input',{bubbles:true}));
           }})),
-        ...[...this.querySelectorAll('[data-attribute-value][aria-pressed="true"]')].filter(control=>control.dataset.attributeValue)
+        ...[...scope.querySelectorAll('[data-attribute-value][aria-pressed="true"]')].filter(control=>control.dataset.attributeValue)
           .map(control=>({label:control.getAttribute('aria-label')??control.textContent.trim(),clear:()=>control.click()}))
       ] : [];
       const total = selectionControls ? active.length : this.querySelectorAll('input[type="checkbox"]:checked').length

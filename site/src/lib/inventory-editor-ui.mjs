@@ -1,7 +1,11 @@
+import {createPersonalGrowthStore, applyPersonalGrowth} from './personal-growth-store.mjs';
+import {currentServerContext, assertAccountServer} from './game-servers.mjs';
 import {filterCalculatorCards} from './calculator-card-model.mjs';
 import {skillPeek,cardIdentity,setupAttributeFilter} from './calculator-card-ui.mjs';
-import {createInventoryManager,growthFields,growthLabels} from './inventory-manager.mjs';
+import {createInventoryManager,growthFields} from './inventory-manager.mjs';
 import {setupAccountGrowthImport} from './account-growth-ui.mjs';
+import {setupInventoryCardEdit} from './inventory-card-edit-ui.mjs';
+import {setupQuickOptions} from './tool-quick-options.mjs';
 
 const el=(tag,text='',cls='')=>{const n=document.createElement(tag);n.textContent=text;n.className=cls;return n;};
 function download(name,text,type) {
@@ -11,58 +15,89 @@ const describeGrowth=g=>`Lv.${g.level} · 突破 ${g.rank}${g.awake?` · 觉醒 
 
 export function setupInventoryEditor(workbench,{onChange,onUse}) {
   const q=s=>workbench.querySelector(s),cards=[...workbench.data.memberCards,...workbench.data.supportCards];
-  const manager=createInventoryManager(workbench.data.formalRules,cards),key=`ournotes:inventory:${workbench.data.formalRules.sourceReleaseId}`;
+  const album=q('[data-inventory-editor]').classList.contains('inventory-editor--album');
+  const manager=createInventoryManager(workbench.data.formalRules,cards);
+  const store=workbench.personalGrowthStore ??= createPersonalGrowthStore({rules:workbench.data.formalRules,vipRanks:workbench.data.vipRanks});
   let inventory=manager.empty(),undo=null,page=0,preview=null,fileRequest=0;
   const selected=new Set(),pageSize=12,status=q('[data-inventory-status]');
-  try{const saved=localStorage.getItem(key);if(saved)inventory=manager.validate(JSON.parse(saved));}
+  const cardEditor=setupInventoryCardEdit(workbench,{manager,getInventory:()=>inventory,commit});
+  try{const saved=store.read();if(saved){inventory=saved.inventory;applyPersonalGrowth(workbench.draft,saved);}}
   catch(error){status.textContent=`卡库未载入：${error.message}。原备份仍保留在浏览器中。`;}
   const kind=()=>q('[data-inventory-kind]').value;
   function clearPreview(){preview=null;q('[data-inventory-apply]').disabled=true;q('[data-inventory-preview-results]').replaceChildren();}
   const attributes=setupAttributeFilter(q('[data-inventory-attributes]'),()=>{page=0;render();});
   const filterKeys=['query','rarity','owned','band','character','mission','effect','normal','sort'];
   for(const option of workbench.data.skillFilterFacets?.find(f=>f.name==='gekisou-effect')?.options??[]){const o=el('option',option.label);o.value=option.value;q('[data-inventory-effect]').append(o);}
+  const shortcuts=setupQuickOptions(q('[data-inventory-editor]'));
   function filtered() { return filterCalculatorCards(cards,{kind:kind(),attributes:attributes.values,...Object.fromEntries(filterKeys.map(k=>[k,q(`[data-inventory-${k}]`).value]))},inventory); }
   function selectionStatus() {
-    q('[data-inventory-selection-count]').textContent=`已选 ${selected.size} 张${kind()==='member'?'成员':'留影'}`;
-    for(const selector of ['[data-inventory-add]','[data-inventory-remove]','[data-inventory-clear-selection]','[data-inventory-batch]'])for(const n of workbench.querySelectorAll(selector))n.disabled=!selected.size;
+    const visible=new Set(filtered().map(card=>card.id)),outside=[...selected].filter(id=>!visible.has(id)).length;
+    q('[data-inventory-selection-count]').textContent=`已选 ${selected.size} 张${kind()==='member'?'成员':'留影'}${outside?`（含 ${outside} 张筛选外卡片）`:''}`;
+    for(const selector of ['[data-inventory-add]','[data-inventory-remove]','[data-inventory-clear-selection]','[data-inventory-edit-selected]'])q(selector).disabled=!selected.size;
+    q('[data-inventory-edit-selected]').textContent=selected.size?`批量修改 ${selected.size} 张`:'批量修改';
+    q('.inventory-selection').dataset.active=String(selected.size>0);
+    if(album){
+      for(const selector of ['[data-inventory-add]','[data-inventory-remove]','[data-inventory-clear-selection]','[data-inventory-edit-selected]'])q(selector).hidden=!selected.size;
+    }
   }
   function selectionChanged() {
-    const single=selected.size===1?inventory.growth[[...selected][0]]:null;
-    for(const field of growthFields)q(`[data-inventory-growth="${field}"]`).value=single?.[field]??'';
+    q('.inventory-selection').querySelectorAll('.inventory-edit-feedback').forEach(node=>node.remove());
     selectionStatus();
   }
   function render() {
+    shortcuts.sync();
+    workbench.quickOptions?.sync();
     workbench.cardInventory=inventory;
     q('[data-inventory-count]').textContent=`${inventory.memberCardIds.length} 张成员 · ${inventory.supportCardIds.length} 张留影`;
+    for(const button of workbench.querySelectorAll('[data-inventory-kind-tab]'))button.setAttribute('aria-pressed',String(button.dataset.inventoryKindTab===kind()));
+    for(const button of workbench.querySelectorAll('[data-inventory-owned-tab]'))button.setAttribute('aria-pressed',String(button.dataset.inventoryOwnedTab===q('[data-inventory-owned]').value));
     const list=filtered(),pages=Math.max(1,Math.ceil(list.length/pageSize));page=Math.min(page,pages-1);
     const root=q('[data-inventory-cards]');root.replaceChildren();
     for(const card of list.slice(page*pageSize,(page+1)*pageSize)) {
       const owned=inventory[`${card.kind}CardIds`].includes(card.id),tile=el('article','','inventory-card');tile.dataset.owned=String(owned);tile.dataset.selected=String(selected.has(card.id));
       const label=el('label','','inventory-card-select'),check=el('input');check.type='checkbox';check.checked=selected.has(card.id);check.setAttribute('aria-label',`选择 ${card.shortLabel} ${card.relationLabel??''}`);
       check.addEventListener('change',()=>{if(check.checked)selected.add(card.id);else selected.delete(card.id);tile.dataset.selected=String(check.checked);selectionChanged();});
-      label.append(check,cardIdentity(workbench,card));tile.append(label,el('span',owned?'已拥有':'未录入','card-selection-state'),el('span',owned?describeGrowth(inventory.growth[card.id]):'未录入 · 以下为满级技能预览','inventory-card-growth'));
+      const identity=cardIdentity(workbench,card);
+      if(album){
+        if(!card.imageUrl)identity.classList.add('card-identity--missing-art');
+        identity.querySelector(':scope>img')?.addEventListener('error',event=>{event.target.hidden=true;identity.classList.add('card-identity--missing-art');});
+        identity.querySelector('.calculator-attribute img')?.addEventListener('error',event=>{event.target.parentElement.textContent='●';});
+      }
+      label.append(check,identity);tile.append(label,el('span',owned?'已拥有':'未录入','card-selection-state'),el('span',owned?describeGrowth(inventory.growth[card.id]):'尚未记录养成','inventory-card-growth'));
+      if(owned){
+        const edit=el('button','修改养成','inventory-card-edit');edit.type='button';edit.dataset.inventoryEdit=card.id;
+        edit.setAttribute('aria-label',`修改 ${card.shortLabel} 的养成`);edit.setAttribute('aria-haspopup','dialog');
+        edit.addEventListener('click',()=>cardEditor.open(card));tile.append(edit);
+      }
       tile.append(skillPeek(workbench,card,{growth:inventory.growth[card.id],maximum:!owned},tile));root.append(tile);
     }
-    if(!list.length)root.append(el('p','没有符合筛选的卡片，试试缩短关键词或选择“全部卡片”。'));
+    if(!list.length){const empty=el('div','','inventory-empty');empty.append(el('strong',q('[data-inventory-owned]').value==='owned'?'还没有符合条件的持有卡牌':'没有找到匹配的卡牌'),el('p','试试其他关键词，或切换到「全部」添加卡牌。'));root.append(empty);}
     q('[data-inventory-filter-count]').textContent=`${list.length} 张${kind()==='member'?'成员卡':'留影'}`;
     q('[data-inventory-page]').textContent=`${list.length} 张卡 · 第 ${page+1} / ${pages} 页`;
     q('[data-inventory-prev]').disabled=page===0;q('[data-inventory-next]').disabled=page>=pages-1;
     q('[data-inventory-undo]').disabled=!undo;
-    for(const f of growthFields.slice(2))q(`[data-inventory-growth-label="${f}"]`).hidden=kind()!=='member';
     selectionStatus();
   }
-  function commit(next,message) {
-    next=manager.validate(next);undo=structuredClone(inventory);inventory=next;clearPreview();
-    persist(message);workbench.cardInventory=inventory;onChange(inventory);render();selectionChanged();
-  }
-  function persist(message) {
-    try{localStorage.setItem(key,JSON.stringify(inventory));status.textContent=message;}
-    catch{status.textContent=`${message} 浏览器保存失败，请导出备份以免丢失。`;}
+  function commit(next,message,{persist=true,remember=true}={}) {
+    assertAccountServer(currentServerContext().serverId);
+    next=manager.validate(next);if(persist)store.saveInventory(next);undo=remember?structuredClone(inventory):null;inventory=next;clearPreview();
+    status.textContent=message;workbench.cardInventory=inventory;onChange(inventory);render();selectionChanged();
   }
   function action(fn){try{fn();}catch(error){status.textContent=`未修改卡库：${error.message}`;}}
   function preparePreview() {
     clearPreview();
     try {
+      const context=currentServerContext();
+      if(!context.serverId)throw new Error('请先选择卡库所属区服');
+      const raw=q('[data-inventory-paste]').value.trim().replace(/^\uFEFF/,'');
+      if(raw.startsWith('{')) {
+        const parsed=JSON.parse(raw);
+        if(parsed.format==='otonote-personal-growth'||parsed.format==='ournotes-growth-snapshot') {
+          workbench.dispatchEvent(new CustomEvent('personal-growth-preview',{detail:parsed}));
+          q('[data-inventory-preview-results]').textContent='已在上方“导入个人养成”中展开完整备份预览，请在那里确认。';return;
+        }
+        assertAccountServer(parsed.serverId,context);
+      }
       const rows=manager.preview(q('[data-inventory-paste]').value,{kind:q('[data-inventory-import-kind]').value});
       const errors=rows.filter(r=>r.error),root=q('[data-inventory-preview-results]');
       if(errors.length){for(const r of errors)root.append(el('p',`第 ${r.line} 条：${r.error}`));return;}
@@ -74,6 +109,9 @@ export function setupInventoryEditor(workbench,{onChange,onUse}) {
     }catch(error){q('[data-inventory-preview-results]').textContent=`不能导入：${error.message}`;}
   }
   q('[data-inventory-editor]').addEventListener('toggle',()=>{if(q('[data-inventory-editor]').open)render();});
+  for(const field of ['kind','owned'])for(const button of workbench.querySelectorAll(`[data-inventory-${field}-tab]`))button.addEventListener('click',()=>{
+    const control=q(`[data-inventory-${field}]`);control.value=button.dataset[field==='kind'?'inventoryKindTab':'inventoryOwnedTab'];control.dispatchEvent(new Event('change',{bubbles:true}));
+  });
   for(const key of ['kind',...filterKeys])q(`[data-inventory-${key}]`).addEventListener(key==='query'?'input':'change',()=>{
     if(key==='kind'){selected.clear();q('[data-inventory-normal]').value='';selectionChanged();}
     if(key==='band'){q('[data-inventory-character]').value='';q('[data-inventory-character]').querySelectorAll('option').forEach(o=>o.hidden=Boolean(o.value&&q('[data-inventory-band]').value&&o.dataset.band!==q('[data-inventory-band]').value));}
@@ -82,6 +120,8 @@ export function setupInventoryEditor(workbench,{onChange,onUse}) {
   });
   q('[data-inventory-reset]').addEventListener('click',()=>{for(const key of filterKeys)q(`[data-inventory-${key}]`).value=key==='sort'?'rarity':'';for(const key of ['character','effect'])q(`[data-inventory-${key}]`).querySelectorAll('option').forEach(o=>o.hidden=false);attributes.reset();page=0;render();});
   q('[data-inventory-select-visible]').addEventListener('click',()=>{filtered().forEach(c=>selected.add(c.id));render();selectionChanged();});
+  q('[data-inventory-select-page]').addEventListener('click',()=>{filtered().slice(page*pageSize,(page+1)*pageSize).forEach(c=>selected.add(c.id));render();selectionChanged();});
+  q('[data-inventory-edit-selected]').addEventListener('click',()=>action(()=>cardEditor.openBatch(cards.filter(card=>selected.has(card.id)))));
   q('[data-inventory-clear-selection]').addEventListener('click',()=>{selected.clear();render();selectionChanged();});
   q('[data-inventory-prev]').addEventListener('click',()=>{page--;render();});
   q('[data-inventory-next]').addEventListener('click',()=>{page++;render();});
@@ -90,16 +130,7 @@ export function setupInventoryEditor(workbench,{onChange,onUse}) {
     const next=structuredClone(inventory);for(const k of ['member','support'])next[`${k}CardIds`]=next[`${k}CardIds`].filter(id=>!selected.has(id));
     commit(next,'已移出所选卡片，可撤销。');selected.clear();render();
   }));
-  for(const button of workbench.querySelectorAll('[data-inventory-batch]'))button.addEventListener('click',()=>action(()=>{
-    const mode=button.dataset.inventoryBatch,patch={};
-    for(const f of kind()==='member'?growthFields:growthFields.slice(0,2)) {
-      const input=q(`[data-inventory-growth="${f}"]`);if(input.value==='')continue;
-      if(mode==='custom'&&!input.checkValidity())throw new Error(`${growthLabels[f]}填写无效`);patch[f]=Number(input.value);
-    }
-    if(mode==='custom'&&!Object.keys(patch).length)throw new Error('请填写至少一项养成');
-    commit(manager.batch(inventory,[...selected],{mode,patch}),`已更新 ${selected.size} 张卡的养成，可撤销。`);
-  }));
-  q('[data-inventory-undo]').addEventListener('click',()=>{if(!undo)return;inventory=undo;undo=null;clearPreview();persist('已撤销上次修改。');workbench.cardInventory=inventory;onChange(inventory);render();selectionChanged();});
+  q('[data-inventory-undo]').addEventListener('click',()=>action(()=>{if(!undo)return;store.saveInventory(undo);inventory=undo;undo=null;clearPreview();status.textContent='已撤销上次修改。';workbench.cardInventory=inventory;onChange(inventory);render();selectionChanged();}));
   q('[data-inventory-use]').addEventListener('click',()=>onUse());
   q('[data-inventory-from-draft]').addEventListener('click',()=>action(()=>{
     const rows=[];
@@ -112,10 +143,10 @@ export function setupInventoryEditor(workbench,{onChange,onUse}) {
     if(!rows.length)throw new Error('当前编成还没有卡片');
     commit(manager.merge(inventory,rows).inventory,'已加入当前编成，已有卡的养成保留。');
   }));
-  q('[data-inventory-export]').addEventListener('click',()=>download('otonote-inventory.json',JSON.stringify(inventory,null,2),'application/json'));
+  q('[data-inventory-export]').addEventListener('click',()=>action(()=>download('otonote-personal-growth.json',JSON.stringify(store.read()??store.empty(),null,2),'application/json')));
   q('[data-inventory-template]').addEventListener('click',()=>download('otonote-inventory-template.csv','\uFEFF类型,卡片ID,等级,突破阶数,觉醒阶数,演出技能,激奏技能\n成员,member-card-1,1,1,1,1,1\n留影,support-card-1,1,1,,,\n','text/csv;charset=utf-8'));
   q('[data-inventory-preview]').addEventListener('click',preparePreview);
-  q('[data-inventory-apply]').addEventListener('click',()=>action(()=>{if(preview)commit(preview.inventory,'导入完成，已有卡库已合并。可撤销上次修改。');}));
+  q('[data-inventory-apply]').addEventListener('click',()=>action(()=>{if(!preview)return;commit(preview.inventory,'导入完成，已有卡库已合并。可撤销上次修改。');}));
   for(const selector of ['[data-inventory-paste]','[data-inventory-import-kind]','[data-inventory-import-preset]','[data-inventory-overwrite]'])q(selector).addEventListener('input',()=>{fileRequest++;clearPreview();});
   q('[data-inventory-import]').addEventListener('change',async event=>{
     const current=++fileRequest;clearPreview();
@@ -123,5 +154,5 @@ export function setupInventoryEditor(workbench,{onChange,onUse}) {
     catch(error){if(current===fileRequest)status.textContent=`读取失败：${error.message}`;}finally{event.target.value='';}
   });
   setupAccountGrowthImport(workbench,{getInventory:()=>inventory,replaceInventory:commit});
-  render();return {get inventory(){return inventory;},validate:manager.validate};
+  render();return {get inventory(){return inventory;},validate:manager.validate,replace:commit};
 }

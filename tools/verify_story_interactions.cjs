@@ -6,7 +6,11 @@
 const fs = require("node:fs");
 const path = require("node:path");
 
-const PLAYWRIGHT_PATHS = [process.env.PLAYWRIGHT_PATH, path.resolve(__dirname, "../site/node_modules/playwright")].filter(Boolean);
+const PLAYWRIGHT_PATHS = [
+  process.env.OURNOTES_PLAYWRIGHT_MODULE,
+  path.resolve(__dirname, '../site/node_modules/playwright'),
+  path.resolve(__dirname, '../node_modules/playwright')
+].filter(Boolean);
 
 function resolvePlaywright() {
   for (const candidate of PLAYWRIGHT_PATHS) {

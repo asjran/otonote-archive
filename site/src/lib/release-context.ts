@@ -1,7 +1,7 @@
 import releaseIndexData from "@projection-data/release-index.json";
 import { validateArtifact } from "./artifact-contracts";
 
-export type Region = "global";
+export type Region = "global" | "jp";
 export type Channel = "staging" | "production";
 export type Locale = "zh-CN" | "zh-TW" | "ja" | "en";
 

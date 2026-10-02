@@ -190,10 +190,19 @@ def create_collector(config, *, sampling=True, clock=time.time):
         return result
 
     @app.get('/loads')
-    def loads(seconds: int = 3600):
+    def loads(seconds: int = 3600, window: str = "", timezone: str = "Asia/Shanghai"):
+        if timezone not in {s.get("timezone", "Asia/Shanghai") for s in sites.values()}:
+            raise HTTPException(400, "invalid timezone")
+        if window:
+            from .store import window_bounds
+            try:
+                if window not in {"today", "yesterday"} and not window.startswith("date:"): raise ValueError()
+                window_bounds(window, timezone, clock())
+            except ValueError:
+                raise HTTPException(400, "invalid window")
         if seconds not in {900, 3600, 86400}:
             raise HTTPException(400, 'invalid load window')
-        return {'sources': [{**store.loads(s['id'], seconds, clock()), 'name': s.get('name', s['id'])}
+        return {'sources': [{**store.loads(s['id'], seconds, clock(), window=window or None, timezone=timezone), 'name': s.get('name', s['id'])}
                             for s in c.get('loadSources', [])]}
 
     @app.get('/health')

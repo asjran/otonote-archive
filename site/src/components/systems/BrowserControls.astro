@@ -1,6 +1,7 @@
 ---
 import FilterPanel from "../FilterPanel.astro";
 import { say, categories } from "../../lib/system-display";
+import { catalog } from "../../lib/catalog";
 interface Props { count: number; categoryKeys?: string[]; cards?: boolean; placeholder?: string; }
 const { count, categoryKeys = [], cards, placeholder = say("搜索名称或奖励…", "Search names or rewards…") } = Astro.props;
 ---
@@ -10,7 +11,7 @@ const { count, categoryKeys = [], cards, placeholder = say("搜索名称或奖�
   <div class="sys-filters">
     {categoryKeys.length > 0 && <label>{say("分类", "Category")}<select data-filter="category"><option value="">{say("全部分类", "All categories")}</option>{categoryKeys.map(key => <option value={key}>{categories[key] || key}</option>)}</select></label>}
     {cards && <><label>{say("卡片类型", "Card type")}<select data-filter="kind"><option value="">{say("全部", "All")}</option><option value="2">{say("成员卡", "Members")}</option><option value="3">{say("留影", "Snapshots")}</option><option value="1">{say("道具", "Items")}</option></select></label>
-      <label>{say("稀有度", "Rarity")}<select data-filter="rarity"><option value="">{say("全部", "All")}</option>{["R", "SR", "SSR", "BD", "EX"].map(r => <option value={r}>{r}</option>)}</select></label></>}
+      <label>{say("稀有度", "Rarity")}<select data-filter="rarity"><option value="">{say("全部", "All")}</option>{catalog.cardTaxonomy.rarities.map(r => <option value={r.label}>{r.label}</option>)}</select></label></>}
   </div>
 </FilterPanel>
 </div>

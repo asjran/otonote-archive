@@ -251,10 +251,13 @@ def _update(client, output: Path, baseline: Path, plan: Path, build_site: bool, 
     from tools.build_remote_global_inputs import refresh, ROOT
     from tools.release_build import build_release
     from tools.release_preflight import load_plan, inspect_plan
+    decoder_binding = decoder.get('bundleDecoderBindingSha256') if decoder else None
+    if decoder and (not isinstance(decoder_binding, str) or not re.fullmatch('[a-f0-9]{64}', decoder_binding)):
+        raise ProtocolError('missing verified bundle decoder binding')
     state_path = output / "state.json"
     state = read_json(state_path) if state_path.exists() else None
     observation = client.discover()
-    if state and version_identity(state["observation"]) == version_identity(observation) and (not decoder or state.get('decoderSha256') == decoder['apkSha256']) and (not complete_content or state.get('pipelineVersion') == 2):
+    if state and version_identity(state["observation"]) == version_identity(observation) and (not decoder or state.get('decoderSha256') == decoder['apkSha256'] and state.get('bundleDecoderBindingSha256') == decoder_binding) and (not complete_content or state.get('pipelineVersion') == 2):
         if Path(state["inputPlan"]).is_file() and (not build_site or state.get("site") and Path(state["site"]).is_dir()):
             return {"status": "unchanged", "observation": observation, "candidate": state["inputPlan"], "site": state.get("site")}
     if state:
@@ -264,21 +267,22 @@ def _update(client, output: Path, baseline: Path, plan: Path, build_site: bool, 
         initial = read_json(baseline / 'observation.json')
         manifest = read_json(ROOT / previous['manifest'])
         if (version_identity(initial) == version_identity(observation)
-                and manifest['provenance']['apkSha256'].get('base.apk') == decoder['apkSha256']):
+                and manifest['provenance']['apkSha256'].get('base.apk') == decoder['apkSha256']
+                and manifest['provenance'].get('decoderProfile', {}).get('bundleDecoderBindingSha256') == decoder_binding):
             from tools.supplemental_inputs import read_supplemental
             if inspect_plan(plan, require_production=True)['status'] != 'passed':
                 raise ProtocolError('initial complete inputs failed validation')
             read_supplemental(previous, ROOT)
             result = {'status': 'verified_initial_inputs', 'observation': observation,
                       'snapshot': str(baseline.resolve()), 'inputPlan': str(plan.resolve()), 'site': None,
-                      'decoderSha256': decoder['apkSha256'], 'pipelineVersion': 2, 'publicationReady': False}
+                      'decoderSha256': decoder['apkSha256'], 'bundleDecoderBindingSha256': decoder_binding, 'pipelineVersion': 2, 'publicationReady': False}
             write_json(state_path, result)
             return result
     identity = f"{observation['resourceVersion']}-{observation['masterVersion'][:8]}-{observation['catalogHash'][:8]}"
     if complete_content:
         identity += '-complete-v2'
     if decoder:
-        identity += '-' + decoder['apkSha256'][:8]
+        identity += '-' + decoder['apkSha256'][:8] + '-d' + decoder_binding[:12]
     current = output / identity
     captured = current / "snapshot"
     completed = captured / "report.json"
@@ -294,6 +298,10 @@ def _update(client, output: Path, baseline: Path, plan: Path, build_site: bool, 
             refresh_current(captured, baseline / "RemoteCatalog/catalog_main.bin", plan, inputs, decoder=decoder)
         else:
             refresh(captured, baseline / "RemoteCatalog/catalog_main.bin", plan, inputs)
+    if decoder and complete_content:
+        binding_receipt = inputs / '.identity.json'
+        if not binding_receipt.is_file() or read_json(binding_receipt).get('bundleDecoderBindingSha256') != decoder_binding:
+            raise ProtocolError('cached inputs bundle decoder binding mismatch')
     candidate_plan = inputs / "release-inputs.json"
     # Raw CRI addresses can be reused by the upstream release. Snapshot capture
     # checks its own acquisition window; also cover the later media extraction.
@@ -308,7 +316,7 @@ def _update(client, output: Path, baseline: Path, plan: Path, build_site: bool, 
               "snapshot": str(captured.resolve()), "inputPlan": str(candidate_plan.resolve()),
               "site": str((site_path / "site").resolve()) if build_site else None,
               "remoteCodeChanged": read_json(captured / "report.json")["remoteCodeChanged"],
-              "publicationReady": False, "decoderSha256": decoder['apkSha256'] if decoder else None, "pipelineVersion": 2 if complete_content else 1}
+              "publicationReady": False, "decoderSha256": decoder['apkSha256'] if decoder else None, "bundleDecoderBindingSha256": decoder_binding, "pipelineVersion": 2 if complete_content else 1}
     write_json(state_path, result)
     return result
 

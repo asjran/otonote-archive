@@ -11,6 +11,22 @@ const draft = () => createTeamDraft({ slots: Array.from({ length: 5 }, (_, i) =>
   memberCardId: `member-card-${i + 1}`, supportCardId: `support-card-${i + 1}`
 })), selectedSongId: "music-100001", modifiers: { tgwCardRank: 2 } });
 
+test("leader skill category targets use mechanical categories, not display groups", () => {
+  const r=structuredClone(rules), member=r.tables.MemberCard[0];
+  const skill=r.tables.LiveSkill.find(s=>s._id===member._liveSkillID);
+  const target=r.tables.SkillTarget.find(t=>t._skillTargetType===3);
+  Object.assign(target,{_characterID:0,_bandID:0,_cardType:0,_tagID:0,_gekisouMissionType:0,_gekisouSkillCategories:[],_liveSkillCategories:[1]});
+  const effect={_id:999,_skillTargetIDs:[target._id],_skillEffectType:1001,_effectValue:1800};
+  for(const category of [1,2,3]){
+    skill._skillCategories=[category];skill._displaySkillCategories=[1];
+    const c=createFormationCalculator(r);
+    assert.equal(c.matchesTarget(member,target._id),category===1);
+    assert.deepEqual(c.effectRates(member,[effect]),[0,category===1?1800:0,0]);
+  }
+  skill._skillCategories=[1];skill._displaySkillCategories=[3];
+  assert.equal(createFormationCalculator(r).matchesTarget(member,target._id),true);
+});
+
 test("current catalog IDs resolve and all released cards have supported growth and power effects", () => {
   const instruments = Object.fromEntries(rules.tables.BandItem.map((r) => [r._id, 30]));
   for (const member of rules.tables.MemberCard) {

@@ -1,3 +1,4 @@
+import {setupQuickOptions} from './tool-quick-options.mjs';
 import {filterCalculatorCards,cardPlacementConflict} from './calculator-card-model.mjs';
 import {cardElement as el,skillPeek,closeSkillPopover,cardIdentity,setupAttributeFilter} from './calculator-card-ui.mjs';
 export function setupCalculatorCardPicker(workbench) {
@@ -18,7 +19,9 @@ export function setupCalculatorCardPicker(workbench) {
     button.textContent=same?'已在当前位置':`放入位置 ${workbench.activeSlot+1} 的${kind==='member'?'成员':'留影'}`;
     q('[data-card-placement]').textContent=conflict>=0?`${kind==='member'?'同一角色':'这张留影'}已在位置 ${conflict+1}，请切换到该位置更换。`:same?'可继续选择其他卡片比较技能。':'确认放入后才会替换当前卡片。';
   }
+  const shortcuts=setupQuickOptions(root);
   function renderList(){
+    shortcuts.sync();
     closeSkillPopover(workbench);
     const f=filters(),list=filterCalculatorCards(cards,f,workbench.cardInventory),pages=Math.max(1,Math.ceil(list.length/pageSize));page=Math.min(page,pages-1);
     const container=q('[data-card-results]');container.replaceChildren();
@@ -30,6 +33,8 @@ export function setupCalculatorCardPicker(workbench) {
       const placed=workbench.draft.slots.findIndex(s=>s[`${kind}CardId`]===card.id);
       state.textContent=placed>=0?`已编入 · 位置 ${placed+1}`:(workbench.cardInventory?.[`${kind}CardIds`]??[]).includes(card.id)?'已拥有':'未录入卡库';b.append(state);
       tile.append(b,skillPeek(workbench,card,{growth:growth(card),leader:workbench.activeSlot===2},b));
+      const place=el('button','放入队伍','card-place-direct');place.type='button';place.disabled=cardPlacementConflict(card,workbench.draft,workbench.activeSlot,(...args)=>workbench.cardFor(...args))>=0||placed===workbench.activeSlot;place.addEventListener('click',()=>{preview=card;previewCard();q('[data-card-apply]').click();});tile.append(place);
+
       b.addEventListener('click',()=>{preview=card;renderList();previewCard();});container.append(tile);
     }
     q('[data-card-count]').textContent=`找到 ${list.length} 张${kind==='member'?'成员卡':'留影'}`;
@@ -48,6 +53,7 @@ export function setupCalculatorCardPicker(workbench) {
   q('[data-card-slot]').addEventListener('change',()=>{workbench.activeSlot=Number(q('[data-card-slot]').value);workbench.renderSlots();workbench.renderPickerState();workbench.productionPower?.settings();});
   q('[data-card-apply]').addEventListener('click',()=>{if(!preview||cardPlacementConflict(preview,workbench.draft,workbench.activeSlot,(...a)=>workbench.cardFor(...a))>=0)return;workbench.draft.slots[workbench.activeSlot][`${kind}CardId`]=preview.id;
     const owned=workbench.cardInventory?.growth?.[preview.id];if(owned&&!workbench.draft.modifiers.growth?.[preview.id]){workbench.draft.modifiers.growth??={};workbench.draft.modifiers.growth[preview.id]=structuredClone(owned);}
+    const next=workbench.draft.slots.findIndex(s=>!s[`${kind}CardId`]);if(next>=0)workbench.activeSlot=next;
     workbench.commit();q('[data-card-placement]').textContent=`已放入位置 ${workbench.activeSlot+1}。可以切换成员／留影或继续选择其他位置。`;
   });
   q('[data-clear-card]').addEventListener('click',()=>{workbench.draft.slots[workbench.activeSlot][`${kind}CardId`]=null;preview=null;workbench.commit();});

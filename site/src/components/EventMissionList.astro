@@ -1,0 +1,26 @@
+---
+import type { MissionGroup, SystemReward } from '../lib/global-systems';
+import type { EventMediaMap } from '../lib/event-archive';
+import EventIcon from './EventIcon.astro';
+import Reward from './EventReward.astro';
+interface Props { groups: MissionGroup[]; media: EventMediaMap; locale: string }
+const { groups, media, locale } = Astro.props;
+const t = (zh:string,en:string) => locale === 'en' ? en : zh;
+const reward = (row:SystemReward) => ({...row,resolved:true,rarity:null});
+---
+<div data-event-missions>
+  {groups.length ? <>
+    <label class="ef-mission-select">{t('任务组','Mission group')}<select data-event-mission-select>{groups.map((group,index)=><option value={index}>{group.title} · {group.stages.length}</option>)}</select></label>
+    {groups.map((group,index)=><div data-event-mission-group={index} hidden={index!==0}>
+      <ol class="ef-mission-objectives">{group.stages.map(stage=><li><div><EventIcon name="checklist" size={16} /><p>{stage.description}</p></div><div class="ea-reward-list">{stage.rewards.map(item => item.resourceType === 0 ? <span class="ef-pass-points">+{item.count} {t('通行证积分','pass points')}</span> : <Reward reward={reward(item)} media={media} locale={locale} compact />)}</div></li>)}</ol>
+    </div>)}
+  </> : <p class="ea-note">{t('暂无任务。','No missions available.')}</p>}
+</div>
+<script>
+  document.querySelectorAll<HTMLElement>('[data-event-missions]').forEach(root => {
+    root.querySelector('select')?.addEventListener('change',event=>{
+      const value = (event.target as HTMLSelectElement).value;
+      root.querySelectorAll<HTMLElement>('[data-event-mission-group]').forEach(group=>group.hidden=group.dataset.eventMissionGroup!==value);
+    });
+  });
+</script>

@@ -7,6 +7,35 @@ from tools.build_remote_global_inputs import ROOT, contained
 from tools.current_input_cache import verified_link
 
 
+def packaged_bgm(resources, output, existing=()):
+    """Read APK-embedded BGM absent from the remote catalog, with APK provenance."""
+    import zipfile
+    from tools.import_bgm_audio import find_executable, process_acb, CURRENT_USM_KEY
+    rows = []
+    with zipfile.ZipFile(resources.apk) as archive:
+        for cue in resources.rows('MasterSoundCueSheet'):
+            name = cue['_cueSheetName']
+            if 'bgm' not in name.lower(): continue
+            if name in existing: continue
+            matches = [p for p in archive.namelist() if p.startswith('assets/aa/Android/cri_assets_embcri/sound/' + name.lower() + '_') and not p.endswith('.bundle')]
+            if not matches: continue
+            if len(matches) != 1: raise ValueError('ambiguous packaged BGM: ' + name)
+            with tempfile.TemporaryDirectory() as folder:
+                source = Path(folder)/(name+'.acb')
+                source.write_bytes(archive.read(matches[0]))
+                record = process_acb(source, file_hash(source), output, output/'_work', CURRENT_USM_KEY,
+                    find_executable(None, ('vgmstream-cli','/opt/homebrew/bin/vgmstream-cli')),
+                    find_executable(None, ('ffmpeg','/opt/homebrew/bin/ffmpeg')))
+            record.pop('hca_key', None)
+            if not record.get('ok') or not record.get('streams'): raise ValueError('invalid packaged BGM: '+name)
+            for stream in record['streams']:
+                path = Path(stream['output'])
+                stream.update(output=str(path.relative_to(output)), sha256=file_hash(path))
+            record.update(cue_sheet_name=name,source=matches[0],assetPath=matches[0],apkSha256=file_hash(resources.apk))
+            rows.append(record)
+    return rows
+
+
 def extract_bgm(resources, source, previous, output):
     from tools.import_bgm_audio import bgm_assets, find_executable, process_acb, process_split_acb, discover_split_acb, process_unity_acb, discover_unity_acb, CURRENT_USM_KEY
     from tools.bgm_catalog import read_bgm_inputs
@@ -47,6 +76,7 @@ def extract_bgm(resources, source, previous, output):
                 stream.update(output=str(path.relative_to(output)), sha256=file_hash(path))
         record.update(cue_sheet_name=cue, assetPath=asset.internal_id, source=loc.primary_key)
         records.append(record)
+    records.extend(packaged_bgm(resources, output, {r['cue_sheet_name'] for r in records}))
     write_json(output / 'bgm-audio-report.json', {'schemaVersion': 1, 'complete': True,
         'identity': {k: source[k] for k in ('region', 'channel', 'contentReleaseId')},
         'catalogSha256': resources.report['catalogSha256'], 'files': records})

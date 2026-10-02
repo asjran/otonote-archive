@@ -1,0 +1,2334 @@
+{
+  "source": "com.bushiroad.sirius 1.0.4 (10053), captured 2026-09-30; bounded excerpts, not a complete release",
+  "masterManifestSha256": "8a49c465e32445c98f8806737c8772a1cb7160972eda6f1190a3858a8cd8b0cb",
+  "tables": {
+    "MasterEvent": [
+      {
+        "_id": 1,
+        "_nameTextId": "Event_Name_0001",
+        "_startAt": "2026/09/30 18:00:00",
+        "_endAt": "2026/10/08 20:59:59",
+        "_displayEndAt": "2026/10/10 20:59:59",
+        "_eventType": 1,
+        "_storyChapterId": 6,
+        "_eventItemId": 43,
+        "_isRankingDisabled": true,
+        "_isMusicRankingDisabled": false,
+        "_isTotalMusicRankingDisabled": false,
+        "_liveEventRewardGroup": 2,
+        "_liveEventPointGroup": 1,
+        "_challengeLiveEventRewardGroup": 2,
+        "_challengeLiveEventPointGroup": 1,
+        "_musicId": 100109,
+        "_imageAsset": "",
+        "_logoAsset": "01/Logo/event_logo_01_0001",
+        "_backgroundAsset": "01/Top/event_top_01_0001",
+        "_bannerAsset": "Banner_1",
+        "_carouselHelpId": 0
+      }
+    ],
+    "MasterEventAchievementReward": [
+      {
+        "_id": 1,
+        "_eventId": 1,
+        "_eventPoint": 500,
+        "_rewardIds": [
+          1
+        ]
+      },
+      {
+        "_id": 2,
+        "_eventId": 1,
+        "_eventPoint": 1000,
+        "_rewardIds": [
+          12
+        ]
+      },
+      {
+        "_id": 35,
+        "_eventId": 1,
+        "_eventPoint": 100000,
+        "_rewardIds": [
+          112
+        ]
+      }
+    ],
+    "MasterEventAchievementLoopReward": [
+      {
+        "_id": 1,
+        "_eventId": 1,
+        "_loopStartEventPoint": 3000000,
+        "_loopEventPoint": 1000000,
+        "_rewardIds": [
+          121
+        ]
+      }
+    ],
+    "MasterEventRankingReward": [],
+    "MasterEventEffect": [
+      {
+        "_id": 1,
+        "_eventId": 1,
+        "_resourceTypeConstraint": 2,
+        "_characterId": 0,
+        "_bandId": 0,
+        "_cardType": 0,
+        "_tagId": 0,
+        "_memberCardId": 61,
+        "_supportCardId": 0,
+        "_eventBonusType": 0,
+        "_rank1EffectValue": 3000,
+        "_rank2EffectValue": 3500,
+        "_rank3EffectValue": 4000,
+        "_rank4EffectValue": 4500,
+        "_rank5EffectValue": 5000
+      },
+      {
+        "_id": 2,
+        "_eventId": 1,
+        "_resourceTypeConstraint": 2,
+        "_characterId": 0,
+        "_bandId": 0,
+        "_cardType": 0,
+        "_tagId": 0,
+        "_memberCardId": 61,
+        "_supportCardId": 0,
+        "_eventBonusType": 2,
+        "_rank1EffectValue": 3000,
+        "_rank2EffectValue": 3500,
+        "_rank3EffectValue": 4000,
+        "_rank4EffectValue": 4500,
+        "_rank5EffectValue": 5000
+      },
+      {
+        "_id": 3,
+        "_eventId": 1,
+        "_resourceTypeConstraint": 2,
+        "_characterId": 0,
+        "_bandId": 0,
+        "_cardType": 0,
+        "_tagId": 0,
+        "_memberCardId": 62,
+        "_supportCardId": 0,
+        "_eventBonusType": 0,
+        "_rank1EffectValue": 3000,
+        "_rank2EffectValue": 3500,
+        "_rank3EffectValue": 4000,
+        "_rank4EffectValue": 4500,
+        "_rank5EffectValue": 5000
+      },
+      {
+        "_id": 4,
+        "_eventId": 1,
+        "_resourceTypeConstraint": 2,
+        "_characterId": 0,
+        "_bandId": 0,
+        "_cardType": 0,
+        "_tagId": 0,
+        "_memberCardId": 62,
+        "_supportCardId": 0,
+        "_eventBonusType": 2,
+        "_rank1EffectValue": 3000,
+        "_rank2EffectValue": 3500,
+        "_rank3EffectValue": 4000,
+        "_rank4EffectValue": 4500,
+        "_rank5EffectValue": 5000
+      },
+      {
+        "_id": 5,
+        "_eventId": 1,
+        "_resourceTypeConstraint": 2,
+        "_characterId": 0,
+        "_bandId": 0,
+        "_cardType": 0,
+        "_tagId": 0,
+        "_memberCardId": 63,
+        "_supportCardId": 0,
+        "_eventBonusType": 0,
+        "_rank1EffectValue": 1500,
+        "_rank2EffectValue": 1750,
+        "_rank3EffectValue": 2000,
+        "_rank4EffectValue": 2250,
+        "_rank5EffectValue": 2500
+      },
+      {
+        "_id": 6,
+        "_eventId": 1,
+        "_resourceTypeConstraint": 2,
+        "_characterId": 0,
+        "_bandId": 0,
+        "_cardType": 0,
+        "_tagId": 0,
+        "_memberCardId": 63,
+        "_supportCardId": 0,
+        "_eventBonusType": 2,
+        "_rank1EffectValue": 1500,
+        "_rank2EffectValue": 1750,
+        "_rank3EffectValue": 2000,
+        "_rank4EffectValue": 2250,
+        "_rank5EffectValue": 2500
+      },
+      {
+        "_id": 7,
+        "_eventId": 1,
+        "_resourceTypeConstraint": 2,
+        "_characterId": 0,
+        "_bandId": 3,
+        "_cardType": 0,
+        "_tagId": 0,
+        "_memberCardId": 0,
+        "_supportCardId": 0,
+        "_eventBonusType": 0,
+        "_rank1EffectValue": 2000,
+        "_rank2EffectValue": 2300,
+        "_rank3EffectValue": 2600,
+        "_rank4EffectValue": 2900,
+        "_rank5EffectValue": 3200
+      },
+      {
+        "_id": 8,
+        "_eventId": 1,
+        "_resourceTypeConstraint": 2,
+        "_characterId": 0,
+        "_bandId": 3,
+        "_cardType": 0,
+        "_tagId": 0,
+        "_memberCardId": 0,
+        "_supportCardId": 0,
+        "_eventBonusType": 2,
+        "_rank1EffectValue": 2000,
+        "_rank2EffectValue": 2300,
+        "_rank3EffectValue": 2600,
+        "_rank4EffectValue": 2900,
+        "_rank5EffectValue": 3200
+      },
+      {
+        "_id": 9,
+        "_eventId": 1,
+        "_resourceTypeConstraint": 2,
+        "_characterId": 0,
+        "_bandId": 0,
+        "_cardType": 2,
+        "_tagId": 0,
+        "_memberCardId": 0,
+        "_supportCardId": 0,
+        "_eventBonusType": 0,
+        "_rank1EffectValue": 1000,
+        "_rank2EffectValue": 1200,
+        "_rank3EffectValue": 1400,
+        "_rank4EffectValue": 1600,
+        "_rank5EffectValue": 1800
+      },
+      {
+        "_id": 10,
+        "_eventId": 1,
+        "_resourceTypeConstraint": 2,
+        "_characterId": 0,
+        "_bandId": 0,
+        "_cardType": 2,
+        "_tagId": 0,
+        "_memberCardId": 0,
+        "_supportCardId": 0,
+        "_eventBonusType": 2,
+        "_rank1EffectValue": 1000,
+        "_rank2EffectValue": 1200,
+        "_rank3EffectValue": 1400,
+        "_rank4EffectValue": 1600,
+        "_rank5EffectValue": 1800
+      },
+      {
+        "_id": 11,
+        "_eventId": 1,
+        "_resourceTypeConstraint": 3,
+        "_characterId": 0,
+        "_bandId": 0,
+        "_cardType": 0,
+        "_tagId": 0,
+        "_memberCardId": 0,
+        "_supportCardId": 62,
+        "_eventBonusType": 1,
+        "_rank1EffectValue": 3000,
+        "_rank2EffectValue": 3500,
+        "_rank3EffectValue": 4000,
+        "_rank4EffectValue": 4500,
+        "_rank5EffectValue": 5000
+      },
+      {
+        "_id": 12,
+        "_eventId": 1,
+        "_resourceTypeConstraint": 3,
+        "_characterId": 0,
+        "_bandId": 0,
+        "_cardType": 0,
+        "_tagId": 0,
+        "_memberCardId": 0,
+        "_supportCardId": 62,
+        "_eventBonusType": 2,
+        "_rank1EffectValue": 3000,
+        "_rank2EffectValue": 3500,
+        "_rank3EffectValue": 4000,
+        "_rank4EffectValue": 4500,
+        "_rank5EffectValue": 5000
+      },
+      {
+        "_id": 13,
+        "_eventId": 1,
+        "_resourceTypeConstraint": 3,
+        "_characterId": 0,
+        "_bandId": 0,
+        "_cardType": 0,
+        "_tagId": 0,
+        "_memberCardId": 0,
+        "_supportCardId": 63,
+        "_eventBonusType": 1,
+        "_rank1EffectValue": 3000,
+        "_rank2EffectValue": 3500,
+        "_rank3EffectValue": 4000,
+        "_rank4EffectValue": 4500,
+        "_rank5EffectValue": 5000
+      },
+      {
+        "_id": 14,
+        "_eventId": 1,
+        "_resourceTypeConstraint": 3,
+        "_characterId": 0,
+        "_bandId": 0,
+        "_cardType": 0,
+        "_tagId": 0,
+        "_memberCardId": 0,
+        "_supportCardId": 63,
+        "_eventBonusType": 2,
+        "_rank1EffectValue": 3000,
+        "_rank2EffectValue": 3500,
+        "_rank3EffectValue": 4000,
+        "_rank4EffectValue": 4500,
+        "_rank5EffectValue": 5000
+      },
+      {
+        "_id": 15,
+        "_eventId": 1,
+        "_resourceTypeConstraint": 3,
+        "_characterId": 0,
+        "_bandId": 0,
+        "_cardType": 0,
+        "_tagId": 0,
+        "_memberCardId": 0,
+        "_supportCardId": 64,
+        "_eventBonusType": 1,
+        "_rank1EffectValue": 1500,
+        "_rank2EffectValue": 1750,
+        "_rank3EffectValue": 2000,
+        "_rank4EffectValue": 2250,
+        "_rank5EffectValue": 2500
+      },
+      {
+        "_id": 16,
+        "_eventId": 1,
+        "_resourceTypeConstraint": 3,
+        "_characterId": 0,
+        "_bandId": 0,
+        "_cardType": 0,
+        "_tagId": 0,
+        "_memberCardId": 0,
+        "_supportCardId": 64,
+        "_eventBonusType": 2,
+        "_rank1EffectValue": 1500,
+        "_rank2EffectValue": 1750,
+        "_rank3EffectValue": 2000,
+        "_rank4EffectValue": 2250,
+        "_rank5EffectValue": 2500
+      },
+      {
+        "_id": 17,
+        "_eventId": 1,
+        "_resourceTypeConstraint": 3,
+        "_characterId": 0,
+        "_bandId": 3,
+        "_cardType": 0,
+        "_tagId": 0,
+        "_memberCardId": 0,
+        "_supportCardId": 0,
+        "_eventBonusType": 1,
+        "_rank1EffectValue": 2000,
+        "_rank2EffectValue": 2300,
+        "_rank3EffectValue": 2600,
+        "_rank4EffectValue": 2900,
+        "_rank5EffectValue": 3200
+      },
+      {
+        "_id": 18,
+        "_eventId": 1,
+        "_resourceTypeConstraint": 3,
+        "_characterId": 0,
+        "_bandId": 3,
+        "_cardType": 0,
+        "_tagId": 0,
+        "_memberCardId": 0,
+        "_supportCardId": 0,
+        "_eventBonusType": 2,
+        "_rank1EffectValue": 2000,
+        "_rank2EffectValue": 2300,
+        "_rank3EffectValue": 2600,
+        "_rank4EffectValue": 2900,
+        "_rank5EffectValue": 3200
+      },
+      {
+        "_id": 19,
+        "_eventId": 1,
+        "_resourceTypeConstraint": 3,
+        "_characterId": 0,
+        "_bandId": 0,
+        "_cardType": 2,
+        "_tagId": 0,
+        "_memberCardId": 0,
+        "_supportCardId": 0,
+        "_eventBonusType": 1,
+        "_rank1EffectValue": 1000,
+        "_rank2EffectValue": 1200,
+        "_rank3EffectValue": 1400,
+        "_rank4EffectValue": 1600,
+        "_rank5EffectValue": 1800
+      },
+      {
+        "_id": 20,
+        "_eventId": 1,
+        "_resourceTypeConstraint": 3,
+        "_characterId": 0,
+        "_bandId": 0,
+        "_cardType": 2,
+        "_tagId": 0,
+        "_memberCardId": 0,
+        "_supportCardId": 0,
+        "_eventBonusType": 2,
+        "_rank1EffectValue": 1000,
+        "_rank2EffectValue": 1200,
+        "_rank3EffectValue": 1400,
+        "_rank4EffectValue": 1600,
+        "_rank5EffectValue": 1800
+      }
+    ],
+    "MasterEventPickUpCard": [
+      {
+        "_id": 1,
+        "_eventId": 1,
+        "_resourceType": 2,
+        "_resourceId": 63
+      },
+      {
+        "_id": 2,
+        "_eventId": 1,
+        "_resourceType": 3,
+        "_resourceId": 64
+      }
+    ],
+    "MasterEventBoxGacha": [],
+    "MasterEventBoxGachaReward": [],
+    "MasterEventMission": [],
+    "MasterLiveEventPoint": [
+      {
+        "_id": 1,
+        "_group": 1,
+        "_scoreRank": 2,
+        "_value": 15
+      },
+      {
+        "_id": 2,
+        "_group": 1,
+        "_scoreRank": 3,
+        "_value": 25
+      },
+      {
+        "_id": 3,
+        "_group": 1,
+        "_scoreRank": 4,
+        "_value": 35
+      },
+      {
+        "_id": 4,
+        "_group": 1,
+        "_scoreRank": 5,
+        "_value": 50
+      },
+      {
+        "_id": 5,
+        "_group": 1,
+        "_scoreRank": 6,
+        "_value": 75
+      },
+      {
+        "_id": 6,
+        "_group": 1,
+        "_scoreRank": 7,
+        "_value": 100
+      }
+    ],
+    "MasterLiveEventReward": [
+      {
+        "_id": 7,
+        "_eventGroup": 2,
+        "_group": 1,
+        "_scoreRank": 2,
+        "_resourceCount": 18,
+        "_resourceType": 1,
+        "_resourceId": 43,
+        "_probability": 10000
+      },
+      {
+        "_id": 8,
+        "_eventGroup": 2,
+        "_group": 1,
+        "_scoreRank": 3,
+        "_resourceCount": 30,
+        "_resourceType": 1,
+        "_resourceId": 43,
+        "_probability": 10000
+      },
+      {
+        "_id": 9,
+        "_eventGroup": 2,
+        "_group": 1,
+        "_scoreRank": 4,
+        "_resourceCount": 42,
+        "_resourceType": 1,
+        "_resourceId": 43,
+        "_probability": 10000
+      },
+      {
+        "_id": 10,
+        "_eventGroup": 2,
+        "_group": 1,
+        "_scoreRank": 5,
+        "_resourceCount": 60,
+        "_resourceType": 1,
+        "_resourceId": 43,
+        "_probability": 10000
+      },
+      {
+        "_id": 11,
+        "_eventGroup": 2,
+        "_group": 1,
+        "_scoreRank": 6,
+        "_resourceCount": 90,
+        "_resourceType": 1,
+        "_resourceId": 43,
+        "_probability": 10000
+      },
+      {
+        "_id": 12,
+        "_eventGroup": 2,
+        "_group": 1,
+        "_scoreRank": 7,
+        "_resourceCount": 120,
+        "_resourceType": 1,
+        "_resourceId": 43,
+        "_probability": 10000
+      }
+    ],
+    "MasterChallengeLiveEventPoint": [
+      {
+        "_id": 1,
+        "_group": 1,
+        "_scoreRank": 2,
+        "_value": 1500
+      },
+      {
+        "_id": 2,
+        "_group": 1,
+        "_scoreRank": 3,
+        "_value": 2000
+      },
+      {
+        "_id": 3,
+        "_group": 1,
+        "_scoreRank": 4,
+        "_value": 2550
+      },
+      {
+        "_id": 4,
+        "_group": 1,
+        "_scoreRank": 5,
+        "_value": 3250
+      },
+      {
+        "_id": 5,
+        "_group": 1,
+        "_scoreRank": 6,
+        "_value": 3900
+      },
+      {
+        "_id": 6,
+        "_group": 1,
+        "_scoreRank": 7,
+        "_value": 5000
+      }
+    ],
+    "MasterChallengeLiveEventReward": [
+      {
+        "_id": 7,
+        "_eventGroup": 2,
+        "_group": 1,
+        "_scoreRank": 2,
+        "_resourceCount": 1450,
+        "_resourceType": 1,
+        "_resourceId": 43,
+        "_probability": 10000
+      },
+      {
+        "_id": 8,
+        "_eventGroup": 2,
+        "_group": 1,
+        "_scoreRank": 3,
+        "_resourceCount": 2650,
+        "_resourceType": 1,
+        "_resourceId": 43,
+        "_probability": 10000
+      },
+      {
+        "_id": 9,
+        "_eventGroup": 2,
+        "_group": 1,
+        "_scoreRank": 4,
+        "_resourceCount": 3400,
+        "_resourceType": 1,
+        "_resourceId": 43,
+        "_probability": 10000
+      },
+      {
+        "_id": 10,
+        "_eventGroup": 2,
+        "_group": 1,
+        "_scoreRank": 5,
+        "_resourceCount": 3750,
+        "_resourceType": 1,
+        "_resourceId": 43,
+        "_probability": 10000
+      },
+      {
+        "_id": 11,
+        "_eventGroup": 2,
+        "_group": 1,
+        "_scoreRank": 6,
+        "_resourceCount": 4450,
+        "_resourceType": 1,
+        "_resourceId": 43,
+        "_probability": 10000
+      },
+      {
+        "_id": 12,
+        "_eventGroup": 2,
+        "_group": 1,
+        "_scoreRank": 7,
+        "_resourceCount": 4950,
+        "_resourceType": 1,
+        "_resourceId": 43,
+        "_probability": 10000
+      }
+    ],
+    "MasterChallengeMusic": [
+      {
+        "_id": 1,
+        "_eventId": 1,
+        "_liveMusicId": 100109,
+        "_musicType": 2,
+        "_gekisouMission1": 0,
+        "_gekisouMission2": 0,
+        "_gekisouMission3": 0,
+        "_rankingRewardGroup": 100101,
+        "_stratAt": "",
+        "_endAt": ""
+      },
+      {
+        "_id": 2,
+        "_eventId": 1,
+        "_liveMusicId": 100056,
+        "_musicType": 2,
+        "_gekisouMission1": 0,
+        "_gekisouMission2": 0,
+        "_gekisouMission3": 0,
+        "_rankingRewardGroup": 100102,
+        "_stratAt": "",
+        "_endAt": ""
+      },
+      {
+        "_id": 3,
+        "_eventId": 1,
+        "_liveMusicId": 100063,
+        "_musicType": 2,
+        "_gekisouMission1": 0,
+        "_gekisouMission2": 0,
+        "_gekisouMission3": 0,
+        "_rankingRewardGroup": 100103,
+        "_stratAt": "",
+        "_endAt": ""
+      }
+    ],
+    "MasterChallengeMusicRankingReward": [
+      {
+        "_id": 1,
+        "_group": 100101,
+        "_rankStart": 1,
+        "_rankEnd": 1,
+        "_rewardIds": [
+          125,
+          186,
+          194
+        ]
+      },
+      {
+        "_id": 13,
+        "_group": 100102,
+        "_rankStart": 1,
+        "_rankEnd": 1,
+        "_rewardIds": [
+          133,
+          186,
+          194
+        ]
+      },
+      {
+        "_id": 25,
+        "_group": 100103,
+        "_rankStart": 1,
+        "_rankEnd": 1,
+        "_rewardIds": [
+          141,
+          186,
+          194
+        ]
+      }
+    ],
+    "MasterExchange": [
+      {
+        "_id": 1,
+        "_nameTextId": "Exchange_Name_1",
+        "_exchangeCategoryId": 1,
+        "_paymentResourceType": 1,
+        "_paymentResourceId": 43,
+        "_targetDisplay": 1,
+        "_targetDisplayId": 1,
+        "_startAt": "2026-09-30 18:00:00",
+        "_endAt": "2026-10-19 20:59:59",
+        "_bannerAsset": "Story/Banner/Chapter/ui_banner_chapter_6"
+      }
+    ],
+    "MasterExchangeProduct": [
+      {
+        "_id": 10000001,
+        "_exchangeId": 1,
+        "_resourceType": 3,
+        "_resourceId": 64,
+        "_resourceCount": 1,
+        "_paymentResourceCount": 100000,
+        "_limitCount": 5,
+        "_resetType": 1,
+        "_paymentSteps": [],
+        "_paymentStepResourceCounts": [],
+        "_isRecommended": true,
+        "_thumbnailAsset": "",
+        "_startAt": "",
+        "_endAt": ""
+      },
+      {
+        "_id": 10000002,
+        "_exchangeId": 1,
+        "_resourceType": 1,
+        "_resourceId": 2000002,
+        "_resourceCount": 1,
+        "_paymentResourceCount": 100000,
+        "_limitCount": 3,
+        "_resetType": 1,
+        "_paymentSteps": [],
+        "_paymentStepResourceCounts": [],
+        "_isRecommended": true,
+        "_thumbnailAsset": "",
+        "_startAt": "",
+        "_endAt": ""
+      }
+    ],
+    "MasterStoryChapter": [
+      {
+        "_id": 6,
+        "_nameTextId": "Story_Chapter_Name_6",
+        "_descriptionTextId": "Story_Chapter_Description_6",
+        "_bandId": 3,
+        "_isSpecialStory": false,
+        "_mainCharacterIds": [
+          11,
+          12,
+          13,
+          14,
+          15
+        ],
+        "_musicId": 100109,
+        "_startAt": "2026/10/08 21:00:00",
+        "_endAt": "",
+        "_banner": "ui_banner_chapter_6",
+        "_image": "ui_image_chapter_6",
+        "_icon": "ui_icon_chapter_event_00001",
+        "_background": ""
+      }
+    ],
+    "MasterStoryEpisode": [
+      {
+        "_id": 601,
+        "_chapterId": 6,
+        "_episodeNumber": 1,
+        "_descriptionTextId": "Story_Episode_Description_601",
+        "_advId": 10946,
+        "_characterId": 0,
+        "_isAnotherEpisode": false,
+        "_isExtraEpisode": false,
+        "_unlockEpisodeNumber": 0,
+        "_eventPoint": 500,
+        "_characterRank": 0,
+        "_playerRank": 0,
+        "_bandRank": 0,
+        "_storyFriendshipEpisodeId": 0,
+        "_storyRewardGroupId": 4,
+        "_eventStoryRewardGroupId": 2,
+        "_banner": "ui_banner_chapter_6_episode_1",
+        "_image": "ui_image_chapter_6_episode_1",
+        "_startAt": "",
+        "_endAt": ""
+      },
+      {
+        "_id": 602,
+        "_chapterId": 6,
+        "_episodeNumber": 2,
+        "_descriptionTextId": "Story_Episode_Description_602",
+        "_advId": 10947,
+        "_characterId": 0,
+        "_isAnotherEpisode": false,
+        "_isExtraEpisode": false,
+        "_unlockEpisodeNumber": 0,
+        "_eventPoint": 6000,
+        "_characterRank": 0,
+        "_playerRank": 0,
+        "_bandRank": 0,
+        "_storyFriendshipEpisodeId": 0,
+        "_storyRewardGroupId": 4,
+        "_eventStoryRewardGroupId": 2,
+        "_banner": "ui_banner_chapter_6_episode_2",
+        "_image": "ui_image_chapter_6_episode_2",
+        "_startAt": "",
+        "_endAt": ""
+      },
+      {
+        "_id": 603,
+        "_chapterId": 6,
+        "_episodeNumber": 3,
+        "_descriptionTextId": "Story_Episode_Description_603",
+        "_advId": 10948,
+        "_characterId": 0,
+        "_isAnotherEpisode": false,
+        "_isExtraEpisode": false,
+        "_unlockEpisodeNumber": 0,
+        "_eventPoint": 14000,
+        "_characterRank": 0,
+        "_playerRank": 0,
+        "_bandRank": 0,
+        "_storyFriendshipEpisodeId": 0,
+        "_storyRewardGroupId": 4,
+        "_eventStoryRewardGroupId": 2,
+        "_banner": "ui_banner_chapter_6_episode_3",
+        "_image": "ui_image_chapter_6_episode_3",
+        "_startAt": "",
+        "_endAt": ""
+      },
+      {
+        "_id": 604,
+        "_chapterId": 6,
+        "_episodeNumber": 4,
+        "_descriptionTextId": "Story_Episode_Description_604",
+        "_advId": 10949,
+        "_characterId": 0,
+        "_isAnotherEpisode": false,
+        "_isExtraEpisode": false,
+        "_unlockEpisodeNumber": 0,
+        "_eventPoint": 22000,
+        "_characterRank": 0,
+        "_playerRank": 0,
+        "_bandRank": 0,
+        "_storyFriendshipEpisodeId": 0,
+        "_storyRewardGroupId": 4,
+        "_eventStoryRewardGroupId": 2,
+        "_banner": "ui_banner_chapter_6_episode_4",
+        "_image": "ui_image_chapter_6_episode_4",
+        "_startAt": "",
+        "_endAt": ""
+      },
+      {
+        "_id": 605,
+        "_chapterId": 6,
+        "_episodeNumber": 5,
+        "_descriptionTextId": "Story_Episode_Description_605",
+        "_advId": 10950,
+        "_characterId": 0,
+        "_isAnotherEpisode": false,
+        "_isExtraEpisode": false,
+        "_unlockEpisodeNumber": 0,
+        "_eventPoint": 30000,
+        "_characterRank": 0,
+        "_playerRank": 0,
+        "_bandRank": 0,
+        "_storyFriendshipEpisodeId": 0,
+        "_storyRewardGroupId": 4,
+        "_eventStoryRewardGroupId": 2,
+        "_banner": "ui_banner_chapter_6_episode_5",
+        "_image": "ui_image_chapter_6_episode_5",
+        "_startAt": "",
+        "_endAt": ""
+      },
+      {
+        "_id": 606,
+        "_chapterId": 6,
+        "_episodeNumber": 6,
+        "_descriptionTextId": "Story_Episode_Description_606",
+        "_advId": 10951,
+        "_characterId": 0,
+        "_isAnotherEpisode": false,
+        "_isExtraEpisode": false,
+        "_unlockEpisodeNumber": 0,
+        "_eventPoint": 45000,
+        "_characterRank": 0,
+        "_playerRank": 0,
+        "_bandRank": 0,
+        "_storyFriendshipEpisodeId": 0,
+        "_storyRewardGroupId": 4,
+        "_eventStoryRewardGroupId": 2,
+        "_banner": "ui_banner_chapter_6_episode_6",
+        "_image": "ui_image_chapter_6_episode_6",
+        "_startAt": "",
+        "_endAt": ""
+      },
+      {
+        "_id": 607,
+        "_chapterId": 6,
+        "_episodeNumber": 7,
+        "_descriptionTextId": "Story_Episode_Description_607",
+        "_advId": 10952,
+        "_characterId": 0,
+        "_isAnotherEpisode": false,
+        "_isExtraEpisode": false,
+        "_unlockEpisodeNumber": 0,
+        "_eventPoint": 60000,
+        "_characterRank": 0,
+        "_playerRank": 0,
+        "_bandRank": 0,
+        "_storyFriendshipEpisodeId": 0,
+        "_storyRewardGroupId": 4,
+        "_eventStoryRewardGroupId": 2,
+        "_banner": "ui_banner_chapter_6_episode_7",
+        "_image": "ui_image_chapter_6_episode_7",
+        "_startAt": "",
+        "_endAt": ""
+      },
+      {
+        "_id": 608,
+        "_chapterId": 6,
+        "_episodeNumber": 1,
+        "_descriptionTextId": "Story_Episode_Description_608",
+        "_advId": 10953,
+        "_characterId": 0,
+        "_isAnotherEpisode": true,
+        "_isExtraEpisode": false,
+        "_unlockEpisodeNumber": 0,
+        "_eventPoint": 75000,
+        "_characterRank": 0,
+        "_playerRank": 0,
+        "_bandRank": 0,
+        "_storyFriendshipEpisodeId": 0,
+        "_storyRewardGroupId": 4,
+        "_eventStoryRewardGroupId": 4,
+        "_banner": "ui_banner_chapter_6_another_1",
+        "_image": "ui_image_chapter_6_another_1",
+        "_startAt": "",
+        "_endAt": ""
+      },
+      {
+        "_id": 609,
+        "_chapterId": 6,
+        "_episodeNumber": 2,
+        "_descriptionTextId": "Story_Episode_Description_609",
+        "_advId": 10954,
+        "_characterId": 0,
+        "_isAnotherEpisode": true,
+        "_isExtraEpisode": false,
+        "_unlockEpisodeNumber": 0,
+        "_eventPoint": 100000,
+        "_characterRank": 0,
+        "_playerRank": 0,
+        "_bandRank": 0,
+        "_storyFriendshipEpisodeId": 0,
+        "_storyRewardGroupId": 4,
+        "_eventStoryRewardGroupId": 4,
+        "_banner": "ui_banner_chapter_6_another_2",
+        "_image": "ui_image_chapter_6_another_2",
+        "_startAt": "",
+        "_endAt": ""
+      }
+    ],
+    "MasterReward": [
+      {
+        "_id": 1,
+        "_resourceType": 1,
+        "_resourceId": 1,
+        "_resourceCount": 40
+      },
+      {
+        "_id": 12,
+        "_resourceType": 1,
+        "_resourceId": 3,
+        "_resourceCount": 15000
+      },
+      {
+        "_id": 112,
+        "_resourceType": 2,
+        "_resourceId": 63,
+        "_resourceCount": 1
+      },
+      {
+        "_id": 121,
+        "_resourceType": 1,
+        "_resourceId": 43,
+        "_resourceCount": 100000
+      },
+      {
+        "_id": 125,
+        "_resourceType": 17,
+        "_resourceId": 20000001,
+        "_resourceCount": 1
+      },
+      {
+        "_id": 133,
+        "_resourceType": 17,
+        "_resourceId": 20000009,
+        "_resourceCount": 1
+      },
+      {
+        "_id": 141,
+        "_resourceType": 17,
+        "_resourceId": 20000017,
+        "_resourceCount": 1
+      },
+      {
+        "_id": 186,
+        "_resourceType": 1,
+        "_resourceId": 33,
+        "_resourceCount": 100
+      },
+      {
+        "_id": 194,
+        "_resourceType": 1,
+        "_resourceId": 30,
+        "_resourceCount": 800
+      }
+    ],
+    "MasterMemberCard": [
+      {
+        "_id": 61,
+        "_assetID": 61,
+        "_nameTextID": "Character_Name_Yuno",
+        "_subtitleTextID": "MemberSubtitle_61",
+        "_characterID": 15,
+        "_rarity": 4,
+        "_cardType": 2,
+        "_bestMusicTagIDs": [
+          3
+        ],
+        "_performancePowerMax": 38776,
+        "_technicPowerMax": 30654,
+        "_visualPowerMax": 31702,
+        "_memberCardLevelGroup": 3,
+        "_memberCardAwakeGroup": 1,
+        "_memberCardAwakeResourceGroup": 12,
+        "_memberCardRankGroup": 1,
+        "_rankUpItemID": 10000061,
+        "_leaderSkillID": 53,
+        "_liveSkillID": 5,
+        "_gekisouSkillID": 11,
+        "_liveSkillLevelResourceGroup": 3,
+        "_gekisouSkillLevelResourceGroup": 7,
+        "_gachaVoiceTextId": "MemberGachaVoice_61",
+        "_gachaVoiceSoundId": 3201502000001,
+        "_startAt": "2026-09-30 18:00:00"
+      },
+      {
+        "_id": 62,
+        "_assetID": 62,
+        "_nameTextID": "Character_Name_Nonoka",
+        "_subtitleTextID": "MemberSubtitle_62",
+        "_characterID": 12,
+        "_rarity": 4,
+        "_cardType": 2,
+        "_bestMusicTagIDs": [
+          3
+        ],
+        "_performancePowerMax": 31879,
+        "_technicPowerMax": 30230,
+        "_visualPowerMax": 39023,
+        "_memberCardLevelGroup": 3,
+        "_memberCardAwakeGroup": 1,
+        "_memberCardAwakeResourceGroup": 12,
+        "_memberCardRankGroup": 1,
+        "_rankUpItemID": 10000062,
+        "_leaderSkillID": 54,
+        "_liveSkillID": 3,
+        "_gekisouSkillID": 3,
+        "_liveSkillLevelResourceGroup": 3,
+        "_gekisouSkillLevelResourceGroup": 7,
+        "_gachaVoiceTextId": "MemberGachaVoice_62",
+        "_gachaVoiceSoundId": 3201202000001,
+        "_startAt": "2026-09-30 18:00:00"
+      },
+      {
+        "_id": 63,
+        "_assetID": 63,
+        "_nameTextID": "Character_Name_Ritsu",
+        "_subtitleTextID": "MemberSubtitle_63",
+        "_characterID": 13,
+        "_rarity": 3,
+        "_cardType": 2,
+        "_bestMusicTagIDs": [
+          3
+        ],
+        "_performancePowerMax": 15876,
+        "_technicPowerMax": 20053,
+        "_visualPowerMax": 16154,
+        "_memberCardLevelGroup": 2,
+        "_memberCardAwakeGroup": 1,
+        "_memberCardAwakeResourceGroup": 7,
+        "_memberCardRankGroup": 1,
+        "_rankUpItemID": 10000063,
+        "_leaderSkillID": 30,
+        "_liveSkillID": 4,
+        "_gekisouSkillID": 10,
+        "_liveSkillLevelResourceGroup": 2,
+        "_gekisouSkillLevelResourceGroup": 6,
+        "_gachaVoiceTextId": "",
+        "_gachaVoiceSoundId": 0,
+        "_startAt": "2026-09-30 18:00:00"
+      }
+    ],
+    "MasterSupportCard": [
+      {
+        "_id": 62,
+        "_assetID": 62,
+        "_nameTextID": "Snap_Name_Yuno",
+        "_descriptionTextID": "SupportSubtitle_62",
+        "_diaryTextID": "SupportDiary_62",
+        "_diarySoundId": 1200000000007,
+        "_characterIDs": [
+          15
+        ],
+        "_rarity": 4,
+        "_cardType": 2,
+        "_performancePowerMax": 3200,
+        "_technicPowerMax": 3000,
+        "_visualPowerMax": 4000,
+        "_supportCardLevelGroup": 3,
+        "_supportCardRankGroup": 3,
+        "_supportSkillId01": 13,
+        "_supportSkillId02": 0,
+        "_gekisouSupportSkillId01": 13,
+        "_gekisouSupportSkillId02": 0,
+        "_startAt": "2026-09-30 18:00:00"
+      },
+      {
+        "_id": 63,
+        "_assetID": 63,
+        "_nameTextID": "Snap_Name_Arale_Nonoka_Ritsu_Miyako",
+        "_descriptionTextID": "SupportSubtitle_63",
+        "_diaryTextID": "SupportDiary_63",
+        "_diarySoundId": 1200000000008,
+        "_characterIDs": [
+          11,
+          12,
+          13,
+          14
+        ],
+        "_rarity": 4,
+        "_cardType": 2,
+        "_performancePowerMax": 3900,
+        "_technicPowerMax": 3100,
+        "_visualPowerMax": 3200,
+        "_supportCardLevelGroup": 3,
+        "_supportCardRankGroup": 3,
+        "_supportSkillId01": 38,
+        "_supportSkillId02": 0,
+        "_gekisouSupportSkillId01": 53,
+        "_gekisouSupportSkillId02": 0,
+        "_startAt": "2026-09-30 18:00:00"
+      },
+      {
+        "_id": 64,
+        "_assetID": 64,
+        "_nameTextID": "Snap_Name_Miyako_Ritsu",
+        "_descriptionTextID": "SupportSubtitle_64",
+        "_diaryTextID": "SupportDiary_64",
+        "_diarySoundId": 0,
+        "_characterIDs": [
+          14,
+          13
+        ],
+        "_rarity": 3,
+        "_cardType": 2,
+        "_performancePowerMax": 1600,
+        "_technicPowerMax": 2000,
+        "_visualPowerMax": 1500,
+        "_supportCardLevelGroup": 2,
+        "_supportCardRankGroup": 2,
+        "_supportSkillId01": 33,
+        "_supportSkillId02": 0,
+        "_gekisouSupportSkillId01": 48,
+        "_gekisouSupportSkillId02": 0,
+        "_startAt": "2026-09-30 18:00:00"
+      }
+    ],
+    "MasterItem": [
+      {
+        "_id": 1,
+        "_nameTextId": "Item_Name_1",
+        "_inventoryDisplayGroup": 0,
+        "_type": 12,
+        "_imagePath": "Item/common/item_icon_star",
+        "_phoneticNameTextId": "Item_Phonetic_Name_1",
+        "_descriptionTextId": "Item_Description_1",
+        "_value": 1,
+        "_max": 2147483647,
+        "_orderNum": 0,
+        "_displayTargetIds": [],
+        "_startAt": "",
+        "_endAt": ""
+      },
+      {
+        "_id": 3,
+        "_nameTextId": "Item_Name_3",
+        "_inventoryDisplayGroup": 0,
+        "_type": 14,
+        "_imagePath": "Item/common/item_icon_coin",
+        "_phoneticNameTextId": "Item_Phonetic_Name_3",
+        "_descriptionTextId": "Item_Description_3",
+        "_value": 1,
+        "_max": 2147483647,
+        "_orderNum": 0,
+        "_displayTargetIds": [],
+        "_startAt": "",
+        "_endAt": ""
+      },
+      {
+        "_id": 30,
+        "_nameTextId": "Item_Name_30",
+        "_inventoryDisplayGroup": 2,
+        "_type": 21,
+        "_imagePath": "Item/prism/item_icon_prism_003",
+        "_phoneticNameTextId": "Item_Phonetic_Name_30",
+        "_descriptionTextId": "Item_Description_30",
+        "_value": 1,
+        "_max": 99999999,
+        "_orderNum": 303,
+        "_displayTargetIds": [],
+        "_startAt": "",
+        "_endAt": ""
+      },
+      {
+        "_id": 33,
+        "_nameTextId": "Item_Name_33",
+        "_inventoryDisplayGroup": 2,
+        "_type": 21,
+        "_imagePath": "Item/prism/item_icon_prism_006",
+        "_phoneticNameTextId": "Item_Phonetic_Name_33",
+        "_descriptionTextId": "Item_Description_33",
+        "_value": 1,
+        "_max": 99999999,
+        "_orderNum": 306,
+        "_displayTargetIds": [],
+        "_startAt": "",
+        "_endAt": ""
+      },
+      {
+        "_id": 43,
+        "_nameTextId": "Item_Name_43",
+        "_inventoryDisplayGroup": 4,
+        "_type": 11,
+        "_imagePath": "Item/event/item_icon_event_badge_002",
+        "_phoneticNameTextId": "Item_Phonetic_Name_43",
+        "_descriptionTextId": "Item_Description_43",
+        "_value": 1,
+        "_max": 99999999,
+        "_orderNum": 102,
+        "_displayTargetIds": [],
+        "_startAt": "2026/02/01 0:00:00",
+        "_endAt": ""
+      },
+      {
+        "_id": 2000002,
+        "_nameTextId": "Gacha_Ticket_Name_2000002",
+        "_inventoryDisplayGroup": 1,
+        "_type": 2,
+        "_imagePath": "Item/ticket/item_icon_ticket_gacha_001",
+        "_phoneticNameTextId": "Gacha_Ticket_Phonetic_Name_2000002",
+        "_descriptionTextId": "Gacha_Ticket_Description_2000002",
+        "_value": 1,
+        "_max": 99999999,
+        "_orderNum": 504,
+        "_displayTargetIds": [],
+        "_startAt": "",
+        "_endAt": ""
+      }
+    ],
+    "MasterDegree": [
+      {
+        "_id": 20000001,
+        "_nameTextId": "Degree_Name_20000001",
+        "_descriptionTextId": "Degree_Description_20000001",
+        "_degreeType": 4,
+        "_characterIds": [
+          11
+        ],
+        "_imagePath": "Image/Degree/Event/01_00001/degree_event_100109_01",
+        "_orderNum": 20000001,
+        "_startAt": "2026/09/30 18:00:00",
+        "_endAt": ""
+      },
+      {
+        "_id": 20000009,
+        "_nameTextId": "Degree_Name_20000009",
+        "_descriptionTextId": "Degree_Description_20000009",
+        "_degreeType": 4,
+        "_characterIds": [
+          11
+        ],
+        "_imagePath": "Image/Degree/Event/01_00001/degree_event_100056_01",
+        "_orderNum": 20000009,
+        "_startAt": "2026/09/30 18:00:00",
+        "_endAt": ""
+      },
+      {
+        "_id": 20000017,
+        "_nameTextId": "Degree_Name_20000017",
+        "_descriptionTextId": "Degree_Description_20000017",
+        "_degreeType": 4,
+        "_characterIds": [
+          11
+        ],
+        "_imagePath": "Image/Degree/Event/01_00001/degree_event_100063_01",
+        "_orderNum": 20000017,
+        "_startAt": "2026/09/30 18:00:00",
+        "_endAt": ""
+      }
+    ],
+    "MasterBand": [
+      {
+        "_id": 3,
+        "_nameTextID": "Band_Name_yumemita",
+        "_descriptionTextID": "Band_Description_yumemita",
+        "_mainColorCode": "#FF7788",
+        "_subColorCode": "#FFFFFF",
+        "_rankUpItemIdForRarityR": 20000009,
+        "_rankUpItemIdForRaritySR": 20000010,
+        "_rankUpItemIdForRaritySSR": 20000011,
+        "_rankUpItemIdForRarityBD": 20000012,
+        "_bgmSoundId": 1400000000054,
+        "_memberRarityRBackgroundAssetPath": "MemberCard/MemberCommon/member_background3[formation]"
+      }
+    ],
+    "MasterLiveMusic": [
+      {
+        "_id": 100056,
+        "_phoneticTextID": "Music_Phonetic_Tilte_100056",
+        "_rubyTitleTextID": "Music_Ruby_Tilte_100056",
+        "_sortOrder": 10310056,
+        "_titleTextID": "Music_Tilte_100056",
+        "_bandIDs": [
+          3
+        ],
+        "_bandNameTextID": "",
+        "_vocalCharacterIDs": [
+          11
+        ],
+        "_musicType": 2,
+        "_musicCategories": [
+          1
+        ],
+        "_bestMusicTagIDs": [
+          3
+        ],
+        "_musicSoundID": 1300000000056,
+        "_jingleSoundID": 1400000000056,
+        "_easyID": 10005600,
+        "_normalID": 10005601,
+        "_hardID": 10005602,
+        "_expertID": 10005603,
+        "_liveScoreRankGroup": 1100056,
+        "_defaultUnlock": true,
+        "_unlockConditionID": 0,
+        "_liveMusicPenLightColorID": 301,
+        "_startAt": "2026/01/01 0:00:00",
+        "_lyricistTextID": "Lyricist_Name_100056",
+        "_composerTextID": "Composer_Name_100056",
+        "_arrangerTextID": "Arranger_Name_100056",
+        "_jacketAssetName": "jkt_003_100056",
+        "_musicVideoIDs": [
+          4302100056
+        ],
+        "_vjVideoPattern": 3,
+        "_anotherVocalIDs": [],
+        "_scoreRankRewardGroup": 1,
+        "_comboRewardGroup": 1,
+        "_gekisouMission1": 2,
+        "_gekisouMission2": 1,
+        "_gekisouMission3": 3,
+        "_gekisouCallSe": 1,
+        "_backgroundCameraType": 1,
+        "_musicLightColorIDNormal": 4,
+        "_musicLightColorIDChorus": 4,
+        "_lazerLightMotionNormal": 3,
+        "_lazerLightMotionChorus": 3,
+        "_stageLightMotionNormal": 3,
+        "_stageLightMotionChorus": 3,
+        "_scoreCLiveMusicRewardID": 1,
+        "_scoreBLiveMusicRewardID": 2,
+        "_scoreALiveMusicRewardID": 3,
+        "_scoreSLiveMusicRewardID": 4,
+        "_scoreSSLiveMusicRewardID": 5,
+        "_comboEasyLiveMusicRewardID": 6,
+        "_comboNormalLiveMusicRewardID": 7,
+        "_comboHardLiveMusicRewardID": 8,
+        "_comboExpertLiveMusicRewardID": 9
+      },
+      {
+        "_id": 100063,
+        "_phoneticTextID": "Music_Phonetic_Tilte_100063",
+        "_rubyTitleTextID": "Music_Ruby_Tilte_100063",
+        "_sortOrder": 10320063,
+        "_titleTextID": "Music_Tilte_100063",
+        "_bandIDs": [
+          3
+        ],
+        "_bandNameTextID": "",
+        "_vocalCharacterIDs": [
+          11
+        ],
+        "_musicType": 2,
+        "_musicCategories": [
+          4
+        ],
+        "_bestMusicTagIDs": [
+          3
+        ],
+        "_musicSoundID": 1300000000063,
+        "_jingleSoundID": 1400000000063,
+        "_easyID": 10006300,
+        "_normalID": 10006301,
+        "_hardID": 10006302,
+        "_expertID": 10006303,
+        "_liveScoreRankGroup": 1100063,
+        "_defaultUnlock": false,
+        "_unlockConditionID": 0,
+        "_liveMusicPenLightColorID": 301,
+        "_startAt": "2026/01/01 0:00:00",
+        "_lyricistTextID": "Lyricist_Name_100063",
+        "_composerTextID": "Composer_Name_100063",
+        "_arrangerTextID": "Arranger_Name_100063",
+        "_jacketAssetName": "jkt_003_100063",
+        "_musicVideoIDs": [],
+        "_vjVideoPattern": 2,
+        "_anotherVocalIDs": [],
+        "_scoreRankRewardGroup": 1,
+        "_comboRewardGroup": 1,
+        "_gekisouMission1": 3,
+        "_gekisouMission2": 3,
+        "_gekisouMission3": 3,
+        "_gekisouCallSe": 1,
+        "_backgroundCameraType": 1,
+        "_musicLightColorIDNormal": 4,
+        "_musicLightColorIDChorus": 4,
+        "_lazerLightMotionNormal": 3,
+        "_lazerLightMotionChorus": 3,
+        "_stageLightMotionNormal": 3,
+        "_stageLightMotionChorus": 3,
+        "_scoreCLiveMusicRewardID": 1,
+        "_scoreBLiveMusicRewardID": 2,
+        "_scoreALiveMusicRewardID": 3,
+        "_scoreSLiveMusicRewardID": 4,
+        "_scoreSSLiveMusicRewardID": 5,
+        "_comboEasyLiveMusicRewardID": 6,
+        "_comboNormalLiveMusicRewardID": 7,
+        "_comboHardLiveMusicRewardID": 8,
+        "_comboExpertLiveMusicRewardID": 9
+      },
+      {
+        "_id": 100109,
+        "_phoneticTextID": "Music_Phonetic_Tilte_100109",
+        "_rubyTitleTextID": "Music_Ruby_Tilte_100109",
+        "_sortOrder": 10310109,
+        "_titleTextID": "Music_Tilte_100109",
+        "_bandIDs": [
+          3
+        ],
+        "_bandNameTextID": "",
+        "_vocalCharacterIDs": [
+          1
+        ],
+        "_musicType": 2,
+        "_musicCategories": [
+          1
+        ],
+        "_bestMusicTagIDs": [
+          3
+        ],
+        "_musicSoundID": 1300000000109,
+        "_jingleSoundID": 1400000000109,
+        "_easyID": 10010900,
+        "_normalID": 10010901,
+        "_hardID": 10010902,
+        "_expertID": 10010903,
+        "_liveScoreRankGroup": 1100109,
+        "_defaultUnlock": true,
+        "_unlockConditionID": 0,
+        "_liveMusicPenLightColorID": 301,
+        "_startAt": "2026/10/08 21:00:00",
+        "_lyricistTextID": "Lyricist_Name_100109",
+        "_composerTextID": "Composer_Name_100109",
+        "_arrangerTextID": "Arranger_Name_100109",
+        "_jacketAssetName": "jkt_003_100109",
+        "_musicVideoIDs": [],
+        "_vjVideoPattern": 2,
+        "_anotherVocalIDs": [],
+        "_scoreRankRewardGroup": 1,
+        "_comboRewardGroup": 1,
+        "_gekisouMission1": 3,
+        "_gekisouMission2": 3,
+        "_gekisouMission3": 3,
+        "_gekisouCallSe": 1,
+        "_backgroundCameraType": 1,
+        "_musicLightColorIDNormal": 4,
+        "_musicLightColorIDChorus": 4,
+        "_lazerLightMotionNormal": 3,
+        "_lazerLightMotionChorus": 3,
+        "_stageLightMotionNormal": 3,
+        "_stageLightMotionChorus": 3,
+        "_scoreCLiveMusicRewardID": 1,
+        "_scoreBLiveMusicRewardID": 2,
+        "_scoreALiveMusicRewardID": 3,
+        "_scoreSLiveMusicRewardID": 4,
+        "_scoreSSLiveMusicRewardID": 5,
+        "_comboEasyLiveMusicRewardID": 6,
+        "_comboNormalLiveMusicRewardID": 7,
+        "_comboHardLiveMusicRewardID": 8,
+        "_comboExpertLiveMusicRewardID": 9
+      }
+    ],
+    "MasterText": [
+      {
+        "_id": "Arranger_Name_100056",
+        "_japanese": "堀江晶太",
+        "_english": "",
+        "_traditionalChinese": "",
+        "_simplifiedChinese": "",
+        "_korean": ""
+      },
+      {
+        "_id": "Arranger_Name_100063",
+        "_japanese": "岡村大輔",
+        "_english": "",
+        "_traditionalChinese": "",
+        "_simplifiedChinese": "",
+        "_korean": ""
+      },
+      {
+        "_id": "Arranger_Name_100109",
+        "_japanese": "ケンモチヒデフミ、Skye K",
+        "_english": "",
+        "_traditionalChinese": "",
+        "_simplifiedChinese": "",
+        "_korean": ""
+      },
+      {
+        "_id": "Band_Name_yumemita",
+        "_japanese": "夢限大みゅーたいぷ",
+        "_english": "Mugendai Myu-Type",
+        "_traditionalChinese": "",
+        "_simplifiedChinese": "",
+        "_korean": ""
+      },
+      {
+        "_id": "Band_Description_yumemita",
+        "_japanese": "ライブだけでなく、個々人が配信、創作など、\nあらゆる分野で活躍するバーチャルガールズバンド。\n型にハマらない自由な音楽で夢限の宇宙を進行中。",
+        "_english": "",
+        "_traditionalChinese": "",
+        "_simplifiedChinese": "",
+        "_korean": ""
+      },
+      {
+        "_id": "Character_Name_Nonoka",
+        "_japanese": "宮永 ののか",
+        "_english": "",
+        "_traditionalChinese": "",
+        "_simplifiedChinese": "",
+        "_korean": ""
+      },
+      {
+        "_id": "Character_Name_Ritsu",
+        "_japanese": "峰月 律",
+        "_english": "",
+        "_traditionalChinese": "",
+        "_simplifiedChinese": "",
+        "_korean": ""
+      },
+      {
+        "_id": "Character_Name_Yuno",
+        "_japanese": "千石 ユノ",
+        "_english": "",
+        "_traditionalChinese": "",
+        "_simplifiedChinese": "",
+        "_korean": ""
+      },
+      {
+        "_id": "Composer_Name_100056",
+        "_japanese": "田淵智也",
+        "_english": "",
+        "_traditionalChinese": "",
+        "_simplifiedChinese": "",
+        "_korean": ""
+      },
+      {
+        "_id": "Composer_Name_100063",
+        "_japanese": "田淵　智也",
+        "_english": "",
+        "_traditionalChinese": "",
+        "_simplifiedChinese": "",
+        "_korean": ""
+      },
+      {
+        "_id": "Composer_Name_100109",
+        "_japanese": "ケンモチヒデフミ",
+        "_english": "",
+        "_traditionalChinese": "",
+        "_simplifiedChinese": "",
+        "_korean": ""
+      },
+      {
+        "_id": "Degree_Description_20000001",
+        "_japanese": "アイの奔流 AtoZ 「夢我夢中」スコアランキング報酬で獲得",
+        "_english": "",
+        "_traditionalChinese": "",
+        "_simplifiedChinese": "",
+        "_korean": ""
+      },
+      {
+        "_id": "Degree_Description_20000009",
+        "_japanese": "アイの奔流 AtoZ 「これはぼくたちの生存のあらすじ」スコアランキング報酬で獲得",
+        "_english": "",
+        "_traditionalChinese": "",
+        "_simplifiedChinese": "",
+        "_korean": ""
+      },
+      {
+        "_id": "Degree_Description_20000017",
+        "_japanese": "アイの奔流 AtoZ 「オリオンをなぞる」スコアランキング報酬で獲得",
+        "_english": "",
+        "_traditionalChinese": "",
+        "_simplifiedChinese": "",
+        "_korean": ""
+      },
+      {
+        "_id": "Degree_Name_20000001",
+        "_japanese": "[ステッカー]アイの奔流 AtoZ/夢我夢中 1位",
+        "_english": "",
+        "_traditionalChinese": "",
+        "_simplifiedChinese": "",
+        "_korean": ""
+      },
+      {
+        "_id": "Degree_Name_20000009",
+        "_japanese": "[ステッカー]アイの奔流 AtoZ/これはぼくたちの生存のあらすじ 1位",
+        "_english": "",
+        "_traditionalChinese": "",
+        "_simplifiedChinese": "",
+        "_korean": ""
+      },
+      {
+        "_id": "Degree_Name_20000017",
+        "_japanese": "[ステッカー]アイの奔流 AtoZ/オリオンをなぞる 1位",
+        "_english": "",
+        "_traditionalChinese": "",
+        "_simplifiedChinese": "",
+        "_korean": ""
+      },
+      {
+        "_id": "Event_Name_0001",
+        "_japanese": "アイの奔流　AtoZ",
+        "_english": "",
+        "_traditionalChinese": "",
+        "_simplifiedChinese": "",
+        "_korean": ""
+      },
+      {
+        "_id": "Exchange_Name_1",
+        "_japanese": "アイの奔流　AtoZ イベント交換所",
+        "_english": "",
+        "_traditionalChinese": "",
+        "_simplifiedChinese": "",
+        "_korean": ""
+      },
+      {
+        "_id": "Item_Description_1",
+        "_japanese": "ガチャやLB回復などに使用するアイテム",
+        "_english": "",
+        "_traditionalChinese": "",
+        "_simplifiedChinese": "",
+        "_korean": ""
+      },
+      {
+        "_id": "Item_Description_3",
+        "_japanese": "主にメンバーやスナップの強化に必要なアイテム",
+        "_english": "",
+        "_traditionalChinese": "",
+        "_simplifiedChinese": "",
+        "_korean": ""
+      },
+      {
+        "_id": "Item_Description_30",
+        "_japanese": "バンドアイテムの強化に使用するアイテム",
+        "_english": "",
+        "_traditionalChinese": "",
+        "_simplifiedChinese": "",
+        "_korean": ""
+      },
+      {
+        "_id": "Item_Description_33",
+        "_japanese": "バンドアイテムの強化に使用するアイテム",
+        "_english": "",
+        "_traditionalChinese": "",
+        "_simplifiedChinese": "",
+        "_korean": ""
+      },
+      {
+        "_id": "Item_Description_43",
+        "_japanese": "イベント交換所で使用するアイテム",
+        "_english": "",
+        "_traditionalChinese": "",
+        "_simplifiedChinese": "",
+        "_korean": ""
+      },
+      {
+        "_id": "Gacha_Ticket_Description_2000002",
+        "_japanese": "アワーノーツガチャが引けるチケット",
+        "_english": "",
+        "_traditionalChinese": "",
+        "_simplifiedChinese": "",
+        "_korean": ""
+      },
+      {
+        "_id": "Gacha_Ticket_Name_2000002",
+        "_japanese": "アワーノーツガチャチケット",
+        "_english": "",
+        "_traditionalChinese": "",
+        "_simplifiedChinese": "",
+        "_korean": ""
+      },
+      {
+        "_id": "Gacha_Ticket_Phonetic_Name_2000002",
+        "_japanese": "アワーノーツガチャチケット",
+        "_english": "",
+        "_traditionalChinese": "",
+        "_simplifiedChinese": "",
+        "_korean": ""
+      },
+      {
+        "_id": "Item_Name_1",
+        "_japanese": "スター",
+        "_english": "",
+        "_traditionalChinese": "",
+        "_simplifiedChinese": "",
+        "_korean": ""
+      },
+      {
+        "_id": "Item_Name_3",
+        "_japanese": "コイン",
+        "_english": "",
+        "_traditionalChinese": "",
+        "_simplifiedChinese": "",
+        "_korean": ""
+      },
+      {
+        "_id": "Item_Name_30",
+        "_japanese": "夢限大みゅーたいぷプリズム",
+        "_english": "",
+        "_traditionalChinese": "",
+        "_simplifiedChinese": "",
+        "_korean": ""
+      },
+      {
+        "_id": "Item_Name_33",
+        "_japanese": "希望のプリズム",
+        "_english": "",
+        "_traditionalChinese": "",
+        "_simplifiedChinese": "",
+        "_korean": ""
+      },
+      {
+        "_id": "Item_Name_43",
+        "_japanese": "イベントバッジ(紺碧)",
+        "_english": "",
+        "_traditionalChinese": "",
+        "_simplifiedChinese": "",
+        "_korean": ""
+      },
+      {
+        "_id": "Item_Phonetic_Name_1",
+        "_japanese": "すたー",
+        "_english": "",
+        "_traditionalChinese": "",
+        "_simplifiedChinese": "",
+        "_korean": ""
+      },
+      {
+        "_id": "Item_Phonetic_Name_3",
+        "_japanese": "こいん",
+        "_english": "",
+        "_traditionalChinese": "",
+        "_simplifiedChinese": "",
+        "_korean": ""
+      },
+      {
+        "_id": "Item_Phonetic_Name_30",
+        "_japanese": "むげんだいみゅーたいぷぷりずむ",
+        "_english": "",
+        "_traditionalChinese": "",
+        "_simplifiedChinese": "",
+        "_korean": ""
+      },
+      {
+        "_id": "Item_Phonetic_Name_33",
+        "_japanese": "きぼうのぷりずむ",
+        "_english": "",
+        "_traditionalChinese": "",
+        "_simplifiedChinese": "",
+        "_korean": ""
+      },
+      {
+        "_id": "Item_Phonetic_Name_43",
+        "_japanese": "イベントバッジ(紺碧)",
+        "_english": "",
+        "_traditionalChinese": "",
+        "_simplifiedChinese": "",
+        "_korean": ""
+      },
+      {
+        "_id": "Lyricist_Name_100056",
+        "_japanese": "田淵智也",
+        "_english": "",
+        "_traditionalChinese": "",
+        "_simplifiedChinese": "",
+        "_korean": ""
+      },
+      {
+        "_id": "Lyricist_Name_100063",
+        "_japanese": "田淵　智也",
+        "_english": "",
+        "_traditionalChinese": "",
+        "_simplifiedChinese": "",
+        "_korean": ""
+      },
+      {
+        "_id": "Lyricist_Name_100109",
+        "_japanese": "ケンモチヒデフミ",
+        "_english": "",
+        "_traditionalChinese": "",
+        "_simplifiedChinese": "",
+        "_korean": ""
+      },
+      {
+        "_id": "MemberGachaVoice_61",
+        "_japanese": "やりたい放題でもいいんじゃない？",
+        "_english": "",
+        "_traditionalChinese": "",
+        "_simplifiedChinese": "",
+        "_korean": ""
+      },
+      {
+        "_id": "MemberGachaVoice_62",
+        "_japanese": "ばーじょんあ～～～～～っぷ！",
+        "_english": "",
+        "_traditionalChinese": "",
+        "_simplifiedChinese": "",
+        "_korean": ""
+      },
+      {
+        "_id": "MemberSubtitle_61",
+        "_japanese": "ハート・リブート",
+        "_english": "",
+        "_traditionalChinese": "",
+        "_simplifiedChinese": "",
+        "_korean": ""
+      },
+      {
+        "_id": "MemberSubtitle_62",
+        "_japanese": "きゅーと・ふろーと",
+        "_english": "",
+        "_traditionalChinese": "",
+        "_simplifiedChinese": "",
+        "_korean": ""
+      },
+      {
+        "_id": "MemberSubtitle_63",
+        "_japanese": "ナイト・フライト",
+        "_english": "",
+        "_traditionalChinese": "",
+        "_simplifiedChinese": "",
+        "_korean": ""
+      },
+      {
+        "_id": "Music_Tilte_100056",
+        "_japanese": "これはぼくたちの生存のあらすじ",
+        "_english": "Music_Tilte_56",
+        "_traditionalChinese": "",
+        "_simplifiedChinese": "",
+        "_korean": ""
+      },
+      {
+        "_id": "Music_Tilte_100063",
+        "_japanese": "オリオンをなぞる",
+        "_english": "Music_Tilte_63",
+        "_traditionalChinese": "",
+        "_simplifiedChinese": "",
+        "_korean": ""
+      },
+      {
+        "_id": "Music_Tilte_100109",
+        "_japanese": "夢我夢中",
+        "_english": "",
+        "_traditionalChinese": "",
+        "_simplifiedChinese": "",
+        "_korean": ""
+      },
+      {
+        "_id": "Music_Phonetic_Tilte_100056",
+        "_japanese": "これはぼくたちのせいぞんのあらすじ",
+        "_english": "Music_Tilte_56",
+        "_traditionalChinese": "",
+        "_simplifiedChinese": "",
+        "_korean": ""
+      },
+      {
+        "_id": "Music_Phonetic_Tilte_100063",
+        "_japanese": "おりおんをなぞる",
+        "_english": "Music_Tilte_63",
+        "_traditionalChinese": "",
+        "_simplifiedChinese": "",
+        "_korean": ""
+      },
+      {
+        "_id": "Music_Phonetic_Tilte_100109",
+        "_japanese": "むがむちゅう",
+        "_english": "",
+        "_traditionalChinese": "",
+        "_simplifiedChinese": "",
+        "_korean": ""
+      },
+      {
+        "_id": "Music_Ruby_Tilte_100056",
+        "_japanese": "これはぼくたちの生存のあらすじ",
+        "_english": "Music_Tilte_56",
+        "_traditionalChinese": "",
+        "_simplifiedChinese": "",
+        "_korean": ""
+      },
+      {
+        "_id": "Music_Ruby_Tilte_100063",
+        "_japanese": "オリオンをなぞる",
+        "_english": "Music_Tilte_63",
+        "_traditionalChinese": "",
+        "_simplifiedChinese": "",
+        "_korean": ""
+      },
+      {
+        "_id": "Music_Ruby_Tilte_100109",
+        "_japanese": "夢我夢中",
+        "_english": "",
+        "_traditionalChinese": "",
+        "_simplifiedChinese": "",
+        "_korean": ""
+      },
+      {
+        "_id": "Story_Chapter_Description_6",
+        "_japanese": "早速全国ツアーへ向けて動き出した夢限大みゅーたいぷ。\n看板曲を引っ提げて、いざ！　――といきたいところだが、\nユノの作曲は進捗が思わしくなく……？                ",
+        "_english": "",
+        "_traditionalChinese": "",
+        "_simplifiedChinese": "",
+        "_korean": ""
+      },
+      {
+        "_id": "Story_Chapter_Name_6",
+        "_japanese": "アイの奔流　AtoZ",
+        "_english": "",
+        "_traditionalChinese": "",
+        "_simplifiedChinese": "",
+        "_korean": ""
+      },
+      {
+        "_id": "Story_Episode_Description_601",
+        "_japanese": "そう、全国ツアーの看板曲！",
+        "_english": "",
+        "_traditionalChinese": "",
+        "_simplifiedChinese": "",
+        "_korean": ""
+      },
+      {
+        "_id": "Story_Episode_Description_602",
+        "_japanese": "（ゆめみたらしい曲、ねえ）",
+        "_english": "",
+        "_traditionalChinese": "",
+        "_simplifiedChinese": "",
+        "_korean": ""
+      },
+      {
+        "_id": "Story_Episode_Description_603",
+        "_japanese": "（一体何が引っかかって……）",
+        "_english": "",
+        "_traditionalChinese": "",
+        "_simplifiedChinese": "",
+        "_korean": ""
+      },
+      {
+        "_id": "Story_Episode_Description_604",
+        "_japanese": "これ！　食玩のマジるる指人形です！",
+        "_english": "",
+        "_traditionalChinese": "",
+        "_simplifiedChinese": "",
+        "_korean": ""
+      },
+      {
+        "_id": "Story_Episode_Description_605",
+        "_japanese": "『お世話になっております。\n夢限大みゅーたいぷ、千石ユノです』",
+        "_english": "",
+        "_traditionalChinese": "",
+        "_simplifiedChinese": "",
+        "_korean": ""
+      },
+      {
+        "_id": "Story_Episode_Description_606",
+        "_japanese": "かっこよかったんですっ！",
+        "_english": "",
+        "_traditionalChinese": "",
+        "_simplifiedChinese": "",
+        "_korean": ""
+      },
+      {
+        "_id": "Story_Episode_Description_607",
+        "_japanese": "うん、なんていうか――愛！！",
+        "_english": "",
+        "_traditionalChinese": "",
+        "_simplifiedChinese": "",
+        "_korean": ""
+      },
+      {
+        "_id": "Story_Episode_Description_608",
+        "_japanese": "マジるる指人形、開封の儀ッ！！",
+        "_english": "",
+        "_traditionalChinese": "",
+        "_simplifiedChinese": "",
+        "_korean": ""
+      },
+      {
+        "_id": "Story_Episode_Description_609",
+        "_japanese": "あたしたち、バンドでしょ",
+        "_english": "",
+        "_traditionalChinese": "",
+        "_simplifiedChinese": "",
+        "_korean": ""
+      },
+      {
+        "_id": "Snap_Name_Yuno",
+        "_japanese": "千石 ユノ",
+        "_english": "",
+        "_traditionalChinese": "",
+        "_simplifiedChinese": "",
+        "_korean": ""
+      },
+      {
+        "_id": "Snap_Name_Arale_Nonoka_Ritsu_Miyako",
+        "_japanese": "あられ&ののか&律&都子",
+        "_english": "",
+        "_traditionalChinese": "",
+        "_simplifiedChinese": "",
+        "_korean": ""
+      },
+      {
+        "_id": "Snap_Name_Miyako_Ritsu",
+        "_japanese": "都子＆律",
+        "_english": "",
+        "_traditionalChinese": "",
+        "_simplifiedChinese": "",
+        "_korean": ""
+      },
+      {
+        "_id": "SupportDiary_62",
+        "_japanese": "かっこいいだの、ビッグラブだの\n照れ臭いことをまっすぐに\nキラキラの目で、あいつらは言ってくる\n\nなんだかちょっと懐かしい\nそうだよね\nバンドって、こんな感じだった\n\n音楽を仕事にするのに慣れてきて\n望まれたものは、作れるようになったけど\n今回はなんか、それじゃ嫌かも\n\n胸の奥で鼓動が鳴ってる\n体がいつもより、ほんのちょっとだけ軽い\nひんやりしているはずのこいつも\n今は少し、熱く感じる",
+        "_english": "",
+        "_traditionalChinese": "",
+        "_simplifiedChinese": "",
+        "_korean": ""
+      },
+      {
+        "_id": "SupportDiary_63",
+        "_japanese": "ユノさんちゃん、こちらをどうぞ！\n\nあっ、これは劇場版にて初めて出てきたオブリークニー\nレイズバーションでして、見てくださいここのお腹のあ\nたり！　ちょ〜っとわかりにくいかもなんですけど、マ\nジアームストロングのお腹のところが、ほら！　ムキっ\nて！　ムキってなってるんですよ！　これは映画の中で\n強敵・カネスキヤーネンと戦ったときに、マジアームス\nトロングもマジハムスプリングも一度負けちゃうんです\nけど、そこからこのままじゃダメだ！　って特訓パート\nに入るんです！　二人はカネスキヤーネンのパワーの前\nになすすべもなく〜って感じだったので、じゃあどんな\n攻撃にも負けない強いボディを手に入れようってことに\nなって！　そこで編み出したのが、この！　オブリーク\nニーレイズなんですよ！　これはお腹の横のところを鍛\nえるトレーニングなんですけど、そのおかげでもう一度\n戦った時にはもう全然ムキムキで！　ほんと〜に二人が\nかっこよくってですね〜！　……え？\n\n長くてよくわかんない？　そ、そんな〜〜〜！",
+        "_english": "",
+        "_traditionalChinese": "",
+        "_simplifiedChinese": "",
+        "_korean": ""
+      },
+      {
+        "_id": "SupportDiary_64",
+        "_japanese": "ドーナツとは、摩訶不思議である\n\n常に締め切りに追われる日々\n疲れた脳は糖分を欲する\nそれでも右手のペンを手放せない時\n空いた左手にジャストフィット\n\n美しい円形\nその真ん中にぽっかりと空いた穴\n\nまるでそこに吸い込まれるように\n気が付けば私の手には\n美味しい丸が、収まっているのだ",
+        "_english": "",
+        "_traditionalChinese": "",
+        "_simplifiedChinese": "",
+        "_korean": ""
+      },
+      {
+        "_id": "SupportSubtitle_62",
+        "_japanese": "青く燃える心",
+        "_english": "",
+        "_traditionalChinese": "",
+        "_simplifiedChinese": "",
+        "_korean": ""
+      },
+      {
+        "_id": "SupportSubtitle_63",
+        "_japanese": "マジカルフィジカル・エール！",
+        "_english": "",
+        "_traditionalChinese": "",
+        "_simplifiedChinese": "",
+        "_korean": ""
+      },
+      {
+        "_id": "SupportSubtitle_64",
+        "_japanese": "まあるい休息",
+        "_english": "",
+        "_traditionalChinese": "",
+        "_simplifiedChinese": "",
+        "_korean": ""
+      },
+      {
+        "_id": "Chapter_Title_947",
+        "_japanese": "しんきょく",
+        "_english": "",
+        "_traditionalChinese": "",
+        "_simplifiedChinese": "",
+        "_korean": ""
+      },
+      {
+        "_id": "Chapter_Title_948",
+        "_japanese": "ぼちぼち",
+        "_english": "",
+        "_traditionalChinese": "",
+        "_simplifiedChinese": "",
+        "_korean": ""
+      },
+      {
+        "_id": "Chapter_Title_949",
+        "_japanese": "らしんばん",
+        "_english": "",
+        "_traditionalChinese": "",
+        "_simplifiedChinese": "",
+        "_korean": ""
+      },
+      {
+        "_id": "Chapter_Title_950",
+        "_japanese": "ユノのおんがく",
+        "_english": "",
+        "_traditionalChinese": "",
+        "_simplifiedChinese": "",
+        "_korean": ""
+      },
+      {
+        "_id": "Chapter_Title_951",
+        "_japanese": "しぼりだす",
+        "_english": "",
+        "_traditionalChinese": "",
+        "_simplifiedChinese": "",
+        "_korean": ""
+      },
+      {
+        "_id": "Chapter_Title_952",
+        "_japanese": "ザ・ゆめみた",
+        "_english": "",
+        "_traditionalChinese": "",
+        "_simplifiedChinese": "",
+        "_korean": ""
+      },
+      {
+        "_id": "Chapter_Title_953",
+        "_japanese": "のうひん",
+        "_english": "",
+        "_traditionalChinese": "",
+        "_simplifiedChinese": "",
+        "_korean": ""
+      },
+      {
+        "_id": "Chapter_Title_954",
+        "_japanese": "いざまいる",
+        "_english": "",
+        "_traditionalChinese": "",
+        "_simplifiedChinese": "",
+        "_korean": ""
+      },
+      {
+        "_id": "Chapter_Title_955",
+        "_japanese": "ぎゅうぎゅう",
+        "_english": "",
+        "_traditionalChinese": "",
+        "_simplifiedChinese": "",
+        "_korean": ""
+      }
+    ],
+    "MasterAdv": [
+      {
+        "_id": 10946,
+        "_sheetName": "adv_script_eventstory_6_01",
+        "_advEpisodeAsset": "adv_script_eventstory_6_01",
+        "_titleTextId": "Chapter_Title_947",
+        "_rubyTitleTextId": "",
+        "_playbackMode": 0
+      },
+      {
+        "_id": 10947,
+        "_sheetName": "adv_script_eventstory_6_02",
+        "_advEpisodeAsset": "adv_script_eventstory_6_02",
+        "_titleTextId": "Chapter_Title_948",
+        "_rubyTitleTextId": "",
+        "_playbackMode": 0
+      },
+      {
+        "_id": 10948,
+        "_sheetName": "adv_script_eventstory_6_03",
+        "_advEpisodeAsset": "adv_script_eventstory_6_03",
+        "_titleTextId": "Chapter_Title_949",
+        "_rubyTitleTextId": "",
+        "_playbackMode": 0
+      },
+      {
+        "_id": 10949,
+        "_sheetName": "adv_script_eventstory_6_04",
+        "_advEpisodeAsset": "adv_script_eventstory_6_04",
+        "_titleTextId": "Chapter_Title_950",
+        "_rubyTitleTextId": "",
+        "_playbackMode": 0
+      },
+      {
+        "_id": 10950,
+        "_sheetName": "adv_script_eventstory_6_05",
+        "_advEpisodeAsset": "adv_script_eventstory_6_05",
+        "_titleTextId": "Chapter_Title_951",
+        "_rubyTitleTextId": "",
+        "_playbackMode": 0
+      },
+      {
+        "_id": 10951,
+        "_sheetName": "adv_script_eventstory_6_06",
+        "_advEpisodeAsset": "adv_script_eventstory_6_06",
+        "_titleTextId": "Chapter_Title_952",
+        "_rubyTitleTextId": "",
+        "_playbackMode": 0
+      },
+      {
+        "_id": 10952,
+        "_sheetName": "adv_script_eventstory_6_07",
+        "_advEpisodeAsset": "adv_script_eventstory_6_07",
+        "_titleTextId": "Chapter_Title_953",
+        "_rubyTitleTextId": "",
+        "_playbackMode": 0
+      },
+      {
+        "_id": 10953,
+        "_sheetName": "adv_script_anotherstory_10953",
+        "_advEpisodeAsset": "adv_script_anotherstory_10953",
+        "_titleTextId": "Chapter_Title_954",
+        "_rubyTitleTextId": "",
+        "_playbackMode": 0
+      },
+      {
+        "_id": 10954,
+        "_sheetName": "adv_script_anotherstory_10954",
+        "_advEpisodeAsset": "adv_script_anotherstory_10954",
+        "_titleTextId": "Chapter_Title_955",
+        "_rubyTitleTextId": "",
+        "_playbackMode": 0
+      }
+    ],
+    "MasterChallengeMusicBoostBonus": [
+      {
+        "_id": 1,
+        "_consumedChallengePointCount": 200,
+        "_playerExpRate": 1,
+        "_memberCardExpRate": 1,
+        "_friendshipExpRate": 1,
+        "_eventPointRate": 1,
+        "_liveMusicRewardRate": 1
+      },
+      {
+        "_id": 2,
+        "_consumedChallengePointCount": 400,
+        "_playerExpRate": 2,
+        "_memberCardExpRate": 2,
+        "_friendshipExpRate": 2,
+        "_eventPointRate": 2,
+        "_liveMusicRewardRate": 2
+      },
+      {
+        "_id": 3,
+        "_consumedChallengePointCount": 800,
+        "_playerExpRate": 4,
+        "_memberCardExpRate": 4,
+        "_friendshipExpRate": 4,
+        "_eventPointRate": 4,
+        "_liveMusicRewardRate": 4
+      },
+      {
+        "_id": 4,
+        "_consumedChallengePointCount": 1600,
+        "_playerExpRate": 8,
+        "_memberCardExpRate": 8,
+        "_friendshipExpRate": 8,
+        "_eventPointRate": 8,
+        "_liveMusicRewardRate": 8
+      }
+    ],
+    "MasterLiveChallengePoint": [
+      {
+        "_id": 1,
+        "_scoreRank": 2,
+        "_value": 3
+      },
+      {
+        "_id": 2,
+        "_scoreRank": 3,
+        "_value": 4
+      },
+      {
+        "_id": 3,
+        "_scoreRank": 4,
+        "_value": 5
+      },
+      {
+        "_id": 4,
+        "_scoreRank": 5,
+        "_value": 6
+      },
+      {
+        "_id": 5,
+        "_scoreRank": 6,
+        "_value": 8
+      },
+      {
+        "_id": 6,
+        "_scoreRank": 7,
+        "_value": 10
+      }
+    ]
+  }
+}

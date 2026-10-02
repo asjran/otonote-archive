@@ -61,12 +61,12 @@ class ReleaseCandidatesTest(unittest.TestCase):
         live.mkdir()
         for table in {*TABLES.values(), 'MasterText', 'MasterCharacter', 'MasterBand'}:
             (master / f'{table}.json').write_text('{"_allData": []}')
-        manifest = {'schemaVersion': 2, 'resourceVersion': '192.0.2.10', 'assets': [],
+        manifest = {'schemaVersion': 2, 'resourceVersion': '1.0.0.104', 'assets': [],
                     'masterSha256': {name: digest(master / f'{name}.json') for name in TABLES.values()}}
         (live / 'manifest.json').write_text(json.dumps(manifest))
         capture_gallery_inputs(master, 'remote-release', 'zh-CN', live, frozen)
         (live / 'manifest.json').write_text('{"schemaVersion": 999}')
-        self.assertEqual(project_gallery(master, 'remote-release', 'en', frozen)['resourceVersion'], '192.0.2.10')
+        self.assertEqual(project_gallery(master, 'remote-release', 'en', frozen)['resourceVersion'], '1.0.0.104')
         with self.assertRaisesRegex(ValueError, 'Unsupported gallery manifest'):
             project_gallery(master, 'remote-release', 'en', live)
 

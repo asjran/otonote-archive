@@ -1,12 +1,13 @@
 ---
 import BaseLayout from "../../layouts/BaseLayout.astro";
-import { cardDetailProjections, gameDatabase, publicSkills } from "../../lib/game-database";
-import { bandItemDatabase } from "../../lib/band-items";
+import {itemIndex, skillIndex} from "../../lib/shared-database";
+import {catalog} from "../../lib/shared-catalog";
+import { bandItemDatabase } from "../../lib/shared-band-items";
 import "../../styles/database.css";
 
 const projectionCount =
-  cardDetailProjections.memberCards.length +
-  cardDetailProjections.supportCards.length;
+  catalog.memberCards.length +
+  catalog.supportCards.length;
 ---
 
 <BaseLayout title="游戏数据库">
@@ -18,8 +19,8 @@ const projectionCount =
         <p>查找技能、道具和乐队强化，也可以从卡牌反查它们的用途与条件。</p>
       </div>
       <div class="db-hero-index" aria-label="数据库收录统计">
-        <div><span>SKILLS</span><strong>{publicSkills.length}</strong></div>
-        <div><span>ITEMS</span><strong>{gameDatabase.items.length}</strong></div>
+        <div><span>SKILLS</span><strong>{skillIndex.length}</strong></div>
+        <div><span>ITEMS</span><strong>{itemIndex.length}</strong></div>
         <div><span>BAND ITEMS</span><strong>{bandItemDatabase.items.length}</strong></div>
         <div><span>CARD VIEWS</span><strong>{projectionCount}</strong></div>
       </div>
@@ -34,7 +35,7 @@ const projectionCount =
           <h2>从规则进入，或从卡牌反查</h2>
           <p>选择技能或道具查看详细效果、获取方式、升级材料和关联卡牌。</p>
         </div>
-        <span class="db-version">SOURCE / {gameDatabase.sourceReleaseId}</span>
+        <span class="db-version">日服与国际版合并收录</span>
       </header>
 
       <div class="db-ledger">
@@ -45,7 +46,7 @@ const projectionCount =
             <h2>技能索引</h2>
             <p>五类技能的全部等级、条件分支、目标和关联卡牌。</p>
           </div>
-          <strong>{publicSkills.length}</strong>
+          <strong>{skillIndex.length}</strong>
           <span class="db-ledger-arrow">→</span>
         </a>
         <a class="db-ledger-row" href="/database/items/">
@@ -55,7 +56,7 @@ const projectionCount =
             <h2>道具索引</h2>
             <p>查看道具被哪些技能等级、Rank 或觉醒阶段使用。</p>
           </div>
-          <strong>{gameDatabase.items.length}</strong>
+          <strong>{itemIndex.length}</strong>
           <span class="db-ledger-arrow">→</span>
         </a>
         <a class="db-ledger-row" href="/database/band-items/">

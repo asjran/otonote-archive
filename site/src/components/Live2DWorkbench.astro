@@ -1,6 +1,6 @@
 ---
-import { catalog, getAsset } from '../lib/catalog';
-import models from '../data/live2d-catalog.json';
+import { catalog, getAsset } from '../lib/shared-catalog';
+import models from '../lib/shared-live2d';
 import { activeReleaseContext } from '../lib/release-context';
 import { siteHref } from '../lib/site-context';
 import '../styles/live2d.css';
@@ -38,7 +38,7 @@ const payload = { models: selectedModels, characters, characterId, base, en, com
     <p class="l2d-picker-tip">{say('先选角色，再点选造型。浏览和搜索时，当前预览会保持不变。', 'Choose a character, then a look. Browsing keeps your current preview unchanged.')}</p>
     <div class="l2d-picker-body">
       <section class="l2d-roster" aria-label={say('角色列表', 'Characters')}>
-        <label class="l2d-search-label"><span>{say('查找角色', 'Find character')}</span><input type="search" class="l2d-search" data-character-search aria-label={say('搜索角色', 'Search characters')} placeholder={say('姓名、别名或资源名', 'Name, alias or resource name')} /></label>
+        <label class="l2d-search-label"><span>{say('查找角色', 'Find character')}</span><input type="search" class="l2d-search" data-character-search aria-label={say('搜索角色', 'Search characters')} placeholder={say('搜索所有角色的姓名或别名', 'Search all character names or aliases')} /></label>
         <div class="l2d-chips" data-character-groups aria-label={say('角色分组', 'Character groups')}></div>
         <p class="l2d-result-count" data-library-count role="status"></p>
         <div class="l2d-character-list" data-character-list></div>
@@ -97,9 +97,10 @@ const payload = { models: selectedModels, characters, characterId, base, en, com
         <h3>{say('动作与表情', 'Motion & expression')}</h3>
         <input type="search" class="l2d-search" data-clip-search disabled aria-label={say('搜索动作与表情', 'Search motions and expressions')} placeholder={say('搜索动作 / 表情…', 'Search motions / expressions…')} />
         <label>{say('动作', 'Motion')}<select data-motion disabled><option value="">—</option></select></label>
-        <div class="l2d-play-actions"><button type="button" data-play disabled>{say('播放', 'Play')}</button><button type="button" data-stop disabled>{say('停止', 'Stop')}</button><label class="l2d-check"><input type="checkbox" data-loop />{say('循环', 'Loop')}</label></div>
+        <div class="l2d-clip-shortcuts" data-motion-shortcuts aria-label={say('快捷播放动作', 'Quick motions')}></div><div class="l2d-play-actions"><button type="button" data-play disabled>{say('播放', 'Play')}</button><button type="button" data-stop disabled>{say('停止', 'Stop')}</button><label class="l2d-check"><input type="checkbox" data-loop />{say('循环', 'Loop')}</label></div>
         <p class="l2d-playing" data-playing role="status">—</p>
         <label>{say('表情', 'Expression')}<select data-expression disabled><option value="">{say('默认', 'Default')}</option></select></label>
+        <div class="l2d-clip-shortcuts" data-expression-shortcuts aria-label={say('快捷切换表情', 'Quick expressions')}></div>
       </section>
       <section class="l2d-controls">
         <h3>{say('自动效果', 'Automatic effects')}</h3>

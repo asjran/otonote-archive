@@ -1,0 +1,38 @@
+---
+import { homeEventTiming } from '../lib/home-content.mjs';
+interface Props { start: number | null; end: number | null; en: boolean }
+const { start, end, en } = Astro.props;
+const timing = homeEventTiming(start, end, Date.now(), en);
+---
+<home-event-timing data-start={start} data-end={end} data-en={String(en)} data-state={timing.state}>
+  <span class="home-event-tag home-event-tag--status" data-timing-label>{timing.label}</span>
+  <span class="home-event-tag" data-timing-end hidden={!timing.endLabel}>{timing.endLabel}</span>
+</home-event-timing>
+<script>
+  import { homeEventTiming } from '../lib/home-content.mjs';
+  class HomeEventTiming extends HTMLElement {
+    private timer?: ReturnType<typeof setInterval>;
+    private refresh = () => {
+      const timing = homeEventTiming(this.dataset.start ? Number(this.dataset.start) : null,
+        this.dataset.end ? Number(this.dataset.end) : null, Date.now(), this.dataset.en === 'true');
+      this.dataset.state = timing.state;
+      const label = this.querySelector('[data-timing-label]');
+      const end = this.querySelector<HTMLElement>('[data-timing-end]');
+      if (label) label.textContent = timing.label;
+      if (end) { end.textContent = timing.endLabel; end.hidden = !timing.endLabel; }
+    };
+    connectedCallback() {
+      this.refresh();
+      clearInterval(this.timer);
+      this.timer = setInterval(this.refresh, 30000);
+      document.addEventListener('visibilitychange', this.refresh);
+      window.addEventListener('pageshow', this.refresh);
+    }
+    disconnectedCallback() {
+      clearInterval(this.timer);
+      document.removeEventListener('visibilitychange', this.refresh);
+      window.removeEventListener('pageshow', this.refresh);
+    }
+  }
+  if (!customElements.get('home-event-timing')) customElements.define('home-event-timing', HomeEventTiming);
+</script>

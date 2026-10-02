@@ -1,3 +1,4 @@
+import {scopedStorageKey, currentServerContext, assertAccountServer} from './game-servers.mjs';
 import { toolRoute } from "./tool-route.mjs";
 import {
   createGekisouScenario,
@@ -6,12 +7,14 @@ import {
 import {
   createTeamDraft,
   serializeTeamDraftSearch,
+  serializeTeamDraftJson,
+  parseScopedTeamDraftJson,
   validateTeamDraft
 } from "./team-draft.mjs";
 
 const SVG_NS = "http://www.w3.org/2000/svg";
 const COLORS = ["#38bdf8", "#fb923c", "#c084fc", "#4ade80", "#facc15"];
-const STORAGE_KEY = "ournotes:gekisou-lab:v1";
+const STORAGE_KEY = scopedStorageKey('gekisou-lab:v1');
 const JUDGEMENT_LABELS = ["perfect", "great", "good", "hit", "miss"];
 
 const element = (name, className, text) => {
@@ -291,7 +294,7 @@ class GekisouBattleLab extends HTMLElement {
     if (preset) preset.value = participant.performancePlan.preset;
     const json = this.querySelector("[data-gekisou-team-json]");
     if (json && document.activeElement !== json) {
-      json.value = JSON.stringify(participant.teamDraft, null, 2);
+      json.value = serializeTeamDraftJson(participant.teamDraft);
     }
     const link = this.querySelector("[data-gekisou-team-link]");
     if (link instanceof HTMLAnchorElement) {
@@ -593,7 +596,7 @@ class GekisouBattleLab extends HTMLElement {
     const json = this.querySelector("[data-gekisou-team-json]");
     const status = this.querySelector("[data-gekisou-team-status]");
     try {
-      const draft = createTeamDraft(JSON.parse(json?.value || "{}"));
+      const draft = parseScopedTeamDraftJson(json?.value || "{}");
       const issues = validateTeamDraft(draft, this.known);
       if (issues.length > 0) throw new Error(issues.map((entry) => entry.message).join("；"));
       const participant = this.focusedParticipant();
@@ -927,6 +930,7 @@ class GekisouBattleLab extends HTMLElement {
   persist(scenario) {
     const payload = {
       sourceReleaseId: this.data.sourceReleaseId,
+      ...currentServerContext(),
       trackId: this.trackId,
       difficulty: this.difficulty,
       mode: this.mode,
@@ -943,13 +947,15 @@ class GekisouBattleLab extends HTMLElement {
       // Local persistence is optional; the portable JSON remains available.
     }
     const params = new URLSearchParams();
+    const server = currentServerContext().serverId;
+    if (server) params.set('server', server);
     params.set("song", this.trackId);
     params.set("difficulty", this.difficulty);
     params.set("participants", String(this.participants.length));
     params.set("mode", this.mode);
     window.history.replaceState(null, "", `${window.location.pathname}?${params}${window.location.hash}`);
     const json = this.querySelector("[data-gekisou-scenario-json]");
-    if (json && document.activeElement !== json) json.value = JSON.stringify(scenario, null, 2);
+    if (json && document.activeElement !== json) json.value = JSON.stringify({...scenario, ...currentServerContext()}, null, 2);
   }
 
   async copyScenario() {
@@ -968,6 +974,7 @@ class GekisouBattleLab extends HTMLElement {
     const status = this.querySelector("[data-gekisou-copy-status]");
     try {
       const parsed = JSON.parse(json?.value || "{}");
+      assertAccountServer(parsed.serverId);
       if (parsed.sourceReleaseId !== this.data.sourceReleaseId) {
         throw new Error("场景 Release 与当前站点不一致");
       }

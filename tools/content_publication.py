@@ -21,6 +21,11 @@ ROOT = Path(__file__).resolve().parents[1]
 MEDIA_GROUPS = ('media', 'gallery', 'live2d', 'immersive', 'auto-stage', 'growth', 'system-banners', 'mission-rewards')
 
 
+def pointer_directory(store, region):
+    if region not in {'global', 'jp'}: raise ValueError('unsupported content region')
+    return store if region == 'global' else store / region
+
+
 def write(path, value):
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(value, ensure_ascii=False, separators=(',', ':')) + '\n')
@@ -69,7 +74,7 @@ def rewrite(value, root, locale, release):
     return value
 
 
-def publish_content(candidate, store, *, scoring_rules=None):
+def publish_content(candidate, store, *, scoring_rules=None, expected_current=None):
     candidate, store = Path(candidate).resolve(), Path(store).resolve()
     if candidate == store or candidate in store.parents or store in candidate.parents: raise ValueError('content store overlaps candidate')
     source = read_json(candidate / 'candidate.json')
@@ -77,9 +82,12 @@ def publish_content(candidate, store, *, scoring_rules=None):
         raise ValueError('content requires a verified production candidate')
     verify_tree(candidate, source['files'], exclude=('candidate.json',))
     regions = source['regions']
-    if len(regions) != 1 or regions[0]['region'] != 'global' or regions[0]['channel'] != 'production': raise ValueError('unsupported content region')
+    if len(regions) != 1 or regions[0]['region'] not in {'global', 'jp'} or regions[0]['channel'] != 'production': raise ValueError('unsupported content region')
     region = regions[0]; release = region['contentReleaseId']
-    if not re.fullmatch('[A-Za-z0-9_-]+', release) or region['path'] != 'global/' + release: raise ValueError('unsafe content release')
+    edition = region['region']
+    if not re.fullmatch('[A-Za-z0-9_-]+', release) or region['path'] != edition + '/' + release: raise ValueError('unsafe content release')
+    pointers = pointer_directory(store, edition)
+    pointers.mkdir(parents=True, exist_ok=True)
     source_root = candidate / region['path']
     rules_path = Path(scoring_rules) if scoring_rules else source_root/'supplemental-data/formal-scoring-rules.json'
     if scoring_rules and not rules_path.is_file(): raise ValueError('scoring rules file is missing')
@@ -89,18 +97,24 @@ def publish_content(candidate, store, *, scoring_rules=None):
     else:
         # Old sealed candidates may predate the scoring artifact. Only the
         # original audited dataset may use the bundled baseline as a fallback.
-        rules = read_json(ROOT/'site/src/data/formal-scoring-rules.json')
+        rules = read_json(ROOT/'packages/scoring/data/formal-scoring-rules.json')
         if rules.get('sourceReleaseId') != release:
             rules = {'schemaVersion':1,'sourceReleaseId':release,'verificationStatus':'unavailable'}
-    derivative_sources = [ROOT/'tools/live2d_transport.py', ROOT/'tools/content_derivatives.mjs', ROOT/'site/src/lib/song-ranking-data.mjs',
-        ROOT/'site/src/lib/song-ranking.mjs',ROOT/'site/src/lib/scoring-release-gate.mjs',ROOT/'site/src/data/formal-scoring-rules.json']
-    derivative_sources += sorted((ROOT/'site/src/lib/scoring-rules').glob('*.mjs'))
+    derivative_sources = [ROOT/'tools/library_metadata.py', ROOT/'tools/live2d_transport.py', ROOT/'tools/content_derivatives.mjs', ROOT/'packages/scoring/server/song-ranking-data.mjs',
+        ROOT/'packages/scoring/song-ranking.mjs', ROOT/'packages/scoring/song-ranking-meta.mjs',
+        ROOT/'packages/scoring/song-ranking-view.mjs', ROOT/'packages/scoring/song-skill-windows.mjs',
+        ROOT/'packages/scoring/scoring-engine.mjs', ROOT/'packages/scoring/scoring-release-gate.mjs',ROOT/'packages/scoring/data/formal-scoring-rules.json']
+    derivative_sources += sorted((ROOT/'packages/scoring/scoring-rules').glob('*.mjs'))
     derivative_hash = ''.join(file_hash(p) for p in derivative_sources)
     identity = hashlib.sha256((file_hash(candidate / 'candidate.json') + file_hash(Path(__file__)) + derivative_hash + json.dumps(rules,sort_keys=True) + str(SCHEMA)).encode()).hexdigest()[:24]
     public_root = '/content/releases/' + identity + '/'
     (store / 'releases').mkdir(parents=True, exist_ok=True)
     with (store / '.publication.lock').open('a+') as lock:
         fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        if expected_current is not None:
+            actual = file_hash(pointers/'current.json') if (pointers/'current.json').is_file() else ''
+            if actual != expected_current:
+                raise ValueError('published content changed during candidate confirmation')
         final = store / 'releases' / identity
         if final.is_symlink(): raise ValueError('linked content release')
         if not final.exists():
@@ -118,12 +132,12 @@ def publish_content(candidate, store, *, scoring_rules=None):
                     probe.unlink(missing_ok=True)
                 locales = [p['locale'] for p in region['projections']]
                 if sorted(locales) != ['en','zh-CN']: raise ValueError('unsupported content locales')
-                contexts = [{'contentReleaseId':release,'region':'global','channel':'production','locale':locale,
+                contexts = [{'contentReleaseId':release,'region':edition,'channel':'production','locale':locale,
                              'catalogPath':public_root+locale+'/catalog.json'} for locale in locales]
                 for group in MEDIA_GROUPS:
-                    shutil.copytree(source_root / 'public' / group, stage / 'public' / group, copy_function=link_or_copy)
+                    shutil.copytree(source_root / 'public' / group, stage / 'public' / group, copy_function=link_or_copy, ignore=shutil.ignore_patterns('.DS_Store'))
                 bundle_live2d_tree(stage / 'public' / 'live2d')
-                manifest = {'schemaVersion':SCHEMA,'contentReleaseId':release,'root':public_root,'locales':{},
+                manifest = {'schemaVersion':SCHEMA,'contentReleaseId':release,'region':edition,'channel':'production','root':public_root,'locales':{},
                             'limitations':['formal_gameplay_not_verified']}
                 for context in contexts:
                     locale = context['locale']; records = {'files':{},'groups':{}}
@@ -134,6 +148,8 @@ def publish_content(candidate, store, *, scoring_rules=None):
                         records['files'][name] = record(target)
                     for path in sorted(data.rglob('*.json')):
                         relative = str(path.relative_to(data)); value = read_json(path)
+                        from tools.library_metadata import enrich_projection
+                        value = enrich_projection(relative, value, source_root/'public', data)
                         if relative == 'catalog.json' and value.get('projectionContext') != {k:context[k] for k in ('contentReleaseId','region','channel','locale')}:
                             raise ValueError('mixed projection identity')
                         # Media index has an internal digest of the rewritten records.
@@ -152,7 +168,11 @@ def publish_content(candidate, store, *, scoring_rules=None):
                         value['totalBytes'] = sum(item['byteSize'] for item in value['files'])
                         project('projection/database-shards/manifest.json',locale+'/database-shards/manifest.json',value)
                     for name in ('live2d-catalog.json','immersive-scenes.json','auto-stage-skin.json'):
-                        project('supplemental/'+name,locale+'/_supplemental/'+name,read_json(source_root/'supplemental-data'/name))
+                        value = read_json(source_root/'supplemental-data'/name)
+                        if name == 'immersive-scenes.json':
+                            from tools.library_metadata import enrich_scenes
+                            value = enrich_scenes(value, source_root/'public')
+                        project('supplemental/'+name,locale+'/_supplemental/'+name,value)
                     project('supplemental/music-previews.json',locale+'/_supplemental/music-previews.json',{'contentReleaseId':release,'tracks':{}})
                     project('supplemental/formal-scoring-rules.json',locale+'/_supplemental/formal-scoring-rules.json',rules)
                     if 'musicCharts' in read_json(data/'catalog.json'):
@@ -184,28 +204,30 @@ def publish_content(candidate, store, *, scoring_rules=None):
         if receipt.get('candidateSha256') != file_hash(candidate/'candidate.json'): raise ValueError('content candidate binding mismatch')
         verify_tree(final,receipt['files'],exclude=('.receipt.json',))
         pointer = {'schemaVersion':SCHEMA,'contentReleaseId':release,'manifest':public_root+'manifest.json','sha256':file_hash(final/'manifest.json')}
-        current = store/'current.json'
+        current = pointers/'current.json'
         if current.exists() and read_json(current) == pointer:
             return {'status':'unchanged','snapshot':str(final),'pointer':pointer}
         if current.exists():
-            temporary = store/'.previous.next.json'; temporary.write_bytes(current.read_bytes()); os.replace(temporary,store/'previous.json')
-        temporary = store/'.current.next.json'; write(temporary,pointer); os.replace(temporary,current)
+            temporary = pointers/'.previous.next.json'; temporary.write_bytes(current.read_bytes()); os.replace(temporary,pointers/'previous.json')
+        temporary = pointers/'.current.next.json'; write(temporary,pointer); os.replace(temporary,current)
         return {'status':'content_published','snapshot':str(final),'pointer':pointer}
 
 
-def rollback_content(store):
+def rollback_content(store, *, region='global'):
     store=Path(store).resolve()
+    pointers=pointer_directory(store, region)
     with (store/'.publication.lock').open('a+') as lock:
         fcntl.flock(lock,fcntl.LOCK_EX|fcntl.LOCK_NB)
-        previous=read_json(store/'previous.json')
+        previous=read_json(pointers/'previous.json')
         match=re.fullmatch(r'/content/releases/([a-f0-9]{24})/manifest.json',previous.get('manifest',''))
         if previous.get('schemaVersion')!=SCHEMA or not match: raise ValueError('invalid rollback pointer')
         target=store/'releases'/match[1]
         if target.is_symlink() or file_hash(target/'manifest.json')!=previous['sha256']: raise ValueError('rollback manifest mismatch')
+        if read_json(target/'manifest.json').get('region', 'global') != region: raise ValueError('rollback edition mismatch')
         verify_tree(target,read_json(target/'.receipt.json')['files'],exclude=('.receipt.json',))
-        current=(store/'current.json').read_bytes()
-        write(store/'.current.next.json',previous);os.replace(store/'.current.next.json',store/'current.json')
-        (store/'.previous.next.json').write_bytes(current);os.replace(store/'.previous.next.json',store/'previous.json')
+        current=(pointers/'current.json').read_bytes()
+        write(pointers/'.current.next.json',previous);os.replace(pointers/'.current.next.json',pointers/'current.json')
+        (pointers/'.previous.next.json').write_bytes(current);os.replace(pointers/'.previous.next.json',pointers/'previous.json')
         return {'status':'content_rolled_back','pointer':previous}
 
 
@@ -214,7 +236,8 @@ if __name__ == '__main__':
     parser.add_argument('--candidate',type=Path); parser.add_argument('--store',type=Path,required=True)
     parser.add_argument('--scoring-rules',type=Path,help='Version-bound rules for an existing sealed candidate')
     parser.add_argument('--rollback',action='store_true')
+    parser.add_argument('--region',choices=('global','jp'),default='global',help='Edition to roll back')
     args = parser.parse_args()
     if bool(args.candidate)==args.rollback: parser.error('choose --candidate or --rollback')
     if args.rollback and args.scoring_rules: parser.error('--scoring-rules requires --candidate')
-    print(json.dumps(rollback_content(args.store) if args.rollback else publish_content(args.candidate,args.store,scoring_rules=args.scoring_rules),ensure_ascii=False,indent=2))
+    print(json.dumps(rollback_content(args.store,region=args.region) if args.rollback else publish_content(args.candidate,args.store,scoring_rules=args.scoring_rules),ensure_ascii=False,indent=2))

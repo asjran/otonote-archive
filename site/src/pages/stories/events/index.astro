@@ -1,0 +1,14 @@
+---
+import BaseLayout from '../../../layouts/BaseLayout.astro';
+import EventArchive from '../../../components/EventArchive.astro';
+import {eventRecords, eventHref, eventArtworks, eventIdentities} from '../../../lib/event-pages';
+import {readableEventStoryCounts} from '../../../lib/event-stories';
+import {eventCopy} from '../../../lib/event-copy';
+import {activeReleaseContext} from '../../../lib/release-context';
+const copy = eventCopy(activeReleaseContext.locale);
+---
+<BaseLayout title={copy.stories} description={copy.storyIntro}>
+  <EventArchive story archive={{records:eventRecords, definitionCount:eventRecords.length}}
+    locale={activeReleaseContext.locale} href={eventHref} artworks={eventArtworks}
+    identities={eventIdentities} readableCounts={readableEventStoryCounts} />
+</BaseLayout>

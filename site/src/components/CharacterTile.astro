@@ -1,4 +1,5 @@
 ---
+import EditionBadge from "./EditionBadge.astro";
 import { getAsset, getBand, type Character } from "../lib/catalog";
 import { activeReleaseContext } from "../lib/release-context";
 import { getUi } from "../lib/ui-i18n";
@@ -35,7 +36,7 @@ const titleDensity = classifyTileTitleDensity(character.displayName);
   data-band={character.bandId}
   data-label={character.masterId.toString().padStart(6, "0")}
 >
-  <a class="tile-media portrait-media" href={`/characters/${character.id}/`}>
+  <a class="tile-media portrait-media" href={character.sourceHref ?? `/characters/${character.id}/`}>
     {asset ? (
       <ImageStage
         class="tile-image-stage"
@@ -51,13 +52,13 @@ const titleDensity = classifyTileTitleDensity(character.displayName);
   </a>
   <div class="tile-body">
     <StatusTag status={character.catalogStatus} dotOnly />
-    <div class="tile-icon-row">
+    <div class="tile-icon-row"><EditionBadge record={character} />
       {band && <BandMark band={band} href={`/characters/?band=${band.id}`} compact iconOnly />}
     </div>
-    <h2><a href={`/characters/${character.id}/`}>{character.displayName}</a></h2>
+    <h2><a href={character.sourceHref ?? `/characters/${character.id}/`}>{character.displayName}</a></h2>
     <p>
       <span title={character.role}>{character.role}</span>
-      <a class="tile-arrow" href={`/characters/${character.id}/`} aria-label={ui.viewArchive}>→</a>
+      <a class="tile-arrow" href={character.sourceHref ?? `/characters/${character.id}/`} aria-label={ui.viewArchive}>→</a>
     </p>
   </div>
 </article>

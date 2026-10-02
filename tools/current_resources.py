@@ -5,6 +5,7 @@ import hashlib
 from pathlib import Path
 import re
 import shutil
+import tempfile
 import zipfile
 
 from tools.global_remote_sync import acquire, file_hash, read_json, write_json, remote_path
@@ -35,8 +36,15 @@ class CurrentResources:
         if decoder and (decoder.get('signatureVerified') is not True or file_hash(self.apk) != decoder['apkSha256']):
             raise ValueError('decoder APK provenance mismatch')
         self.metadata = MetadataV39(self.metadata_path)
-        self.key = field_bytes(self.metadata, KEY_FIELD_USAGE, 16)
-        self.seed = field_bytes(self.metadata, NONCE_SEED_FIELD_USAGE, 8)
+        if decoder:
+            from tools.bundle_decoder import resolve_bundle_decoder
+            self.key, self.seed, binding = resolve_bundle_decoder(self.metadata, decoder['clientVersion'])
+            if decoder.get('bundleDecoderBindingSha256') != binding:
+                raise ValueError('bundle decoder binding changed since intake')
+        else:
+            # Historical offline mode already requires the exact pinned metadata.
+            self.key = field_bytes(self.metadata, KEY_FIELD_USAGE, 16)
+            self.seed = field_bytes(self.metadata, NONCE_SEED_FIELD_USAGE, 8)
         self.downloaded, self.budget = 0, max_download_bytes
         self.imports = {}
         self.used = {}
@@ -117,9 +125,17 @@ class CurrentResources:
         if imported and imported[0].is_file() and imported[0].stat().st_size == loc.expected_size:
             if file_hash(imported[0]) != imported[1]: raise ValueError('import resource digest mismatch')
             path.parent.mkdir(parents=True, exist_ok=True)
-            shutil.copyfile(imported[0], path)
-            row = {'url': url, 'sha256': imported[1], 'byteSize': path.stat().st_size, 'origin': 'verified-local'}
-            write_json(receipt, row)
+            # Never truncate a cache inode that may also belong to sealed inputs.
+            with tempfile.TemporaryDirectory(prefix='.import-', dir=path.parent) as staging:
+                temporary = Path(staging) / 'bundle'
+                shutil.copyfile(imported[0], temporary)
+                if temporary.stat().st_size != loc.expected_size or file_hash(temporary) != imported[1]:
+                    raise ValueError('import resource copy integrity mismatch')
+                row = {'url': url, 'sha256': imported[1], 'byteSize': loc.expected_size, 'origin': 'verified-local'}
+                # As with downloads, a receipt may survive an interrupted rename;
+                # the next lookup validates both bytes and receipt before reuse.
+                write_json(receipt, row)
+                temporary.replace(path)
         else:
             if self.downloaded + loc.expected_size > self.budget:
                 raise ValueError('resource download budget exceeded; cache retained')

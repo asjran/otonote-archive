@@ -1,19 +1,29 @@
+import type {EditionRecord} from "./catalog";
 import { activeReleaseContext } from "./release-context";
+import { gameModeDatabase } from "./game-modes";
+import { validatedEvents, decorateEventStories } from "./event-content.mjs";
+import { eventCopy } from "./event-copy";
 
 export type StoryCategory = "band" | "viewpoint" | "friendship";
-export type StoryKind = "main" | "extra" | "viewpoint" | "friendship";
+export type StoryKind = "main" | "extra" | "viewpoint" | "friendship" | "event";
 export const storyKinds = ["main", "extra", "viewpoint", "friendship"] as const;
-export function storyKind(entry: Pick<TextStoryEntry, "category" | "isExtra">): StoryKind {
+export function storyKind(entry: Pick<TextStoryEntry, "category" | "isExtra" | "eventId">): StoryKind {
+  if (entry.eventId != null) return "event";
   return entry.category === "band" ? (entry.isExtra ? "extra" : "main") : entry.category;
 }
 
-export interface TextStoryEntry {
+export interface TextStoryEntry extends EditionRecord {
+  contentIdentity?:string; sourceSha256?:string;
+  eventId?: number;
+  eventSection?: "main" | "another" | "extra";
+  fallbackTextCount?: number;
   id: string; category: StoryCategory; title: string; description: string;
   chapterId: number | null; chapterName: string; characterIds: number[];
   bandIds: number[]; group: string; episodeNumber: number; isExtra: boolean;
   friendshipLevel: number; lineCount: number; previousId: string | null; nextId: string | null;
 }
 export interface TextStoryLine {
+  locale?: string;
   id: string; sourceIndex: number;
   kind: "dialogue" | "chat" | "narration" | "location" | "subtitle" | "stamp";
   speaker: string; text: string;
@@ -35,6 +45,7 @@ if (storyLibrary.schemaVersion !== 1 || storyLibrary.sourceReleaseId !== activeR
     || storyLibrary.locale !== activeReleaseContext.locale) {
   throw new Error("Story library does not match this release and locale");
 }
+storyLibrary.entries = decorateEventStories(storyLibrary.entries, validatedEvents(gameModeDatabase.events, activeReleaseContext));
 const categoryOrder = { band: 0, viewpoint: 1, friendship: 2 };
 storyLibrary.entries.sort((a, b) => categoryOrder[a.category] - categoryOrder[b.category]
   || Math.min(...a.bandIds) - Math.min(...b.bandIds)
@@ -100,9 +111,11 @@ const ja: Copy = { ...en, title: "ストーリー", intro: "バンドの出会�
   source: "出典と注意事項", sourceNote: "選択したサーバーのゲーム内の物語を掲載しています。テキスト版のため、映像・動作・音声は含みません。スタンプは説明文で表示します。", font: "文字サイズ", normal: "標準", large: "大きい", end: "この話はここまで", group: "同じシリーズ", top: "先頭へ" };
 export const storyCopy: Copy = ({ "zh-CN": zh, "zh-TW": tw, ja, en })[activeReleaseContext.locale];
 export function episodeLabel(entry: TextStoryEntry): string {
+  if (entry.eventSection === "another") return `Another · ${storyCopy.episode}${entry.episodeNumber}${storyCopy.episodeEnd}`;
   return `${entry.isExtra ? `${storyCopy.extra} · ` : ""}${storyCopy.episode}${entry.episodeNumber}${storyCopy.episodeEnd}`;
 }
 
 export function storyKindLabel(kind: StoryKind): string {
+  if (kind === "event") return eventCopy(activeReleaseContext.locale).stories;
   return kind === "extra" ? storyCopy.extraStory : storyCopy[kind];
 }

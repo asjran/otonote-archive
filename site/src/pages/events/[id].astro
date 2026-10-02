@@ -1,0 +1,11 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import EventDetail from "../../components/EventDetail.astro";
+import { eventRecords, eventHref, eventIdentities, eventCards, eventArtworks, eventMedia } from "../../lib/event-pages";
+import { activeReleaseContext } from "../../lib/release-context";
+export function getStaticPaths() { return eventRecords.map(event => ({ params: { id: String(event.id) } })); }
+const event = eventRecords.find(event => String(event.id) === Astro.params.id)!;
+---
+<BaseLayout title={event.name} editionCounterparts={event.editionPresence?.counterparts}>
+  <EventDetail archive={{ records: [event], definitionCount: 1 }} locale={activeReleaseContext.locale} href={eventHref} artworks={eventArtworks} identities={eventIdentities} cards={eventCards} media={eventMedia} />
+</BaseLayout>

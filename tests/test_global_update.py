@@ -19,7 +19,7 @@ class WorkflowTests(unittest.TestCase):
         self.plan = self.root / 'inputs.json'
         write_json(self.plan, {'environments': []})
         self.config = {'workspace': self.workspace, 'baseline': self.root / 'baseline', 'inputPlan': self.plan}
-        self.synced = {'inputPlan': str(self.plan), 'observation': {'resourceVersion': '192.0.2.10'}}
+        self.synced = {'inputPlan': str(self.plan), 'observation': {'resourceVersion': '1.0.0.104'}}
         self.package = {'package': {'url': 'https://example.invalid/game.apk'}, 'packageChanged': False}
 
     def test_lock_excludes_concurrent_writer(self):
@@ -52,6 +52,33 @@ class WorkflowTests(unittest.TestCase):
         retry.command.assert_not_called()
         self.assertEqual(json.loads(again.call_args.kwargs['scoring_rules'].read_text())['reason'],'updated-model')
 
+    def test_content_success_defers_retention_and_preserves_old_builds_and_inputs(self):
+        self.config['contentPublication']={'root':str(self.root/'content')}
+        write_json(self.plan, {'environments':[{'masterRoot':str(self.root/'missing-master'),'contentReleaseId':'current'}]})
+        old_build=self.workspace/'builds'/('b'*20)
+        orphan_build=self.workspace/'builds'/('c'*20)
+        old_input=self.workspace/'sync-complete/1.0.0-aaaaaaaa-bbbbbbbb-complete-v1-cccccccc/inputs/release-inputs.json'
+        old_content=self.root/'content/releases'/('d'*24)/'manifest.json'
+        for path in (old_build/'content-publication.json',orphan_build/'content-publication.json',old_input,old_content):
+            write_json(path,{'fixture':'preserve'})
+        protected={path:path.read_bytes() for path in (old_build/'content-publication.json',orphan_build/'content-publication.json',old_input,old_content)}
+        write_json(self.workspace/'state.json',{'inputPlanSha256':'old','buildDirectory':str(old_build),
+                                              'retainedBuilds':[str(orphan_build)]})
+        journal=workflow.Journal(self.workspace,'run')
+        journal.command=Mock(side_effect=lambda name,args:write_json(
+            Path(args[args.index('--output')+1])/'candidate.json',{'inputPlanSha256':file_hash(self.plan)}))
+        with patch('tools.content_publication.publish_content',return_value={'status':'content_published'}), \
+             patch('tools.content_retention.cleanup_content',side_effect=AssertionError('automatic content deletion')) as content_cleanup, \
+             patch('tools.update_retention.cleanup',side_effect=AssertionError('automatic input deletion')) as input_cleanup:
+            result=self.invoke(journal)
+        content_cleanup.assert_not_called();input_cleanup.assert_not_called()
+        self.assertEqual(result['retention'],{'status':'deferred_to_operations'})
+        self.assertIn(str(old_build),result['retainedBuilds'])
+        self.assertEqual(json.loads((self.workspace/'state.json').read_text()),result)
+        self.assertEqual(protected,{path:path.read_bytes() for path in protected})
+        self.assertEqual(journal.report['steps'][-1]['name'],'save-success')
+        self.assertTrue(all(row['status']=='passed' for row in journal.report['steps']))
+
     def test_failed_step_records_error_without_success_state(self):
         journal = workflow.Journal(self.workspace, 'run')
         with self.assertRaisesRegex(ValueError, 'network'):
@@ -59,6 +86,42 @@ class WorkflowTests(unittest.TestCase):
         report = json.loads((self.workspace / 'latest-run.json').read_text())
         self.assertEqual((report['status'], report['failedStep']), ('failed', 'sync-inputs'))
         self.assertFalse((self.workspace / 'state.json').exists())
+
+    def test_projection_change_rebuilds_same_inputs_and_preserves_legacy_candidate(self):
+        self.config['contentPublication']={'root':str(self.root/'content')}
+        write_json(self.plan, {'environments':[{'masterRoot':str(self.root/'missing-master'),'contentReleaseId':'current'}]})
+        legacy=self.workspace/'builds'/'legacy'
+        write_json(legacy/'candidate/candidate.json',{'inputPlanSha256':file_hash(self.plan)})
+        original=(legacy/'candidate/candidate.json').read_bytes()
+        write_json(self.workspace/'state.json',{'inputPlanSha256':file_hash(self.plan),'buildDirectory':str(legacy)})
+        def compile_data(name,args):
+            self.assertEqual(name,'compile-data')
+            write_json(Path(args[args.index('--output')+1])/'candidate.json',{'inputPlanSha256':file_hash(self.plan)})
+        paths=[]
+        for fingerprint, expected in [('a'*64,1),('a'*64,0),('b'*64,1)]:
+            journal=workflow.Journal(self.workspace,'run');journal.command=Mock(side_effect=compile_data)
+            with patch.object(workflow,'chart_projection_fingerprint',return_value=fingerprint), \
+                 patch('tools.content_publication.publish_content',return_value={'status':'content_published'}), \
+                 patch('tools.content_retention.cleanup_content'), patch('tools.update_retention.cleanup'):
+                result=self.invoke(journal)
+            self.assertEqual(journal.command.call_count,expected)
+            self.assertEqual(result['chartProjectionFingerprint'],fingerprint)
+            paths.append(result['buildDirectory'])
+        self.assertEqual(paths[0],paths[1]);self.assertNotEqual(paths[0],paths[2])
+        self.assertEqual((legacy/'candidate/candidate.json').read_bytes(),original)
+
+    def test_projection_changed_during_build_is_not_published(self):
+        self.config['contentPublication']={'root':str(self.root/'content')}
+        write_json(self.plan, {'environments':[{'masterRoot':str(self.root/'missing-master'),'contentReleaseId':'current'}]})
+        journal=workflow.Journal(self.workspace,'run')
+        journal.command=Mock(side_effect=lambda name,args:write_json(
+            Path(args[args.index('--output')+1])/'candidate.json',{'inputPlanSha256':file_hash(self.plan)}))
+        with patch.object(workflow,'chart_projection_fingerprint',side_effect=['a'*64,'b'*64]), \
+             patch('tools.content_publication.publish_content') as publish:
+            with self.assertRaisesRegex(ValueError,'inputs changed'):
+                self.invoke(journal)
+            publish.assert_not_called()
+        self.assertFalse((self.workspace/'state.json').exists())
 
     def invoke(self, journal, **kwargs):
         with patch.object(workflow, 'doctor'), patch.object(workflow, 'package_check', return_value=self.package), \
@@ -176,7 +239,7 @@ class WorkflowTests(unittest.TestCase):
 
     def test_resource_check_does_not_advance_success_checkpoint(self):
         observation = {'environment': 'global-production', 'areaId': '2', 'clientVersion': '1.0.1',
-                       'resourceVersion': '192.0.2.10', 'masterVersion': 'a', 'catalogHash': 'b', 'cdnRoot': 'https://example.invalid'}
+                       'resourceVersion': '1.0.0.104', 'masterVersion': 'a', 'catalogHash': 'b', 'cdnRoot': 'https://example.invalid'}
         path = self.root / 'observation.json'
         write_json(path, observation)
         self.config['initialObservation'] = path

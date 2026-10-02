@@ -1,6 +1,6 @@
 /** Presentation only: no game data or current-version request is needed. */
 export function loadingKind(pathname) {
-  const path = pathname.replace(/^\/global\/(zh-CN|en)(?=\/|$)/, '').replace(/\/+$/, '') || '/';
+  const path = pathname.replace(/^\/(?:global|jp)\/(zh-CN|en)(?=\/|$)/, '').replace(/\/+$/, '') || '/';
   if (path === '/') return 'home';
   if (/^\/stories\/episodes\//.test(path)) return 'story';
   if (/^\/(cards\/(members|supports)|characters|music)\/[^/]+$/.test(path) && path !== '/music/bgm') return 'detail';

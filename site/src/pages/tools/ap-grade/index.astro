@@ -1,0 +1,59 @@
+---
+import "../../../styles/tool-studio.css";
+import BaseLayout from '../../../layouts/BaseLayout.astro';
+import ToolPageHeader from '../../../components/ToolPageHeader.astro';
+import {catalog,getAsset} from '../../../lib/catalog';
+import {filterVisualOptions} from '../../../lib/filter-visuals';
+import {gameModeDatabase} from '../../../lib/game-modes';
+import {globalSystems} from '../../../lib/global-systems';
+import formalRules from '../../../data/formal-scoring-rules.json';
+import {withAPScoreThresholds} from '../../../lib/ap-grade.mjs';
+import {scoringRulesAvailable} from '../../../lib/scoring-release-gate.mjs';
+import {activeReleaseContext} from '../../../lib/release-context';
+import {siteHref} from '../../../lib/site-context';
+import '../../../styles/tools.css';
+import '../../../styles/event-efficiency.css';
+import '../../../styles/ap-grade.css';
+const available=scoringRulesAvailable(formalRules,catalog.release.id),href=(p:string)=>siteHref(p,activeReleaseContext);
+const cards=(rows:any[])=>rows.map(c=>({id:c.id,displayName:c.displayName,attributeCode:c.attributeCode,imageUrl:getAsset(c.thumbnailAssetId)?.previewUrl??null}));
+const data=JSON.stringify({rules:withAPScoreThresholds(formalRules,catalog.musicTracks),filterVisualOptions,memberCards:cards(catalog.memberCards),supportCards:cards(catalog.supportCards),tracks:catalog.musicTracks,
+ charts:catalog.musicCharts.map(({id,trackId,difficulty,level,duration,analysisDataUrl})=>({id,trackId,difficulty,level,duration,analysisDataUrl})),
+ vipRanks:globalSystems.sourceReleaseId===catalog.release.id?globalSystems.vipRanks:[]}).replaceAll('<','\\u003c');
+const events=available?((formalRules.tables.Event??[]) as Array<{_id:number;_eventType:number}>).filter(e=>e._eventType===1):[];
+---
+<BaseLayout title="队伍 AP 估分">
+<div class="tool-studio" data-tool-kind="ap-grade">
+ <ToolPageHeader kind="ap-grade" title="队伍 AP 估分" description="选一支队伍，找出更容易打到高档位的歌曲。AP 指所有音符均为 Perfect。" meta="队伍估分 · 分档线 · 选歌" />
+ <section class="catalog-section"><div class="content-shell">
+ <p class="event-links"><a href={href('/tools/song-ranking/')+(href('/tools/song-ranking/').includes('?')?'&':'?')+'view=grade'}>无需选卡：查看各首歌的达档综合力与分数线 →</a></p>
+ {available?<ap-grade-tool class="event-workbench ap-workbench">
+  <script is:inline type="application/json" data-ap-inputs set:html={data}></script>
+  <section class="event-panel ap-lineup-panel"><h2><span class="studio-step">1</span>确认当前队伍</h2><p>选择已保存队伍，或点击卡面连续填入成员和留影。自动读取本区服已保存养成。</p>
+   <div class="event-controls"><label>已保存队伍<select data-ap-presets data-quick-native><option value="">选择一支队伍</option></select></label><label class="event-eco" hidden><input data-ap-owned type="checkbox" />只显示已拥有卡片</label></div>
+   <div class="ap-team" data-ap-team></div><p class="ap-lineup-hint">左右滑动查看五个位置 · 点击卡位即可更换</p>
+   <p data-ap-growth class="event-hint"></p>
+   <div class="event-links"><a data-ap-edit href={href('/tools/deck-builder/')}>编辑队伍与养成 →</a><a href={href('/my-growth/')}>导入或管理养成 →</a></div>
+  </section>
+  <section class="event-panel ap-settings-panel"><h2><span class="studio-step">2</span>预测歌曲档位</h2>
+   <div class="ap-option-groups">
+    <div class="event-controls ap-mode-controls"><label>演出<select data-ap-mode data-quick><option value="ordinary">普通</option><option value="challenge" disabled={!events.length}>挑战</option></select></label><label data-ap-event-wrap>挑战活动<select data-ap-event data-quick-native>{events.map(e=><option value={e._id}>{gameModeDatabase.events.records?.find(r=>r.id===e._id)?.name??`活动 ${e._id}`}</option>)}</select></label></div>
+    <label>谱面难度<select data-ap-difficulty data-quick><option value="all">全部</option><option data-difficulty="expert" value="expert" selected>EXPERT</option><option data-difficulty="hard" value="hard">HARD</option><option data-difficulty="normal" value="normal">NORMAL</option><option data-difficulty="easy" value="easy">EASY</option></select></label>
+    <label class="ap-level-control">等级上限<input data-ap-level data-quick="20,25,28,30,40" type="number" min="1" max="40" value="40" /></label>
+   </div>
+   <label class="event-eco"><input type="checkbox" data-ap-eco checked />节能计算（推荐）</label>
+   <p class="event-hint">按 AP、满生命、无辅助估分，仅计算当前队伍，不搜索其他卡组。普通与挑战分别计算，激奏需使用团队结算档位。接近分档线时请用实打确认。</p>
+   <div class="event-controls"><button class="event-primary" data-ap-run>计算各首歌的 AP 档位</button><button data-ap-cancel hidden>停止判档计算</button></div><p data-ap-status role="status"></p>
+  </section>
+  <section class="event-panel ap-results-panel"><h2><span class="studio-step">3</span>选歌与联动</h2><p>平均、最低和最高估分对应不同技能顺序。切换下方判档依据或排序会直接使用已算出的结果，无需重新计算。</p>
+   <div class="ap-option-groups">
+    <label>判档依据<select data-ap-basis data-quick><option value="expectedScore">平均分</option><option value="minimumScore">最低分</option><option value="maximumScore">最高分</option></select></label>
+    <label>排列顺序<select data-ap-sort data-quick><option value="grade">档位优先</option><option value="short">短歌优先</option><option value="score">估分优先</option></select></label>
+    <label>歌曲搜索<input type="search" data-ap-query placeholder="输入歌曲名称" /></label>
+   </div><p class="event-hint">档位优先时，同档歌曲按时长排列。</p>
+   <div data-ap-results class="event-rec-results"></div><div class="event-rec-pagination"><button data-ap-prev>上一页</button><span data-ap-page></span><button data-ap-next>下一页</button></div><div data-ap-failures></div>
+  </section>
+ </ap-grade-tool>:<div class="event-panel">当前版本暂不可计算 AP 档位。</div>}
+ </div></section>
+</div>
+</BaseLayout>
+<script>import '../../../lib/ap-grade-ui.mjs';</script>

@@ -1,0 +1,9 @@
+---
+import {presenceLabel} from '../lib/edition-library.mjs';
+import {activeReleaseContext} from '../lib/release-context';
+import '../styles/edition-context.css';
+interface Props { record?: {editionPresence?: {status:string; editions:string[]; different?:boolean}}; variant?: 'inline'|'index' }
+const {record,variant='inline'} = Astro.props;
+const label = presenceLabel(record?.editionPresence, activeReleaseContext.locale === 'en');
+---
+{label && <span class:list={['edition-mark',`edition-mark--${variant}`]}>{label}</span>}

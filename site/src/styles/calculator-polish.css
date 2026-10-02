@@ -60,6 +60,21 @@
 [data-shell] .team-workbench .account-growth fieldset { margin:0; padding:12px; border:1px solid var(--calc-line); border-radius:8px; }
 [data-shell] .team-workbench .account-growth legend { font-size:12px; font-weight:600; }
 [data-shell] .team-workbench .account-growth form button { background:var(--lacquer); color:var(--paper-light); padding:10px 15px; border-radius:8px; min-height:42px; }
+.growth-import-methods { display:grid; grid-template-columns:minmax(0,1.2fr) minmax(0,1fr); gap:24px; margin:20px 0; }
+.growth-import-method { min-width:0; }
+.growth-import-method+.growth-import-method { border-left:1px solid var(--calc-line); padding-left:24px; }
+.growth-import-method h3 { margin:0 0 10px; font:600 16px/1.5 var(--font-display); }
+.growth-login-fields { display:grid; gap:12px; }
+.growth-login-fields label { display:grid; gap:6px; font-size:12px; color:var(--calc-muted); }
+.growth-login-fields input { width:100%; min-width:0; box-sizing:border-box; }
+.growth-sr-only { position:absolute; width:1px; height:1px; padding:0; overflow:hidden; clip-path:inset(50%); white-space:nowrap; }
+[data-shell] .team-workbench .growth-import-method fieldset { border:0; padding:0; }
+.growth-import-method .inventory-toolbar>label { width:100%; }
+.growth-import-method [data-growth-tool-link] { color:var(--lacquer); font-size:12px; text-underline-offset:3px; text-decoration:underline; }
+@media(max-width:850px) {
+ .growth-import-methods { grid-template-columns:minmax(0,1fr); gap:20px; }
+ .growth-import-method+.growth-import-method { border-left:0; border-top:1px solid var(--calc-line); padding:20px 0 0; }
+}
 [data-shell] .team-workbench .inventory-toolbar { gap:8px; }
 [data-shell] .team-workbench .inventory-selection { padding:10px; background:var(--paper); border-radius:8px; }
 [data-shell] .team-workbench .inventory-selection button { font-size:11px; padding:8px; }

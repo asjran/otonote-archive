@@ -1,3 +1,5 @@
+import {currentServerContext, GAME_SERVERS} from '../lib/game-servers.mjs';
+import {restoreServerLabels} from '../lib/server-label.mjs';
 import { pageContext } from './content.mjs';
 import { renderToString, renderContext } from './astro.mjs';
 import { localizeHtmlWithStats } from '../lib/html-localizer.ts';
@@ -27,8 +29,9 @@ export async function renderPageResource(input, app, context, options = {}) {
 }
 
 async function start() {
+  currentServerContext(); // Reject mismatched explicit server links before loading data.
   const context = pageContext();
-  if (!location.pathname.startsWith('/global/')) { location.replace(context.base); return; }
+  if (!/^\/(global|jp)\//.test(location.pathname)) { location.replace(context.base); return; }
   globalThis.__OURNOTES_BASE__ = context.base;
   const root = new URL('./', import.meta.url);
   globalThis[Symbol.for('ournotes.code-root.v1')] = root.href;
@@ -47,10 +50,11 @@ async function start() {
   if (html instanceof Response) { location.replace(html.headers.get('location')); return; }
   if (context.locale === 'en') html = localizeHtmlWithStats(html, 'en').html;
   const documentNext = new DOMParser().parseFromString(html, 'text/html');
+  restoreServerLabels(documentNext, GAME_SERVERS);
   for (const element of documentNext.querySelectorAll('[href],[src],[poster],[data-src]')) {
     for (const name of ['href','src','poster','data-src']) {
       const value = element.getAttribute(name);
-      const resource = value?.replace(/^\/global\/(zh-CN|en)/, '');
+      const resource = value?.replace(/^\/(?:global|jp)\/(zh-CN|en)/, '');
       if (/^\/(vendor|brand|images)\//.test(resource ?? '') || resource === '/favicon.svg') {
         element.setAttribute(name, new URL(resource.slice(1), root).href);
         continue;
@@ -59,7 +63,7 @@ async function start() {
         element.setAttribute(name, content.root + 'public' + resource);
         continue;
       }
-      if (value?.startsWith('/') && !/^\/(?:\/|global\/|content\/|app\/|anontokyo\/)/.test(value)) element.setAttribute(name, context.base + value.slice(1));
+      if (value?.startsWith('/') && !/^\/(?:\/|global\/|jp\/|content\/|app\/|anontokyo\/)/.test(value)) element.setAttribute(name, context.base + value.slice(1));
     }
   }
   // Download independent interaction modules together, preserving execution order.

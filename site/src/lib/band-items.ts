@@ -1,5 +1,6 @@
 import bandItemData from "@projection-data/band-items.json";
 import { validateArtifact } from "./artifact-contracts";
+import type {EditionRecord} from './catalog';
 
 export type BandItemInterpretationStatus = "identified" | "partial";
 
@@ -28,7 +29,8 @@ export interface BandItemLevel {
   }[] | null;
 }
 
-export interface BandItemDefinition {
+export interface BandItemDefinition extends EditionRecord {
+  contentIdentity?: string;
   id: string;
   masterId: number;
   name: string;

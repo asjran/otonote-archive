@@ -26,6 +26,7 @@
 /analysis/crypto/*
 !/analysis/crypto/*.py
 !/analysis/crypto/*.md
+!/analysis/crypto/verify_chart_catalog.mjs
 !/analysis/crypto/requirements.txt
 
 # Site dependencies and build artifacts
@@ -63,8 +64,36 @@ __pycache__/
 .pytest_cache/
 .coverage
 
-# Private inputs and third-party content are never source publications.
+# Private configuration is never source. Existing tracked files need reviewed
+# index removal separately; check-repository.sh checks the index itself.
+/config/*
+!/config/examples/
+!/config/site-product.json
+!/config/performance/
+/config/performance/*
+!/config/performance/gates.product-v1.json
+!/config/performance/gates.v1.json
+!/config/performance/browser-baseline.v1.json
+!/config/*.example.*
+!/config/*.template.*
+/packaging/growth-tool/sdk.*.xml
+!/packaging/growth-tool/sdk.example.xml
+/.claude/
+/.codex/
+/.agents/
 /node_modules/
+*.pem
+*.key
+*.p12
+*.pfx
+*.keystore
+*.jks
+# Historical operational records and host-specific installation scripts.
+/docs/reports/
+/docs/history/
+/docs/research/
+/docs/superpowers/
+/deploy/admin/aliyun/
 /site/src/data/
 /site/public/vendor/live2d/*.js
 /site/public/auto-stage/
@@ -75,11 +104,3 @@ __pycache__/
 /site/public/images/filter-bands/
 /site/public/gallery/*
 !/site/public/gallery/loading-mark.svg
-/config/release-inputs.json
-/config/global-update*.json
-*.pem
-*.key
-*.p12
-*.pfx
-*.sqlite*
-*.db

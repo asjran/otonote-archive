@@ -217,19 +217,20 @@ class TestBundleAndImages:
         assert not (images.root / name).exists()
 
 
-class TestOfficialSignature:
-    def test_official_public_key_vector_and_raw_body_verification(self):
+class TestSignature:
+    def test_synthetic_public_key_vector_and_raw_body_verification(self):
         key = key_from_secret(SECRET)
-        assert list(key.public_key().public_bytes(Encoding.Raw, PublicFormat.Raw)) == [215, 195, 98, 254, 120, 174, 248, 31, 242, 50, 135, 180, 147, 98, 139, 93, 176, 42, 60, 79, 227, 11, 33, 94, 77, 25, 96, 155, 93, 118, 103, 58]
+        # Fixed public vector for the explicit synthetic test-secret fixture.
+        assert list(key.public_key().public_bytes(Encoding.Raw, PublicFormat.Raw)) == [68, 251, 147, 29, 67, 193, 203, 106, 16, 223, 115, 189, 230, 49, 135, 168, 55, 112, 139, 32, 7, 50, 154, 119, 209, 128, 170, 219, 189, 140, 96, 72]
         body = b'{ "op": 0,"d": {}, "t": "GATEWAY_EVENT_NAME"}'
         signature = key.sign(b"1725442341" + body).hex()
         assert verify(SECRET, body, "1725442341", signature, now=1725442341)
         assert not verify(SECRET, body + b" ", "1725442341", signature, now=1725442341)
         assert not verify(SECRET, body, "1725442341", signature, now=1725442741)
 
-    def test_inconsistent_published_signature_is_rejected(self):
-        # The official page's displayed body/signature do not match. Do not normalize
-        # the body or weaken verification to accommodate this documentation example.
+    def test_unrelated_published_signature_is_rejected(self):
+        # A published sample signature is unrelated to our synthetic credentials.
+        # Verification must reject it without normalizing the request body.
         signature = "865ad13a61752ca65e26bde6676459cd36cf1be609375b37bd62af366e1dc25a8dc789ba7f14e017ada3d554c671a911bfdf075ba54835b23391d509579ed002"
         assert not verify(SECRET, b'{ "op": 0,"d": {}, "t": "GATEWAY_EVENT_NAME"}', "1725442341", signature, now=1725442341)
 

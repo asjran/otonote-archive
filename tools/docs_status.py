@@ -23,9 +23,14 @@ TABLE_ROW = re.compile(
     r"\|\s*(?P<verified>.*?)\s*\|$"
 )
 BACKTICK_PATH = re.compile(r"`([^`]+)`")
-DESIGN_ROOTS = (
-    Path("docs/superpowers/specs"),
-    Path("docs/superpowers/plans"),
+# Public, current operating documents. Private historical plans are deliberately
+# outside this registry; publication must not require reintroducing them.
+GOVERNANCE_DOCUMENTS = (
+    "docs/DEVELOPMENT_GOVERNANCE_PLAN.md",
+    "docs/DEVELOPMENT_WORKFLOW.md",
+    "docs/CONFIGURATION_POLICY.md",
+    "docs/OPERATIONS.md",
+    "docs/RANKING_OPERATIONS.md",
 )
 
 
@@ -69,13 +74,11 @@ def validate_status_index(repo_root: Path, status_path: Path) -> list[str]:
     if not seen:
         errors.append("status index contains no document entries")
     expected = {
-        path.relative_to(repo_root).as_posix()
-        for design_root in DESIGN_ROOTS
-        for path in (repo_root / design_root).glob("*.md")
-        if path.is_file()
+        document for document in GOVERNANCE_DOCUMENTS
+        if (repo_root / document).is_file()
     }
     for document in sorted(expected - seen):
-        errors.append(f"design document is not registered: {document}")
+        errors.append(f"governance document is not registered: {document}")
     return errors
 
 

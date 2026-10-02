@@ -1,3 +1,4 @@
+import type {EditionRecord} from "./catalog";
 import summaryData from "@projection-data/database-shards/summary.json";
 import skillIndexData from "@projection-data/database-shards/skills-index.json";
 import itemIndexData from "@projection-data/database-shards/items-index.json";
@@ -80,7 +81,8 @@ export interface SkillDefinition {
   interpretationStatus: InterpretationStatus;
 }
 
-export interface SkillIndexRecord {
+export interface SkillIndexRecord extends EditionRecord {
+  contentIdentity?:string;
   id: string;
   masterId: number;
   kind: SkillKind;
@@ -194,7 +196,8 @@ export interface Item {
   catalogStatus: "identified" | "missing_asset";
 }
 
-export interface ItemIndexRecord {
+export interface ItemIndexRecord extends EditionRecord {
+  contentIdentity?:string;
   id: string;
   masterId: number;
   name: string;

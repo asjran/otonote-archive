@@ -1,0 +1,47 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import InventoryEditor from '../../components/InventoryEditor.astro';
+import AccountGrowthImport from '../../components/AccountGrowthImport.astro';
+import ScoringUnavailable from '../../components/ScoringUnavailable.astro';
+import {catalog, getAsset} from '../../lib/catalog';
+import {memberCards, supportCards, skillFilters} from '../../lib/inventory-catalog';
+import {globalSystems} from '../../lib/global-systems';
+import {bandItemDatabase} from '../../lib/band-items';
+import formalRules from '../../data/formal-scoring-rules.json';
+import {scoringRulesAvailable} from '../../lib/scoring-release-gate.mjs';
+import {activeReleaseContext} from '../../lib/release-context';
+import {siteHref} from '../../lib/site-context';
+import '../../styles/tools.css';
+import '../../styles/calculator-workflow.css';
+import '../../styles/calculator-selection.css';
+import '../../styles/calculator-polish.css';
+import '../../styles/personal-growth.css';
+const available=scoringRulesAvailable(formalRules,catalog.release.id);
+const href=(path:string)=>import.meta.env.BASE_URL==='/'?path:siteHref(path,activeReleaseContext);
+const data=JSON.stringify({formalRules,memberCards,supportCards,skillFilterFacets:skillFilters.facets,
+  vipRanks:globalSystems.sourceReleaseId===catalog.release.id?globalSystems.vipRanks:[],
+  characters:catalog.characters.map(c=>({id:c.masterId,name:c.displayName})),
+  instruments:bandItemDatabase.items.map(i=>({id:i.masterId,name:i.name})),
+  attributeVisuals:catalog.cardTaxonomy.attributes.map(a=>({code:a.code,name:a.names[catalog.release.locale],color:a.color,iconUrl:getAsset(a.iconAssetId)?.previewUrl??null}))
+}).replaceAll('<','\\u003c');
+---
+<BaseLayout title="我的养成">
+ <section class="personal-growth-page">
+  <header class="personal-growth-heading"><p>OTONOTE / MY COLLECTION</p><h1>我的养成</h1><div>管理持有卡牌与账号养成，各工具共用当前区服的档案。</div></header>
+  {available ? <personal-growth-workbench class="team-workbench personal-growth-workbench">
+   <script is:inline type="application/json" data-personal-growth-data set:html={data}></script>
+   <section class="personal-growth-summary" aria-label="当前养成档案"><div><span data-profile-server>当前区服</span><h2>个人养成档案</h2><p data-profile-summary role="status">正在读取已保存的养成…</p></div><p>保存在当前浏览器。更换设备或清理浏览器前，请导出 JSON 备份。</p></section>
+   <nav class="personal-growth-tools" aria-label="使用我的养成"><a href={href('/tools/deck-builder/')}>卡组配队</a><a href={href('/tools/song-calculator/')}>歌曲计算</a><a href={href('/tools/event-efficiency/')}>活动收益计算</a></nav>
+   <AccountGrowthImport standalone />
+   <InventoryEditor standalone rarities={catalog.cardTaxonomy.rarities.map(r=>({value:r.code,label:r.label}))} />
+   <section class="personal-account" aria-labelledby="personal-account-title"><h2 id="personal-account-title">账号养成</h2><p>空白表示未记录；乐器等级 0 表示未拥有。修改后保存，供各工具使用。</p>
+    <form data-profile-account-form><label class="personal-tgw">TGW 等级<select data-profile-tgw><option value="">未记录</option></select></label>
+     <details><summary>乐器与乐队道具</summary><div class="personal-account-fields" data-profile-instruments></div></details>
+     <details><summary>角色评级</summary><div class="personal-account-fields" data-profile-characters></div></details>
+     <div class="inventory-toolbar"><button type="submit" class="growth-primary">保存账号养成</button><button type="button" data-profile-account-reset>恢复已保存的值</button></div><p data-profile-account-status role="status"></p>
+    </form>
+   </section>
+  </personal-growth-workbench> : <ScoringUnavailable />}
+ </section>
+</BaseLayout>
+<script>import '../../lib/personal-growth-ui.mjs';</script>

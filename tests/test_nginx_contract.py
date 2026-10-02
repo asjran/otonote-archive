@@ -12,7 +12,7 @@ NGINX_TEMPLATE = REPO_ROOT / "deploy/nginx.conf.template"
 class NginxContractTest(unittest.TestCase):
     def test_access_log_exposes_capacity_rejection_without_sensitive_fields(self) -> None:
         source = NGINX_TEMPLATE.read_text(encoding="utf-8")
-        access_format = source[: source.index("limit_conn_zone")]
+        access_format = source[: source.index("server {")]
         self.assertIn('"limit_conn_status":"$limit_conn_status"', access_format)
         self.assertIn('"limit_req_status":"$limit_req_status"', access_format)
         self.assertNotIn("$http_cookie", access_format)
@@ -20,7 +20,7 @@ class NginxContractTest(unittest.TestCase):
         self.assertNotIn("$request_body", access_format)
         self.assertNotIn("$request_uri", access_format)
 
-    def test_hashed_media_is_immutable_and_media_parallelism_supports_auto(self) -> None:
+    def test_hashed_media_is_immutable_and_media_limits_are_removed(self) -> None:
         source = NGINX_TEMPLATE.read_text(encoding="utf-8")
         marker = 'location ~* "^/(?:media|(?:jp|global)'
         start = source.index(marker)
@@ -34,9 +34,12 @@ class NginxContractTest(unittest.TestCase):
             'Cache-Control "public, max-age=31536000, immutable";',
             immutable_media,
         )
-        self.assertIn("limit_conn ournotes_media_per_ip 8;", source)
-        self.assertIn("limit_conn ournotes_media_global 24;", source)
-        self.assertNotIn("limit_conn ournotes_media_per_ip 2;", source)
+        for config in (NGINX_TEMPLATE, REPO_ROOT / "deploy/independent-content.locations.conf"):
+            with self.subTest(config=config.name):
+                self.assertNotRegex(
+                    config.read_text(encoding="utf-8"),
+                    re.compile(r"^\s*limit_(?:conn(?:_zone)?|req(?:_zone)?|rate(?:_after)?)\s", re.MULTILINE),
+                )
 
 
 class NginxQueryDisabledContractTest(unittest.TestCase):

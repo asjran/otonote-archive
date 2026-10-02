@@ -14,6 +14,7 @@ const projection = moduleUrl(`
   export const catalog = { release: { id: "remote-hotfix", locale: "en" },
     memberCards: [], supportCards: [], musicTracks: [], musicCharts: [], bands: [], characters: [], cardTaxonomy: { attributes: [], rarities: [] } };
   export const cardDetailProjections = { memberCards: [], supportCards: [] };
+  export const memberCards = [], supportCards = [], projections = [], skillFilters = {};
   export const globalSystems = { sourceReleaseId: "remote-hotfix", vipRanks: [] };
   export const bandItemDatabase = { items: [] };
   export const activeReleaseContext = { locale: "en" };
@@ -21,6 +22,7 @@ const projection = moduleUrl(`
   export const TEAM_RULE_SET = {};
   export const getAsset = () => null, getBand = () => null, getCharacter = () => null,
     getCardRarity = () => null, getCardAttribute = () => null;
+  export const filterVisual = () => ({});
   export const getRuntimeUiLabels = () => ({ locale: "en", teamDraft: {}, scoringResearch: {} });
   export default { sourceReleaseId: "previous-release", verificationStatus: "code_audited" };
 `);
@@ -46,7 +48,8 @@ for (const name of ["TeamDraftWorkbench", "ScoringResearchWorkbench"]) {
     const { default: Component } = await import(await component(name));
     const html = await container.renderToString(Component);
     assert.match(html, /data-scoring-unavailable/);
-    assert.match(html, /Calculation tools are awaiting verification/);
+    assert.match(html, /Calculation data unavailable/);
+    assert.match(html, /missing or incompatible/);
     assert.doesNotMatch(html, /data-team-draft-data|data-scoring-research-data|data-song-select/);
   });
 }

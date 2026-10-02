@@ -1,15 +1,17 @@
 ---
+import '../styles/tool-ux.css';
+import ToolGlyph from './ToolGlyph.astro';
 import { activeReleaseContext } from '../lib/release-context';
 import { siteHref } from '../lib/site-context';
-interface Props { title: string; description: string; meta?: string; directory?: boolean; }
-const {title,description,meta,directory=false}=Astro.props;
+interface Props { title: string; description: string; meta?: string; directory?: boolean; kind?: string; }
+const {title,description,meta,directory=false,kind}=Astro.props;
 const href=import.meta.env.BASE_URL==='/'?'/tools/':siteHref('/tools/',activeReleaseContext);
 ---
 <header class="tool-page-header" data-copy-layer="primary">
   <div class="content-shell tool-page-header-inner">
     <div class="tool-page-heading">
       {!directory && <a class="tool-page-back" href={href}>游戏工具 <span aria-hidden="true">/</span></a>}
-      <h1>{title}</h1>
+      <h1>{kind && <span class="tool-title-glyph" aria-hidden="true"><ToolGlyph kind={kind} /></span>}{title}</h1>
       <p>{description}</p>
     </div>
     {meta && <span class="tool-page-meta">{meta}</span>}

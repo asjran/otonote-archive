@@ -20,6 +20,7 @@ export function renderOptimizerResults(workbench,results,{mode,objective,live=fa
     row.append(teamLineup(workbench,result.draft));
     if(result.sections?.length)row.append(scoreComposition(result.sections,result.expectedScore));
     if(objective!=='formation_power')row.append(el('p',`综合力 ${number(result.power)} · ${mode==='gekisou'?'抽样':'技能顺序'}范围 ${number(result.minimumScore)} – ${number(result.maximumScore)}`,'recommendation-caption'));
+    if(result.scoreDistribution)row.append(el('p',`${result.scoreDistribution.kind==='seed_samples'?'样本':'技能顺序'} P10 ${number(result.scoreDistribution.p10)} 分 · ${result.scoreDistribution.count} 次 · 条件估算，非实战保底`,'recommendation-caption'));
     const actions=el('div',null,'recommendation-actions'),apply=el('button','应用这支队伍');apply.type='button';
     // Applying changes the input and invalidates any active search.
     apply.addEventListener('click',()=>{workbench.draft=structuredClone(result.draft);workbench.commit();workbench.dispatchEvent(new CustomEvent('calculator-edit-team'));workbench.querySelector('#team-editor')?.scrollIntoView({block:'start',behavior:'auto'});});actions.append(apply);

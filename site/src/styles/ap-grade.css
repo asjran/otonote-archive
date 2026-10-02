@@ -1,0 +1,31 @@
+.ap-workbench{display:grid;gap:24px}.ap-workbench h2{margin-bottom:16px}.ap-team{display:grid;gap:12px;margin:20px 0}.ap-team-row{display:grid;grid-template-columns:48px minmax(0,1fr) minmax(0,1fr);gap:12px;align-items:start;padding-bottom:12px;border-bottom:1px solid #eeeaf0}.ap-team-row>strong{padding-top:22px;font-size:12px}.ap-team-row label{min-width:0}.ap-team-row select{width:100%}.ap-card-meta{font-size:11px;color:var(--calc-muted);line-height:1.6}.ap-workbench .event-controls{row-gap:16px}.ap-result-actions{display:flex;flex-wrap:wrap;gap:12px;margin-top:12px}.ap-threshold{color:var(--calc-accent)!important;font-weight:600}.ap-workbench .event-eco{font-size:13px}
+@media(max-width:640px){.ap-team-row{grid-template-columns:minmax(0,1fr)}.ap-team-row>strong{padding:0}.ap-workbench .event-controls label{flex-basis:100%}.ap-team-row select{font-size:12px}.ap-workbench .event-rec-results{grid-template-columns:minmax(0,1fr)}}
+
+.ap-card-preview{width:40px;height:44px;object-fit:cover;border-radius:5px}.ap-team-row label:has(.ap-card-preview){grid-template-columns:40px minmax(0,1fr)}.ap-card-preview{grid-column:1;grid-row:2/4}.ap-team-row label:has(.ap-card-preview) select,.ap-team-row label:has(.ap-card-preview) .ap-card-meta{grid-column:2}
+
+.tool-studio ap-grade-tool.ap-workbench{gap:14px}
+.tool-studio .ap-workbench h2{margin-bottom:10px}
+.tool-studio .ap-workbench .studio-step{width:22px;height:22px;margin-right:7px;border-radius:5px;font-size:11px}
+.tool-studio .ap-workbench .event-panel>p{margin-block:8px}
+.tool-studio .ap-workbench .event-controls{gap:8px 12px}
+.tool-studio .ap-workbench .ap-team{gap:8px;margin:12px 0}
+.tool-studio .ap-workbench .ap-option-groups{display:grid;gap:10px;margin:12px 0}
+.tool-studio .ap-workbench .ap-option-groups>label{gap:5px;padding:0;border:0;font-size:11px}
+.tool-studio .ap-workbench .ap-mode-controls{grid-template-columns:auto minmax(0,1fr);align-items:end;gap:8px 14px}
+.tool-studio .ap-mode-controls>label{gap:5px}
+.tool-studio .ap-mode-controls>label:first-child{flex:0 1 auto}
+.tool-studio .ap-workbench .ap-level-control{grid-template-columns:64px 64px minmax(0,1fr);align-items:center;gap:6px}
+.tool-studio .ap-workbench .ap-level-control input{width:64px}
+.tool-studio .ap-results-panel .ap-option-groups{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 16px}
+.tool-studio .ap-results-panel .ap-option-groups>label:last-child{grid-column:1/-1;grid-template-columns:64px minmax(0,1fr);align-items:center}
+.tool-studio .ap-workbench .ap-result-actions{gap:8px;margin-top:8px}
+.tool-studio .ap-workbench .event-rec-results{gap:10px;margin-top:12px}
+.tool-studio .ap-workbench .event-rec-row{padding:12px;border-radius:7px}
+.tool-studio .ap-workbench .event-rec-pagination{gap:10px;margin:12px 0 0}
+@media(max-width:640px){
+ .tool-studio .ap-workbench .ap-mode-controls{grid-template-columns:auto minmax(0,1fr)}
+ .tool-studio .ap-results-panel .ap-option-groups{grid-template-columns:minmax(0,1fr)}
+ .tool-studio .ap-results-panel .ap-option-groups>label{grid-template-columns:64px minmax(0,1fr);align-items:center}
+ .tool-studio .ap-workbench .ap-level-control{grid-template-columns:56px 56px minmax(0,1fr)}
+ .tool-studio .ap-workbench .ap-level-control input{width:56px}
+}

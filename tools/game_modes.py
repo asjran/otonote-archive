@@ -6,6 +6,8 @@ import json
 from pathlib import Path
 from typing import Any, Iterable
 
+from tools.event_catalog import build_event_archive
+
 
 class GameModeError(ValueError):
     """Raised when mode evidence cannot be read without guessing."""
@@ -53,6 +55,7 @@ def empty_game_modes(release_id: str, status: str) -> dict[str, Any]:
         "sourceReleaseId": release_id,
         "modes": [],
         "events": {
+            "records": [],
             "definitionCount": 0,
             "instanceRoutesEnabled": False,
             "orphanAuxiliaryRowCount": 0,
@@ -135,7 +138,7 @@ def _mode(
     }
 
 
-def build_game_modes(master_root: Path, release_id: str) -> dict[str, Any]:
+def build_game_modes(master_root: Path, release_id: str, *, edition: str | None = None, locale: str = "zh-CN") -> dict[str, Any]:
     """Build mode and event capability records from one immutable release."""
     tables = {name: _load_table(master_root, name) for name in REQUIRED_TABLES}
 
@@ -184,25 +187,7 @@ def build_game_modes(master_root: Path, release_id: str) -> dict[str, Any]:
         ),
     ]
 
-    event_evidence = _evidence(tables, EVENT_TABLES)
-    definition_count = len(tables["MasterEvent"])
-    auxiliary_count = sum(
-        len(tables[name]) for name in EVENT_TABLES if name != "MasterEvent"
-    )
-    instance_routes_enabled = definition_count > 0
-    events = {
-        "definitionCount": definition_count,
-        "instanceRoutesEnabled": instance_routes_enabled,
-        "orphanAuxiliaryRowCount": 0 if instance_routes_enabled else auxiliary_count,
-        "capabilities": {
-            "hasStory": False,
-            "hasMode": False,
-            "hasRewards": False,
-            "hasRanking": False,
-        },
-        "evidence": event_evidence,
-        "status": "definitions_available" if instance_routes_enabled else "reserved_no_definitions",
-    }
+    events = build_event_archive(master_root, release_id, edition=edition, locale=locale)
 
     return {
         "schemaVersion": 1,

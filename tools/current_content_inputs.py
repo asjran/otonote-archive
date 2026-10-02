@@ -33,6 +33,11 @@ def core_image_targets(resources):
             add(prefix.format(id=identifier), f'{directory}/{identifier}/{name}')
     for name in sorted({r['_jacketAssetName'] for r in resources.rows('MasterLiveMusic')}):
         add(f'image_assets_image_jacket_{name}_', f'Image/Jacket/{name}')
+    # Event artwork follows the same pinned catalog and media publication path.
+    for reference in sorted({r[field] for r in resources.rows('MasterEvent')
+                             for field in ('_logoAsset', '_backgroundAsset') if r.get(field)}):
+        path = 'Image/Event/' + reference
+        add('image_assets_' + path.lower().replace('/', '_') + '_', path)
     for reference in sorted({r['_bannerAssetName'] for r in resources.rows('MasterGacha')}):
         add('gacha_assets_' + reference.lower().replace('/', '_') + '_', reference)
     for reference in sorted({r['_imagePath'] for r in resources.rows('MasterItem') if r.get('_imagePath')}):
@@ -138,7 +143,9 @@ def extract_stories(resources, source, output):
             if len(found) != 1: raise ValueError('no unique current ADV object: ' + name)
             payload['texts' if suffix else 'root'] = found[0]
             receipts.append({'bundle': loc.primary_key, 'sha256': resources.used[loc.primary_key]['sha256']})
-        for locale in LOCALE_FIELDS: parse_document(payload['root'], payload['texts'], locale)
+        for locale in LOCALE_FIELDS:
+            parse_document(payload['root'], payload['texts'], locale,
+                           fallback_locale='ja' if source['region'] == 'jp' else None)
         destination = output / 'documents' / f'adv-{identifier}.json'
         write_json(destination, payload)
         documents.append({'advId': identifier, 'path': f'documents/adv-{identifier}.json', 'sha256': file_hash(destination)})
@@ -222,7 +229,8 @@ def refresh_current(snapshot, baseline_catalog, plan, output, *, decoder=None):
     stage = output.with_name('.' + output.name + '.working')
     stage.mkdir(parents=True, exist_ok=True)
     fingerprint = {'report': file_hash(snapshot / 'report.json'), 'plan': file_hash(plan), 'decoder': file_hash(apk),
-        'code': {name: file_hash(ROOT / 'tools' / name) for name in ('current_resources.py','current_content_inputs.py','current_content_media.py','export_immersive_scenes.py','prepare_auto_stage.py','current_bgm_inputs.py','current_input_cache.py','current_growth_inputs.py')}}
+        'bundleDecoderBindingSha256': decoder.get('bundleDecoderBindingSha256') if decoder else None,
+        'code': {name: file_hash(ROOT / 'tools' / name) for name in ('bundle_decoder.py','current_resources.py','current_content_inputs.py','current_content_media.py','export_immersive_scenes.py','prepare_auto_stage.py','current_bgm_inputs.py','current_input_cache.py','current_growth_inputs.py')}}
     identity = stage / '.identity.json'
     if identity.exists() and read_json(identity) != fingerprint:
         raise ValueError('partial inputs belong to another source/compiler; use a new output directory')

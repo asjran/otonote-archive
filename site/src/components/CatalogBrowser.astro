@@ -116,6 +116,7 @@ const localizedSubject = activeReleaseContext.locale === "en"
     sortRecords
   } from "../lib/filtering.mjs";
   import { createPaginationAdapter } from "../lib/pagination-browser.mjs";
+  import { serverSearchParams } from "../lib/game-servers.mjs";
 
   class CatalogBrowser extends HTMLElement {
     connectedCallback() {
@@ -252,7 +253,7 @@ const localizedSubject = activeReleaseContext.locale === "en"
           selected,
           sort: direction
         });
-        const next = pagination?.params(filterParams) ?? filterParams;
+        const next = serverSearchParams(pagination?.params(filterParams) ?? filterParams);
         if (historyMode !== "none") {
           history[historyMode === "push" ? "pushState" : "replaceState"](
             null,

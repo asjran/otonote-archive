@@ -1,0 +1,41 @@
+---
+import EventIcon from './EventIcon.astro';
+interface Props { id: string; title: string; locale?: string }
+const { id, title, locale } = Astro.props;
+---
+<dialog class="ef-dialog" id={id} aria-labelledby={`${id}-title`}>
+  <header><div><p class="ea-kicker">EVENT GUIDE</p><h2 id={`${id}-title`}>{title}</h2></div><button type="button" data-event-close aria-label={locale === 'en' ? 'Close dialog' : '关闭弹窗'} autofocus><EventIcon name="close" /></button></header>
+  <div class="ef-dialog-body"><slot /></div>
+</dialog>
+<script>
+  document.querySelectorAll<HTMLDialogElement>('.ef-dialog').forEach(dialog => {
+    if (dialog.dataset.ready) return;
+    dialog.dataset.ready = 'true';
+    let trigger: HTMLElement | null = null;
+    let overflow = '';
+    const open = (button: HTMLElement | null) => {
+      if (dialog.open) return;
+      trigger = button;
+      overflow = document.body.style.overflow;
+      dialog.showModal();
+      document.body.style.overflow = 'hidden';
+    };
+    document.querySelectorAll<HTMLElement>('[data-event-dialog]').forEach(button => {
+      if (button.dataset.eventDialog === dialog.id) button.addEventListener('click', () => open(button));
+    });
+    dialog.querySelector('[data-event-close]')?.addEventListener('click', () => dialog.close());
+    dialog.addEventListener('click', event => {
+      if (event.target !== dialog) return;
+      const box = dialog.getBoundingClientRect();
+      if (event.clientX < box.left || event.clientX > box.right || event.clientY < box.top || event.clientY > box.bottom) dialog.close();
+    });
+    dialog.addEventListener('close', () => {
+      document.body.style.overflow = overflow;
+      trigger?.focus({ preventScroll: true });
+      if (location.hash === `#${dialog.id}`) history.replaceState(null, '', location.pathname + location.search);
+    });
+    const fromHash = () => { if (location.hash === `#${dialog.id}`) open(null); };
+    window.addEventListener('hashchange', fromHash);
+    fromHash();
+  });
+</script>

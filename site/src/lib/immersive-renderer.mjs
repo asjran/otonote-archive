@@ -2,7 +2,8 @@ import * as THREE from 'three';
 import { AtlasAttachmentLoader, SkeletonJson, SkeletonBinary, SkeletonMesh, TextureAtlas, ThreeJsTexture } from '@esotericsoftware/spine-threejs';
 import { EXPORT_SIZE, recordCanvas, pngRenderSize, pngOutputSize, downsamplePng } from './immersive-export.mjs';
 
-export async function createImmersiveScene(host, assetRoot, { signal, onTime = () => {}, onError = () => {} } = {}) {
+export async function createImmersiveScene(host, resources, { signal, onTime = () => {}, onError = () => {} } = {}) {
+  signal?.throwIfAborted();
   const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
   renderer.outputColorSpace = THREE.LinearSRGBColorSpace;
   renderer.domElement.setAttribute('aria-label', host.closest('[data-immersive]')?.getAttribute('aria-label') ?? 'Animated scene');
@@ -15,13 +16,20 @@ export async function createImmersiveScene(host, assetRoot, { signal, onTime = (
   let layer = 'all', duration = 0, zoom = 1, initialZoom = 1, recordingAbort, resizeObserver, intersectionObserver, data;
   const events = new AbortController();
   const read = async (file, json = true) => {
-    const response = await fetch(`${assetRoot}${file}`, { signal });
-    if (!response.ok) throw new Error(`asset-unavailable: ${file}`);
-    return json === 'binary' ? new Uint8Array(await response.arrayBuffer()) : json ? response.json() : response.text();
+    signal?.throwIfAborted();
+    const blob = resources.blobs.get(file);
+    if (!blob) throw new Error(`asset-unavailable: ${file}`);
+    return json === 'binary' ? new Uint8Array(await blob.arrayBuffer()) : json ? JSON.parse(await blob.text()) : blob.text();
   };
   const loadTexture = async name => {
-    const texture = await new THREE.TextureLoader().loadAsync(`${assetRoot}${name}`);
-    textures.push(texture); signal?.throwIfAborted(); return texture;
+    signal?.throwIfAborted();
+    const blob = resources.blobs.get(name);
+    if (!blob) throw new Error(`asset-unavailable: ${name}`);
+    const url = URL.createObjectURL(blob);
+    try {
+      const texture = await new THREE.TextureLoader().loadAsync(url);
+      textures.push(texture); signal?.throwIfAborted(); return texture;
+    } finally { URL.revokeObjectURL(url); }
   };
   function pose(value) {
     time = Math.max(0, Math.min(value, duration));
@@ -60,9 +68,9 @@ export async function createImmersiveScene(host, assetRoot, { signal, onTime = (
     renderer.dispose(); renderer.forceContextLoss(); renderer.domElement.remove();
   }
   try {
-    data = await read('scene.json');
+    data = resources.data;
     initialZoom = data.calibration.initialZoom ?? 1; zoom = initialZoom;
-    // Load sequentially so failures always release textures already created.
+    // Downloads are complete. Decode locally in order so partial GPU setup is always disposable.
     const textureMap = new Map(), atlasMap = new Map(), materialMap = new Map(), spineTextures = new Map();
     function spinePage(id) {
       if (!spineTextures.has(id)) {

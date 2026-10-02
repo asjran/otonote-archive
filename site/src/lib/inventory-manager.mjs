@@ -43,6 +43,8 @@ export function createInventoryManager(rules, cards=[]) {
     return {...normalized,growth};
   }
   function preset(id, kind, mode='minimum', previous=baseGrowth(kind)) {
+    if(!['minimum','maximum','level','skills'].includes(mode))throw new Error('未知养成操作');
+    if(mode==='skills'&&kind!=='member')throw new Error('留影没有可修改的技能等级');
     const row=calculator.card(id,kind),type=kind==='member'?'Member':'Support';
     const g=mode==='minimum'?baseGrowth(kind):{...previous};
     if(mode==='maximum') {
@@ -53,7 +55,22 @@ export function createInventoryManager(rules, cards=[]) {
       }
     }
     if(mode==='maximum'||mode==='level')g.level=calculator.resolveGrowth(row,type,{...g,level:undefined}).level;
+    if(mode==='skills'){g.skillLevel=5;g.gekisouSkillLevel=5;}
     return g;
+  }
+  function choices(id,kind,field,previous=baseGrowth(kind)) {
+    if(!fieldsFor(kind).includes(field))return [];
+    const row=calculator.card(id,kind),type=kind==='member'?'Member':'Support';
+    if(field==='rank')return rules.tables[`${type}CardRank`].filter(r=>r._group===row[`_${kind}CardRankGroup`]).map(r=>r._rank).sort((a,b)=>a-b);
+    if(field==='awake')return rules.tables.MemberCardAwake.filter(r=>r._group===row._memberCardAwakeGroup).map(r=>r._awakeCount).sort((a,b)=>a-b);
+    const maximum=field==='level'?preset(id,kind,'level',previous).level:5;
+    return Array.from({length:maximum},(_,i)=>i+1);
+  }
+  function applyPatch(id,kind,current,patch) {
+    const next={...current},maximum=preset(id,kind,'maximum');
+    for(const field of fieldsFor(kind).filter(f=>f!=='level'))if(patch[field]!==undefined)next[field]=patch[field]==='maximum'?maximum[field]:patch[field];
+    if(patch.level!==undefined)next.level=patch.level==='maximum'?preset(id,kind,'level',next).level:patch.level;
+    return next;
   }
   function resolve(value, kind) {
     const raw=String(value).trim(),prefix=raw.match(/^(member|support)-(?:card-)?\d+$/);
@@ -113,14 +130,15 @@ export function createInventoryManager(rules, cards=[]) {
     return {inventory:validate(next),changes};
   }
   function batch(inventory,ids,{mode='custom',patch={}}={}) {
+    if(!['custom','minimum','maximum','level','skills'].includes(mode))throw new Error('未知养成操作');
     const next=structuredClone(validate(inventory));
     for(const id of ids) {
       const kind=id.startsWith('member-')?'member':'support';
       if(!next[`${kind}CardIds`].includes(id))next[`${kind}CardIds`].push(id);
       const current=next.growth[id]??baseGrowth(kind);
-      next.growth[id]=mode==='custom'?{...current,...Object.fromEntries(Object.entries(patch).filter(([f])=>fieldsFor(kind).includes(f)))}:preset(id,kind,mode,current);
+      next.growth[id]=mode==='custom'?applyPatch(id,kind,current,patch):preset(id,kind,mode,current);
     }
     return validate(next);
   }
-  return {validate,preset,preview,merge,batch,empty:()=>({...createInventory(rules),growth:{}})};
+  return {validate,preset,choices,applyPatch,preview,merge,batch,empty:()=>({...createInventory(rules),growth:{}})};
 }

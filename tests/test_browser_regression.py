@@ -32,9 +32,13 @@ class BrowserRegressionTest(unittest.TestCase):
 
     def test_regression_manifest_has_unique_product_routes(self) -> None:
         routes = regression_routes()
-        expected = 30
+        # Current Global product manifest replaced the retired archive routes.
+        expected = 25
         self.assertEqual(len(routes), expected)
         self.assertEqual(len(set(routes)), expected)
+        self.assertTrue(all(route.startswith("/global/zh-CN/") for route in routes))
+        self.assertTrue({"/global/zh-CN/events/", "/global/zh-CN/stories/",
+                         "/global/zh-CN/tools/optimizer/"}.issubset(routes))
 
     @unittest.skipUnless(DIST_MATRIX.is_dir(), "requires a built site matrix")
     def test_regression_manifest_routes_exist_in_built_matrix(self) -> None:
