@@ -2,6 +2,24 @@
 
 本流程与 `CONFIGURATION_POLICY.md` 一起使用。真实配置不进 Git，线上生效配置作为迁移初始基线。代码、内容快照、程序和持久状态分别交付。共享计分模块位于 `packages/scoring`；浏览器个人计算继续在浏览器/Worker 运行，公共派生结果在内容生产端计算。
 
+```mermaid
+flowchart LR
+  Git[审阅后的 Git 提交] --> CI[隔离构建与测试]
+  CI --> Web[已验证网页代码包]
+  CI --> Program[不可变任务程序包]
+  Web --> Deploy[校验回执与原子发布]
+  Deploy --> Browser[网站与浏览器 Worker]
+  Private[仓库外配置与凭据] --> Runtime[任务运行环境]
+  Program --> Runtime
+  Inputs[版本化资源输入] --> Runtime
+  Runtime --> Content[内容快照]
+  Content --> Browser
+  Content --> Render[独立预渲染]
+  Web --> Render
+  Ops[独立审计与维护] -.-> Content
+  Ops -.-> Render
+```
+
 ## 开发与交付入口
 
 - 每项任务使用独立分支；并行开发使用独立 worktree，避免把他人的未完成修改打包。
