@@ -95,7 +95,13 @@ def live2d(resources, release, stories, public, data_root):
         if len(names) != 1: raise ValueError('ambiguous Live2D bundle')
         name = names[0]
         previous = prior.get(model['id'])
-        previous_loc = old_locations.location_for_key(addressable_path) if old_locations else None
+        previous_loc = None
+        if previous and previous.get('state') == 'available' and old_locations:
+            try:
+                previous_loc = old_locations.location_for_key(addressable_path)
+            except KeyError:
+                # A current model absent from the prior catalog needs a fresh export.
+                pass
         reuse = previous and previous.get('state') == 'available' and previous_loc and name in previous_loc.dependencies
         if reuse:
             origin = (resources.prior_supplemental / 'public' if getattr(resources, 'prior_supplemental', None) else ROOT / 'site/public') / previous['root'].lstrip('/')

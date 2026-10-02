@@ -93,6 +93,71 @@ class CachedLive2DTests(unittest.TestCase):
         self.resources.environment.assert_not_called()
         self.export_model.assert_not_called()
 
+    def missing_old_location(self, *, retain_previous):
+        # Current resources retain the independently parsed current catalog.
+        write_json(self.capture, {'locations': []})
+        path = self.prior / 'data/live2d-catalog.json'
+        previous = read_json(path)
+        previous['catalogSha256'] = file_hash(self.capture)
+        if not retain_previous:
+            previous['models'] = []
+        write_json(path, previous)
+
+    def assert_full_export(self):
+        environment = object()
+        self.resources.environment.side_effect = None
+        self.resources.environment.return_value = environment
+        self.resources.used[self.bundle] = {'sha256': 'b' * 64}
+
+        def export(actual_environment, destination, name):
+            self.assertIs(actual_environment, environment)
+            self.assertEqual(name, 'model')
+            destination.mkdir(parents=True)
+            rows = []
+            for relative, data in self.files.items():
+                (destination / relative).write_bytes(data)
+                rows.append({'file': relative, 'bytes': len(data), 'sha256': hashlib.sha256(data).hexdigest()})
+            manifest = {'model': 'model.model3.json', 'resources': rows,
+                        'totalBytes': sum(map(len, self.files.values())), 'motions': [],
+                        'blockedMotionCount': 0, 'expressionCount': 0, 'physics': False}
+            write_json(destination / 'manifest.json', manifest)
+            return manifest
+
+        self.export_model.side_effect = export
+        self.assertEqual(live2d(self.resources, 'new-release', self.stories, self.public, self.data), 1)
+        self.resources.environment.assert_called_once_with(self.bundle)
+        self.export_model.assert_called_once()
+        model = read_json(self.data / 'live2d-catalog.json')['models'][0]
+        self.assertEqual(model['sourceSha256'], 'b' * 64)
+        self.assertEqual(model['root'], f'/live2d/new-release/{self.model_id}-bbbbbbbbbbbb-v1/')
+
+    def test_new_model_absent_from_old_catalog_is_fully_extracted(self):
+        self.missing_old_location(retain_previous=False)
+        self.assert_full_export()
+
+    def test_prior_model_without_matching_old_location_is_fully_extracted(self):
+        self.missing_old_location(retain_previous=True)
+        self.assert_full_export()
+
+    def test_malformed_old_catalog_is_not_treated_as_a_missing_model(self):
+        self.capture.write_text('{invalid catalog')
+        path = self.prior / 'data/live2d-catalog.json'
+        previous = read_json(path)
+        previous['catalogSha256'] = file_hash(self.capture)
+        write_json(path, previous)
+        from tools.resource_pipeline.catalog_adapter import CatalogAdapterError
+        with self.assertRaises(CatalogAdapterError):
+            live2d(self.resources, 'new-release', self.stories, self.public, self.data)
+        self.resources.environment.assert_not_called()
+        self.export_model.assert_not_called()
+
+    def test_missing_current_location_is_not_treated_as_an_old_cache_miss(self):
+        self.resources.locate.side_effect = KeyError('current model missing')
+        with self.assertRaisesRegex(KeyError, 'current model missing'):
+            live2d(self.resources, 'new-release', self.stories, self.public, self.data)
+        self.resources.environment.assert_not_called()
+        self.export_model.assert_not_called()
+
     def test_different_catalog_digest_does_not_reuse_cache(self):
         path = self.prior / 'data/live2d-catalog.json'
         previous = read_json(path)
