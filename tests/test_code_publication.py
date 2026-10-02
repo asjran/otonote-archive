@@ -30,4 +30,28 @@ class CodePublicationTests(unittest.TestCase):
             (a/'credentials.secret').write_text('unexpected')
             with self.assertRaisesRegex(ValueError,'inventory'):publish_code(a,store)
 
+
+class PublicationGuardTests(unittest.TestCase):
+    def test_stale_pointer_health_rollback_and_lock(self):
+        import fcntl
+        from tests.test_release_candidate import candidate
+        with tempfile.TemporaryDirectory() as tmp:
+            root=Path(tmp);store=root/'store'
+            a,sha=candidate(root/'a');first=publish_code(a,store,require_verified=True,expected_receipt_sha256=sha,expected_current='none')
+            old=(store/'current').readlink()
+            with self.assertRaisesRegex(ValueError,'current code changed'):
+                publish_code(a,store,expected_current='f'*24)
+            # A distinct legacy fixture isolates switch/rollback behavior from provenance.
+            b=root/'b';(b/'compiled').mkdir(parents=True);(b/'compiled/boot-TEST.js').write_text('two')
+            files={'boot-TEST.js':hashlib.sha256(b'two').hexdigest()};identity=hashlib.sha256(json.dumps(files,separators=(',',':')).encode()).hexdigest()[:24]
+            write(b/'code-release.json',{'schemaVersion':1,'contentSchemaVersion':1,'codeId':identity,'files':files})
+            (b/'index.html').write_text('<script src="/app/releases/'+identity+'/boot-TEST.js"></script>')
+            with self.assertRaisesRegex(ValueError,'previous pointers restored'):
+                publish_code(b,store,expected_current=first['codeId'],health_check=lambda _:False)
+            self.assertEqual((store/'current').readlink(),old);self.assertFalse((store/'previous').is_symlink())
+            with (store/'.publication.lock').open('a+') as lock:
+                fcntl.flock(lock,fcntl.LOCK_EX|fcntl.LOCK_NB)
+                with self.assertRaises(BlockingIOError):publish_code(b,store)
+            self.assertEqual((store/'current').readlink(),old)
+
 if __name__=='__main__':unittest.main()

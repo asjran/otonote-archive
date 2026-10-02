@@ -1,0 +1,18 @@
+---
+import EventTypeBadge from "./EventTypeBadge.astro";
+import type { EventDefinition } from "../lib/event-archive";
+import { eventCopy } from "../lib/event-copy";
+interface Props { event: EventDefinition; artwork?: { cover?: string; logo?: string }; locale?: string; story?: boolean }
+const { event, artwork = {}, locale = "zh-CN", story = false } = Astro.props;
+const copy = eventCopy(locale);
+---
+<header class:list={["ea-hero", { "ea-hero--art": Boolean(artwork.cover) }]} style={artwork.cover ? {'--event-hero-art': `url("${artwork.cover}")`} : undefined}>
+  {artwork.cover && <img class="ea-hero-art" src={artwork.cover} alt="" width="1920" height="1440" fetchpriority="high" />}
+  <div class="ea-hero-copy">
+    <p class="ea-kicker">{story ? "EVENT STORY" : "EVENT ARCHIVE"} / {String(event.id).padStart(2, "0")}</p>
+    {artwork.logo && <img class="ea-hero-logo" src={artwork.logo} alt="" width="460" height="240" />}
+    <h1 lang={event.nameLocale ?? undefined}>{event.name}</h1>
+    <p class="ea-hero-type">{event.mode === "challenge_live" ? <EventTypeBadge mode={event.mode} locale={locale} /> : (story ? copy.stories : copy.event)}<span>{event.edition === "jp" ? copy.jp : copy.global}</span></p>
+    <p class="ea-hero-date">{event.schedule.startAt?.slice(0, 16) ?? "—"}<span aria-hidden="true"> — </span>{event.schedule.endAt?.slice(0, 16) ?? "—"}</p>
+  </div>
+</header>

@@ -4,7 +4,7 @@ import { validateArtifact } from "./artifact-contracts";
 
 export interface Release {
   id: string;
-  region: "global";
+  region: "global" | "jp";
   channel: string;
   locale: "zh-CN" | "zh-TW" | "ja" | "en";
   packageName: string;
@@ -50,7 +50,7 @@ export interface Asset {
   originalUrl: string;
 }
 
-export interface Band {
+export interface Band extends EditionRecord {
   id: string;
   masterId: number;
   displayName: string;
@@ -90,7 +90,7 @@ export interface CardTaxonomy {
   };
 }
 
-export interface Character {
+export interface Character extends EditionRecord {
   id: string;
   masterId: number;
   displayName: string;
@@ -126,7 +126,12 @@ export interface Character {
   sourceBundle: string;
 }
 
-export interface MemberCard {
+export interface EditionRecord {
+  sourceEdition?: string; sourceId?: string | number; sourceHref?: string;
+  editionPresence?: {status:string; editions:string[]; different?:boolean; counterparts?:{edition:string;href:string}[]};
+}
+
+export interface MemberCard extends EditionRecord {
   id: string;
   legacyId: string | null;
   masterId: number;
@@ -153,7 +158,7 @@ export interface MemberCard {
   sourceContainerPath: string;
 }
 
-export interface SupportCard {
+export interface SupportCard extends EditionRecord {
   id: string;
   masterId: number;
   assetId: number;
@@ -187,7 +192,7 @@ export interface MusicRewardEntry {
   resourceCount: number;
 }
 
-export interface MusicTrack {
+export interface MusicTrack extends EditionRecord {
   id: string;
   masterId: number;
   title: string;
@@ -308,7 +313,7 @@ export interface Catalog {
   release: Release;
   projectionContext: {
     contentReleaseId: string;
-    region: "global";
+    region: "global" | "jp";
     channel: "staging" | "production";
     locale: "zh-CN" | "zh-TW" | "ja" | "en";
   };
@@ -324,7 +329,7 @@ export interface Catalog {
   entityVariants: Array<{
     variantRef: string;
     entityType: string;
-    region: "global";
+    region: "global" | "jp";
     channel: "staging" | "production";
     sourceMasterId: string;
     firstSeenContentRelease: string;
@@ -441,18 +446,23 @@ const raritiesByCode = new Map(
   catalog.cardTaxonomy.rarities.map((rarity) => [rarity.code, rarity])
 );
 
+function libraryRecord<T>(kind: string, id: string): T | undefined {
+  const library = Reflect.get(globalThis, Symbol.for("ournotes.library.catalog.v1"));
+  return library?.[kind]?.find((row: {id:string}) => row.id === id);
+}
+
 export function getAsset(id: string | null | undefined): Asset | undefined {
-  return id ? assetsById.get(id) : undefined;
+  return id ? assetsById.get(id) ?? libraryRecord<Asset>("assets", id) : undefined;
 }
 
 export function getCharacter(
   id: string | null | undefined
 ): Character | undefined {
-  return id ? charactersById.get(id) : undefined;
+  return id ? charactersById.get(id) ?? libraryRecord<Character>("characters", id) : undefined;
 }
 
 export function getBand(id: string | null | undefined): Band | undefined {
-  return id ? bandsById.get(id) : undefined;
+  return id ? bandsById.get(id) ?? libraryRecord<Band>("bands", id) : undefined;
 }
 
 export function getCardAttribute(
@@ -470,29 +480,30 @@ export function getCardRarity(
 export function getMemberCard(
   id: string | null | undefined
 ): MemberCard | undefined {
-  return id ? memberCardsById.get(id) : undefined;
+  return id ? memberCardsById.get(id) ?? libraryRecord<MemberCard>("memberCards", id) : undefined;
 }
 
 export function getSupportCard(
   id: string | null | undefined
 ): SupportCard | undefined {
-  return id ? supportCardsById.get(id) : undefined;
+  return id ? supportCardsById.get(id) ?? libraryRecord<SupportCard>("supportCards", id) : undefined;
 }
 
 export function getMusicTrack(
   id: string | null | undefined
 ): MusicTrack | undefined {
-  return id ? musicTracksById.get(id) : undefined;
+  return id ? musicTracksById.get(id) ?? libraryRecord<MusicTrack>("musicTracks", id) : undefined;
 }
 
 export function getMusicChart(
   id: string | null | undefined
 ): MusicChart | undefined {
-  return id ? musicChartsById.get(id) : undefined;
+  return id ? musicChartsById.get(id) ?? libraryRecord<MusicChart>("musicCharts", id) : undefined;
 }
 
 export function getMusicCharts(trackId: string): MusicChart[] {
-  return catalog.musicCharts.filter((chart) => chart.trackId === trackId);
+  const source: Catalog = trackId.includes("--") ? Reflect.get(globalThis, Symbol.for("ournotes.library.catalog.v1")) ?? catalog : catalog;
+  return source.musicCharts.filter((chart) => chart.trackId === trackId);
 }
 
 export function getCharacterMemberCards(characterId: string): MemberCard[] {

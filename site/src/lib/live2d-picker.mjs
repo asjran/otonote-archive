@@ -1,3 +1,4 @@
+import {presenceLabel} from './edition-library.mjs';
 import { modelLabel } from './live2d-labels.mjs';
 
 export function lookKind(model) {
@@ -66,7 +67,7 @@ export class ModelPicker {
 
   open() {
     this.browsing = this.selected?.characterId;
-    this.group = this.config.characters.find(c => c.id === this.browsing)?.group || 'all'; this.kind = 'all';
+    this.group = 'all'; this.kind = 'all';
     this.q('[data-character-search]').value = ''; this.q('[data-costume-search]').value = '';
     this.renderCharacters(); this.renderLooks(); this.dialog.showModal();
     this.q('[data-character-search]').focus();
@@ -95,7 +96,7 @@ export class ModelPicker {
     this.q('[data-selected-avatar]').replaceChildren(...this.avatar(character).childNodes);
     this.q('[data-selected-name]').textContent = character?.name || this.say('暂无模型', 'No models');
     this.q('[data-selected-group]').textContent = character?.groupName || 'LIVE2D';
-    this.q('[data-selected-costume]').textContent = model ? modelLabel(model, this.config.en) : '';
+    this.q('[data-selected-costume]').textContent = model ? [modelLabel(model, this.config.en), presenceLabel(model.editionPresence, this.config.en)].filter(Boolean).join(' · ') : '';
     const choices = this.config.models.filter(m => m.characterId === model?.characterId && m.state === 'available');
     this.q('[data-costume-position]').textContent = choices.length ? `${choices.findIndex(m => m.id === model?.id) + 1} / ${choices.length}` : '0 / 0';
     this.q('[data-costume-prev]').disabled = this.q('[data-costume-next]').disabled = choices.length < 2;
@@ -162,7 +163,10 @@ export class ModelPicker {
       const meta = document.createElement('small'); meta.textContent = model.state === 'available'
         ? `${(model.bytes / 1024 / 1024).toFixed(1)} MB · ${model.motions} ${this.say('动作', 'motions')} · ${model.expressions} ${this.say('表情', 'expressions')}`
         : this.say('资源暂不可用', 'Unavailable');
-      button.append(tag, name, meta); return button;
+      button.append(tag, name, meta);
+      const label=presenceLabel(model.editionPresence,this.config.en);
+      if(label){const badge=document.createElement('small');badge.className='edition-mark';badge.textContent=label;button.append(badge);}
+      return button;
     }));
     if (!matches.length) this.empty(list, this.say('没有匹配的造型，试试清除筛选。', 'No matching looks. Try clearing the filters.'), 'data-clear-looks');
     if (focusedKind != null) [...this.q('[data-costume-types]').children].find(b => b.dataset.kindChoice === focusedKind)?.focus();

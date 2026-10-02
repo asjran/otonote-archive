@@ -41,12 +41,12 @@ class DocsStatusTest(unittest.TestCase):
                 ],
             )
 
-    def test_requires_every_design_and_plan_to_be_registered(self) -> None:
+    def test_requires_current_governance_documents_to_be_registered(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
-            specs = root / "docs/superpowers/specs"
+            specs = root / "docs"
             specs.mkdir(parents=True)
-            design = specs / "design.md"
+            design = specs / "DEVELOPMENT_WORKFLOW.md"
             design.write_text("# Design\n", encoding="utf-8")
             status_path = root / "docs/STATUS.md"
             status_path.write_text(
@@ -69,10 +69,22 @@ class DocsStatusTest(unittest.TestCase):
             self.assertEqual(
                 validate_status_index(root, status_path),
                 [
-                    "design document is not registered: "
-                    "docs/superpowers/specs/design.md"
+                    "governance document is not registered: "
+                    "docs/DEVELOPMENT_WORKFLOW.md"
                 ],
             )
+
+    def test_private_historical_plans_do_not_enter_public_registry(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            historical = root / "docs/superpowers/specs/private-plan.md"
+            historical.parent.mkdir(parents=True)
+            historical.write_text("# Private history\n")
+            current = root / "docs/DEVELOPMENT_WORKFLOW.md"
+            current.write_text("# Workflow\n")
+            status = root / "docs/STATUS.md"
+            status.write_text("| `docs/DEVELOPMENT_WORKFLOW.md` | `implemented` | — | local tests | 2026-10-02 |\n")
+            self.assertEqual(validate_status_index(root, status), [])
 
 
 if __name__ == "__main__":

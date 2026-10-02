@@ -4,7 +4,8 @@ from pathlib import Path
 import tempfile
 import unittest
 
-from tools.scoring_content import bind_scoring_rules, TABLES
+from tools.scoring_content import bind_scoring_rules, bind_reviewed_reference, TABLES
+from tools.build_formal_scoring_rules import project_tables
 
 
 class ScoringContentTests(unittest.TestCase):
@@ -33,23 +34,39 @@ class ScoringContentTests(unittest.TestCase):
         self.assertEqual(len(rules['tables']['LiveMusic']),2)
         self.assertEqual(self.base['verificationStatus'],'code_audited')
 
-    def test_formula_or_old_song_changes_are_rejected(self):
-        path=self.root/'MasterParameter.json'; old=path.read_bytes()
-        path.write_text('{"_allData":[{"_id":1,"_value":999}]}')
-        self.assertEqual(bind_scoring_rules(self.root,'current',self.base)['verificationStatus'],'unavailable')
-        path.write_bytes(old)
-        song={**self.base['tables']['LiveMusic'][0],'_musicType':999}
-        (self.root/'MasterLiveMusic.json').write_text(json.dumps({'_allData':[song]}))
-        self.assertEqual(bind_scoring_rules(self.root,'current',self.base)['reason'],'changed_song_rules')
+    def test_content_changes_use_current_parameters_without_another_audit(self):
+        (self.root/'MasterMemberCard.json').write_text('{"_allData":[{"_id":999}]}')
+        (self.root/'MasterParameter.json').write_text('{"_allData":[{"_id":"client_version_required","_value":"new"}]}')
+        rules = bind_scoring_rules(self.root, 'global-new', self.base)
+        self.assertEqual(rules['verificationStatus'], 'reference_compatible')
+        self.assertEqual(rules['tables']['MemberCard'], [{'_id':999}])
+        self.assertEqual(rules['referenceProfile']['dataCompatibility'], 'supported_model')
+        self.assertEqual(rules['native'], self.base['native'])
 
-    def test_unknown_song_and_missing_input_cannot_enable_tools(self):
+    def test_new_song_parameters_are_data_and_missing_inputs_still_fail(self):
         song=self.base['tables']['LiveMusic'][0]
         (self.root/'MasterLiveMusic.json').write_text(json.dumps({'_allData':[song,{**song,'_id':3}]}))
-        self.assertEqual(bind_scoring_rules(self.root,'current',self.base)['reason'],'unsupported_song_rules')
+        self.assertEqual(len(bind_scoring_rules(self.root,'global-new',self.base)['tables']['LiveMusic']),2)
         (self.root/'MasterMemberCard.json').unlink()
-        self.assertEqual(bind_scoring_rules(self.root,'current',self.base)['verificationStatus'],'unavailable')
+        self.assertEqual(bind_scoring_rules(self.root,'global-new',self.base)['verificationStatus'],'unavailable')
 
     def test_audited_release_requires_identical_hashes(self):
         self.assertEqual(bind_scoring_rules(self.root,'baseline',self.base),self.base)
         path=self.root/'MasterLiveMusic.json';path.write_text(path.read_text()+' ')
         self.assertEqual(bind_scoring_rules(self.root,'baseline',self.base)['verificationStatus'],'unavailable')
+
+    def test_reviewed_profile_uses_current_rows_and_rejects_drift(self):
+        # Supply the effect tables required by the projection's closed schema.
+        tables, hashes = project_tables(self.root)
+        base = {**self.base, 'tables':tables}
+        profile = {'id':'test-reference','packageVersion':'test','referenceNativeSha256':'native',
+                   'masterSha256':hashes,'unchangedCoreTables':['LiveSettings']}
+        rules = bind_reviewed_reference(self.root,'jp-current',base,profile)
+        self.assertEqual(rules['verificationStatus'],'reference_compatible')
+        self.assertEqual(rules['referenceProfile']['dataCompatibility'],'reviewed_current_tables')
+        self.assertEqual(rules['native']['sourceReleaseId'],'baseline')
+        self.assertFalse(rules['referenceProfile']['currentGameplayVerified'])
+        (self.root/'MasterLiveSettings.json').write_text('{"_allData":[{"_id":1}]}')
+        self.assertEqual(bind_reviewed_reference(self.root,'jp-current',base,profile)['reason'],'unreviewed_reference_inputs')
+        profile['masterSha256'] = project_tables(self.root)[1]
+        self.assertEqual(bind_reviewed_reference(self.root,'jp-current',base,profile)['reason'],'changed_reference_core')

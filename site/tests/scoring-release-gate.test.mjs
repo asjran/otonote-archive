@@ -23,3 +23,13 @@ test('reference estimates require both current content and the original native i
   assert.equal(scoringRulesAvailable({...rules,native:{...rules.native,sourceReleaseId:'current'}},'current'),false);
   assert.equal(scoringRulesAvailable({...rules,nativeSha256:'changed'},'current'),false);
 });
+
+
+test('stable model remains usable on new content, but cannot mix releases', () => {
+  const rules={sourceReleaseId:'new',verificationStatus:'reference_compatible',nativeSha256:'hash',
+    native:{sourceReleaseId:'baseline',nativeSha256:'hash'},
+    referenceProfile:{sourceReleaseId:'baseline',nativeSha256:'hash',dataCompatibility:'supported_model',modelId:'ournotes-scoring-model-v1',currentGameplayVerified:false}};
+  assert.equal(scoringRulesAvailable(rules,'new'),true);
+  assert.equal(scoringRulesAvailable(rules,'old'),false);
+  assert.equal(scoringRulesAvailable({...rules,referenceProfile:{...rules.referenceProfile,modelId:'unknown'}},'new'),false);
+});

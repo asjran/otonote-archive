@@ -1,0 +1,119 @@
+.personal-growth-page { max-width:1280px; margin:auto; padding:32px clamp(20px,3vw,48px) 48px; }
+.personal-growth-heading { margin-bottom:26px; }
+.personal-growth-heading>p { font:10px var(--font-mono); color:var(--lacquer); letter-spacing:.14em; }
+.personal-growth-heading h1 { font:700 32px/1.4 var(--font-display); margin:8px 0; }
+.personal-growth-heading>div { font-size:13px; color:var(--silver-dark); line-height:1.8; }
+.personal-growth-workbench { display:block; }
+.personal-growth-summary { display:flex; justify-content:space-between; gap:24px; padding:24px; background:var(--paper-light); border:1px solid var(--line); border-left:4px solid var(--lacquer); border-radius:4px 12px 12px 4px; }
+.personal-growth-summary span { color:var(--lacquer); font-size:11px; }
+.personal-growth-summary h2,.personal-account h2 { font:600 22px var(--font-display); margin:8px 0 12px; }
+.personal-growth-summary p { font-size:12px; color:var(--silver-dark); line-height:1.8; margin:0; }
+.personal-growth-summary>p { max-width:24ch; align-self:center; }
+.personal-growth-tools { display:flex; gap:10px; flex-wrap:wrap; margin:18px 0 24px; }
+.personal-growth-tools a { border:1px solid var(--line); padding:9px 16px; border-radius:7px; background:var(--paper-light); font-size:12px; }
+.personal-growth-tools a:hover { border-color:var(--lacquer); color:var(--lacquer); }
+.personal-growth-workbench .inventory-editor { margin:24px 0 0; }
+.personal-growth-workbench .inventory-body { padding:20px; }
+.personal-account { margin-top:24px; padding:24px; border:1px solid var(--line); border-radius:12px; background:var(--paper-light); }
+.personal-account>p,.personal-account form>p { color:var(--silver-dark); font-size:12px; line-height:1.8; }
+.personal-account details { border-top:1px solid var(--line); margin:16px 0; padding-top:14px; }
+.personal-account summary { cursor:pointer; font-size:14px; }
+.personal-account-fields { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:16px; margin:18px 0; }
+.personal-account-fields label,.personal-tgw { display:grid; gap:6px; font-size:12px; }
+.personal-account input,.personal-account select { padding:9px; border:1px solid var(--line); border-radius:6px; background:var(--paper); color:var(--ink); width:100%; }
+.personal-tgw { max-width:220px; }
+.personal-growth-page :focus-visible { outline:2px solid var(--lacquer); outline-offset:3px; }
+[data-shell] .personal-growth-workbench button { min-height:44px; padding:10px 14px; border:1px solid var(--calc-line); border-radius:8px; background:var(--paper-light); color:var(--ink); font:500 12px/1.5 var(--font-body); cursor:pointer; }
+[data-shell] .personal-growth-workbench button:hover:not(:disabled) { border-color:var(--lacquer); background:var(--calc-tint); color:var(--lacquer); }
+[data-shell] .personal-growth-workbench :is(.growth-primary,[data-inventory-add],[data-inventory-apply]) { background:var(--lacquer); border-color:var(--lacquer); color:var(--paper-light); }
+[data-shell] .personal-growth-workbench button:disabled { opacity:.45; cursor:default; }
+[data-shell] .personal-growth-workbench :is(input:not([type=checkbox]),select,textarea) { min-width:0; max-width:100%; box-sizing:border-box; min-height:44px; padding:10px 12px; border:1px solid var(--calc-line); border-radius:8px; background:var(--paper-light); color:var(--ink); font:400 13px/1.5 var(--font-body); }
+[data-shell] .personal-growth-workbench select:not([multiple]) { appearance:none; padding-right:36px; background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='m1 1 5 5 5-5' fill='none' stroke='%237a3155' stroke-width='1.5'/%3E%3C/svg%3E"); background-repeat:no-repeat; background-position:right 13px center; }
+[data-shell] .personal-growth-workbench input[type=checkbox] { accent-color:var(--lacquer); width:18px; height:18px; }
+[data-shell] .personal-growth-workbench input[type=file] { width:100%; padding:7px; font-size:12px; }
+[data-shell] .personal-growth-workbench input::file-selector-button { border:0; border-radius:5px; padding:7px 10px; margin-right:10px; background:var(--calc-tint); color:var(--lacquer); font:inherit; cursor:pointer; }
+.personal-growth-workbench :is(.inventory-toolbar,.inventory-growth-fields)>label { display:grid; gap:7px; min-width:0; font-size:12px; color:var(--calc-muted); }
+.personal-growth-workbench .inventory-toolbar>.inventory-check { display:flex; align-items:center; min-height:44px; }
+.personal-growth-workbench [role=status] { font-size:12px; line-height:1.8; color:var(--calc-muted); overflow-wrap:anywhere; }
+.personal-growth-workbench [role=status]:empty { display:none; }
+[data-shell] .personal-growth-workbench .account-growth--standalone { background:var(--paper-light); border-radius:12px; }
+[data-shell] .personal-growth-workbench .account-growth--standalone[open] { padding:0 24px 24px; }
+[data-shell] .personal-growth-workbench .account-growth--standalone>summary { padding:20px 24px; font:600 20px/1.5 var(--font-display); }
+[data-shell] .personal-growth-workbench .account-growth--standalone[open]>summary { margin-inline:-24px; }
+.personal-growth-workbench .account-growth--standalone>summary span { display:block; margin-top:4px; color:var(--calc-muted); font:400 12px/1.5 var(--font-body); }
+.personal-growth-workbench .inventory-pagination { margin-block:10px; }
+@media(max-width:600px) {
+ [data-shell] .personal-growth-workbench .account-growth--standalone[open] { padding:0 16px 16px; }
+ [data-shell] .personal-growth-workbench .account-growth--standalone>summary { padding:18px 16px; }
+ [data-shell] .personal-growth-workbench .account-growth--standalone[open]>summary { margin-inline:-16px; }
+ [data-shell] .personal-growth-workbench :is(input:not([type=checkbox]),select,textarea) { font-size:16px; }
+ .personal-growth-workbench .inventory-toolbar>button { flex:1 1 130px; }
+}
+@media(max-width:600px) { .personal-growth-summary { flex-direction:column; gap:12px; padding:20px; } .personal-growth-summary>p { max-width:none; align-self:auto; } .personal-account { padding:20px; } .personal-growth-workbench .inventory-body { padding:14px; } }
+
+/* The collection is a card album; editing tools stay around its edges. */
+[data-shell] .personal-growth-workbench .inventory-editor--album { border:1px solid var(--calc-line); border-radius:12px; background:var(--paper-light); padding:0; }
+[data-shell] .inventory-editor--album>summary { padding:22px 24px 0; color:var(--ink); font:600 22px/1.5 var(--font-display); }
+[data-shell] .inventory-editor--album>summary>span { font:400 12px/1.5 var(--font-body); color:var(--calc-muted); }
+[data-shell] .personal-growth-workbench .inventory-editor--album .inventory-body { padding:12px 24px 24px; gap:12px; grid-template-columns:minmax(0,1fr) auto; }
+.inventory-editor--album .inventory-body>* { grid-column:1/-1; }
+.inventory-editor--album .inventory-body>.inventory-intro { grid-column:1; grid-row:1; align-self:center; }
+.inventory-editor--album .inventory-body>.inventory-library-actions { grid-column:2; grid-row:1; }
+.inventory-editor--album .inventory-intro { order:0; }
+.inventory-editor--album .inventory-library-actions { order:1; justify-content:flex-end; }
+.inventory-editor--album [data-inventory-status] { order:2; margin:0; }
+.inventory-editor--album .inventory-collection-tabs { order:3; display:flex; align-items:center; justify-content:space-between; gap:14px; flex-wrap:wrap; border-top:1px solid var(--calc-line); padding-top:14px; }
+.inventory-editor--album .selection-filters { order:4; }
+.inventory-editor--album .inventory-selection { order:5; }
+.inventory-editor--album .inventory-growth-panel { order:6; }
+.inventory-editor--album .inventory-grid { order:7; }
+.inventory-editor--album .inventory-pagination { order:8; }
+.inventory-editor--album .inventory-sheet-import { order:9; }
+.inventory-kind-tabs,.inventory-owned-tabs { display:flex; gap:4px; }
+[data-shell] .inventory-editor--album .inventory-kind-tabs button { border:0; border-radius:0; border-bottom:2px solid transparent; background:transparent; padding:10px 16px; color:var(--calc-muted); font:600 18px/1.5 var(--font-display); }
+[data-shell] .inventory-editor--album .inventory-kind-tabs [aria-pressed=true] { border-bottom-color:var(--lacquer); color:var(--lacquer); }
+[data-shell] .inventory-editor--album .inventory-owned-tabs { background:var(--paper); padding:3px; border-radius:8px; }
+[data-shell] .inventory-editor--album .inventory-owned-tabs button { padding:6px 12px; min-height:38px; background:transparent; border-color:transparent; color:var(--calc-muted); }
+[data-shell] .inventory-editor--album .inventory-owned-tabs [aria-pressed=true] { background:var(--paper-light); color:var(--lacquer); box-shadow:0 1px 4px #30232b0d; }
+[data-shell] .inventory-editor--album .inventory-library-actions button,[data-shell] .inventory-editor--album [data-inventory-reset] { border:0; background:transparent; color:var(--calc-muted); padding:7px 10px; }
+[data-shell] .inventory-editor--album .inventory-library-actions [data-inventory-export] { color:var(--lacquer); }
+[data-shell] .inventory-editor--album .inventory-selection { padding:0; background:transparent; border-radius:0; }
+[data-shell] .inventory-editor--album .inventory-selection[data-active=true] { padding:12px; background:var(--calc-tint); border:1px solid var(--calc-line); border-radius:8px; }
+[data-shell] .inventory-editor--album .inventory-selection:not([data-active=true]) button { border:0; background:transparent; color:var(--lacquer); }
+[data-shell] .inventory-editor--album .inventory-selection[data-active=true] { background:var(--paper-light); }
+[data-shell] .inventory-editor--album [data-inventory-edit-selected] { background:var(--lacquer); color:var(--paper-light); border-color:var(--lacquer); }
+[data-shell] .inventory-editor--album .inventory-grid { grid-template-columns:repeat(4,minmax(0,1fr)); gap:20px 16px; overflow:visible; max-height:none; }
+[data-shell] .inventory-editor--album .inventory-card { padding:10px; gap:8px; border-radius:9px; border:1px solid var(--calc-line); background:var(--paper-light); box-shadow:0 3px 8px #30232b05; }
+[data-shell] .inventory-editor--album .inventory-card[data-selected=true] { background:var(--calc-tint); border-color:var(--lacquer); outline:1px solid var(--lacquer); }
+[data-shell] .inventory-editor--album .inventory-card-select { display:block; cursor:pointer; position:relative; }
+[data-shell] .inventory-editor--album .inventory-card-select>input { position:absolute; left:8px; top:8px; z-index:2; box-shadow:0 0 0 4px var(--paper-light); border-radius:3px; }
+[data-shell] .inventory-editor--album .card-identity { display:grid; grid-template-columns:minmax(0,1fr); gap:12px; }
+[data-shell] .inventory-editor--album .card-identity>img { width:100%; height:180px; max-height:none; border-radius:5px; object-fit:contain; background:var(--paper); }
+[data-shell] .inventory-editor--album .card-identity--missing-art::before { content:'暂无卡面'; display:grid; place-items:center; height:180px; border:1px dashed var(--calc-line); border-radius:5px; color:var(--calc-muted); font:12px var(--font-body); background:var(--paper); }
+[data-shell] .inventory-editor--album .card-identity>div { gap:4px; min-height:90px; align-content:start; }
+[data-shell] .inventory-editor--album .card-identity strong { font-size:13px; line-height:1.6; }
+[data-shell] .inventory-editor--album .card-identity .calculator-attribute { position:absolute; right:8px; top:8px; display:grid; place-items:center; width:22px; height:22px; border-radius:50%; background:var(--paper-light); }
+[data-shell] .inventory-editor--album .inventory-card-growth { border:0; padding:0; font-size:10px; }
+[data-shell] .inventory-editor--album .card-selection-state { position:absolute; top:165px; right:16px; border:1px solid var(--calc-line); background:var(--paper-light); color:var(--calc-muted); }
+[data-shell] .inventory-editor--album .inventory-card[data-owned=true] .card-selection-state { color:var(--lacquer); background:var(--calc-tint); }
+[data-shell] .inventory-editor--album .card-skill-trigger { border:0; border-top:1px solid var(--calc-line); width:100%; padding:8px 0 0; min-height:36px; border-radius:0; background:transparent; text-align:left; color:var(--lacquer); }
+.inventory-editor--album .inventory-empty { grid-column:1/-1; padding:40px 20px; text-align:center; border:1px dashed var(--calc-line); border-radius:8px; color:var(--calc-muted); }
+.inventory-empty strong { font:600 18px var(--font-display); color:var(--ink); }.inventory-empty p { font-size:12px; line-height:1.8; }
+@media(max-width:1150px) { [data-shell] .inventory-editor--album .inventory-grid { grid-template-columns:repeat(3,minmax(0,1fr)); } }
+@media(max-width:700px) {
+ [data-shell] .inventory-editor--album>summary { padding:18px 16px 0; }
+ [data-shell] .inventory-editor--album>summary>span { display:block; margin-top:4px; }
+ [data-shell] .personal-growth-workbench .inventory-editor--album .inventory-body { padding:10px 16px 16px; }
+ .inventory-editor--album .inventory-body>.inventory-intro { grid-column:1/-1; grid-row:auto; }
+ .inventory-editor--album .inventory-body>.inventory-library-actions { grid-column:1/-1; grid-row:auto; justify-content:flex-start; }
+ [data-shell] .inventory-editor--album .inventory-grid { grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; }
+ [data-shell] .inventory-editor--album .inventory-card { padding:8px; }
+ [data-shell] .inventory-editor--album .card-identity>img { height:154px; }
+ [data-shell] .inventory-editor--album .card-identity--missing-art::before { height:154px; }
+ [data-shell] .inventory-editor--album .card-selection-state { top:140px; right:12px; padding:3px 5px; font-size:10px; }
+ [data-shell] .inventory-editor--album .card-identity>div { min-height:100px; }
+ [data-shell] .inventory-editor--album .inventory-kind-tabs button { padding:8px 12px; }
+ [data-shell] .inventory-editor--album .inventory-owned-tabs button { padding:6px 9px; }
+ [data-shell] .inventory-editor--album .inventory-toolbar>button { flex:0 1 auto; }
+ [data-shell] .inventory-editor--album .inventory-selection[data-active=true] button { flex:1 1 100px; }
+}

@@ -89,8 +89,8 @@ def live2d(resources, release, stories, public, data_root):
     output = public / 'live2d' / release; output.mkdir(parents=True, exist_ok=True)
     entries = []
     for model in models:
-        key = 'Character/Live2D/' + model['modelPath']  # gitleaks:allow -- resource lookup path, not a credential
-        loc = resources.locate(key)
+        addressable_path = 'Character/Live2D/' + model['modelPath']
+        loc = resources.locate(addressable_path)
         names = [n for n in loc.dependencies if n.startswith('character-live2d_')]
         if len(names) != 1: raise ValueError('ambiguous Live2D bundle')
         name = names[0]
@@ -124,6 +124,7 @@ def live2d(resources, release, stories, public, data_root):
 
 def immersive(resources, release, public, data_root):
     from tools.export_immersive_scenes import export_scene
+    from tools.resource_pipeline.localization import resolve_text
     destination = public / 'immersive'; destination.mkdir(parents=True, exist_ok=True)
     texts = {r['_id']: r for r in resources.rows('MasterText')}
     scenes = []
@@ -161,11 +162,11 @@ def immersive(resources, release, public, data_root):
             folder = f"scene-{spot['_id']}-v1"
             manifest = read_json(destination / folder / 'manifest.json')
         label = texts[spot['_nameTextId']]
-        scenes.append({'id': spot['_id'], 'bandId': spot['_bandId'], 'name': label['_simplifiedChinese'], 'nameEn': label['_english'],
+        scenes.append({'id': spot['_id'], 'bandId': spot['_bandId'], 'name': resolve_text(label,locale='zh-CN'), 'nameEn': resolve_text(label,locale='en'),
             'poster': f"/immersive/thumbnails/{spot['_id']}.webp", 'assetRoot': f'/immersive/{folder}/', 'duration': manifest['durationSeconds'],
             'bytes': sum(f['bytes'] for f in manifest['files']), 'missingBundles': 0, 'totalBundles': len(names), 'background': spot['_backgroundAssetPath']})
         gc.collect()
-    bands = [{'id': b['_id'], 'name': texts[b['_nameTextID']]['_simplifiedChinese'], 'nameEn': texts[b['_nameTextID']]['_english']} for b in resources.rows('MasterBand')]
+    bands = [{'id': b['_id'], 'name': resolve_text(texts[b['_nameTextID']],locale='zh-CN'), 'nameEn': resolve_text(texts[b['_nameTextID']],locale='en')} for b in resources.rows('MasterBand')]
     write_json(data_root / 'immersive-scenes.json', {'contentReleaseId': release, 'catalogSha256': resources.report['catalogSha256'],
         'sourceCapture': 'public-protocol', 'backgroundCount': len({s['background'] for s in scenes}), 'bands': bands, 'scenes': scenes})
     return len(scenes)

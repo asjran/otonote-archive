@@ -33,6 +33,7 @@ test("runtime owners consume labels instead of hard-coded Chinese UI", async () 
   const paths = [
     "../src/lib/team-draft-workbench.mjs",
     "../src/lib/scoring-research-workbench.mjs",
+    "../src/lib/performance-input.mjs",
     "../src/lib/score-workbench-element.ts",
     "../src/lib/score-workbench-renderer.ts"
   ];

@@ -245,7 +245,7 @@ class GlobalSearch extends HTMLElement {
     const fragment = document.createDocumentFragment();
     for (const entry of result.matches) {
       const link = document.createElement("a");
-      link.href = `${this.dataset.routePrefix ?? ""}${entry.href}`;
+      link.href = /^\/(jp|global)\//.test(entry.href) ? entry.href : `${this.dataset.routePrefix ?? ""}${entry.href}`;
       link.className = "global-search-result";
       link.dataset.resultType = entry.type;
       const icon = document.createElement("span");

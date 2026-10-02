@@ -1,0 +1,238 @@
+"""Bounded HMT event ranking reads using an existing, in-memory game login.
+
+Wire schema: Global Android 1.0.1 (25), EventService and PlayerSimpleProfile.
+Transport version follows growth_login.CLIENT_VERSION, independently of this schema.
+Only public profile id/name, ranking score and its high-score deck are retained.
+Account growth, personal rank and all credentials are discarded. No automatic retry.
+"""
+from __future__ import annotations
+
+import argparse
+import fcntl
+import getpass
+import hashlib
+import json
+import os
+from datetime import datetime, timedelta, timezone
+from pathlib import Path
+
+from backend.player_rankings import public_high_score_deck, validate_observation
+from tools.growth_export import fields
+from tools.growth_login import CLIENT_VERSION, GameClient, LoginError, integer, message, single, string, varint
+from tools.growth_login import Profile, SdkClient
+from tools.import_player_rankings import publish_observation
+from tools.resource_pipeline.localization import resolve_text
+
+MUSIC_RPC = 'app.event.EventService/GetChallengeMusicRanking'
+POINTS_RPC = 'app.event.EventService/GetRankingList'
+MAX_PLAYERS = 1000
+
+
+def read_plan(master: Path, event_id: int, *, ttl: int = 900) -> dict:
+    if type(event_id) is not int or event_id <= 0 or not 60 <= ttl <= 3600:
+        raise ValueError('invalid_ranking_plan')
+    tables, hashes = {}, {}
+    for name in ('MasterEvent', 'MasterChallengeMusic', 'MasterLiveMusic', 'MasterText'):
+        raw = (master / (name + '.json')).read_bytes()
+        tables[name] = json.loads(raw)['_allData']
+        hashes[name] = hashlib.sha256(raw).hexdigest()
+    event = next((r for r in tables['MasterEvent'] if r['_id'] == event_id), None)
+    if event is None:
+        raise ValueError('event_not_in_selected_master')
+    text = {r['_id']: r for r in tables['MasterText']}
+    songs = {r['_id']: r for r in tables['MasterLiveMusic']}
+    name = lambda row, fallback: resolve_text(text.get(row.get('_nameTextId') or row.get('_titleTextID')), fallback)
+    boards = []
+    if event.get('_isMusicRankingDisabled') is False:
+        for row in tables['MasterChallengeMusic']:
+            if row.get('_eventId') != event_id:
+                continue
+            music_id = row['_liveMusicId']
+            if music_id not in songs or type(row['_id']) is not int or row['_id'] <= 0:
+                raise ValueError('invalid_challenge_music_reference')
+            boards.append({'type': 'music', 'musicId': str(music_id),
+                           'musicName': name(songs[music_id], str(music_id)),
+                           'challengeMusicId': row['_id']})
+    if event.get('_isRankingDisabled') is False:
+        boards.append({'type': 'event-points'})
+    if not boards or len(boards) > 20:
+        raise ValueError('no_supported_boards_or_too_many_boards')
+    return {'eventId': str(event_id), 'eventName': name(event, str(event_id)),
+            'boards': boards, 'ttl': ttl, 'masterHashes': hashes,
+            'uncollectedBoards': ['total-music'] if event.get('_isTotalMusicRankingDisabled') is False else []}
+
+
+def high_score_deck(raw):
+    """Global 1.0.1 entity.DeckDetail, from ChallengeLiveRankingPlayer field 4."""
+    if raw is None:
+        return None
+    scalar = lambda data, field: single(data, field, wire=0, required=False) or 0
+
+    def card(data, member):
+        if data is None:
+            return None
+        value = {'masterId': scalar(data, 1), 'exp': scalar(data, 2),
+                 'rank': scalar(data, 4 if member else 3) or None}
+        if member:
+            value.update(awake=scalar(data, 3) or None, liveSkillLevel=scalar(data, 5) or None,
+                         performanceSkillLevel=scalar(data, 6) or None)
+        # Empty slots can carry a present protobuf message with all default values.
+        # A zero ID with nonzero growth data remains invalid and is rejected below.
+        if not any(value.values()):
+            return None
+        return value
+
+    cards = []
+    for n, wire, data in fields(raw):
+        if n != 3:
+            continue
+        if wire != 2 or len(cards) >= 5:
+            raise LoginError('invalid_high_score_deck')
+        cards.append({'slot': scalar(data, 1), 'performanceOrder': scalar(data, 2),
+                      'member': card(single(data, 3, required=False), True),
+                      'support': card(single(data, 4, required=False), False)})
+    try:
+        return public_high_score_deck({'totalPower': scalar(raw, 4) or None, 'cards': cards})
+    except ValueError:
+        raise LoginError('invalid_high_score_deck') from None
+
+
+def ranking_entries(raw: bytes, *, music: bool) -> list[dict]:
+    result = []
+    for number, wire, value in fields(raw):
+        if number != 1:
+            continue
+        if wire != 2 or len(result) >= MAX_PLAYERS:
+            raise LoginError('invalid_or_oversized_ranking_response')
+        profile = single(value, 1)
+        score = single(value, 3, wire=0, required=False) or 0
+        rank = len(result) + 1 if music else single(value, 2, wire=0)
+        if score > (1 << 31) - 1 or rank < 1 or rank > (1 << 31) - 1:
+            raise LoginError('invalid_ranking_number')
+        if music and result and score > result[-1]['score']:
+            raise LoginError('ranking_order_changed')
+        result.append({'playerId': string(profile, 1), 'name': string(profile, 2, optional=True),
+                       'rank': rank, 'score': score,
+                       'highScoreDeck': high_score_deck(single(value, 4, required=False)) if music else None})
+    return result
+
+
+class RankingClient(GameClient):
+    read_methods = GameClient.read_methods | {MUSIC_RPC, POINTS_RPC}
+
+    def __init__(self, plan: dict):
+        self.plan = plan
+
+    def export(self, identity, device_id, host, progress=lambda s: None):
+        auth = self.authenticate(identity, device_id, host, progress)
+        observed = datetime.now(timezone.utc)
+        boards = []
+        progress('reading_rankings')
+        try:
+            for definition in self.plan['boards']:
+                music = definition['type'] == 'music'
+                # ChallengeMusic ID is NOT the public LiveMusic ID.
+                payload = integer(1, definition['challengeMusicId']) if music else (
+                    integer(1, int(self.plan['eventId'])) + message(2, b''.join(varint(i) for i in range(1, 101))))
+                response = self.rpc(host, MUSIC_RPC if music else POINTS_RPC, payload, auth)
+                boards.append({**definition, 'eventId': self.plan['eventId'], 'eventName': self.plan['eventName'],
+                               'coverage': 'server_returned_list' if music else 'top_100',
+                               'entries': ranking_entries(response, music=music)})
+        finally:
+            auth.clear()
+        return validate_observation({
+            'schemaVersion': 1, 'serverId': 'global-hmt', 'observedAt': observed.isoformat(),
+            'expiresAt': (observed + timedelta(seconds=self.plan['ttl'])).isoformat(), 'boards': boards,
+            'source': {'kind': 'direct_game_read', 'clientVersion': CLIENT_VERSION,
+                       'masterHashes': self.plan['masterHashes']},
+            'uncollectedBoards': self.plan['uncollectedBoards'],
+        }, 'global-hmt')
+
+
+def pause_required(error: str) -> bool:
+    return error.startswith(('sdk_service_', 'sdk_http_429', 'no_existing_role', 'game_authentication_failed',
+                             'game_rpc_unauthenticated', 'game_rpc_permission_denied',
+                             'game_rpc_resource_exhausted', 'unexpected_new_role'))
+
+
+def run_capture(plan, profile, account, password, root, *, sdk_factory=SdkClient, game_factory=RankingClient,
+                progress=lambda stage: None):
+    game = game_factory(plan)
+    progress('discovering')
+    host = game.discover()
+    progress('sdk_login')
+    sdk = sdk_factory(profile)
+    identity = sdk.login(account, password)
+    try:
+        snapshot = game.export(identity, sdk.device_id, host, progress)
+    finally:
+        identity = None
+    progress('publishing')
+    return publish_observation(snapshot, root, 'global-hmt')
+
+
+def main(argv=None):
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--master-dir', type=Path, required=True)
+    parser.add_argument('--event', type=int, required=True)
+    parser.add_argument('--root', type=Path, required=True, help='published observations root')
+    parser.add_argument('--state-dir', type=Path, required=True, help='private lock/status directory')
+    parser.add_argument('--sdk-resources', type=Path, required=True)
+    parser.add_argument('--prompt', action='store_true', help='maintenance-only terminal input, with echo disabled')
+    parser.add_argument('--resume', action='store_true', help='operator resume after resolving authentication or rate limits')
+    args = parser.parse_args(argv)
+    args.state_dir.mkdir(parents=True, exist_ok=True, mode=0o700)
+    status_path = args.state_dir / 'status.json'
+    with (args.state_dir / 'capture.lock').open('a') as lock:
+        try:
+            fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except BlockingIOError:
+            print('Ranking capture already running.'); return 0
+        if status_path.exists() and not args.resume and json.loads(status_path.read_text()).get('paused'):
+            print('Ranking capture paused; operator action required.'); return 0
+        account = password = ''
+        stage = 'configuration'
+        def progress(value):
+            nonlocal stage
+            if value in ('discovering', 'sdk_login', 'checking_existing_account', 'game_login',
+                         'reading_rankings', 'publishing'):
+                stage = value
+        try:
+            plan = read_plan(args.master_dir, args.event)
+            profile = Profile.from_resources(args.sdk_resources)
+            if args.prompt:
+                account = getpass.getpass('Account (hidden): ')
+                password = getpass.getpass('Password (hidden): ')
+            elif os.environ.get('CREDENTIALS_DIRECTORY'):
+                credentials = Path(os.environ['CREDENTIALS_DIRECTORY'])
+                account = (credentials / 'account').read_text().strip()
+                password = (credentials / 'password').read_text().rstrip('\r\n')
+            else:
+                account = os.environ.get('OURNOTES_RANKING_ACCOUNT', '')
+                password = os.environ.get('OURNOTES_RANKING_PASSWORD', '')
+            if not account or not password:
+                raise LoginError('ranking_credentials_required')
+            path = run_capture(plan, profile, account, password, args.root, progress=progress)
+            value = json.loads(path.read_text())
+            result = {'status':'complete', 'paused':False, 'observedAt':value['observedAt'],
+                      'boards':len(value['boards']), 'entries':sum(len(b['entries']) for b in value['boards'])}
+            code = 0
+        except LoginError as exc:
+            result = {'status':'failed', 'paused':pause_required(str(exc)) or str(exc) == 'ranking_credentials_required', 'error':str(exc)}
+            code = 2
+        except Exception:
+            result = {'status':'failed', 'paused':True, 'error':'ranking_capture_failed'}
+            code = 2
+        finally:
+            account = password = ''
+        result.update(stage=stage, clientVersion=CLIENT_VERSION)
+        temporary = status_path.with_suffix('.tmp')
+        temporary.write_text(json.dumps(result) + '\n')
+        os.chmod(temporary, 0o600)
+        temporary.replace(status_path)
+        print(json.dumps(result))
+        return code
+
+
+if __name__ == '__main__':
+    raise SystemExit(main())

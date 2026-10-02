@@ -151,10 +151,11 @@ test("music details keep shared rewards and function entries above modal workspa
     readSource("../src/components/ScoreWorkbench.astro")
   ]);
   const markers = [
-    ["gekisou", page.indexOf('href={gekisouLabHref}')],
+    ["gekisou", page.indexOf('class="song-gekisou-panel"')],
     ["summary", page.indexOf("<MusicChartSummary")],
     ["scoreRewards", page.indexOf("<MusicScoreRewards")],
-    ["actions", page.indexOf('class="content-shell track-module-actions"')],
+    ["actions", page.indexOf('class="song-chart-links"')],
+    ["tools", page.indexOf('class="song-tool-links"')],
     ["score", page.indexOf("<ScoreWorkbench")],
     ["rewards", page.indexOf("<MusicSoloRewards")]
   ];
@@ -172,38 +173,41 @@ test("music details keep shared rewards and function entries above modal workspa
       compactFields: summary.includes("chart.difficulty") && summary.includes("chart.displayLevel")
     },
     {
-      order: ["gekisou", "summary", "actions", "scoreRewards", "score", "rewards"],
+      order: ["gekisou", "summary", "actions", "tools", "scoreRewards", "score", "rewards"],
       summaryOwners: ["MusicChartSummary"],
       compactFields: true
     }
   );
 });
 
-test("mobile music details keep the workspace near the first viewport", async () => {
+test("mobile music details keep art bounded and chart controls readable", async () => {
   const [page, summary, css] = await Promise.all([
     readSource("../src/pages/music/[id].astro"),
     readSource("../src/components/MusicChartSummary.astro"),
-    readSource("../src/styles/music-archive.css")
+    readSource("../src/styles/song-record.css")
   ]);
 
   assert.deepEqual(
     {
-      compactHero: page.includes('class="track-hero track-hero--compact"'),
+      albumLayout: page.includes('class="song-album"') && page.includes('class="song-album-grid"'),
       completeSummary: ["combo", "bpm", "average", "peak", "notes", "events"]
         .every((field) => summary.includes(`data-page-summary="${field}"`)),
       mobileSummaryColumns:
-        /@media \(max-width: 440px\)[\s\S]*?\.music-current-chart-summary\s*\{[^}]*grid-template-columns:\s*repeat\(3,\s*minmax\(0,\s*1fr\)\)/s.test(css),
-      mobileHeroPadding:
-        /@media \(max-width: 440px\)[\s\S]*?\.track-hero--compact\s*\{[^}]*padding:\s*14px\s+0/s.test(css),
-      compactWorkspaceGap:
-        /@media \(max-width: 440px\)[\s\S]*?\.music-chart-summary\s*\+\s*\.music-workspace\s*\{[^}]*margin-top:\s*10px/s.test(css)
+        /@media\s*\(max-width:\s*700px\)[\s\S]*?\.song-chart-panel \.music-current-chart-summary\s*\{[^}]*grid-template-columns:\s*repeat\(2,\s*minmax\(0,\s*1fr\)\)/s.test(css),
+      boundedArt:
+        /@media\s*\(max-width:\s*700px\)[\s\S]*?\.song-art-column\s*\{[^}]*width:\s*min\(65%,\s*280px\)/s.test(css),
+      singleColumn:
+        /@media\s*\(max-width:\s*700px\)[\s\S]*?\.song-album-grid\s*\{[^}]*grid-template-columns:\s*1fr/s.test(css),
+      usableDifficultyButtons:
+        /@media\s*\(max-width:\s*700px\)[\s\S]*?\.music-chart-summary-tabs button\s*\{[^}]*min-height:\s*40px/s.test(css)
     },
     {
-      compactHero: true,
+      albumLayout: true,
       completeSummary: true,
       mobileSummaryColumns: true,
-      mobileHeroPadding: true,
-      compactWorkspaceGap: true
+      boundedArt: true,
+      singleColumn: true,
+      usableDifficultyButtons: true
     }
   );
 });

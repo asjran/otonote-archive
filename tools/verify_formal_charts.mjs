@@ -2,7 +2,7 @@
 // Master is used ONLY for comparison; it is never passed to reconstruction.
 import { readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { createHash } from "node:crypto";
-import { reconstructFormalChart } from "../site/src/lib/scoring-rules/formal-chart.mjs";
+import { reconstructFormalChart } from "../packages/scoring/scoring-rules/formal-chart.mjs";
 
 const root = new URL("../site/", import.meta.url);
 const rules = JSON.parse(readFileSync(new URL("src/data/formal-scoring-rules.json", root)));

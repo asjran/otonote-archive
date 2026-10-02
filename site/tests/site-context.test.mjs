@@ -70,3 +70,25 @@ test("single-projection mode emits only reachable links", () => {
     "/global/en/catalog/"
   );
 });
+
+test('JP switch drops entity identity while language links retain server and query',()=>{
+  const old=globalThis.location;
+  globalThis.location=new URL('https://example.test/global/zh-CN/?server=global-kr');
+  try {
+    const jp={...globalZh,region:'jp',contentReleaseId:'jp-release'};
+    assert.equal(switchTarget('/global/zh-CN/cards/members/member-card-1/',globalZh,jp),
+      '/jp/zh-CN/cards/members/?unavailable=%2Fcards%2Fmembers%2Fmember-card-1%2F');
+    assert.equal(switchTarget('/global/zh-CN/cards/members/',globalZh,jp),'/jp/zh-CN/cards/members/');
+    assert.equal(switchTarget('/global/zh-CN/music/bgm/',globalZh,jp),'/jp/zh-CN/music/bgm/');
+    assert.equal(siteHref('/?home=immersive',globalEn),'/global/en/?home=immersive&server=global-kr');
+    assert.equal(switchTarget('/global/zh-CN/characters/character-1/',globalZh,globalEn),'/global/en/characters/character-1/?server=global-kr');
+  } finally {globalThis.location=old;}
+});
+
+test('event and event-story identities are dropped when switching releases', () => {
+  for (const [detail, directory] of [['events/1/', 'events/'], ['stories/events/1/', 'stories/events/']]) {
+    assert.equal(switchTarget(`/global/zh-CN/${detail}`, globalZh, nextRelease),
+      `/global/zh-CN/${directory}?unavailable=${encodeURIComponent('/' + detail)}`);
+    assert.equal(switchTarget(`/global/zh-CN/${detail}`, globalZh, globalEn), `/global/en/${detail}`);
+  }
+});

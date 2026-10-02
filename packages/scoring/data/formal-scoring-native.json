@@ -1,0 +1,27 @@
+{
+  "sourceReleaseId": "global-prod-20260924-v1-0-1-25-39b5d81f",
+  "nativeSha256": "514a5b73d038c264b60cc91fd4a747cf178190c6b2096e6d7007c2020e2b1bca",
+  "loaderSha256": "2a36573bfe4069a7fb19de091e1d59e2a5806738a47be02881f6d6bf1d058e88",
+  "difficultyIncrement": 0.004999999888241291,
+  "difficultyIncrementBits": "3ba3d70a",
+  "difficultyMethodAddress": "0x55e166c",
+  "difficultyConstantAddress": "0x1ffc024",
+  "skillValueDivisor": 10000.0,
+  "tickMillisecondsPerMinute": 60000.0,
+  "luckChanceTypesByRushCombo": [
+    0,
+    4,
+    3,
+    2
+  ],
+  "luckChanceTypeAfterThreeRushes": 1,
+  "luckPointsByResult": [
+    0,
+    5,
+    10,
+    10
+  ],
+  "luckChanceTypeTableAddress": "0x1ffcb20",
+  "luckPointTableAddress": "0x20612f0",
+  "verification": "native_loader_emulation_and_independent_openssl_decode"
+}

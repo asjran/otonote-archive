@@ -71,7 +71,7 @@ def test_live_content_dates_and_demand_loaded_verified_images(tmp_path, source):
     c = cache(tmp_path, source)
     assert c.refresh()
     assert c.content.release_id == 'global-prod-remote-1-0-0-105-test'
-    assert c.content.snapshot == '192.0.2.10'
+    assert c.content.snapshot == '1.0.0.105'
     assert source[5]+'public/art.png' not in source[2]['requests']
     reply = Queries(c.content).query('查卡池 1')
     assert '2026/10/8 23:59:59' in reply_text(reply)

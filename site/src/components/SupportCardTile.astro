@@ -1,4 +1,5 @@
 ---
+import EditionBadge from "./EditionBadge.astro";
 import {
   getAsset,
   getBand,
@@ -42,7 +43,7 @@ const localizedHref = (logicalPath: string) =>
   import.meta.env.BASE_URL === "/"
     ? logicalPath
     : siteHref(logicalPath, activeReleaseContext);
-const href = localizedHref(`/cards/supports/${card.id}/`);
+const href = card.sourceHref ?? localizedHref(`/cards/supports/${card.id}/`);
 const title = card.description || card.name;
 const titleDensity = classifyTileTitleDensity(title);
 ---
@@ -79,7 +80,7 @@ const titleDensity = classifyTileTitleDensity(title);
     ) : (
       <span class="media-missing">{ui.previewPending}</span>
     )}
-    <span class="archive-index">SC-{card.masterId.toString().padStart(3, "0")}</span>
+    <span class="archive-index"><EditionBadge record={card} variant="index" />SC-{card.masterId.toString().padStart(3, "0")}</span>
   </a>
   <div class="tile-body">
     <StatusTag status={card.catalogStatus} dotOnly />

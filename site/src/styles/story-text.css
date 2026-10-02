@@ -110,6 +110,22 @@
 
 /* Preserve the script's original sequence; all speakers share one reading edge. */
 .st-reading-sheet { padding: 8px clamp(14px, 2vw, 24px) 16px; border: 1px solid var(--st-line); border-top: 0; border-radius: 0 0 14px 14px; background: #f7f8f8; }
+.st-reader-find { display:block; padding:10px 14px; border-top:1px solid var(--st-line); }
+.st-reader-find[hidden] { display:none; }
+.st-reader-find form { display:flex; flex-wrap:wrap; gap:8px; }
+.st-reader-find label { min-width:0; }
+.st-find-query { flex:1 1 180px; }
+.st-reader-find input,.st-reader-find select,.st-reader-find button { min-height:34px; border:1px solid var(--st-line); border-radius:7px; background:var(--st-paper); color:var(--st-text); font:12px var(--font-body); padding:6px 9px; }
+.st-reader-find input { width:100%; }
+.st-reader-find select { max-width:180px; }
+.st-reader-find button { cursor:pointer; }
+.st-reader-find button:disabled { opacity:.4; cursor:default; }
+.st-find-navigation { display:flex; align-items:center; gap:8px; margin-top:8px; font-size:11px; color:var(--st-muted); }
+.st-find-navigation [role="status"] { margin-right:auto; }
+.st-find-navigation a { color:var(--kind-ink); text-underline-offset:3px; }
+.st-line.st-find-match .st-message>p,.st-line.st-find-match .st-system-message>p { border-color:#cfb463; background:#faf3d9; }
+.st-line.st-find-current { outline:2px solid #aa813b; outline-offset:3px; border-radius:8px; }
+.st-reader-find :is(input,select,button,a):focus-visible { outline:2px solid var(--lacquer); outline-offset:2px; }
 .st-transcript { list-style: none; padding: 0; margin: 0 auto; max-width: 780px; --story-font-size: 15px; }
 [data-font="large"] .st-transcript { --story-font-size: 21px; }
 .st-line { position: relative; margin: 0; padding: 7px 0; scroll-margin-top: calc(var(--header-height) + 170px); }
@@ -234,3 +250,14 @@
   .st-line { break-inside: avoid; }
   .st-reading-sheet, .st-message > p { background: white; border: 0; box-shadow: none; }
 }
+
+/* Event chapters have their own collection, including metadata-only episodes. */
+.st-event-gateway { display:flex; align-items:center; gap:16px; margin:0 0 24px; padding:18px 22px; border:1px solid #dfe2e4; border-radius:12px; background:#fffefa; color:#28323e; text-decoration:none; }
+.st-event-gateway:hover { border-color:var(--lacquer); }
+.st-event-icon { display:grid; place-items:center; width:40px; height:40px; flex-shrink:0; color:var(--lacquer); background:#f2eaf0; border-radius:10px; font-size:21px; }
+.st-event-gateway strong { display:block; font-size:14px; font-weight:600; }
+.st-event-gateway small { display:block; color:#69717b; font-size:11px; margin-top:4px; }
+.st-event-count { margin-left:auto; flex-shrink:0; font-size:11px; color:#69717b; }
+.st-event-count b { margin-left:12px; color:var(--lacquer); font-size:16px; }
+.st-tag[data-kind="event"] { background:#eee8f4; color:#775391; }
+@media(max-width:600px) { .st-event-gateway { padding:16px; gap:12px; } .st-event-gateway small { max-width:190px; } .st-event-count { font-size:10px; } .st-event-count b { display:block; text-align:right; } }

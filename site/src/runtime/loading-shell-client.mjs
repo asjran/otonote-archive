@@ -1,14 +1,28 @@
 import { SITE_NAME } from "../lib/site-brand.mjs";
+import {GAME_SERVERS, currentServerContext, withServer} from '../lib/game-servers.mjs';
+import {restoreServerLabels} from '../lib/server-label.mjs';
 import { activeNavigationGroup, activeNavigationChild, NAVIGATION_GROUPS } from '../lib/navigation.mjs';
 import { loadingKind } from './loading-route.mjs';
 import { loadingPresentation } from './loading-presentation.mjs';
 
 // Inline in the entry HTML: runs before downloading any template or game data.
-const english = /^\/global\/en(?:\/|$)/.test(location.pathname);
-const base = `/global/${english ? 'en' : 'zh-CN'}/`;
-const path = location.pathname.replace(/^\/global\/(zh-CN|en)/, '') || '/';
+const english = /^\/(?:global|jp)\/en(?:\/|$)/.test(location.pathname);
+const region = location.pathname.startsWith('/jp/') ? 'jp' : 'global';
+const base = `/${region}/${english ? 'en' : 'zh-CN'}/`;
+document.querySelectorAll('.context-switcher a').forEach(link => {
+  const url = new URL(link.href);
+  url.pathname = url.pathname.replace(/^\/global\//, `/${region}/`);
+  const server = new URLSearchParams(location.search).get('server');
+  if (server) url.searchParams.set('server', server);
+  link.href = url.pathname + url.search;
+});
+const editionLabel = document.querySelector('.nav-bottom small');
+if (editionLabel) editionLabel.textContent = `${SITE_NAME} · ${region.toUpperCase()}`;
+const path = location.pathname.replace(/^\/(?:global|jp)\/(zh-CN|en)/, '') || '/';
 const root = document.documentElement;
 root.lang = english ? 'en' : 'zh-CN';
+restoreServerLabels(document, GAME_SERVERS);
+const serverId = currentServerContext().serverId;
 if (new URLSearchParams(location.search).get('motion') === 'off') root.dataset.motion = 'off';
 if (english) document.querySelectorAll('[data-loading-en]').forEach(node => { node.textContent = node.dataset.loadingEn; });
 document.querySelector('[data-loading-locale]').textContent = english ? 'English' : '简体中文';
@@ -19,11 +33,11 @@ document.querySelector('.context-switcher summary').setAttribute('aria-label', e
 document.querySelector('[data-loading-retry]').href = location.href;
 const group = NAVIGATION_GROUPS.find(item => item.id === activeNavigationGroup(path));
 const child = activeNavigationChild(path, group?.children ?? []);
-const currentPath = child?.href ?? group?.href ?? (path === '/updates/' ? path : '/');
+const currentPath = child?.href ?? group?.href ?? (['/updates/', '/about/'].includes(path) ? path : '/');
 let title = english ? 'Overview' : '首页概览';
 document.querySelectorAll('[data-loading-route]').forEach(link => {
   const route = link.dataset.loadingRoute;
-  link.href = base + route.slice(1);
+  link.href = withServer(base + route.slice(1), serverId);
   if (route === path || (route === child?.href && path.startsWith(route))) link.setAttribute('aria-current', 'page');
   if (route === currentPath) title = link.textContent.trim();
 });
@@ -44,7 +58,10 @@ document.querySelector('[data-loading-caption]').textContent = presentation.capt
 // Decorative art is optional and never gates the ready page or its navigation.
 companion.addEventListener('load', () => { companion.hidden = false; }, { once: true });
 companion.addEventListener('error', () => { companion.hidden = true; }, { once: true });
-companion.src = interlude.dataset.artRoot + presentation.art;
+// The image bytes arrived with this HTML, so the waiting animation never
+// competes with page content for another request (even on a cold cache).
+const art = JSON.parse(document.querySelector('[data-loading-art]').textContent);
+if (art[presentation.art]) companion.src = art[presentation.art];
 
 const controller = new AbortController();
 const options = {signal:controller.signal};

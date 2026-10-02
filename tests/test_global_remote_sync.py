@@ -37,7 +37,7 @@ class FakeClient(GlobalPublicClient):
         if method.endswith("GetServerList"):
             row = field(1, "TW/HK/MO") + field(2, CDN) + field(3, API) + field(8, "2")
             return {}, field(1, row)
-        return {}, field(1, "b" * 32) + field(2, "192.0.2.10")
+        return {}, field(1, "b" * 32) + field(2, "1.0.0.104")
 
     def get(self, url, limit, *, method="GET"):
         return HttpResponse(200, {}, b"c" * 32)
@@ -145,7 +145,7 @@ class GlobalRemoteTest(unittest.TestCase):
     def test_failed_acquisition_does_not_advance_saved_baseline(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
-            state = {"observation": {**FakeClient().discover(), "resourceVersion": "192.0.2.10"},
+            state = {"observation": {**FakeClient().discover(), "resourceVersion": "1.0.0.103"},
                      "snapshot": str(root / "old-snapshot"), "inputPlan": str(root / "old-plan")}
             state_path = root / "state.json"
             state_path.write_text(json.dumps(state))
@@ -172,19 +172,19 @@ class GlobalRemoteTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             observed = FakeClient().discover()
-            state = {"observation": {**observed, "resourceVersion": "192.0.2.10"},
+            state = {"observation": {**observed, "resourceVersion": "1.0.0.103"},
                      "snapshot": str(root / "old-snapshot"), "inputPlan": str(root / "old-plan")}
             state_path = root / "state.json"
             state_path.write_text(json.dumps(state))
             original = state_path.read_bytes()
-            current = root / "192.0.2.10-bbbbbbbb-cccccccc-complete-v2"
+            current = root / "1.0.0.104-bbbbbbbb-cccccccc-complete-v2"
             captured = current / "snapshot"
             captured.mkdir(parents=True)
             (captured / "report.json").write_text(json.dumps({"observation": observed}))
             (captured / "status.json").write_text(json.dumps({"status": "verified_snapshot"}))
             (current / "inputs").mkdir()
             client = Mock()
-            client.discover.side_effect = [observed, {**observed, "resourceVersion": "192.0.2.10"}]
+            client.discover.side_effect = [observed, {**observed, "resourceVersion": "1.0.0.105"}]
             with patch("tools.release_preflight.load_plan", return_value=[{"id": "global-production"}]), \
                     patch("tools.release_preflight.inspect_plan") as preflight:
                 with self.assertRaisesRegex(ProtocolError, "during content extraction"):

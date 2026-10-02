@@ -1,59 +1,93 @@
 """Bind reference calculations to content without inheriting a new client's audit.
 
-Only unchanged scoring tables are supported. LiveMusic may expose additional
-songs already described by the audited score table, using known attribute and
-mission values. A different formula/skill/event table remains unavailable.
+Content updates reuse the implemented model with current Master parameters.
+Only model changes need a mechanism review; source identities stay explicit.
 """
 from copy import deepcopy
 import hashlib
 import json
 from pathlib import Path
 
-from tools.build_formal_scoring_rules import ROOT, TABLES
+from tools.build_formal_scoring_rules import ROOT, TABLES, project_tables
 
-BASELINE = ROOT / 'site/src/data/formal-scoring-rules.json'
+BASELINE = ROOT / 'packages/scoring/data/formal-scoring-rules.json'
+
+
+def bind_reviewed_reference(master, release, base, profile):
+    """A pinned data review enables estimates, never a new native audit."""
+    unavailable = {'schemaVersion':1,'sourceReleaseId':release,'verificationStatus':'unavailable'}
+    if profile['referenceNativeSha256'] != base['nativeSha256']:
+        return {**unavailable,'reason':'reference_native_changed'}
+    tables, hashes = project_tables(master)
+    if hashes != profile['masterSha256']:
+        return {**unavailable,'reason':'unreviewed_reference_inputs'}
+    # Recheck the formula/growth/condition tables against the audited baseline.
+    for name in profile['unchangedCoreTables']:
+        if tables[name] != base['tables'][name]:
+            return {**unavailable,'reason':'changed_reference_core','table':name}
+    omit = {'client_version_download_url','client_version_recommended','client_version_required'}
+    parameters = lambda rows: [r for r in rows if r['_id'] not in omit]
+    if parameters(tables['Parameter']) != parameters(base['tables']['Parameter']):
+        return {**unavailable,'reason':'changed_reference_parameters'}
+    rules = deepcopy(base)
+    rules.update(sourceReleaseId=release, verificationStatus='reference_compatible',masterSha256=hashes,tables=tables,
+        packageVersion=profile['packageVersion'],ruleSetVersion=profile['id'],
+        referenceProfile={'sourceReleaseId':base['sourceReleaseId'],'nativeSha256':base['nativeSha256'],
+                          'dataCompatibility':'reviewed_current_tables','reviewId':profile['id'],
+                          'currentGameplayVerified':False})
+    rules['capabilities']['formationPower'] = 'reference_model_estimate'
+    rules['capabilities']['event'] = 'requires_version_bound_adapter'
+    return rules
+
+
+EVENT_TABLES = ('LiveScoreRank', 'LiveChallengePoint', 'ChallengeMusic',
+                'LiveMusicBoostBonus', 'ChallengeMusicBoostBonus', 'LiveEventPoint',
+                'LiveEventReward', 'ChallengeLiveEventPoint', 'ChallengeLiveEventReward')
 
 
 def bind_scoring_rules(master: Path, release: str, baseline=None):
+    """Reuse the implemented model with current parameters, independently of releases.
+
+    Master hashes identify inputs, not changes in native mechanics. Unknown
+    effects remain rejected by the relevant calculator at evaluation time.
+    """
     base = baseline or json.loads(BASELINE.read_text())
     unavailable = {'schemaVersion': 1, 'sourceReleaseId': release,
                    'verificationStatus': 'unavailable'}
-    rows, hashes = {}, {}
-    for name in TABLES:
-        path = master / f'Master{name}.json'
-        if not path.is_file():
-            return {**unavailable, 'reason': 'missing_scoring_inputs'}
-        raw = path.read_bytes()
-        rows[name] = json.loads(raw)['_allData']
-        hashes[f'Master{name}'] = hashlib.sha256(raw).hexdigest()
-        if name != 'LiveMusic' and hashes[f'Master{name}'] != base['masterSha256'][f'Master{name}']:
-            return {**unavailable, 'reason': 'changed_scoring_table', 'table': name}
-    fields = tuple(base['tables']['LiveMusic'][0])
-    songs = [{key: row[key] for key in fields} for row in rows['LiveMusic']]
-    prior = {row['_id']: row for row in base['tables']['LiveMusic']}
-    current = {row['_id']: row for row in songs}
-    if len(current) != len(songs) or any(current.get(key) != row for key, row in prior.items()):
-        return {**unavailable, 'reason': 'changed_song_rules'}
-    score_songs = {row['_id'] // 100 for row in base['tables']['LiveMusicScore']}
-    tags = {tag for row in prior.values() for tag in row['_bestMusicTagIDs']}
-    for row in songs:
-        if row['_id'] not in score_songs or not set(row['_bestMusicTagIDs']).issubset(tags):
-            return {**unavailable, 'reason': 'unsupported_song_rules'}
-        for key in fields:
-            if key not in ('_id', '_bestMusicTagIDs') and row[key] not in {r[key] for r in prior.values()}:
-                return {**unavailable, 'reason': 'unsupported_song_rules'}
+    if any(not (master/f'Master{name}.json').is_file() for name in TABLES):
+        return {**unavailable, 'reason': 'missing_scoring_inputs'}
+    try:
+        tables, hashes = project_tables(master)
+    except (ValueError, KeyError, TypeError):
+        return {**unavailable, 'reason': 'invalid_scoring_inputs'}
     if release == base['sourceReleaseId']:
-        return deepcopy(base) if hashes == base['masterSha256'] else {**unavailable, 'reason': 'audit_input_mismatch'}
+        if hashes != base['masterSha256']:
+            return {**unavailable, 'reason': 'audit_input_mismatch'}
+        return deepcopy(base)
+    # Event inputs travel in the same immutable artifact as cards and songs.
+    for name in EVENT_TABLES:
+        path = master/f'Master{name}.json'
+        if path.is_file():
+            raw = path.read_bytes()
+            rows = json.loads(raw)['_allData']
+            if not isinstance(rows, list):
+                return {**unavailable, 'reason':'invalid_event_inputs'}
+            tables[name] = rows
+            hashes[f'Master{name}'] = hashlib.sha256(raw).hexdigest()
+    # The event threshold calculator needs the current song rank group too.
+    music = {r['_id']: r for r in json.loads((master/'MasterLiveMusic.json').read_text())['_allData']}
+    for song in tables['LiveMusic']:
+        if '_liveScoreRankGroup' in music[song['_id']]:
+            song['_liveScoreRankGroup'] = music[song['_id']]['_liveScoreRankGroup']
     rules = deepcopy(base)
-    rules.update(sourceReleaseId=release, verificationStatus='reference_compatible', masterSha256=hashes,
-                 referenceProfile={'sourceReleaseId': base['sourceReleaseId'],
-                                   'nativeSha256': base['nativeSha256'],
-                                   'dataCompatibility': 'scoring_tables_matched',
-                                   'currentGameplayVerified': False})
-    # Preserve the native audit's original identity. Do not relabel old code as
-    # current code just because the data can be evaluated by the same model.
-    rules['tables']['LiveMusic'] = songs
+    rules.update(sourceReleaseId=release, verificationStatus='reference_compatible',
+                 tables=tables, masterSha256=hashes,
+                 ruleSetVersion='ournotes-scoring-model-v1',
+                 referenceProfile={'sourceReleaseId':base['sourceReleaseId'],
+                     'nativeSha256':base['nativeSha256'], 'modelId':'ournotes-scoring-model-v1',
+                     'dataCompatibility':'supported_model', 'currentGameplayVerified':False})
     rules['capabilities']['formationPower'] = 'reference_model_estimate'
+    rules['capabilities']['event'] = 'requires_version_bound_adapter'
     return rules
 
 

@@ -1,0 +1,29 @@
+---
+import type { EventDefinition } from '../lib/event-archive';
+interface Props { event: EventDefinition; locale?: string }
+const { event, locale = 'zh-CN' } = Astro.props;
+const en = locale === 'en';
+const t = (zh: string, english: string) => en ? english : zh;
+const fmt = (n: number | null | undefined) => n == null ? '—' : n.toLocaleString(en ? 'en-US' : 'zh-CN');
+const options = event.challengeRules?.consumptionOptions ?? [];
+const rules = event.pointRules.challenge;
+const noGekisou = event.challengeSongs.length > 0 && event.challengeSongs.every(song => song.gekisouMissionTypes?.length === 3 && song.gekisouMissionTypes.every(type => type === 0));
+const badgeFor = (rank: number) => rules?.rewards.find(row => row.scoreRank === rank && row.reward.resourceType === event.eventItem?.resourceType && row.reward.resourceId === event.eventItem?.resourceId)?.reward.count;
+const ss = rules?.points.find(row => row.scoreRankLabel === 'SS');
+const exampleOption = options.find(option => option.cost === 400);
+const ssBadge = ss && badgeFor(ss.scoreRank);
+---
+<div class="ef-challenge-guide">
+  <p class="ef-challenge-intro">{t('先通过普通演出积累挑战 pt，再消耗挑战 pt 游玩本期指定歌曲。挑战演出可获得活动 pt 与徽章，歌曲分数还会参与对应的单曲榜。','Earn Challenge Points in Normal Lives, then spend them on the featured songs. Challenge Lives award event points and badges, and your score enters the song ranking.')}</p>
+  <dl class="ef-challenge-currencies">
+    <div><dt>{t('挑战 pt','Challenge Points')}</dt><dd>{t('挑战演出的入场消耗。','Spent to enter Challenge Lives.')}</dd></div>
+    <div><dt>{t('活动 pt','Event points')}</dt><dd>{t('累计解锁活动故事与积分奖励。','Unlock stories and milestone rewards.')}</dd></div>
+    <div><dt>{t('活动徽章','Event badges')}</dt><dd>{t('用于本期活动兑换所。','Spend in this event’s exchange.')}</dd></div>
+  </dl>
+  {noGekisou && <p class="ef-challenge-mode-note">{t('本期挑战演出没有激奏区间。活动综合力加成会在挑战演出中生效；歌曲普通演出的激奏配置不用于本期挑战。','This event’s Challenge Lives have no Gekisou sections. Event power bonuses apply here; the song’s Normal Live Gekisou settings do not.')}</p>}
+  {options.length > 0 && <section><h3>{t('挑战 pt 消耗与收益倍率','Consumption and reward multipliers')}</h3><div class="ef-challenge-costs">{options.map(option => <div><strong>{fmt(option.cost)} <small>pt</small></strong><span>{t('活动 pt','Event points')} ×{fmt(option.pointRate)}</span><span>{t('徽章','Badges')} ×{fmt(option.rewardRate)}</span></div>)}</div><p class="ea-note">{t('提高消耗档位可一次领取多倍奖励，不会直接把演出分数或榜单分数乘上同样的倍率。','Higher consumption multiplies rewards, not your live or ranking score.')}</p></section>}
+  {rules && <section><h3>{t('各评分档位的基础奖励','Base rewards by score rank')}</h3><p class="ea-note">{t('以下为 1 倍收益、尚未加上队伍活动加成时的数量。','Amounts below use a ×1 reward multiplier, before team event bonuses.')}</p><div class="ea-table-wrap" tabindex="0"><table><thead><tr><th>{t('评分','Rank')}</th><th>{t('活动 pt','Event points')}</th><th>{t('活动徽章','Event badges')}</th></tr></thead><tbody>{rules.points.map(row => <tr><td>{row.scoreRankLabel}</td><td>{fmt(row.value)}</td><td>{fmt(badgeFor(row.scoreRank))}</td></tr>)}</tbody></table></div></section>}
+  <section><h3>{t('怎样计算活动收益？','How are event rewards calculated?')}</h3><p>{t('把队伍内成员卡和留影卡的活动收益加成相加，再分别用于活动 pt 和徽章。综合力加成影响卡牌能力，不加入这里的收益百分比。','Add the event reward bonuses of your members and snapshots, then apply the total to event points and badges. Power bonuses affect card parameters and are separate from reward bonuses.')}</p><div class="ef-challenge-formulas"><p><span>{t('活动 pt 估算','Event points estimate')}</span><strong>{t('评分基础 pt ×（1 + 活动收益加成）× pt 倍率','Base points × (1 + event reward bonus) × point multiplier')}</strong></p><p><span>{t('徽章数量估算','Badge estimate')}</span><strong>{t('评分基础徽章 ×（1 + 活动收益加成）× 徽章倍率','Base badges × (1 + event reward bonus) × badge multiplier')}</strong></p></div>
+  {ss?.value != null && ssBadge != null && exampleOption?.pointRate != null && exampleOption.rewardRate != null && <p class="ef-challenge-example">{t('例如：SS 评分、队伍活动收益加成 +300%、消耗 400 挑战 pt。','Example: SS rank, +300% team event reward bonus, and 400 Challenge Points spent.')}<br />{t('活动 pt','Event points')}：{fmt(ss.value)} × 4 × {exampleOption.pointRate} = <b>{fmt(ss.value * 4 * exampleOption.pointRate)} pt</b><br />{t('活动徽章','Event badges')}：{fmt(ssBadge)} × 4 × {exampleOption.rewardRate} = <b>{fmt(ssBadge * 4 * exampleOption.rewardRate)}</b></p>}
+  <p class="ea-note">{t('实际获得数量以演出结算为准。活动 pt、挑战 pt 和徽章不会继承到下一期。','The live result shows the final amount. Event points, Challenge Points and badges do not carry over to the next event.')}</p></section>
+</div>

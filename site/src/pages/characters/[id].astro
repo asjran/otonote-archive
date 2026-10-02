@@ -1,4 +1,5 @@
 ---
+import EditionDetail from "../../components/EditionDetail.astro";
 import type { GetStaticPaths } from "astro";
 import ArchiveImage from "../../components/ArchiveImage.astro";
 import BandMark from "../../components/BandMark.astro";
@@ -63,6 +64,7 @@ const vocalTracks = catalog.musicTracks.filter((track) =>
         <div class="character-profile__kicker">{ui.archive} <span>{character.role}</span></div>
         <h1 id="character-name">{character.displayName}</h1>
         <div class="character-profile__byline">
+          <EditionDetail kind="characters" id={Astro.params.id!} />
           {band && <BandMark band={band} href={`/characters/?band=${band.id}`} compact />}
           {profile.voiceActor && <span>{profile.voiceActor}</span>}
         </div>

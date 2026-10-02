@@ -7,15 +7,18 @@ import { createHash } from 'node:crypto';
 import { build, transform as transformTs } from '../site/node_modules/esbuild/lib/main.js';
 import { transform } from '../site/node_modules/@astrojs/compiler-rs/dist/index.mjs';
 import { loadingArtFiles } from '../site/src/runtime/loading-presentation.mjs';
+import { attachDataProfiles } from './web_client_dependencies.mjs';
+import { buildPrerenderRuntime } from './build_prerender_runtime.mjs';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const site = join(root, 'site');
 const output = resolve(process.argv[2] ?? join(root, 'output/web-client'));
 if (!output.startsWith(join(root, 'output') + '/')) throw new Error('Output must be under output/');
-await mkdir(dirname(output), {recursive: true});
+await mkdir(dirname(output), {recursive:true});
 await mkdir(output); // A code release is always new; never overwrite a deployed tree.
 const stage = join(output, 'compiled');
 const templates = new Map(), scripts = new Map(), workers = new Map();
+const groupsByInput = new Map();
 async function walk(path) {
   return (await Promise.all((await readdir(path, { withFileTypes: true })).map(e => e.isDirectory() ? walk(join(path, e.name)) : join(path, e.name)))).flat();
 }
@@ -74,7 +77,7 @@ const plugin = { name: 'ournotes-independent-content', setup(builder) {
     return { contents: script.type === 'external' ? `import ${JSON.stringify(script.src)}` : script.code, loader: 'ts', resolveDir: dirname(script.file) };
   });
   builder.onLoad({ filter: /\.(astro|ts|mjs)$/ }, async args => {
-    if (!args.path.startsWith(join(site,'src'))) return;
+    if (!args.path.startsWith(join(site,'src')) && !args.path.startsWith(join(root,'packages/scoring'))) return;
     let code = args.path.endsWith('.astro') ? (await template(args.path)).code : await readFile(args.path, 'utf8');
     // Strip TS type parameters before replacing Vite's data-only glob macro.
     code = (await transformTs(code, { loader: 'ts', target: 'es2022' })).code;
@@ -84,6 +87,7 @@ const plugin = { name: 'ournotes-independent-content', setup(builder) {
       return `new Worker(new URL(${JSON.stringify('../workers/'+key+'.js')}, import.meta.url)`;
     });
     if (code.includes('import.meta.glob')) {
+      groupsByInput.set(args.path, [...code.matchAll(/import\.meta\.glob\(\s*["']([^"']+)["']/g)].map(match => match[1]));
       code = `import {artifactGlob as __contentGlob} from ${JSON.stringify(join(site,'src/runtime/content.mjs'))};\n` + code.replace(/import\.meta\.glob\(([^;]*?)\)/g, '(await __contentGlob($1))');
     }
     return { contents: code, loader: 'js', resolveDir: dirname(args.path) };
@@ -120,19 +124,31 @@ const routes = pages.map(p => ({ pattern: relative(join(site,'src/pages'),p).rep
 routes.sort((a,b) => Number(a.pattern.includes('['))-Number(b.pattern.includes('[')) || b.pattern.length-a.pattern.length);
 const appManifest = { schemaVersion:1, contentSchemaVersion:1, routes, scripts:scriptOutputs,
   endpoints: {'search-index.json':byEntry.get(entries['endpoints/search-index'])} };
+const profiledManifest = {...appManifest, buildRoot:stage};
+attachDataProfiles(profiledManifest, compiled.metafile, groupsByInput);
+appManifest.dataProfiles = profiledManifest.dataProfiles;
 await writeFile(join(stage,'manifest.json'),JSON.stringify(appManifest));
 for (const group of ['brand','images/filter-bands','vendor/live2d']) {
-  const source = join(site, 'public', group);
-  if (await access(source).then(() => true, () => false)) await cp(source, join(stage, group), {recursive:true});
+  const source = join(site,'public',group);
+  if (await access(source).then(()=>true,()=>false)) await cp(source,join(stage,group),{recursive:true});
 }
 await mkdir(join(stage, 'loading'));
-for (const file of loadingArtFiles) await cp(join(site, 'public/gallery', file), join(stage, 'loading', file));
-await writeFile(join(stage, 'loading/provenance.json'), JSON.stringify({
-  usage: 'Public source uses original site branding. Game assets are supplied separately.',
-  files: loadingArtFiles.map(file => ({ file, source: `site/public/gallery/${file}` }))
-}, null, 2));
+const loadingArt = {}, loadingSources = [];
+for (const file of loadingArtFiles) {
+  const original = join(site,'public/gallery',file);
+  const present = await access(original).then(()=>true,()=>false);
+  const source = present ? original : join(site,'public/brand/ournotes-mark.svg');
+  const mime = source.endsWith('.svg') ? 'image/svg+xml' : 'image/webp';
+  loadingArt[file] = `data:${mime};base64,${(await readFile(source)).toString('base64')}`;
+  loadingSources.push({file,source:relative(root,source),fallback:!present});
+}
+await writeFile(join(stage,'loading/provenance.json'),JSON.stringify({
+  usage:'Available decorative artwork, or the original site mark when game assets are absent.',files:loadingSources
+},null,2));
 await cp(join(site,'public/favicon.svg'),join(stage,'favicon.svg'));
 const boot = byEntry.get(entries.boot).module;
+await buildPrerenderRuntime(stage);
+const navigationScript = await readFile(join(stage,'prerender/navigation.js'),'utf8');
 // Build the first frame without loading a game snapshot. Inline its styles and
 // tiny route selector so even cold/failed module requests leave a usable page.
 const shellRenderer = await build({entryPoints:[join(site,'src/runtime/loading-shell.mjs')],bundle:true,write:false,format:'esm',platform:'node',target:'es2022'});
@@ -142,13 +158,20 @@ const startupClient = await build({entryPoints:[join(site,'src/runtime/startup-c
 const shellCss = (await Promise.all(['global','site-shell','unified-search','loading-shell'].map(name=>readFile(join(site,`src/styles/${name}.css`),'utf8')))).join('\n');
 const css = (await transformTs(shellCss,{loader:'css',minify:true})).code;
 const shell = renderLoadingShell({css,clientScript:shellClient.outputFiles[0].text,
-  appManifest,startupScript:startupClient.outputFiles[0].text,
+  appManifest,startupScript:startupClient.outputFiles[0].text,loadingArt,navigationScript,
   codeRoot:'/app/releases/__CODE_ID__/',boot,brandSvg:await readFile(join(site,'public/brand/ournotes-mark.svg'),'utf8')});
 // Shell-only edits must also create a new immutable code identity.
 await writeFile(join(stage,'entry-shell.json'),JSON.stringify({sha256:createHash('sha256').update(shell).digest('hex')}));
+// Bind the official source identity before sealing; docs/test-only commits must
+// not collide with an existing immutable release carrying another receipt.
+if (process.env.OURNOTES_SOURCE_FINGERPRINT || process.env.OURNOTES_SOURCE_COMMIT) {
+  const fingerprint=process.env.OURNOTES_SOURCE_FINGERPRINT, commit=process.env.OURNOTES_SOURCE_COMMIT, verificationRun=process.env.OURNOTES_VERIFICATION_RUN;
+  if (!/^[a-f0-9]{64}$/.test(fingerprint??'') || !/^[a-f0-9]{40,64}$/.test(commit??'') || !/^[a-f0-9]{32}$/.test(verificationRun??'')) throw Error('Invalid source identity');
+  await writeFile(join(stage,'build-source.json'),JSON.stringify({fingerprint,commit,verificationRun}));
+}
 const files = {};
 for (const file of (await walk(stage)).sort()) files[relative(stage,file)] = createHash('sha256').update(await readFile(file)).digest('hex');
 const codeId = createHash('sha256').update(JSON.stringify(files)).digest('hex').slice(0,24);
 await writeFile(join(output,'index.html'),shell.replaceAll('__CODE_ID__',codeId));
-await writeFile(join(output,'code-release.json'),JSON.stringify({schemaVersion:1,codeId,contentSchemaVersion:1,files},null,2));
+await writeFile(join(output,'code-release.json'),JSON.stringify({schemaVersion:1,codeId,contentSchemaVersion:1,files,provenance:{kind:'local-preview'}},null,2));
 console.log(JSON.stringify({codeId,routes:routes.length,scripts:scripts.size,files:Object.keys(files).length,output},null,2));

@@ -47,6 +47,16 @@ class StoryTextTests(unittest.TestCase):
             with self.subTest(commands=commands, locale=locale), self.assertRaises(ValueError):
                 self.parse(commands, locale)
 
+    def test_jp_fallback_is_explicit_and_never_hides_missing_source_text(self):
+        rows=[{"_id":"line","_japanese":"こんにちは"},{"_id":"speaker","_japanese":"灯"}]
+        root={"Collection":[command(0)]}
+        with self.assertRaises(ValueError):parse_document(root,rows,"en")
+        result=parse_document(root,rows,"en",fallback_locale="ja")
+        self.assertEqual(result["lines"][0]["text"],"こんにちは")
+        self.assertEqual(result["lines"][0]["locale"],"ja")
+        self.assertEqual(result["fallbackTextCount"],2)
+        with self.assertRaises(ValueError):parse_document(root,rows[:1],"en",fallback_locale="ja")
+
     def test_unity_markup_and_line_breaks(self):
         self.assertEqual(clean_text('<color=#fff>Hello</color><br>world &amp; friends'), 'Hello\nworld & friends')
         self.assertEqual(clean_text('A < B > C'), 'A < B > C')

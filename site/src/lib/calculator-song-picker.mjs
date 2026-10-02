@@ -1,3 +1,4 @@
+import {setupQuickOptions} from './tool-quick-options.mjs';
 import {setupAttributeFilter} from './calculator-card-ui.mjs';
 export function matchesSongMission(missions,filter) {
   if(!filter)return true;
@@ -7,18 +8,21 @@ export function matchesSongMission(missions,filter) {
 export function matchesSongChart(chart,{difficulty='',min='',max=''}={}) {
   return !chart.disabled&&(!difficulty||chart.difficulty===difficulty)&&(!min||chart.level>=Number(min))&&(!max||chart.level<=Number(max));
 }
-export function setupCalculatorSongPicker(root,{getSelection,onSelect}) {
+export function setupCalculatorSongPicker(root,{getSelection,onSelect,allowedTrackIds=()=>null}) {
   const picker=root.querySelector('[data-song-picker]');if(!picker)return null;
   const q=s=>picker.querySelector(s),rows=[...picker.querySelectorAll('[data-song-row]')],choices=[...picker.querySelectorAll('[data-song-choice]')];
   const fields=['query','band','difficulty','mission','sort','min','max'],pageSize=8;let page=0,visible=[];
   const attributes=setupAttributeFilter(q('[data-song-attributes]'),()=>{page=0;filter();});
+  const shortcuts=setupQuickOptions(picker);
   function filter() {
+    shortcuts.sync();
     const f=Object.fromEntries(fields.map(key=>[key,q(`[data-song-${key}]`).value]));
     const words=f.query.trim().toLocaleLowerCase().split(/\s+/).filter(Boolean);
+    const allowed=allowedTrackIds();
     visible=rows.filter(row=>{
       const charts=[...row.querySelectorAll('[data-song-choice]')];
       for(const c of charts)c.hidden=!matchesSongChart({difficulty:c.dataset.difficulty,level:Number(c.dataset.level),disabled:c.disabled},f);
-      return (!attributes.values.length||attributes.values.includes(row.dataset.attribute))&&words.every(w=>row.dataset.search.includes(w))&&(!f.band||row.dataset.bands.split(' ').includes(f.band))&&matchesSongMission(row.dataset.missions.split(',').map(Number),f.mission)&&charts.some(c=>!c.hidden);
+      return (!allowed||allowed.has(row.dataset.songRow))&&(!attributes.values.length||attributes.values.includes(row.dataset.attribute))&&words.every(w=>row.dataset.search.includes(w))&&(!f.band||row.dataset.bands.split(' ').includes(f.band))&&matchesSongMission(row.dataset.missions.split(',').map(Number),f.mission)&&charts.some(c=>!c.hidden);
     });
     if(f.sort==='name')visible.sort((a,b)=>a.dataset.title.localeCompare(b.dataset.title,'zh-CN'));
     if(f.sort==='level'){const level=r=>Math.max(...[...r.querySelectorAll('[data-song-choice]')].filter(c=>!c.hidden).map(c=>Number(c.dataset.level)));visible.sort((a,b)=>level(b)-level(a));}
@@ -40,5 +44,5 @@ export function setupCalculatorSongPicker(root,{getSelection,onSelect}) {
   q('[data-song-reset]').addEventListener('click',reset);
   q('[data-song-prev]').addEventListener('click',()=>{page--;filter();q('[data-song-list]').scrollTop=0;});q('[data-song-next]').addEventListener('click',()=>{page++;filter();q('[data-song-list]').scrollTop=0;});
   q('[data-song-locate]').addEventListener('click',()=>{reset();page=Math.max(0,Math.floor(visible.findIndex(r=>r.dataset.songRow===getSelection().selectedSongId)/pageSize));filter();rows.find(r=>r.dataset.songRow===getSelection().selectedSongId)?.scrollIntoView({block:'nearest'});});
-  filter();sync();return {sync};
+  filter();sync();return {sync,refresh:filter,reset};
 }

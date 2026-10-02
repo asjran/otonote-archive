@@ -1,0 +1,85 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import { SITE_NAME, siteDescription } from "../../lib/site-brand.mjs";
+import { SITE_CONTACT } from "../../lib/site-contact.mjs";
+import { activeReleaseContext } from "../../lib/release-context";
+import { getUi } from "../../lib/ui-i18n";
+
+const en = activeReleaseContext.locale === "en";
+const ui = getUi(activeReleaseContext.locale);
+---
+
+<BaseLayout title={en ? "About" : "关于本站"}>
+  <article class="about-page">
+    <header class="about-heading">
+      <p class="about-label">ABOUT {SITE_NAME.toUpperCase()}</p>
+      <h1>{en ? "A place for what we love." : "因为喜欢，所以记录。"}</h1>
+    </header>
+
+    <div class="about-intro">
+      <p>{siteDescription(activeReleaseContext.locale)}</p>
+      <p>{en
+        ? "Cards, songs and stories in one place. Spend less time searching and more time enjoying your next performance."
+        : "这里汇集了卡牌、歌曲与故事。少一点查找，多一点时间留给喜欢的演出。"}</p>
+    </div>
+
+    <section class="about-contact" aria-labelledby="contact-heading">
+      <div>
+        <h2 id="contact-heading">{en ? "Get in touch" : "一起完善这里"}</h2>
+        <p>{en ? "Corrections and suggestions are welcome." : "发现资料有误，或有想看的内容，欢迎反馈。"}</p>
+      </div>
+      <address>
+        <a href={`mailto:${SITE_CONTACT.email}`}>{SITE_CONTACT.email}<span aria-hidden="true"> ↗</span></a>
+        <span>QQ <span class="about-qq">{SITE_CONTACT.qq}</span><small>{en ? " (alternate)" : "（小号）"}</small></span>
+        {SITE_CONTACT.repositoryUrl && <a href={SITE_CONTACT.repositoryUrl} target="_blank" rel="noopener noreferrer">GitHub <span aria-hidden="true">↗</span></a>}
+      </address>
+    </section>
+
+    <aside class="about-note" aria-label={en ? "Site information" : "站点说明"}>
+      <p>{ui.siteRights}</p>
+      <p>{en ? "This is an unofficial fan site. Please refer to in-game announcements for the latest information." : "本站为非官方玩家资料站，最新游戏内容请以游戏内公告为准。"}</p>
+    </aside>
+  </article>
+</BaseLayout>
+
+<style>
+  .about-page {
+    width: min(100% - 2 * var(--gutter), 760px);
+    margin: clamp(40px, 7vw, 88px) auto clamp(48px, 7vw, 88px);
+  }
+  .about-label {
+    margin-bottom: 18px;
+    color: var(--lacquer);
+    font: 500 12px/1.5 var(--font-mono);
+    letter-spacing: .12em;
+  }
+  .about-heading h1 {
+    margin-bottom: 28px;
+    font: 600 clamp(30px, 4vw, 48px)/1.35 var(--font-display);
+    letter-spacing: -.035em;
+  }
+  .about-intro { max-width: 640px; }
+  .about-intro p { margin-bottom: 14px; line-height: 1.9; }
+  .about-contact {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 20px 32px;
+    margin-top: 36px;
+    padding-block: 24px;
+    border-block: 1px solid var(--line);
+  }
+  .about-contact h2 { margin-bottom: 8px; font-size: 17px; }
+  .about-contact p { margin: 0; font-size: 14px; line-height: 1.8; }
+  .about-contact address { display: flex; flex-direction: column; font-size: 14px; font-style: normal; overflow-wrap: anywhere; }
+  .about-contact address > * { display: block; padding-block: 8px; }
+  .about-contact a { color: var(--lacquer); text-underline-offset: 4px; }
+  .about-contact a:hover { text-decoration: underline; }
+  .about-contact a:focus-visible { outline: 2px solid var(--lacquer); outline-offset: 4px; }
+  .about-contact small { color: var(--silver-dark); }
+  .about-qq { user-select: all; font-variant-numeric: tabular-nums; }
+  .about-note { margin-top: 22px; color: var(--silver-dark); }
+  .about-note p { margin-bottom: 5px; font-size: 12px; line-height: 1.8; }
+  @media (max-width: 600px) {
+    .about-contact { grid-template-columns: minmax(0, 1fr); gap: 12px; margin-top: 28px; }
+  }
+</style>

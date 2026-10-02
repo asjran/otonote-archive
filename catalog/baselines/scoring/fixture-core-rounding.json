@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 1,
+  "sampleId": "fixture-core-rounding",
+  "sourceReleaseId": "global-prod-20260924-v1-0-1-25-39b5d81f",
+  "ruleSetVersion": "scoring-fixture-v1",
+  "verificationStatus": "fixture",
+  "sourceEvidence": [
+    "worked-example"
+  ],
+  "formation": {
+    "totalPower": 12345
+  },
+  "judgements": [],
+  "scoreCommands": [],
+  "chart": {
+    "events": [
+      {
+        "id": "note-1",
+        "notePercent": 10,
+        "judgementPercent": 100,
+        "comboPercent": 100,
+        "scorePercent": 120,
+        "fixedScore": 7
+      },
+      {
+        "id": "note-2",
+        "notePercent": 10,
+        "judgementPercent": 90,
+        "comboPercent": 110,
+        "scorePercent": 100,
+        "fixedScore": 0
+      }
+    ]
+  },
+  "expected": {
+    "finalScore": 2708,
+    "noteScores": [
+      1487,
+      1221
+    ]
+  }
+}

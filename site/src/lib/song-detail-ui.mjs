@@ -18,6 +18,14 @@ class SongDetailPage extends HTMLElement {
     const showDifficulty = difficulty => {
       this.querySelectorAll('[data-reward-difficulty]').forEach(panel => { panel.hidden = panel.dataset.rewardDifficulty !== difficulty; });
       difficultySelect.value = difficulty;
+      const calculatorLink = this.querySelector('[data-song-calculator-link]');
+      if (calculatorLink) {
+        const url = new URL(calculatorLink.href);
+        url.searchParams.set('difficulty', difficulty);
+        const server = new URLSearchParams(location.search).get('server');
+        if (server) url.searchParams.set('server', server);
+        calculatorLink.href = url.href;
+      }
       const labLink = this.querySelector('[data-song-lab-link]');
       if (labLink) {
         const url = new URL(labLink.href);

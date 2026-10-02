@@ -1,4 +1,5 @@
 ---
+import EditionBadge from "./EditionBadge.astro";
 import {
   getAsset,
   getBand,
@@ -23,7 +24,7 @@ const { track, variant = "default" } = Astro.props;
 const ui = getUi(activeReleaseContext.locale);
 const jacket = getAsset(track.jacketAssetId);
 const charts = getMusicCharts(track.id);
-const href = `/music/${track.id}/`;
+const href = track.sourceHref ?? `/music/${track.id}/`;
 const bpmLabel = formatBpmRange(track.bpm);
 const bands = track.bandIds
   .map(getBand)
@@ -82,7 +83,7 @@ const bands = track.bandIds
       </ol>
     )}
     <div class="music-tile-footer">
-      <span>EXPERT FC {track.expertNoteCount}</span>
+      <span>EXPERT FC {track.expertNoteCount}</span><EditionBadge record={track} />
       {variant === "related" && <a class="text-link" href={href}>{ui.openTrack} <span>→</span></a>}
     </div>
   </div>

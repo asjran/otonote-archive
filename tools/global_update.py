@@ -4,6 +4,7 @@ from __future__ import annotations
 import argparse
 from contextlib import contextmanager
 import fcntl
+import hashlib
 import importlib.util
 from importlib.machinery import PathFinder
 import json
@@ -22,6 +23,17 @@ from tools.resource_pipeline.adapters.global_public import (
 )
 
 ROOT = Path(__file__).resolve().parents[1]
+CHART_PROJECTION_SOURCES = (
+    'tools/release_candidates.py', 'tools/formal_chart_projection.py',
+    'tools/project_formal_charts.mjs', 'packages/scoring/scoring-rules/formal-chart.mjs',
+    'packages/scoring/scoring-rules/formal-time.mjs', 'packages/scoring/scoring-rules/model-version.mjs',
+)
+
+
+def chart_projection_fingerprint():
+    """A sealed candidate must be rebuilt when chart reconstruction changes."""
+    files = {name: file_hash(ROOT/name) for name in CHART_PROJECTION_SOURCES}
+    return hashlib.sha256(json.dumps(files, sort_keys=True).encode()).hexdigest()
 
 
 def load_config(path: Path) -> dict:
@@ -272,15 +284,19 @@ def run_update(config, journal, client, *, rebuild=False):
         return result
     journal.step('input-preflight', preflight)
     plan_sha = file_hash(plan)
+    projection_fingerprint = chart_projection_fingerprint() if config.get('contentPublication') else None
     state_path = workspace / 'state.json'
     previous = read_json(state_path) if state_path.exists() else None
-    if previous and previous['inputPlanSha256'] == plan_sha and not rebuild:
+    if (previous and previous['inputPlanSha256'] == plan_sha and not rebuild
+            and (projection_fingerprint is None or previous.get('chartProjectionFingerprint') == projection_fingerprint)):
         build = Path(previous['buildDirectory'])
     else:
         suffix = '-' + uuid4().hex[:8] if rebuild else ''
-        build = workspace / 'builds' / (plan_sha[:20] + suffix)
+        projection_suffix = '-' + projection_fingerprint[:12] if projection_fingerprint else ''
+        build = workspace / 'builds' / (plan_sha[:20] + projection_suffix + suffix)
     candidate, site = build / 'candidate', build / 'site'
-    write_json(build / 'workflow-input.json', {'inputPlan': str(plan)})
+    write_json(build / 'workflow-input.json', {'inputPlan': str(plan),
+        **({'chartProjectionFingerprint': projection_fingerprint} if projection_fingerprint else {})})
     if config.get('contentPublication'):
         from tools.content_publication import publish_content
         if not candidate.exists():
@@ -296,7 +312,8 @@ def run_update(config, journal, client, *, rebuild=False):
             if len(sources) != 1: raise ValueError('scoring content requires one bound source')
             source = sources[0]
             rules = bind_scoring_rules(ROOT/source['masterRoot'], source['contentReleaseId'])
-            if file_hash(plan) != plan_sha or inspect_plan(plan, require_production=True)['status'] != 'passed':
+            if (file_hash(plan) != plan_sha or inspect_plan(plan, require_production=True)['status'] != 'passed'
+                    or chart_projection_fingerprint() != projection_fingerprint):
                 raise ValueError('scoring inputs changed during binding')
             rules_path = build/'formal-scoring-rules.json'
             write_json(rules_path, rules)
@@ -305,6 +322,7 @@ def run_update(config, journal, client, *, rebuild=False):
         result = {'schemaVersion': 1, 'status': published['status'], 'publication': published,
                   'observation': synced['observation'], 'inputPlan': str(plan), 'inputPlanSha256': plan_sha,
                   'buildDirectory': str(build), 'candidate': str(candidate), 'publicationReady': False,
+                  'chartProjectionFingerprint': projection_fingerprint,
                   'limitations': ['formal_gameplay_not_verified'], **package}
         from tools.update_retention import history, cleanup
         from tools.content_retention import cleanup_content
@@ -347,14 +365,17 @@ def run_update(config, journal, client, *, rebuild=False):
 
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('command', choices=('doctor', 'check', 'run', 'status', 'bundle'), nargs='?', default='run')
+    parser.add_argument('command', choices=('doctor', 'check', 'run', 'status', 'bundle', 'fetch', 'build', 'publish'), nargs='?', default='run')
     parser.add_argument('--config', type=Path, default=ROOT / 'config/global-update.json')
+    parser.add_argument('--candidate-id', help='exact verified candidate digest (publish only)')
     parser.add_argument('--rebuild', action='store_true', help='new site build even when game resources are unchanged')
     parser.add_argument('--site', type=Path, help='existing verified site to package (bundle only)')
     parser.add_argument('--output', type=Path, help='package directory under output/ (bundle only)')
     args = parser.parse_args(argv)
     journal = None
     try:
+        if (args.command == 'publish') != bool(args.candidate_id):
+            raise ValueError('--candidate-id is required only for publish')
         if args.rebuild and args.command != 'run':
             raise ValueError('--rebuild requires run')
         if args.command != 'bundle' and (args.site or args.output):
@@ -367,7 +388,10 @@ def main(argv=None):
         else:
             with locked(workspace):
                 journal = Journal(workspace, args.command)
-                if args.command == 'doctor':
+                if args.command in {'fetch', 'build', 'publish'}:
+                    from tools.admin_resource_workflow import execute
+                    result = execute(config, journal, args.command, args.candidate_id)
+                elif args.command == 'doctor':
                     result = journal.step('dependencies', lambda: doctor(config, build=True))
                 elif args.command == 'bundle':
                     if not args.site or not args.output:
@@ -394,7 +418,7 @@ def main(argv=None):
             journal.report.update(status='failed', error=f'{type(exc).__name__}: {exc}', finishedAt=utc_now())
             journal.save()
         print(f'更新流程失败：{exc}', file=sys.stderr)
-        return 130 if isinstance(exc, KeyboardInterrupt) else 1
+        return 130 if isinstance(exc, KeyboardInterrupt) else 75 if str(exc) == 'another workflow is running' else 1
 
 
 if __name__ == '__main__':

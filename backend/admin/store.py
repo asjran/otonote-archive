@@ -29,6 +29,25 @@ def window_start(window, timezone, now):
     return date.timestamp()
 
 
+def window_bounds(window, timezone, now):
+    """Closed calendar days use an exclusive end, in the site's timezone."""
+    zone = ZoneInfo(timezone)
+    today = dt.datetime.fromtimestamp(now, zone).replace(hour=0, minute=0, second=0, microsecond=0)
+    if window == 'yesterday':
+        return (today - dt.timedelta(days=1)).timestamp(), today.timestamp()
+    if window.startswith('date:'):
+        date = dt.date.fromisoformat(window[5:])
+        if window[5:] != date.isoformat() or not 0 <= (today.date() - date).days < 30:
+            raise ValueError('date must be within the last 30 calendar days')
+        start = dt.datetime.combine(date, dt.time(), zone)
+        return start.timestamp(), min(now, (start + dt.timedelta(days=1)).timestamp())
+    return window_start(window, timezone, now), now
+
+
+def historical_window(window, timezone, now):
+    return window == 'yesterday' or bool(window and window.startswith('date:') and window[5:] < day_key(now, timezone))
+
+
 class Store:
     def __init__(self, path, max_bytes=1024 ** 3):
         self.path = Path(path)
@@ -116,9 +135,11 @@ class Store:
 
     def summary(self, site, window, now=None):
         now = time.time() if now is None else now
-        since = window_start(window, site.get('timezone', 'Asia/Shanghai'), now)
+        since, until = window_bounds(window, site.get('timezone', 'Asia/Shanghai'), now)
+        historical = historical_window(window, site.get('timezone', 'Asia/Shanghai'), now)
+        end = until if historical else now + 0.000001
         day = day_key(since, site.get('timezone', 'Asia/Shanghai'))
-        today = day_key(now, site.get('timezone', 'Asia/Shanghai'))
+        today = day_key(end - 0.000001, site.get('timezone', 'Asia/Shanghai'))
         sid = site['id']
         with self.lock:
             rows = [dict(r) for r in self.db.execute("SELECT kind,label,result,SUM(count) count FROM counts WHERE site=? AND day>=? AND day<=? GROUP BY kind,label,result ORDER BY count DESC", (sid, day, today))]
@@ -128,15 +149,19 @@ class Store:
                 totals[key] = totals.get(key, 0) + row['count']
             visitors = self.db.execute("SELECT COALESCE(SUM(count),0) FROM visitor_days WHERE site=? AND day>=? AND day<=?", (sid, day, today)).fetchone()[0]
             active = self.db.execute("SELECT COUNT(*) FROM visitors WHERE site=? AND day=? AND last>=?", (sid, today, now - 300)).fetchone()[0]
-            traffic = [dict(r) for r in self.db.execute("SELECT category,SUM(requests) requests,SUM(bytes) bytes,SUM(CASE WHEN status>=400 THEN requests ELSE 0 END) errors FROM traffic WHERE site=? AND minute>=? AND minute<=? GROUP BY category ORDER BY bytes DESC", (sid, int(since), int(now)))]
+            traffic = [dict(r) for r in self.db.execute("SELECT category,SUM(requests) requests,SUM(bytes) bytes,SUM(CASE WHEN status>=400 THEN requests ELSE 0 END) errors FROM traffic WHERE site=? AND minute>=? AND minute<? GROUP BY category ORDER BY bytes DESC", (sid, since, end))]
             timeline = [dict(r) for r in self.db.execute("SELECT day,SUM(CASE WHEN kind='page_view' THEN count ELSE 0 END) views,SUM(CASE WHEN kind='download_click' THEN count ELSE 0 END) downloads FROM counts WHERE site=? AND day>=? AND day<=? GROUP BY day ORDER BY day", (sid, day, today))]
+            if day == today:
+                timeline = [dict(r) for r in self.db.execute("SELECT CAST(ts/3600 AS INTEGER)*3600 ts,SUM(kind='page_view') views,SUM(kind='download_click') downloads FROM events WHERE site=? AND ts>=? AND ts<? GROUP BY 1 ORDER BY 1", (sid, since, end))]
+                for point in timeline:
+                    point['label'] = dt.datetime.fromtimestamp(point['ts'], ZoneInfo(site.get('timezone', 'Asia/Shanghai'))).strftime('%H:%M')
             log_state = self.state('log:' + sid, {})
             event_state = self.state('event:' + sid, {})
             started = self.state('started:' + sid)
-        return {'site': sid, 'since': since, 'until': now, 'startedAt': started,
+        return {'site': sid, 'since': since, 'until': until, 'historical': historical, 'startedAt': started,
                 'exportResultsEnabled': site.get('exportResultsEnabled', True),
                 'coverage': 'partial' if started is None or started > since else 'collecting',
-                'totals': totals, 'dailyVisitorsSum': visitors, 'activeVisitors5m': active,
+                'totals': totals, 'dailyVisitorsSum': visitors, 'activeVisitors5m': None if historical else active,
                 'pages': [r for r in rows if r['kind'] == 'page_view'][:20],
                 'resources': [r for r in rows if r['kind'] in {'download_click', 'export_result'}][:30],
                 'referrers': [r for r in rows if r['kind'] == 'referrer'][:15],
@@ -167,16 +192,19 @@ class Store:
                         metric.update(max=value, maxAt=sample['ts'])
                 db.execute('INSERT INTO load_rollups VALUES(?,?,?,?) ON CONFLICT(source,bucket,resolution) DO UPDATE SET data=excluded.data', (source, bucket, resolution, json.dumps(data)))
 
-    def loads(self, source, seconds=3600, now=None):
+    def loads(self, source, seconds=3600, now=None, window=None, timezone="Asia/Shanghai"):
         now = time.time() if now is None else now
-        resolution = 60 if seconds > 3600 else 5
+        since, until = window_bounds(window, timezone, now) if window else (now - seconds, now)
+        historical = historical_window(window, timezone, now)
+        end = until if historical else now + 0.000001
+        resolution = 60 if window or seconds > 3600 else 5
         with self.lock:
             if resolution == 5:
-                rows = self.db.execute('SELECT data FROM loads WHERE source=? AND ts>=? AND ts<=? ORDER BY ts', (source, now - seconds, now)).fetchall()
+                rows = self.db.execute('SELECT data FROM loads WHERE source=? AND ts>=? AND ts<? ORDER BY ts', (source, since, end)).fetchall()
                 points = [json.loads(r[0]) for r in rows]
             else:
                 points = []
-                for row in self.db.execute('SELECT bucket,data FROM load_rollups WHERE source=? AND resolution=60 AND bucket>=? AND bucket<=? ORDER BY bucket', (source, now-seconds, now)):
+                for row in self.db.execute('SELECT bucket,data FROM load_rollups WHERE source=? AND resolution=60 AND bucket>=? AND bucket<? ORDER BY bucket', (source, since, end)):
                     data = json.loads(row['data'])
                     point = {'ts': row['bucket'], 'rxBytes': data['rxBytes'], 'txBytes': data['txBytes'], 'gap': data['seconds'] < 45}
                     point.update({k: v['sum']/v['seconds'] if v['seconds'] else None for k, v in data['metrics'].items()})
@@ -185,15 +213,15 @@ class Store:
                     points.append(point)
             recent = self.db.execute('SELECT data FROM loads WHERE source=? ORDER BY ts DESC LIMIT 1', (source,)).fetchone()
             totals = {}
-            for window in ('today', 'month'):
-                since = window_start(window, 'Asia/Shanghai', now)
-                aggregate = [json.loads(r[0]) for r in self.db.execute('SELECT data FROM load_rollups WHERE source=? AND resolution=3600 AND bucket>=? AND bucket<=?', (source,since,now))]
+            for period in ('today', 'month'):
+                period_start = window_start(period, timezone, now)
+                aggregate = [json.loads(r[0]) for r in self.db.execute('SELECT data FROM load_rollups WHERE source=? AND resolution=3600 AND bucket>=? AND bucket<=?', (source,period_start,now))]
                 network_seconds = sum(r['metrics'].get('txMbps', {}).get('seconds', 0) for r in aggregate)
-                totals[window] = {'rxBytes': sum(r['rxBytes'] for r in aggregate) if network_seconds else None,
+                totals[period] = {'rxBytes': sum(r['rxBytes'] for r in aggregate) if network_seconds else None,
                                   'txBytes': sum(r['txBytes'] for r in aggregate) if network_seconds else None,
-                                  'coveredSeconds': network_seconds, 'windowSeconds': now-since}
+                                  'coveredSeconds': network_seconds, 'windowSeconds': now-period_start}
         return {'source': source, 'latest': json.loads(recent[0]) if recent else None,
-                'points': points, 'totals': totals, 'resolution': resolution, 'scope': 'instance / interface'}
+                'points': points, 'since': since, 'until': until, 'historical': historical, 'totals': totals, 'resolution': resolution, 'scope': 'instance / interface'}
 
     def prune(self, now=None):
         now = time.time() if now is None else now

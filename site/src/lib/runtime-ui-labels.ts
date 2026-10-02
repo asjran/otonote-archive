@@ -46,6 +46,8 @@ export type RuntimeUiLabels = {
     tgwBonus: string;
     tgwDefault: string;
     slot: string;
+    editSlot: string;
+    leader: string;
     memberSlot: string;
     supportSlot: string;
     validDraft: string;
@@ -65,6 +67,18 @@ export type RuntimeUiLabels = {
       scenario: string; factors: string; topology: string; skill: string;
       gekisouUnavailable: string; gekisouPower: string; gekisouSection: string;
       gekisouEstimate: string; gekisouSectionScore: string;
+      orderPercentiles: string; samplePercentiles: string;
+      growthUnavailable: string; leader: string; slot: string;
+      teamReady: string; teamIncomplete: string; chooseDifficulty: string;
+      readingChart: string; workerFailed: string; resultTitle: string;
+      resultAssumption: string; chooseChart: string; completeTeam: string;
+      calculating: string; calculatingDetail: string; replayTitle: string;
+      replayAssumption: string; replayScenario: string; rankingLink: string;
+      replayBreakdown: string; replayOrder: string; replayState: string;
+    };
+    performance: {
+      tooLarge: string; invalidJson: string; applied: string; reset: string;
+      chooseChart: string; templateReady: string; notApplied: string; chartBound: string;
     };
     fields: {
       track: string;
@@ -79,6 +93,11 @@ export type RuntimeUiLabels = {
   };
   scoreWorkbench: {
     seconds: string;
+    atlas: {
+      invalidRange: string; adjustedRange: string; segments: string; fullSong: string;
+      selectedOverview: string; fullOverview: string; focusSegment: string;
+      expand: string; fromHere: string; analyze: string; segment: string;
+    };
     terms: {
       time: string;
       combo: string;
@@ -87,6 +106,7 @@ export type RuntimeUiLabels = {
       width: string;
       direction: string;
       timeSignature: string;
+      fever: string;
     };
     direction: { left: string; right: string; none: string };
     fever: { inside: string; outside: string };
@@ -218,6 +238,8 @@ const zhCN: RuntimeUiLabels = {
     tgwBonus: "等级 {rank}：所有能力值提升 {percent}%（{bp} BP），以成员能力、评级和回忆为基数，逐槽位、逐维取整。",
     tgwDefault: "未填写时按等级 1 计算，T.G.W CARD 能力加成为 0。",
     slot: "槽位",
+    editSlot: "编辑位置",
+    leader: "队长",
     memberSlot: "成员卡",
     supportSlot: "留影",
     validDraft: "草稿结构有效",
@@ -234,6 +256,27 @@ const zhCN: RuntimeUiLabels = {
     invalidInput: "输入无效",
     chartUnavailable: "谱面未加载，仅有目录摘要",
     song: {
+      growthUnavailable: "个人养成未载入：",
+      leader: "队长",
+      slot: "位置",
+      teamReady: "队伍已就绪。选歌后自动估算，切换歌曲无需重新选卡。",
+      teamIncomplete: "已选 {selected} / 10 张卡。选择保存的队伍，或点击「编辑 / 创建队伍」补齐。",
+      chooseDifficulty: "点击难度选定谱面",
+      readingChart: "读取谱面…",
+      workerFailed: "后台计算失败，请重新选择模式再试。",
+      resultTitle: "当前歌曲期望分数",
+      resultAssumption: "默认全 Perfect（AP）、满生命。不同技能顺序会带来分数变化，以下显示参考平均分和范围。",
+      chooseChart: "请选择歌曲和难度。",
+      completeTeam: "还没有完整队伍。先自动配队，或在编队页选满 5 张成员和 5 张留影。",
+      calculating: "计算中…",
+      calculatingDetail: "正在后台逐音符计算，你可以继续调整条件。",
+      replayTitle: "本局判定回放分数",
+      replayAssumption: "按输入的逐音符判定、输入帧和固定技能顺序回放一次；结果对应这组条件，不是实战预测。",
+      replayScenario: "使用显式判定输入；生命、连击和技能条件随回放变化。",
+      replayBreakdown: "相同判定下不含演出技能 {base}；本次技能增加 {gain}。",
+      replayOrder: "按固定技能顺序回放一次，不表示随机顺序分布。",
+      replayState: "最大连击 {combo} · 结束生命 {life} · 最低生命 {lowest} · Miss {miss} / Bad {bad} · 技能转换 {converted} 个判定",
+      rankingLink: "查看歌曲排行榜 →",
       invalidShare: "分享链接包含无效输入，请返回编成页修正。",
       unavailable: "暂无法计算",
       gekisouUnavailable: "完整分数尚不可计算",
@@ -242,10 +285,22 @@ const zhCN: RuntimeUiLabels = {
       gekisouEstimate: "逐帧条件模拟 · 综合力 {power} · {samples} 次；样本范围 {min}–{max}，均分抽样标准误 {error}（不含模型误差）。激奏奖励占比 {share}%。",
       gekisouSectionScore: "第 {index} 段 {mission}：音符分 {notes}＋名次奖励 {bonus}（平均名次 {rank}），占总分 {share}%；JUST 判定 {just} 次，激奏 COMBO {combo}，LUCK 点 {luck}。",
       breakdown: "不含演出技能 {base}；技能平均增加 {gain}。120 种随机顺序范围：{min}–{max}。",
+      orderPercentiles: "技能顺序分位：P10 {p10}，P50 {p50}，P90 {p90}。假定 120 种顺序等可能；不代表实战保底。",
+      samplePercentiles: "本次样本分位：P10 {p10}，P50 {p50}，P90 {p90}；有限样本不代表理论极值或真实随机分布。",
       scenario: "计算情景：普通非活动演出、全 Perfect、满生命、无辅助模式。",
       factors: "综合能力 {power}；难度倍率 {factor}；换算音符数 {notes}（按权重计算，不以 FC 计数代替）。",
       topology: "计分事件 {events}；正式 Master 连击数 {master}。",
       skill: "槽位 {slot}：成员技能 Lv.{member}，留影技能 Lv.{support}（0 = 无此技能），演出技能延长 {duration} ms。"
+    },
+    performance: {
+      tooLarge: "判定 JSON 不能超过 8 MB。",
+      invalidJson: "判定 JSON 格式不正确，请检查后重新应用。",
+      applied: "已应用 {count} 个判定。技能顺序固定为 {order}。",
+      reset: "已恢复全 Perfect、满生命参考。",
+      chooseChart: "请先选择歌曲和难度。",
+      templateReady: "模板已生成，也可直接编辑下方 JSON 后应用。",
+      notApplied: "请先导入并应用当前谱面的判定 JSON。",
+      chartBound: "判定输入与当前谱面绑定；下载模板或导入后应用。"
     },
     fields: {
       track: "歌曲",
@@ -269,6 +324,11 @@ const zhCN: RuntimeUiLabels = {
   },
   scoreWorkbench: {
     seconds: "秒",
+    atlas: {
+      invalidRange: "请选择有效时段。", adjustedRange: "此难度时长较短，已调整到可用范围。",
+      segments: "段", fullSong: "全曲", selectedOverview: "所选时段总览", fullOverview: "全曲总览",
+      focusSegment: "放大第 {index} 段", expand: "展开", fromHere: "从这里开始", analyze: "定位分析", segment: "第 {index} 段"
+    },
     terms: {
       time: "时间",
       combo: "当前 Combo",
@@ -276,7 +336,8 @@ const zhCN: RuntimeUiLabels = {
       position: "位置",
       width: "宽度",
       direction: "方向",
-      timeSignature: "拍号"
+      timeSignature: "拍号",
+      fever: "激奏区间"
     },
     direction: { left: "左", right: "右", none: "无" },
     fever: { inside: "区间内", outside: "区间外" }
@@ -380,6 +441,8 @@ const en: RuntimeUiLabels = {
     tgwBonus: "Rank {rank}: all power +{percent}% ({bp} BP), applied to member power, ranks and memories, floored per slot and component.",
     tgwDefault: "Defaults to rank 1 with zero T.G.W power bonus.",
     slot: "Slot",
+    editSlot: "Edit slot",
+    leader: "Leader",
     memberSlot: "Member card",
     supportSlot: "Snap",
     validDraft: "Draft structure is valid",
@@ -396,6 +459,27 @@ const en: RuntimeUiLabels = {
     invalidInput: "Invalid input",
     chartUnavailable: "Chart not loaded; catalog summary only",
     song: {
+      growthUnavailable: "Personal growth could not be loaded: ",
+      leader: "Leader",
+      slot: "Slot",
+      teamReady: "Team ready. Choose a song to calculate; switching songs keeps your cards.",
+      teamIncomplete: "{selected} / 10 cards selected. Choose a saved team or use Edit / Create team to complete it.",
+      chooseDifficulty: "Choose a difficulty to select a chart",
+      readingChart: "Loading chart…",
+      workerFailed: "Background calculation failed. Select a mode again to retry.",
+      resultTitle: "Expected song score",
+      resultAssumption: "Assumes all Perfect (AP) and full life. Skill order changes the score; the mean and range below are estimates.",
+      chooseChart: "Choose a song and difficulty.",
+      completeTeam: "Your team is incomplete. Use team recommendations or select 5 members and 5 snaps in Team Builder.",
+      calculating: "Calculating…",
+      calculatingDetail: "Calculating each note in the background. You can keep adjusting the settings.",
+      replayTitle: "Judgement replay score",
+      replayAssumption: "Replays the supplied note judgements, input frames and fixed skill order once. This result describes those inputs, not a prediction of actual play.",
+      replayScenario: "Uses explicit judgements; life, combo and skill conditions change throughout the replay.",
+      replayBreakdown: "Same judgements without live skills: {base}; skill gain in this replay: {gain}.",
+      replayOrder: "Replayed once with a fixed skill order; this is not a random-order distribution.",
+      replayState: "Max combo {combo} · Final life {life} · Lowest life {lowest} · Miss {miss} / Bad {bad} · {converted} converted judgements",
+      rankingLink: "View song rankings →",
       invalidShare: "The shared link has invalid input. Return to the deck builder to correct it.",
       unavailable: "Cannot calculate yet",
       gekisouUnavailable: "Full score not available",
@@ -404,10 +488,22 @@ const en: RuntimeUiLabels = {
       gekisouEstimate: "Conditional frame replay · power {power} · {samples} samples; observed range {min}–{max}, sampling standard error {error} (excluding model error). Ranking bonus share {share}%.",
       gekisouSectionScore: "Section {index}, {mission}: notes {notes} + ranking bonus {bonus} (mean rank {rank}), {share}% of total; JUST judgements {just}, Gekisou combo {combo}, LUCK points {luck}.",
       breakdown: "Without live skills: {base}; average skill gain: {gain}. Range across 120 random orders: {min}–{max}.",
+      orderPercentiles: "Skill-order percentiles: P10 {p10}, P50 {p50}, P90 {p90}. Assumes 120 equally likely orders; not a real-play guarantee.",
+      samplePercentiles: "Observed sample percentiles: P10 {p10}, P50 {p50}, P90 {p90}. Finite samples do not establish theoretical bounds or the true random distribution.",
       scenario: "Scenario: ordinary non-event live, all Perfect, full life, no assist mode.",
       factors: "Power {power}; difficulty factor {factor}; converted notes {notes} (weighted, not the FC count).",
       topology: "Scoring events {events}; production Master combo count {master}.",
       skill: "Slot {slot}: member skill Lv.{member}, support skills Lv.{support} (0 = absent), live skill extended by {duration} ms."
+    },
+    performance: {
+      tooLarge: "Judgement JSON must not exceed 8 MB.",
+      invalidJson: "Judgement JSON is invalid. Check it and apply again.",
+      applied: "Applied {count} judgements. Fixed skill order: {order}.",
+      reset: "Restored the all-Perfect, full-life reference.",
+      chooseChart: "Choose a song and difficulty first.",
+      templateReady: "Template created. You can also edit the JSON below and apply it.",
+      notApplied: "Import and apply judgement JSON for the current chart first.",
+      chartBound: "Judgements are bound to this chart. Download a template, or import and apply your JSON."
     },
     fields: {
       track: "Track",
@@ -434,6 +530,11 @@ const en: RuntimeUiLabels = {
   },
   scoreWorkbench: {
     seconds: "sec",
+    atlas: {
+      invalidRange: "Choose a valid time range.", adjustedRange: "This difficulty is shorter; the range was adjusted to fit.",
+      segments: "segments", fullSong: "Full song", selectedOverview: "Selected range overview", fullOverview: "Full song overview",
+      focusSegment: "Expand segment {index}", expand: "Expand", fromHere: "Start here", analyze: "Analyze here", segment: "Segment {index}"
+    },
     terms: {
       time: "Time",
       combo: "Current Combo",
@@ -441,7 +542,8 @@ const en: RuntimeUiLabels = {
       position: "Position",
       width: "Width",
       direction: "Direction",
-      timeSignature: "Time signature"
+      timeSignature: "Time signature",
+      fever: "Gekisou section"
     },
     direction: { left: "Left", right: "Right", none: "None" },
     fever: { inside: "Inside range", outside: "Outside range" }

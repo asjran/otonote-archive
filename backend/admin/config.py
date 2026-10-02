@@ -91,6 +91,12 @@ def validate_config(source, role=None):
         for key in ("rxLimitMbps", "txLimitMbps"):
             if row.get(key) is not None and (type(row[key]) not in (int, float) or not 0 < row[key] <= 1000000):
                 raise ValueError("invalid bandwidth limit")
+    for row in c.get('nodes', []) + c.get('profiles', []):
+        actions = row.get('capabilities', ['check'])
+        if not isinstance(actions, list) or not set(actions) <= {'check', 'fetch', 'build', 'publish'}:
+            raise ValueError('invalid resource capabilities')
+        if 'publish' in actions and not row.get('publishUsers'):
+            raise ValueError('publication requires an explicit actor allowlist')
     for site in c.get("sites", []):
         ZoneInfo(site.get("timezone", "Asia/Shanghai"))
         for key in ('pathPatterns', 'resourcePatterns'):

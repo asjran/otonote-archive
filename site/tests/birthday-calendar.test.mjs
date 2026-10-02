@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { nextBirthday, upcomingBirthdays, calendarDate, birthdayCountdown, birthdayContent, birthdayPoolState, preferredBirthdayPool, preferredBirthdayCard, birthdayPoolLabel } from '../src/lib/birthday-calendar.mjs';
+import { nextBirthday, upcomingBirthdays, calendarDate, birthdayCountdown, birthdayProximity, birthdayContent, birthdayPoolState, preferredBirthdayPool, preferredBirthdayCard, birthdayPoolLabel } from '../src/lib/birthday-calendar.mjs';
 
 const at = value => Date.parse(value);
 const character = (id, month, day) => ({ id, birthday: { month, day } });
@@ -13,8 +13,17 @@ test('UTC+8 midnight changes tomorrow into today, independent of the browser tim
   assert.deepEqual(nextBirthday(10, 4, before), { date: '2026-10-04', days: 1 });
   assert.deepEqual(nextBirthday(10, 4, midnight), { date: '2026-10-04', days: 0 });
   assert.equal(nextBirthday(10, 4, at('2026-10-04T23:59:59+08:00')).days, 0);
-  assert.equal(birthdayCountdown(0), '今天生日 · 生日快乐');
+  assert.equal(birthdayCountdown(0), '生日快乐');
   assert.equal(birthdayCountdown(1, true), 'Tomorrow');
+});
+
+test('birthday emphasis covers the coming week, then today, and clears after midnight', () => {
+  assert.deepEqual([0, 1, 7, 8, 365].map(birthdayProximity), ['today', 'soon', 'soon', 'later', 'later']);
+  for (const [now, expected] of [
+    ['2026-10-03T23:59:59+08:00', 'soon'],
+    ['2026-10-04T00:00:00+08:00', 'today'],
+    ['2026-10-05T00:00:00+08:00', 'later']
+  ]) assert.equal(birthdayProximity(nextBirthday(10, 4, at(now)).days), expected);
 });
 
 test('birthdays roll over annually and the next character moves into the lead', () => {

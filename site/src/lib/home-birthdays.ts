@@ -1,4 +1,4 @@
-import { nextBirthday, calendarDate, birthdayCountdown, preferredBirthdayPool, preferredBirthdayCard, birthdayPoolLabel } from './birthday-calendar.mjs';
+import { nextBirthday, calendarDate, birthdayCountdown, birthdayProximity, preferredBirthdayPool, preferredBirthdayCard, birthdayPoolLabel } from './birthday-calendar.mjs';
 
 class HomeBirthdays extends HTMLElement {
   private timer?: ReturnType<typeof setTimeout>;
@@ -11,9 +11,8 @@ class HomeBirthdays extends HTMLElement {
       node, next: nextBirthday(Number(node.dataset.month), Number(node.dataset.day), now)
     })).filter(row => row.next !== null).sort((a, b) => a.next!.days - b.next!.days);
     rows.forEach(({node, next}, index) => {
-      node.hidden = index >= 3;
-      node.toggleAttribute('data-featured', index === 0);
-      node.toggleAttribute('data-is-today', next!.days === 0);
+      node.hidden = index >= 4;
+      node.dataset.birthdayState = birthdayProximity(next!.days);
       const countdown = node.querySelector('[data-birthday-countdown]');
       if (countdown) countdown.textContent = birthdayCountdown(next!.days, en);
       node.querySelector('time')?.setAttribute('datetime', next!.date);

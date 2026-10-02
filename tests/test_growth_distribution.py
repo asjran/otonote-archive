@@ -54,12 +54,14 @@ class DistributionTests(unittest.TestCase):
         finally:
             server.server_close()
 
-    def test_source_allowlist_has_no_game_config_snapshots_or_adb_module(self):
+    def test_source_includes_shared_profile_but_no_private_config_snapshots_or_adb(self):
         with tempfile.TemporaryDirectory() as folder:
             target = Path(folder) / 'source'
             source_tree(target)
             paths = {str(p.relative_to(target)) for p in target.rglob('*') if p.is_file()}
             self.assertNotIn('sdk.xml', paths)
+            self.assertIn('sdk.bhk.xml', paths)
+            self.assertEqual(Profile.from_resources(target / 'sdk.bhk.xml').channel_id, '2001')
             self.assertNotIn('tools/growth_cache_export.py', paths)
             self.assertFalse(any('snapshot' in path or 'verification' in path for path in paths))
             self.assertIn('launcher.py', paths)

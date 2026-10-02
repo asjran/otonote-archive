@@ -1,0 +1,14 @@
+{
+  "name": "@ournotes/scoring",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Shared deterministic scoring for browser workers and content production",
+  "exports": {
+    "./engine": "./scoring-engine.mjs",
+    "./release-gate": "./scoring-release-gate.mjs",
+    "./song-ranking": "./song-ranking.mjs",
+    "./rules/*": "./scoring-rules/*.mjs",
+    "./server/song-ranking-data": "./server/song-ranking-data.mjs"
+  }
+}

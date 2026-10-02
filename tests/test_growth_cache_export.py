@@ -77,7 +77,14 @@ class CacheExportTests(unittest.TestCase):
             json.loads('{"_player":{},"_player":{}}', object_pairs_hook=unique_object)
 
     def test_encrypted_cache_round_trip_and_wrong_header(self):
-        from analysis.crypto.decrypt_master import DEFAULT_SALT, DEFAULT_IV, DEFAULT_KEY, BLOCK_SIZE
+        from analysis.crypto import decrypt_master
+        from analysis.crypto.decrypt_master import BLOCK_SIZE
+        # Round-trip uses synthetic parameters; production credentials are external.
+        DEFAULT_SALT, DEFAULT_IV, DEFAULT_KEY = (bytes([n]) * BLOCK_SIZE for n in (1, 2, 3))
+        for name, value in (("DEFAULT_SALT", DEFAULT_SALT), ("DEFAULT_IV", DEFAULT_IV), ("DEFAULT_KEY", DEFAULT_KEY)):
+            patcher = patch.object(decrypt_master, name, value)
+            patcher.start()
+            self.addCleanup(patcher.stop)
         from py3rijndael import Rijndael
         raw = json.dumps(cache_document()).encode()
         padding = BLOCK_SIZE - len(raw) % BLOCK_SIZE

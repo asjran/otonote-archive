@@ -1,5 +1,7 @@
-// Public source uses the site mark; game decorations are supplied privately.
-export const loadingArtFiles = ['loading-mark.svg', 'loading-mark.svg'];
+// Fixed, small game-art decorations are embedded in the code release's entry
+// HTML. The loading shell never fetches images or content to locate its own art.
+// These original stamps contain no lettering: all copy stays in localized HTML.
+export const loadingArtFiles = ['stamps-1000000008.webp', 'stamps-1000000004.webp'];
 
 const scenes = {
   home: [0, '开演前，先打个招呼。', 'A little hello before the show.'],

@@ -2,7 +2,7 @@
   <h3 id="preset-portfolio-title">哪支队伍更适合这首歌？</h3>
   <p>比较已保存的队伍，或看看换一张卡能多拿多少分。</p>
   <div class="preset-controls">
-    <label>比较歌曲 <select data-preset-song><option value="">请选择歌曲</option></select></label>
+    <label>比较歌曲 <select data-preset-song data-quick-native><option value="">请选择歌曲</option></select></label>
     <label>比较难度 <select data-preset-difficulty><option value="">请选择难度</option>{['easy','normal','hard','expert'].map(d => <option value={d}>{d.toUpperCase()}</option>)}</select></label>
     <label>模式 <select data-preset-mode><option value="gekisou">激奏</option><option value="ordinary">普通</option></select></label>
   </div>
@@ -51,7 +51,7 @@
   <details class="preset-replacement"><summary>只想知道换一张卡值不值？</summary>
     <ol><li>把原队「保存当前队伍」，作为比较基准。</li><li>点击原队的「载入编辑」，在第二步替换成员或留影。</li><li>点击顶部「比较队伍 / 换卡」，选择原队作为基准，点击「比较当前队伍与基准」。当前队伍不必另存。</li></ol>
     <div class="preset-controls">
-      <label>换卡比较基准 <select data-preset-baseline aria-label="换卡比较基准"></select></label>
+      <label>换卡比较基准 <select data-preset-baseline data-quick-native aria-label="换卡比较基准"></select></label>
       <button type="button" data-preset-compare>比较当前队伍与基准</button>
     </div>
     <p>正数表示换卡后提高，负数表示降低。激奏会同时显示三个段落的分数变化。</p>

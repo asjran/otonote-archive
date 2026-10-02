@@ -11,6 +11,9 @@ import {
   type SiteProjection
 } from "../lib/site-context";
 import { getUi } from "../lib/ui-i18n";
+import { GAME_SERVERS, currentServerContext, withServer } from '../lib/game-servers.mjs';
+import { switchTarget } from '../lib/site-context';
+import { serverLabelScript } from '../lib/server-label.mjs';
 
 const current = activeReleaseContext as SiteProjection;
 const ui = getUi(current.locale);
@@ -18,24 +21,14 @@ const projections = releaseIndex.projections as SiteProjection[];
 // Astro emits 404.html, not /404/index.html. Switch to the target home there.
 const pathname = /\/404(?:\.html)?\/?$/.test(Astro.url.pathname) ? "/" : Astro.url.pathname;
 const routeMode = import.meta.env.BASE_URL === "/" ? "single" : "matrix";
-const regionOrder: Region[] = ["global"];
-const regionLabels: Record<Region, string> = {
-  global: ui.regionGlobal
-};
-const regionShortLabels: Record<Region, string> = {
-  global: "GLOBAL"
-};
+const serverContext = currentServerContext();
+const selectedServer = GAME_SERVERS.find(server => server.id === serverContext.serverId);
 const localeLabels: Record<Locale, string> = {
   "zh-CN": ui.localeZhCN,
   "zh-TW": ui.localeZhTW,
   ja: ui.localeJa,
   en: ui.localeEn
 };
-const regionTargets = regionOrder
-  .map((region) =>
-    chooseProjection(projections, region, current.locale)
-  )
-  .filter((item): item is SiteProjection => Boolean(item));
 const localeTargets = projections.filter(
   (item) =>
     item.contentReleaseId === current.contentReleaseId &&
@@ -46,29 +39,29 @@ const localeTargets = projections.filter(
 
 <details class="context-switcher">
   <summary aria-label={ui.contextSwitch}>
-    <span>{regionShortLabels[current.region]}</span>
+    <span>{selectedServer ? (current.locale === 'en' ? selectedServer.englishLabel : selectedServer.label) : (current.locale === 'en' ? 'Global · Select server' : '国际服 · 未选区服')}</span>
     <strong>{localeLabels[current.locale]}</strong>
   </summary>
   <div class="context-switcher__panel">
     <section aria-labelledby="region-switcher-label">
-      <small id="region-switcher-label">{ui.contextRegion} / REGION</small>
+      <small id="region-switcher-label">{current.locale === 'en' ? 'Game server' : '游戏区服'}</small>
       <div class="context-switcher__options">
-        {regionTargets.map((target) => {
-          const href = projectionSwitchHref(
-            pathname,
-            current,
-            target,
-            routeMode
-          );
+        {GAME_SERVERS.map((server) => {
+          const region = server.region as Region;
+          const target = chooseProjection(projections, region, current.locale) ?? {
+            ...current, region, contentReleaseId: `${region}-current`
+          };
+          const href = withServer(switchTarget(pathname, current, target), server.id);
           return href ? (
             <a
               href={href}
-              aria-current={target.region === current.region ? "true" : undefined}
+              data-game-server={server.id}
+              aria-current={server.id === serverContext.serverId ? "true" : undefined}
             >
-              {regionLabels[target.region]}
+              {current.locale === 'en' ? server.englishLabel : server.label}
             </a>
           ) : (
-            <span aria-disabled="true">{regionLabels[target.region]}</span>
+            <span aria-disabled="true">{server.label}</span>
           );
         })}
       </div>
@@ -101,3 +94,42 @@ const localeTargets = projections.filter(
     </section>
   </div>
 </details>
+
+<script is:inline data-server-label-init set:html={serverLabelScript} />
+
+<script>
+  import {currentServerContext, gameServer, withServer} from '../lib/game-servers.mjs';
+  const context = currentServerContext();
+  // Pre-rendered Global HTML is shared by three servers. Resolve its label
+  // from this document's URL/storage when the page becomes interactive.
+  const selected = gameServer(context.serverId);
+  for (const switcher of document.querySelectorAll('.context-switcher')) {
+    const label = switcher.querySelector('summary > span');
+    if (label && selected) label.textContent = location.pathname.split('/')[2] === 'en' ? selected.englishLabel : selected.label;
+    for (const link of switcher.querySelectorAll<HTMLAnchorElement>('[data-game-server]')) {
+      if (link.dataset.gameServer === context.serverId) link.setAttribute('aria-current', 'true');
+      else link.removeAttribute('aria-current');
+    }
+  }
+  if (context.serverId && new URLSearchParams(location.search).get("view") !== "page") {
+    try { localStorage.setItem(`ournotes:server:${context.region}`, context.serverId); } catch {}
+    const url = new URL(location.href);
+    if (!url.searchParams.has('server')) {
+      url.searchParams.set('server', context.serverId);
+      history.replaceState(history.state, '', url);
+    }
+  }
+  // Include dynamically created links too; explicit target-server links win.
+  document.addEventListener('click', event => {
+    const link = (event.target as Element)?.closest?.('a[href]') as HTMLAnchorElement | null;
+    if (!link || link.download) return;
+    const url = new URL(link.href, location.href);
+    if (url.origin !== location.origin) return;
+    if (new URLSearchParams(location.search).get('view') === 'page' && !link.hasAttribute('data-game-server') && /^\/(jp|global)\//.test(url.pathname)) {
+      url.searchParams.set('view', 'page'); link.href = url.pathname + url.search + url.hash;
+    }
+    if (url.searchParams.has('server')) return;
+    const server = gameServer(context.serverId);
+    if (server && url.pathname.startsWith(`/${server.region}/`)) link.href = withServer(url.pathname + url.search + url.hash, server.id);
+  }, {capture:true});
+</script>

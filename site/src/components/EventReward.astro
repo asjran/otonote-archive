@@ -1,0 +1,12 @@
+---
+import type { EventReward, EventMediaMap } from "../lib/event-archive";
+import EventIcon from "./EventIcon.astro";
+import CardBasics from "./EventCardBasics.astro";
+interface Props { reward: EventReward; media?: EventMediaMap; locale?: string; compact?: boolean }
+const { reward, media = {}, locale = "zh-CN", compact = false } = Astro.props;
+const view = media[`${reward.resourceType}:${reward.resourceId}`];
+---
+<span class:list={["ea-resource", {"ea-resource--compact": compact}]}>
+  <span class="ea-resource-image">{view?.image ? <img src={view.image} alt="" width="64" height="64" loading="lazy" /> : <EventIcon name={reward.resourceType === 2 || reward.resourceType === 3 ? "card" : "gift"} size={24} />}</span>
+  <span class="ea-resource-copy"><span>{reward.name}{!reward.resolved && <small>{locale === "en" ? " (details unavailable)" : "（详情缺失）"}</small>}</span>{(reward.resourceType === 2 || reward.resourceType === 3) && <CardBasics resourceType={reward.resourceType} resourceId={reward.resourceId} rarity={reward.rarity} locale={locale} />}{reward.count != null && <b>× {reward.count.toLocaleString(locale)}</b>}</span>
+</span>

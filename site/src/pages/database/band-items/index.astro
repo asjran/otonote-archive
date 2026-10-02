@@ -1,6 +1,7 @@
 ---
+import EditionBadge from "../../../components/EditionBadge.astro";
 import BaseLayout from "../../../layouts/BaseLayout.astro";
-import { bandItemDatabase, getBandItemsForBand } from "../../../lib/band-items";
+import { bandItemDatabase, getBandItemsForBand } from "../../../lib/shared-band-items";
 import "../../../styles/database.css";
 import "../../../styles/band-items.css";
 
@@ -45,7 +46,7 @@ const number = new Intl.NumberFormat("zh-CN");
                         {item.previewUrl ? <img src={item.previewUrl} alt="" width="270" height="516" loading="lazy" /> : <span>暂无图片</span>}
                       </div>
                       <div class="bi-card-copy">
-                        <h3>{item.name}</h3>
+                        <h3>{item.name}</h3><EditionBadge record={item} />
                         <p>乐队全员能力</p>
                         <div class="bi-card-bonus"><strong>+{top?.effects[0]?.displayValue ?? "—"}</strong><span>Lv.{top?.level ?? 1}</span></div>
                         <span class="bi-card-action">加成与升级材料 <span aria-hidden="true">→</span></span>
@@ -82,7 +83,7 @@ const number = new Intl.NumberFormat("zh-CN");
               <div class="bi-dialog-title">
                 <span class="bi-band-label"><img src={`/images/filter-bands/${item.bandId}.png`} alt="" width="26" height="26" />{item.bandName}</span>
                 <h2 id={`${item.id}-dialog-title`}>{item.name}</h2>
-                <p>乐队全员能力提升</p>
+                <p>乐队全员能力提升</p><EditionBadge record={item} />
               </div>
             </header>
 

@@ -148,7 +148,7 @@ export function registerScoreWorkbenchElement(): void {
 
     handleModuleChange = (event: Event) => {
       if ((event as CustomEvent<{view: string}>).detail?.view === "analysis" && this.chart) {
-        requestAnimationFrame(() => this.render());
+        requestAnimationFrame(() => { this.render(); this.updateUrl(); });
       }
     };
 
@@ -215,7 +215,7 @@ export function registerScoreWorkbenchElement(): void {
           this.sheetDirty = true;
           this.drawSheet();
         } catch (reason) {
-          error.textContent = reason instanceof Error ? reason.message : "请选择有效时段。";
+          error.textContent = reason instanceof Error ? reason.message : this.labels.atlas.invalidRange;
           start.setAttribute("aria-invalid", "true"); end.setAttribute("aria-invalid", "true");
         }
       });
@@ -320,7 +320,7 @@ export function registerScoreWorkbenchElement(): void {
           this.atlasRange = this.atlasRange.start < this.chart.duration ? { ...this.atlasRange, end: this.chart.duration } : null;
           this.querySelector<HTMLInputElement>("[data-sheet-range-start]")!.value = this.atlasRange ? formatScoreTime(this.atlasRange.start) : "";
           this.querySelector<HTMLInputElement>("[data-sheet-range-end]")!.value = "";
-          this.querySelector<HTMLElement>("[data-sheet-range-error]")!.textContent = "此难度时长较短，已调整到可用范围。";
+          this.querySelector<HTMLElement>("[data-sheet-range-error]")!.textContent = this.labels.atlas.adjustedRange;
         }
         this.sheetDirty = true;
         this.selectedHitKey = null;
@@ -534,9 +534,9 @@ export function registerScoreWorkbenchElement(): void {
       if (!grid || !jump) return;
       const segments = getAtlasSegments(this.chart.duration, this.atlasRange);
       const count = this.querySelector("[data-sheet-count]");
-      if (count) count.textContent = `${segments.length} 段 / ${this.atlasRange ? `${formatScoreTime(this.atlasRange.start)}–${formatScoreTime(this.atlasRange.end)} 秒` : `全曲 ${formatScoreTime(this.chart.duration)} 秒`}`;
+      if (count) count.textContent = `${segments.length} ${this.labels.atlas.segments} / ${this.atlasRange ? `${formatScoreTime(this.atlasRange.start)}–${formatScoreTime(this.atlasRange.end)} ${this.labels.seconds}` : `${this.labels.atlas.fullSong} ${formatScoreTime(this.chart.duration)} ${this.labels.seconds}`}`;
       grid.replaceChildren();
-      jump.replaceChildren(new Option(this.atlasRange ? "所选时段总览" : "全曲总览", ""));
+      jump.replaceChildren(new Option(this.atlasRange ? this.labels.atlas.selectedOverview : this.labels.atlas.fullOverview, ""));
       segments.forEach(segment => {
         const number = String(segment.index + 1).padStart(2, "0");
         const range = `${formatScoreTime(segment.start)}–${formatScoreTime(segment.end)} s`;
@@ -545,9 +545,9 @@ export function registerScoreWorkbenchElement(): void {
         card.className = "score-segment";
         card.dataset.segment = String(segment.index);
         card.setAttribute("role", "listitem");
-        card.innerHTML = `<header><span class="score-segment-number">${number}</span><strong>${range}</strong><button type="button" data-segment-focus aria-label="放大第 ${segment.index + 1} 段">展开 ↗</button></header><canvas role="img"></canvas><footer><span>↑ 从这里开始</span><button type="button" data-segment-analyze>定位分析 →</button></footer>`;
+        card.innerHTML = `<header><span class="score-segment-number">${number}</span><strong>${range}</strong><button type="button" data-segment-focus aria-label="${this.labels.atlas.focusSegment.replace("{index}", String(segment.index + 1))}">${this.labels.atlas.expand} ↗</button></header><canvas role="img"></canvas><footer><span>↑ ${this.labels.atlas.fromHere}</span><button type="button" data-segment-analyze>${this.labels.atlas.analyze} →</button></footer>`;
         const canvas = card.querySelector("canvas")!;
-        canvas.setAttribute("aria-label", `${this.dataset.trackTitle} ${this.chart!.difficulty.toUpperCase()} 第 ${segment.index + 1} 段 ${range}`);
+        canvas.setAttribute("aria-label", `${this.dataset.trackTitle} ${this.chart!.difficulty.toUpperCase()} ${this.labels.atlas.segment.replace("{index}", String(segment.index + 1))} ${range}`);
         paintScoreCard(canvas, this.chart!, segment, this.enabled);
         card.querySelector("[data-segment-focus]")!.addEventListener("click", () => this.focusSegment(segment.index));
         card.querySelector("[data-segment-analyze]")!.addEventListener("click", () => {
@@ -706,7 +706,7 @@ export function registerScoreWorkbenchElement(): void {
           <div><dt>${this.labels.terms.direction}</dt><dd>${view.direction}</dd></div>
           <div><dt>BPM</dt><dd>${view.bpm}</dd></div>
           <div><dt>${this.labels.terms.timeSignature}</dt><dd>${view.timeSignature}</dd></div>
-          <div><dt>激奏区间</dt><dd>${view.fever}</dd></div>
+          <div><dt>${this.labels.terms.fever}</dt><dd>${view.fever}</dd></div>
         </dl>
       `;
       this.selectedHitKey = nearest.target.key;
@@ -732,6 +732,10 @@ export function registerScoreWorkbenchElement(): void {
     }
 
     updateUrl() {
+      // Hidden analysis rendering must not overwrite the playback cursor.
+      const panel = this.closest<HTMLElement>('[data-song-panel]');
+      const dialog = this.closest<HTMLDialogElement>('dialog');
+      if (panel?.hidden || (dialog && !dialog.open)) return;
       const selected = this.querySelector<HTMLElement>(
         '[data-chart-id][data-selected]'
       );

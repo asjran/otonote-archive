@@ -1,0 +1,77 @@
+---
+import type { EventDefinition, EventMediaMap, EventIdentity } from '../lib/event-archive';
+import { groupEventBonuses, eventBonusPercentage } from '../lib/event-bonus-model.mjs';
+import CardAttributeBadge from './CardAttributeBadge.astro';
+import EventIcon from './EventIcon.astro';
+import CardBasics from './EventCardBasics.astro';
+interface Props { event: EventDefinition; media: EventMediaMap; identity?: EventIdentity; locale: string }
+const {event,media,identity,locale} = Astro.props;
+const en = locale === 'en';
+const t = (zh:string,english:string) => en ? english : zh;
+const groups = groupEventBonuses(event.effects);
+const effectLabels: Record<string,string> = {
+  EventPoint:t('活动积分','Event points'), EventItem:t('活动道具','Event items'),
+  ParameterAll:t('挑战综合力','Challenge power'), ParameterPfm:t('挑战 Performance','Challenge Performance'),
+  ParameterTec:t('挑战 Technique','Challenge Technique'), ParameterVis:t('挑战 Visual','Challenge Visual'),
+};
+const percentage = (value:number|null|undefined) => {
+  const amount = eventBonusPercentage(value);
+  return amount === null ? '—' : `${amount >= 0 ? '+' : ''}${amount}%`;
+};
+const faq = [
+  ...(event.mode === 'challenge_live' ? [[t('什么是挑战演出活动？','What is a Challenge Live event?'), t('通过普通演出积累挑战点，再消耗挑战点挑战本期指定歌曲，可获得更多活动积分与徽章。挑战演出的歌曲分数还会计入对应歌曲榜，活动结束后按名次获得纪念贴纸等奖励。活动积分、挑战点与徽章不会继承到下一期活动。','Earn Challenge Points in Normal Lives, then spend them on this event’s featured songs for more event points and badges. Challenge Live scores enter each song’s ranking, with rewards such as event stickers based on your final place. Event points, Challenge Points and badges do not carry over to the next event.')]] : []),
+  [t('乐队、属性和指定卡加成怎么叠加？','How do band, attribute and featured-card bonuses stack?'), t('同一张卡满足多个条件时，对应加成相加。例如，同时符合本期乐队与属性的指定卡，可以获得「乐队＋属性＋指定卡」三部分加成，不是只取最高一项，也不是逐项相乘。','Matching bonuses add together. A featured card matching both the event band and attribute receives all three bonuses: band + attribute + featured card. They are neither multiplied nor limited to the highest one.')],
+  [t('怎样提高卡牌的活动加成？','How can I increase a card’s event bonus?'), t('成员卡通过觉醒、留影卡通过上限解放，可以提高活动加成；两者最多都可强化四次。选择队伍时，也要兼顾卡牌综合力、技能和演出评价，不必只看是否为招募新卡。','Member awakening and snapshot limit breaks can increase event bonuses, up to four times each. Consider power, skills and live rank as well as bonuses when choosing your team.')],
+  [t('普通演出也能享受综合力提升吗？','Do power bonuses apply in Normal Lives?'), t('活动的综合力加成仅在挑战演出中生效。它提升符合条件卡牌的能力，不等于给最终得分直接乘上同样的倍率，也不能与活动收益加成相加。','Event power bonuses activate only in Challenge Lives. They improve eligible cards’ parameters, rather than directly multiplying the final score. Power and event reward bonuses are separate effects.')],
+];
+---
+<div class="ef-bonus-guide" data-bonus-guide>
+  <div class="ef-bonus-benefits">
+    <div><EventIcon name="gift" size={18} /><strong>{t('活动收益提升','More event rewards')}</strong><p>{t('获取更多活动积分与活动道具','Earn more event points and items')}</p></div>
+    <div><EventIcon name="music" size={18} /><strong>{t('挑战演出综合力提升','More power in Challenge Lives')}</strong><p>{t('仅在挑战演出中生效','Activates only in Challenge Lives')}</p></div>
+  </div>
+  <details class="ef-bonus-help">
+    <summary><span class="ef-help-mark" aria-hidden="true">?</span><span>{t('加成规则与常见问题','Bonus rules & questions')}</span><small>{t('了解叠加与编队','Stacking & team building')}</small></summary>
+    <div class="ef-bonus-help-body"><p class="ef-bonus-formula">{t('同一张卡：乐队条件 ＋ 属性条件 ＋ 指定卡条件','For each card: band + attribute + featured-card bonuses')}</p><dl>{faq.map(([question,answer])=><div><dt>{question}</dt><dd>{answer}</dd></div>)}</dl></div>
+  </details>
+  <div class="ef-bonus-tabs" role="group" aria-label={t('卡牌类型','Card type')}><button type="button" data-bonus-kind="2" aria-pressed="true">{t('成员卡','Members')}</button><button type="button" data-bonus-kind="3" aria-pressed="false">{t('留影卡','Snapshots')}</button></div>
+  <div class="ef-bonus-growth">
+    <strong data-bonus-growth-title data-member-label={t('成员觉醒','Member awakening')} data-snapshot-label={t('留影上限解放','Snapshot limit break')}>{t('成员觉醒','Member awakening')}</strong>
+    <div role="group" aria-label={t('强化次数','Enhancement count')}>
+      {[0,1,2,3,4].map(stage=><button type="button" data-bonus-stage={stage} aria-pressed={stage===0 ? 'true' : 'false'}>{stage===0 ? t('初始','Initial') : `${stage}${t('次','×')}`}</button>)}
+    </div>
+  </div>
+  <p class="ef-bonus-hint">{t('下列数值为各条件单独提供的加成；满足多个条件时，同类加成可以相加。','Each value is the bonus from one condition. Matching bonuses of the same kind add together.')}</p>
+  <div class="ef-bonus-list">{groups.map(group => {
+    const c = group.constraints;
+    const view = media[`${c.memberCardId ? 2 : 3}:${c.memberCardId || c.supportCardId}`];
+    const image = group.kind === 'card' ? view?.image : group.kind === 'band' ? identity?.bands.find(band => group.names.includes(band.name))?.image : undefined;
+    return <article data-bonus-type={c.resourceTypeConstraint ?? 0} hidden={c.resourceTypeConstraint === 3}>
+      <div class:list={['ef-bonus-visual',{'ef-bonus-visual--portrait':!!c.memberCardId}]}>{c.cardType ? <CardAttributeBadge code={c.cardType} compact /> : image ? <img src={image} alt="" loading="lazy" /> : <EventIcon name={group.kind === 'card' ? 'card' : 'sparkle'} />}</div>
+      <div class="ef-bonus-condition"><small>{group.kind === 'band' ? t('乐队条件','Band match') : group.kind === 'attribute' ? t('属性条件','Attribute match') : group.kind === 'card' ? t('指定卡 · 额外加成','Featured card · extra bonus') : t('其他条件','Other condition')}</small>
+        {!c.cardType && <h4>{group.names.join(' / ') || t('符合条件的卡牌','Eligible cards')}</h4>}
+        {group.kind === 'card' && <CardBasics resourceType={c.memberCardId ? 2 : 3} resourceId={c.memberCardId || c.supportCardId || null} locale={locale} />}
+        <div class="ef-bonus-amounts">{group.effects.map(effect=><div><span>{effectLabels[effect.bonusKind] ?? t('活动加成','Event bonus')}</span><strong data-bonus-percentages={JSON.stringify(effect.rankValues.map(eventBonusPercentage))}>{percentage(effect.rankValues[0])}</strong></div>)}</div>
+      </div>
+    </article>;
+  })}</div>
+  <p class="ea-note">{t('编队时别忘了装备留影；成员觉醒与留影上限解放也能提高活动加成。','Remember to equip snapshots. Awakening members and limit-breaking snapshots can also increase event bonuses.')}</p>
+</div>
+<script>
+  document.querySelectorAll<HTMLElement>('[data-bonus-guide]').forEach(root => {
+    root.querySelectorAll<HTMLButtonElement>('[data-bonus-kind]').forEach(button => button.addEventListener('click', () => {
+      root.querySelectorAll('[data-bonus-kind]').forEach(tab => tab.setAttribute('aria-pressed',String(tab===button)));
+      root.querySelectorAll<HTMLElement>('[data-bonus-type]').forEach(row => row.hidden = row.dataset.bonusType !== button.dataset.bonusKind && row.dataset.bonusType !== '0');
+      const title = root.querySelector<HTMLElement>('[data-bonus-growth-title]');
+      if (title) title.textContent = (button.dataset.bonusKind === '2' ? title.dataset.memberLabel : title.dataset.snapshotLabel) ?? '';
+    }));
+    root.querySelectorAll<HTMLButtonElement>('[data-bonus-stage]').forEach(button => button.addEventListener('click', () => {
+      root.querySelectorAll('[data-bonus-stage]').forEach(stage => stage.setAttribute('aria-pressed', String(stage === button)));
+      const index = Number(button.dataset.bonusStage);
+      root.querySelectorAll<HTMLElement>('[data-bonus-percentages]').forEach(node => {
+        const amount = JSON.parse(node.dataset.bonusPercentages ?? '[]')[index];
+        node.textContent = typeof amount === 'number' ? `${amount >= 0 ? '+' : ''}${amount}%` : '—';
+      });
+    }));
+  });
+</script>

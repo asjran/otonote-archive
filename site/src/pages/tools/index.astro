@@ -1,59 +1,46 @@
 ---
-import ToolPageHeader from "../../components/ToolPageHeader.astro";
-import BaseLayout from "../../layouts/BaseLayout.astro";
-import SourceDisclosure from "../../components/SourceDisclosure.astro";
-import { activeReleaseContext } from "../../lib/release-context";
-import { siteHref } from "../../lib/site-context";
-import "../../styles/tools.css";
-
-const buildBase = import.meta.env.BASE_URL;
-const href = (path: string) =>
-  buildBase === "/" ? path : siteHref(path, activeReleaseContext);
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import ToolGlyph from '../../components/ToolGlyph.astro';
+import {activeReleaseContext} from '../../lib/release-context';
+import {siteHref} from '../../lib/site-context';
+import '../../styles/tool-directory.css';
+const en=activeReleaseContext.locale==='en',say=(zh:string,english:string)=>en?english:zh;
+const href=(p:string)=>import.meta.env.BASE_URL==='/'?p:siteHref(p,activeReleaseContext);
+const items=[
+ {path:'deck-builder',mark:'5＋5',title:say('卡组配队','Team builder'),goal:say('成员、留影与队长推荐','Lineup and leader recommendations'),description:say('选歌、选卡库，推荐成员、留影配对与队长。','Choose a song and card pool to compare lineups and leaders.'),input:say('使用我的卡库 / 当前队伍 / 全部卡牌','Your collection / current team / all cards')},
+ {path:'song-ranking',mark:'♪',title:say('歌曲排行榜','Song rankings'),goal:say('歌曲得分与效率排行','Score and efficiency rankings'),description:say('直接比较得分、每秒效率与达档所需综合力。','Compare score, time efficiency and power needed for each grade.'),input:say('无需选卡，打开即可筛选','No team required')},
+ {path:'song-calculator',mark:'分',title:say('歌曲计算','Song calculator'),goal:say('单曲分数与技能贡献','Song score and skill contributions'),description:say('带入队伍，选一首歌，查看平均分与技能贡献。','Select a team and song to see score estimates and skill contributions.'),input:say('使用已保存或配队页带入的队伍','Use a saved or linked team')},
+ {path:'ap-grade',mark:'AP',title:say('队伍 AP 估分','Team AP forecast'),goal:say('多首歌曲 AP 档位预测','AP grade forecasts across songs'),description:say('一支队伍比较多首歌，按档位、时长或分数选曲。','Compare your team across songs by grade, length or score.'),input:say('保存的队伍，或直接点选卡面','Saved team or choose cards here')},
+ {path:'event-efficiency',mark:'火',title:say('活动收益计算','Event rewards'),goal:say('活动收益与耗火规划','Event rewards and boost planning'),description:say('填游戏加成立即估算，或用卡库推荐队伍与歌曲。','Enter in-game bonuses, or find a team and song from your cards.'),input:say('快速计算只需加成、评分与消耗','Quick mode: bonuses, grade and boost')},
+ {path:'live2d',mark:'L2D',title:say('Live2D 预览','Live2D preview'),goal:say('角色造型与动作预览','Character costumes and motions'),description:say('选择角色和服装，播放动作、切换表情。','Choose a character and costume, then play motions and expressions.'),input:say('点选预览，参数调试按需打开','Choose a preview; optional parameter controls')}
+];
+const browseTools = [
+ {path:'/music/',kind:'chart-preview',title:say('谱面播放与分析','Chart playback and analysis'),description:say('从歌曲页选择难度，播放谱面、循环观察区段并查看音符密度。','Choose a difficulty on a song page, loop a section and inspect note density.')},
+ {path:'/stories/',kind:'story-reader',title:say('剧情阅读','Story reader'),description:say('按乐队和角色阅读，查找本话对白，定位原文或制作摘录。','Read by band and character, find dialogue and create excerpts.')},
+ {path:'/tools/resources/',kind:'resources',title:say('素材与音频检索','Images and audio'),description:say('从已有资料库查找卡面、留影、表情、装饰、漫画与 BGM。','Find card art, snaps, stamps, decorations, comics and BGM in the archive.')},
+];
 ---
-
-<BaseLayout title="游戏工具">
-  <ToolPageHeader title="游戏工具" description="从自己的卡库出发，配队、估分、选歌；也可以打开角色预览。" meta="5 项工具" directory />
-  <div class="content-shell">
-    <SourceDisclosure>
-      <p>工具依据游戏中的卡牌、歌曲与技能资料，帮助你比较综合能力、估算歌曲分数和选择队伍。分数按理想演奏情况估算，实际结果会受判定、技能发动顺序及玩法规则影响，仅供配队参考。</p>
-    </SourceDisclosure>
-  </div>
-
-  <section class="catalog-section tool-directory-section">
-    <div class="content-shell">
-      <nav class="tool-module-grid" aria-label="可用工具">
-      <a class="tool-module-card tool-module-card--ready" href={href("/tools/live2d/")} data-tool-state="available">
-        <span>角色 · 互动预览</span>
-        <h2>Live2D 预览与调试</h2>
-        <p>选择角色与服装，播放动作和表情，实时调节模型参数。</p>
-        <strong>打开角色工作台 →</strong>
-      </a>
-      <a class="tool-module-card tool-module-card--ready" href={href("/tools/deck-builder/")} data-tool-state="available">
-        <span>配队 · 养成导入</span>
-        <h2>卡组配队</h2>
-        <p>导入自己的养成，按四步引导选择歌曲、准备卡库并获得推荐。</p>
-        <strong>开始配队 →</strong>
-      </a>
-
-      <a class="tool-module-card tool-module-card--ready" href={href("/tools/optimizer/")} data-tool-state="available">
-        <span>配队 · 组合比较</span>
-        <h2>歌曲最佳化 · 配对</h2>
-        <p>从所选卡组、已拥有卡库或理论满养成卡库选队，按综合力或普通歌曲分数排序。</p>
-        <strong>打开配对比较 →</strong>
-      </a>
-      <a class="tool-module-card tool-module-card--ready" href={href("/tools/song-calculator/")} data-tool-state="available">
-        <span>计分 · 队伍分析</span>
-        <h2>歌曲分数估算</h2>
-        <p>查看综合能力、技能覆盖、随机顺序范围和逐音符计分。</p>
-        <strong>打开歌曲计算 →</strong>
-      </a>
-      <a class="tool-module-card tool-module-card--ready" href={href("/tools/song-ranking/")} data-tool-state="available">
-        <span>选歌 · 得分与效率</span>
-        <h2>歌曲排行榜</h2>
-        <p>统一基准比较不同歌曲与难度的出分、时间效率，查看技能、连击及激奏倍率。</p>
-        <strong>打开谱面排行榜 →</strong>
-      </a>
-      </nav>
-    </div>
+<BaseLayout title={say('游戏工具','Game tools')}>
+ <div class="tools-desk">
+  <header class="tools-opening">
+   <div><a class="tools-wordmark" href={href('/tools/')}><span class="tools-signal" aria-hidden="true"><i></i><i></i><i></i><i></i></span> OTONOTE · TOOLBOX</a><h1>{say('游戏工具','Game tools')}</h1><p>{say('配队、选曲、估分与活动收益计算。','Team building, song selection, score estimates and event rewards.')}</p></div>
+   <a class="tools-library-link" href={href('/my-growth/')}><span class="tools-library-symbol" aria-hidden="true">＋</span><div><strong>{say('我的卡库与养成','My collection and growth')}</strong><span>{say('保存养成，在各工具中直接使用','Save your cards and use them across tools')}</span></div><span aria-hidden="true">↗</span></a>
+  </header>
+  <nav class="tools-task-grid" aria-label={say('可用工具','Available tools')}>
+   {[items[0],items[4],items[2],items[1],items[3],items[5]].map(item=><a class={`tools-task tools-task--${item.path}`} href={href(`/tools/${item.path}/`)} data-tool-state="available" data-navigation-title={item.title}>
+    <div class="tools-task-top"><span class="tools-task-glyph"><ToolGlyph kind={item.path}/></span><span class="tools-task-name">{item.title}</span><span class="tools-task-arrow" aria-hidden="true">↗</span></div>
+    <div class="tools-task-copy"><h2>{item.goal}</h2><p>{item.description}</p></div>
+    {item.path==='deck-builder' && <div class="tools-lineup" aria-hidden="true"><div class="tools-lineup-cards">{['♪','♫','✦','♫','♪'].map((mark,i)=><span style={`--card-index:${i}`}><i>{mark}</i><b>{i===2?'LEADER':'MEMBER'}</b><small>SUPPORT</small></span>)}</div><span class="tools-lineup-caption">MEMBER × SUPPORT</span></div>}
+    <div class="tools-task-bottom"><small>{item.input}</small><span class="tools-task-open">{say('打开工具','Open tool')} <span aria-hidden="true">→</span></span></div>
+   </a>)}
+  </nav>
+  <section class="tools-browse" aria-labelledby="tools-browse-title">
+   <header><h2 id="tools-browse-title">{say('阅读与预览','Read and preview')}</h2><p>{say('沿用资料库里的内容，找到后直接查看。','Open the tools already connected to the archive.')}</p></header>
+   <nav class="tools-browse-grid" aria-label={say('资料工具','Archive tools')}>
+    {browseTools.map(item=><a href={href(item.path)} class="tools-browse-link"><span class="tools-task-glyph"><ToolGlyph kind={item.kind}/></span><div><h3>{item.title}</h3><p>{item.description}</p></div><span aria-hidden="true">↗</span></a>)}
+   </nav>
   </section>
+  <nav class="tools-workflow" aria-label={say('常用工具流程','Common workflows')}><strong>{say('从哪里开始','Where to start')}</strong><a href={href('/my-growth/')}>{say('录入卡库','Save cards')}</a><span aria-hidden="true">→</span><a href={href('/tools/deck-builder/')}>{say('推荐配队','Build a team')}</a><span aria-hidden="true">→</span><a href={href('/tools/ap-grade/')}>{say('选曲达档','Find a score grade')}</a><span aria-hidden="true">→</span><a href={href('/tools/event-efficiency/')}>{say('规划活动收益','Plan event rewards')}</a><a class="tools-account-guide" href={href('/tools/account-export/')}>{say('如何导入账号数据','How to import account data')} ↗</a></nav>
+  <footer class="tools-desk-note"><span class="tools-note-symbol" aria-hidden="true">♪</span><p><small>{say('配队与分数为参考估算。AP 表示全 Perfect；实际表现受判定与技能顺序影响。','Score results are estimates. AP means all Perfect; judgement and skill order affect actual scores.')}</small></p></footer>
+ </div>
 </BaseLayout>

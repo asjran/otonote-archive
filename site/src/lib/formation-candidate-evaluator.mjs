@@ -5,14 +5,15 @@ import {gekisouPlacements} from './scoring-rules/formation-placements.mjs';
 const metrics = {expected_song_score:'expectedScore',minimum_song_score:'minimumScore',maximum_song_score:'maximumScore'};
 
 /** One context per worker. Master indexes and chart reconstruction are reused. */
-export function createCandidateEvaluator({rules,chart,mode='ordinary',objective='formation_power',gekisouScenario,scorePrecision='full'}, existing={}) {
-  const calculator = existing.calculator ?? createFormationCalculator(rules);
+export function createCandidateEvaluator({rules,chart,mode='ordinary',objective='formation_power',gekisouScenario,scorePrecision='full',eventAdapters=[]}, existing={}) {
+  const calculator = existing.calculator ?? createFormationCalculator(rules,{eventAdapters});
   const song = existing.song ?? (metrics[objective] ? mode==='gekisou'
-    ? createGekisouSongCalculator(rules,chart,{scenario:gekisouScenario,scorePrecision}) : createFormalSongCalculator(rules,chart,{scorePrecision}) : null);
+    ? createGekisouSongCalculator(rules,chart,{scenario:gekisouScenario,scorePrecision}) : createFormalSongCalculator(rules,chart,{scorePrecision,eventAdapters}) : null);
   function score(candidate) {
     const power=calculator.calculate(candidate), result=song?.calculate(candidate);
     return {power:power.total.total,value:result ? result[metrics[objective]] : power.total.total,breakdown:power.breakdown,
       ...(result ? {scorePrecision:result.scorePrecision,orderCount:result.orderCount,expectedScore:result.expectedScore,minimumScore:result.minimumScore,maximumScore:result.maximumScore,
+        scoreDistribution:result.scoreDistribution,inputHash:result.inputHash,
         ...(mode==='gekisou' ? {sections:result.sections,rankingBonus:result.rankingBonus,rankingBonusShare:result.rankingBonusShare,
           standardError:result.standardError,sampleCount:result.sampleCount,randomSampling:result.randomSampling,
           scenario:result.scenario,verificationStatus:result.verificationStatus} : {skillScoreGain:result.skillScoreGain})} : {})};

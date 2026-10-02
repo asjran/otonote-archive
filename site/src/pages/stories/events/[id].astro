@@ -1,0 +1,14 @@
+---
+import BaseLayout from "../../../layouts/BaseLayout.astro";
+import EventStoryCollection from "../../../components/EventStoryCollection.astro";
+import { eventRecords, eventHref, eventArtworks } from "../../../lib/event-pages";
+import { readableEventStoryIds } from "../../../lib/event-stories";
+import { eventCopy } from "../../../lib/event-copy";
+import { activeReleaseContext } from "../../../lib/release-context";
+export function getStaticPaths() { return eventRecords.filter(event => event.story.episodes.length).map(event => ({ params: { id: String(event.id) } })); }
+const event = eventRecords.find(event => String(event.id) === Astro.params.id)!;
+const copy = eventCopy(activeReleaseContext.locale);
+---
+<BaseLayout title={`${event.name} · ${copy.stories}`}>
+  <EventStoryCollection event={event} locale={activeReleaseContext.locale} href={eventHref} artwork={eventArtworks[event.id]} readableIds={readableEventStoryIds} />
+</BaseLayout>

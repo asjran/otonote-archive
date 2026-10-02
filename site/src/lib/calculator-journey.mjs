@@ -11,7 +11,7 @@ export function setupCalculatorJourney(workbench) {
   const savedPanel=el('section','','journey-saved');savedPanel.hidden=true;
   const nav=el('nav','','journey-steps');nav.setAttribute('aria-label','配队步骤');root.append(nav);
   const stepNotes=['歌曲与难度','导入或选择卡牌','模式与计算目标','比较并应用队伍'];
-  const names=['选歌曲','选卡库','演出条件','看结果'],panels=names.map((name,i)=>{
+  const names=['歌曲','卡库与队伍','演出条件','推荐结果'],panels=names.map((name,i)=>{
     const panel=el('section','','journey-step');panel.dataset.journeyStep=String(i);panel.id=`journey-step-${i}`;
     const button=el('button');button.type='button';button.setAttribute('aria-label',`${i+1} ${name}`);
     const copy=el('span','','journey-step-copy');copy.append(el('strong',name),el('small',stepNotes[i]));button.append(el('span',String(i+1),'journey-step-number'),copy);button.setAttribute('aria-controls',panel.id);listen(button,'click',()=>show(i,true));nav.append(button);root.append(panel);return panel;
@@ -42,8 +42,8 @@ export function setupCalculatorJourney(workbench) {
     panels.forEach(panel=>panel.replaceChildren());savedPanel.replaceChildren();choiceGroups=[];
     moveSelector('#song-settings',panels[0]);
     subtitle(panels[1],'用哪些卡来配？','推荐先导入游戏养成；也可以手动录入，或用全部满养成卡先体验。');
-    choices(q('[data-search-scope]'),panels[1],[['owned','我的卡库','登录读取或导入 JSON，按实际持有和养成配队。'],['theoretical','全部卡牌','卡片按满养成比较，结果可能包含你还没有的卡。'],['selected','当前这十张','保留已选成员与留影，重新分配配对和队长。']]);
-    moveSelector('[data-inventory-scope-note]',panels[1]);moveSelector('[data-inventory-editor]',panels[1]);
+    choices(q('[data-search-scope]'),panels[1],[['owned','我的卡库','使用已保存卡库与养成；需要时再展开编辑。'],['theoretical','全部卡牌','卡片按满养成比较，结果可能包含你还没有的卡。'],['selected','当前这十张','保留已选成员与留影，重新分配配对和队长。']]);
+    moveSelector('[data-inventory-scope-note]',panels[1]);moveSelector('[data-inventory-editor]',panels[1]).open=false;
     manual=el('details','','journey-manual');manual.append(el('summary','编辑当前五名成员和五张留影'));panels[1].append(manual);
     moveSelector('.team-workbench-grid',manual);
     const editCards=el('details','','journey-card-picker');editCards.append(el('summary','更换成员或留影'));manual.append(editCards);moveSelector('.team-card-picker',editCards);
@@ -51,7 +51,7 @@ export function setupCalculatorJourney(workbench) {
     const account=moveSelector('#power-settings',panels[1]);
     const accountInputs=el('div','','journey-account');account.querySelector('summary').after(accountInputs);
     moveSelector('[data-account-tgw]',accountInputs);moveSelector('[data-tgw-bonus-note]',accountInputs);
-    subtitle(panels[2],'这次想打普通，还是激奏？','默认 AP，以整首歌的平均分挑队伍。先拿一套推荐，再决定是否继续比较。');
+    subtitle(panels[2],'这次想打普通，还是激奏？','默认全 Perfect（AP），以平均分推荐。通常保持默认即可。');
     choices(q('[data-pairing-mode]'),panels[2],[['ordinary','普通自由演出','比较综合力、加分技能和留影延时。'],['gekisou','激奏演出','加上 COMBO / LUCK / JUST 三段任务与奖励。']]);
     moveSelector('[data-gekisou-settings]',panels[2]);
     review=el('dl','','journey-review');review.setAttribute('aria-label','本次配队条件');panels[2].append(review);
@@ -84,13 +84,13 @@ export function setupCalculatorJourney(workbench) {
     return Boolean(currentState.running||currentState.hasResults||currentState.finished);
   }
   function show(index,focus=false) {
-    if(!guided||!canVisit(index))return;
-    savedMode=false;step=index;panels.forEach((panel,i)=>panel.hidden=i!==step);
+    if(!guided)return;
+    savedMode=false;step=index;panels.forEach(panel=>panel.hidden=false);
     navButtons.forEach((button,i)=>{if(i===step)button.setAttribute('aria-current','step');else button.removeAttribute('aria-current');});
-    if(step===3&&runArea)panels[3].prepend(runArea);else if(step===2&&runArea)footer.append(runArea);else if(runArea)panels[2].append(runArea);
-    if(step===1&&q('[data-search-scope]').value==='owned')q('[data-inventory-editor]').open=true;
+    if(runArea)panels[2].append(runArea);
+
     refresh();
-    if(focus){const heading=panels[step].querySelector('h2,h3');if(heading){heading.tabIndex=-1;heading.focus({preventScroll:true});}root.scrollIntoView({block:'start',behavior:'auto'});}
+    if(focus){const heading=panels[step].querySelector('h2,h3');if(heading){heading.tabIndex=-1;heading.focus({preventScroll:true});}panels[step].scrollIntoView({block:'start',behavior:'auto'});}
   }
   function refresh() {
     currentState=workbench.optimizerState??currentState;
@@ -100,10 +100,10 @@ export function setupCalculatorJourney(workbench) {
     for(const {select,buttons} of choiceGroups)for(const {button,value} of buttons){button.setAttribute('aria-pressed',String(select.value===value));if(value==='custom')button.hidden=select.value!=='custom';}
     q('[data-inventory-editor]').hidden=scope!=='owned';manual.hidden=scope!=='selected';
     if(scope==='selected')manual.open=true;
-    nav.hidden=savedMode;footer.hidden=savedMode||step===3;savedPanel.hidden=!savedMode;
-    panels.forEach((panel,i)=>panel.hidden=savedMode||i!==step);
+    nav.hidden=savedMode;footer.hidden=true;savedPanel.hidden=!savedMode;
+    panels.forEach(panel=>panel.hidden=savedMode);
     automatic.setAttribute('aria-pressed',String(!savedMode));saved.setAttribute('aria-pressed',String(savedMode));
-    navButtons.forEach((button,i)=>{button.disabled=!canVisit(i);button.dataset.complete=String(i<3&&canVisit(i+1));button.title=canVisit(i)?stepNotes[i]:i===1?'请先选择歌曲与难度':i===2?'请先准备好卡库':'开始计算后可查看结果';});
+    navButtons.forEach((button,i)=>{button.disabled=false;button.dataset.complete=String(i<3&&canVisit(i+1));button.title=canVisit(i)?stepNotes[i]:i===1?'请先选择歌曲与难度':i===2?'请先准备好卡库':'开始计算后可查看结果';});
     if(review){
       const inventory=workbench.cardInventory;
       const source=scope==='owned'?`我的卡库 · ${inventory?.memberCardIds.length??0} 成员 / ${inventory?.supportCardIds.length??0} 留影`:scope==='theoretical'?'全部卡牌 · 满养成':'当前 5＋5 张卡';
@@ -113,10 +113,10 @@ export function setupCalculatorJourney(workbench) {
     hint.textContent=step===0?(currentState.songReady?'歌和难度选好了，接下来挑卡。':'点歌曲右侧的难度，选好后继续。'):step===1?(currentState.cardsReady?'卡库准备好了，接下来选择演出模式。':currentState.message??'先准备好五名不同角色和五张留影。'):step===2?'点击主按钮开始，结果会出现在下一步。':'结果仅包含已完成计分的队伍，检查明细可按需展开。';
   }
   listen(automatic,'click',()=>show(canVisit(step)?step:0,true));
-  listen(saved,'click',()=>{savedMode=true;refresh();root.scrollIntoView({block:'start',behavior:'auto'});});
+  listen(saved,'click',()=>{savedMode=true;refresh();panels[step].scrollIntoView({block:'start',behavior:'auto'});});
   listen(previous,'click',()=>show(step-1,true));listen(next,'click',()=>show(step+1,true));
   listen(toggle,'click',()=>{guided=!guided;if(guided)mount();else unmount();});
-  listen(workbench,'optimizer-ui-state',event=>{currentState=event.detail;refresh();if(guided&&event.detail.running)show(3);});
+  listen(workbench,'optimizer-ui-state',event=>{currentState=event.detail;refresh();if(guided&&event.detail.running&&!savedMode)show(3);});
   listen(workbench,'calculator-edit-team',()=>{if(!guided)return;q('[data-search-scope]').value='selected';q('[data-search-scope]').dispatchEvent(new Event('change',{bubbles:true}));show(1,true);manual.open=true;});
   listen(workbench,'change',refresh);
   listen(workbench,'calculator-open-inventory',()=>{q('[data-search-scope]').value='owned';q('[data-search-scope]').dispatchEvent(new Event('change',{bubbles:true}));show(1,true);});

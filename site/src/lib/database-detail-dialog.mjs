@@ -73,7 +73,10 @@ class DatabaseDetailDialog extends HTMLElement {
     try {
       let html = this.cache.get(id);
       if (!html) {
-        const response = await requestPageResource(`${this.dataset.detailBase}${encodeURIComponent(id)}/`, { signal: request.signal });
+        const detailUrl = new URL(this.dataset.detailBase, location.href);
+        detailUrl.pathname = `${detailUrl.pathname.replace(/\/$/, '')}/${encodeURIComponent(id)}/`;
+        detailUrl.hash = '';
+        const response = await requestPageResource(detailUrl.href, { signal: request.signal });
         if (!response.ok) throw new Error('Detail unavailable');
         html = await response.text();
       }

@@ -1,7 +1,8 @@
+import type {EditionRecord} from "./catalog";
 import systemsData from "@projection-data/global-systems.json";
 import { validateArtifact } from "./artifact-contracts";
 
-export interface GachaPool {
+export interface GachaPool extends EditionRecord {
   id: number;
   name: string;
   startAt: string | null;

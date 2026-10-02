@@ -9,14 +9,25 @@ import { loadPageInputs, loadStylesheet } from '../src/runtime/page-readiness.mj
 test('the cold entry contains usable navigation, styles, skeletons and retry before modules execute', async () => {
   const bundled = await build({entryPoints:[new URL('../src/runtime/loading-shell.mjs',import.meta.url).pathname],bundle:true,write:false,format:'esm',platform:'node'});
   const {renderLoadingShell} = await import('data:text/javascript;base64,'+Buffer.from(bundled.outputFiles[0].text).toString('base64'));
-  const html = renderLoadingShell({css:'.loading-page{color:black}',clientScript:'',codeRoot:'/app/releases/test/',boot:'boot.js',brandSvg:'<svg/>'});
+  const brand = await readFile(new URL('../public/brand/ournotes-mark.svg', import.meta.url));
+  const loadingArt = Object.fromEntries(loadingArtFiles.map(file => [file,
+    `data:image/svg+xml;base64,${brand.toString('base64')}`]));
+  const html = renderLoadingShell({css:'.loading-page{color:black}',clientScript:'',codeRoot:'/app/releases/test/',boot:'boot.js',brandSvg:'<svg/>',loadingArt});
   assert.match(html, /<header[\s>]/);
   assert.match(html, /<style data-loading-style>\.loading-page/);
   assert.match(html, /<main[^>]*aria-busy="true"/);
   assert.match(html, /href="\/global\/zh-CN\/cards\/members\/"/);
   assert.match(html, /data-loading-retry/);
   assert.match(html, /data-loading-companion[^>]*alt=""/);
-  assert.match(html, /data-art-root="\/app\/releases\/test\/loading\/"/);
+  assert.match(html, /href="\/global\/zh-CN\/about\/"/);
+  const embeddedArt = JSON.parse(html.match(/<script type="application\/json" data-loading-art>(.*?)<\/script>/s)[1]);
+  for (const file of loadingArtFiles) {
+    assert.match(embeddedArt[file], /^data:image\/svg\+xml;base64,/);
+    assert.deepEqual(Buffer.from(embeddedArt[file].split(',')[1], 'base64'),
+      brand);
+  }
+  assert.ok(!html.includes('data-art-root'));
+  assert.ok(!html.includes('/app/releases/test/loading/'));
   assert.ok(!html.includes('src="/content/'));
   assert.match(html, /<noscript>/);
   for (const kind of ['cards','music','detail','story','tool','scene','home','list']) {
@@ -32,7 +43,7 @@ test('the cold entry contains usable navigation, styles, skeletons and retry bef
 
 test('every loading route uses a small bundled companion without content lookup', async () => {
   for (const file of loadingArtFiles) {
-    const data = await readFile(new URL(`../public/gallery/${file}`, import.meta.url));
+    const data = await readFile(new URL('../public/brand/ournotes-mark.svg', import.meta.url));
     assert.ok(data.length < 35_000, `${file} exceeds the decorative image budget`);
   }
   for (const kind of ['home','cards','music','detail','story','scene','tool','list','unknown']) {

@@ -7,6 +7,7 @@ from unittest.mock import patch
 from tests import test_release_candidates as fixtures
 from tools.release_build import build_release
 from tools.release_candidates import build_candidates
+from tools.release_site import prepare_site_workspace
 from tools.release_preflight import PreflightError
 
 
@@ -16,6 +17,27 @@ class ReleaseBuildTest(unittest.TestCase):
     def setUp(self):
         fixtures.ReleaseCandidatesTest.setUp(self)
         self.output = self.root / 'output/release'
+        # The offline integration test owns its renderer inputs. A real local
+        # Live2D catalog may bind another release and must never leak into it.
+        site = self.root / 'site'
+        (site / 'src/data').mkdir(parents=True)
+        (site / 'node_modules').mkdir()
+        (site / 'public/vendor/live2d').mkdir(parents=True)
+        (site / 'public/favicon.svg').write_text('<svg xmlns="http://www.w3.org/2000/svg"/>')
+        (site / 'src/data/live2d-catalog.json').write_text(json.dumps({
+            'releaseId': self.entry['contentReleaseId'], 'models': [],
+        }))
+        for name in ('astro.config.mjs', 'product-profile.mjs', 'package.json', 'tsconfig.json'):
+            (site / name).write_text('{}')
+        (self.root / 'config').mkdir()
+        (self.root / 'config/site-product.json').write_text('{}')
+        for fixture in (
+            patch('tools.release_site.ROOT', self.root),
+            patch('tools.release_site.prepare_site_workspace',
+                  side_effect=lambda target: prepare_site_workspace(target, root=self.root)),
+        ):
+            fixture.start()
+            self.addCleanup(fixture.stop)
 
     @staticmethod
     def compiler(source, target, locales, root):
@@ -63,10 +85,11 @@ class ReleaseBuildTest(unittest.TestCase):
         self.assertEqual(list(self.output.parent.glob('.release-*')), [])
 
     def test_missing_formal_inputs_do_not_generate_or_fall_back(self):
-        from tools.release_build import ROOT
+        missing = {**self.entry, 'manifest': 'missing-formal-manifest.json'}
+        self.write_plan([missing])
         with patch('tools.release_build.build_candidates') as generate:
             with self.assertRaisesRegex(PreflightError, 'not ready'):
-                build_release(ROOT / 'config/release-inputs.json', self.output, root=self.root)
+                build_release(self.plan, self.output, root=self.root)
         generate.assert_not_called()
 
     def test_existing_output_is_preserved(self):
@@ -79,3 +102,12 @@ class ReleaseBuildTest(unittest.TestCase):
         self.output = self.root / 'site/new'
         with self.assertRaisesRegex(PreflightError, 'repository output'):
             self.build()
+
+    def test_wrong_live2d_release_is_still_rejected(self):
+        catalog = self.root / 'site/src/data/live2d-catalog.json'
+        catalog.write_text(json.dumps({'releaseId': 'different-release', 'models': []}))
+        with patch('tools.release_build.build_candidates', functools.partial(build_candidates, compiler=self.compiler)), \
+             patch('tools.release_site.subprocess.run', side_effect=self.renderer):
+            with self.assertRaisesRegex(PreflightError, 'Live2D catalog belongs to another release'):
+                self.build()
+        self.assertFalse(self.output.exists())

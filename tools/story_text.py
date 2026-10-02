@@ -32,11 +32,13 @@ def clean_text(value: str) -> str:
     return html.unescape(value).replace("\r\n", "\n").strip()
 
 
-def localized(row: dict, locale: str) -> str:
-    return clean_text(str(row.get(LOCALE_FIELDS[locale]) or ""))
+def localized(row: dict, locale: str, fallback_locale=None) -> str:
+    value = row.get(LOCALE_FIELDS[locale])
+    if not value and fallback_locale: value = row.get(LOCALE_FIELDS[fallback_locale])
+    return clean_text(str(value or ""))
 
 
-def parse_document(root: dict, text_rows: list[dict], locale: str) -> dict:
+def parse_document(root: dict, text_rows: list[dict], locale: str, *, fallback_locale=None) -> dict:
     commands = root["Collection"]
     indices = [row["Index"] for row in commands]
     if indices != sorted(indices) or len(indices) != len(set(indices)):
@@ -45,10 +47,12 @@ def parse_document(root: dict, text_rows: list[dict], locale: str) -> dict:
     if len(texts) != len(text_rows):
         raise ValueError("duplicate ADV text IDs")
 
+    fallback_refs = set()
     def resolve(ref: str) -> str:
-        if ref not in texts or not localized(texts[ref], locale):
+        if ref not in texts or not localized(texts[ref], locale, fallback_locale):
             raise ValueError(f"unresolved {locale} ADV text: {ref}")
-        return localized(texts[ref], locale)
+        if not localized(texts[ref], locale): fallback_refs.add(ref)
+        return localized(texts[ref], locale, fallback_locale)
 
     # Subtitle commands sometimes omit TargetTextIDs. Reuse only an unambiguous
     # name binding recorded by this script, never infer a person's name from art.
@@ -89,9 +93,11 @@ def parse_document(root: dict, text_rows: list[dict], locale: str) -> dict:
             kind = "narration"
         lines.append({"id": f"line-{command['Index']}", "sourceIndex": command["Index"],
                       "kind": kind, "speaker": speaker, "text": resolve(ref)})
+        if ref in fallback_refs: lines[-1]['locale'] = fallback_locale
     if not any(line["kind"] in {"dialogue", "chat", "narration", "subtitle"} for line in lines):
         raise ValueError("ADV has no readable body")
-    return {"lines": lines, "ignoredCommandCount": skipped}
+    return {"lines": lines, "ignoredCommandCount": skipped,
+            **({'fallbackTextCount':len(fallback_refs)} if fallback_refs else {})}
 
 
 class VerifiedStoryInputs(Mapping):
@@ -140,14 +146,14 @@ def read_story_inputs(source: dict, root: Path, *, lazy=False) -> Mapping | None
 
 
 def project_library(master_root: Path, source_release_id: str, locale: str,
-                    documents: dict | None) -> tuple[dict, dict]:
+                    documents: dict | None, *, fallback_locale=None) -> tuple[dict, dict]:
     index = {"schemaVersion": 1, "sourceReleaseId": source_release_id, "locale": locale,
              "entries": [], "chapters": [], "characters": [], "bands": []}
     if documents is None:
         return index, {}
     tables = {name: read_rows(master_root, name) for name in MASTER_TABLES}
     texts = {r["_id"]: r for r in tables["MasterText"]}
-    text = lambda ref: localized(texts.get(ref, {}), locale)
+    text = lambda ref: localized(texts.get(ref, {}), locale, fallback_locale)
     advs = {r["_id"]: r for r in tables["MasterAdv"]}
     chapters = {r["_id"]: r for r in tables["MasterStoryChapter"]}
     friendships = {r["_id"]: r for r in tables["MasterCharacterFriendship"]}
@@ -171,7 +177,7 @@ def project_library(master_root: Path, source_release_id: str, locale: str,
             band_ids = sorted({characters[c]["_bandID"] for c in character_ids})
             group = f"friendship-{pair['_id']}" if friendship else f"{category}-{chapter['_id']}"
             identifier = f"story-entry-{'friendship' if friendship else 'main'}-{row['_id']}"
-            document = parse_document(raw["root"], raw["texts"], locale)
+            document = parse_document(raw["root"], raw["texts"], locale, fallback_locale=fallback_locale)
             projected[identifier] = {"schemaVersion": 1, "sourceReleaseId": source_release_id,
                                      "locale": locale, "id": identifier, "lines": document["lines"]}
             entry = {"id": identifier, "category": category, "title": text(adv["_titleTextId"]),
@@ -181,6 +187,9 @@ def project_library(master_root: Path, source_release_id: str, locale: str,
                      "isExtra": bool(row.get("_isExtraEpisode")), "friendshipLevel": row.get("_unlockCharacterFriendshipLevel", 0),
                      "lineCount": sum(l["kind"] in {"dialogue", "chat", "narration", "subtitle"} for l in document["lines"]),
                      "previousId": None, "nextId": None}
+            from tools.library_metadata import story_identity
+            entry['contentIdentity'] = story_identity(entry, document['lines'])
+            if document.get('fallbackTextCount'): entry['fallbackTextCount'] = document['fallbackTextCount']
             index["entries"].append(entry)
     if len(projected) != len(documents):
         raise ValueError("story input contains documents outside the three supported categories")

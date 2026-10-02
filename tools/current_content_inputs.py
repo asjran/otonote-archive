@@ -33,6 +33,11 @@ def core_image_targets(resources):
             add(prefix.format(id=identifier), f'{directory}/{identifier}/{name}')
     for name in sorted({r['_jacketAssetName'] for r in resources.rows('MasterLiveMusic')}):
         add(f'image_assets_image_jacket_{name}_', f'Image/Jacket/{name}')
+    # Event artwork follows the same pinned catalog and media publication path.
+    for reference in sorted({r[field] for r in resources.rows('MasterEvent')
+                             for field in ('_logoAsset', '_backgroundAsset') if r.get(field)}):
+        path = 'Image/Event/' + reference
+        add('image_assets_' + path.lower().replace('/', '_') + '_', path)
     for reference in sorted({r['_bannerAssetName'] for r in resources.rows('MasterGacha')}):
         add('gacha_assets_' + reference.lower().replace('/', '_') + '_', reference)
     for reference in sorted({r['_imagePath'] for r in resources.rows('MasterItem') if r.get('_imagePath')}):
@@ -138,7 +143,9 @@ def extract_stories(resources, source, output):
             if len(found) != 1: raise ValueError('no unique current ADV object: ' + name)
             payload['texts' if suffix else 'root'] = found[0]
             receipts.append({'bundle': loc.primary_key, 'sha256': resources.used[loc.primary_key]['sha256']})
-        for locale in LOCALE_FIELDS: parse_document(payload['root'], payload['texts'], locale)
+        for locale in LOCALE_FIELDS:
+            parse_document(payload['root'], payload['texts'], locale,
+                           fallback_locale='ja' if source['region'] == 'jp' else None)
         destination = output / 'documents' / f'adv-{identifier}.json'
         write_json(destination, payload)
         documents.append({'advId': identifier, 'path': f'documents/adv-{identifier}.json', 'sha256': file_hash(destination)})

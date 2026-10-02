@@ -10,7 +10,7 @@ const card = () => `<div class="loading-card"><div class="loading-art"><span cla
 const row = () => `<div class="loading-row"><div class="loading-cover"></div><div>${line()}${line('short')}</div>${line('short')}</div>`;
 
 /** The entry is self-contained and independent of the content release. */
-export function renderLoadingShell({css, clientScript, codeRoot, boot, brandSvg, appManifest, startupScript}) {
+export function renderLoadingShell({css, clientScript, codeRoot, boot, brandSvg, appManifest, startupScript, loadingArt = {}, navigationScript = ''}) {
   const zh = getUi('zh-CN'), en = getUi('en');
   const label = key => `<span data-loading-en="${escape(en[key])}">${escape(zh[key])}</span>`;
   const link = (path, text, classes = '') => `<a class="${classes}" href="/global/zh-CN${path}" data-loading-route="${path}">${text}</a>`;
@@ -36,7 +36,7 @@ export function renderLoadingShell({css, clientScript, codeRoot, boot, brandSvg,
     <a class="skip-link" href="#main-content">${label('skipMain')}</a>
     <header class="site-header" data-site-header>
       ${link('/', `<span class="site-brand__mark" aria-hidden="true">${brandSvg}</span><span class="site-brand__full">${SITE_NAME}</span><span class="site-brand__compact" aria-hidden="true">${SITE_NAME}</span><small data-loading-en="Events · Data · Team tools">活动 · 资料 · 配队工具</small>`, 'site-brand')}
-      <nav id="site-navigation" class="site-nav" aria-label="主导航" data-site-nav><p class="nav-caption" data-loading-en="EXPLORE">浏览目录</p>${link('/',svg('M3 10l9-7 9 7 M5 9v12h5v-7h4v7h5V9')+'<span data-loading-en="Overview">首页概览</span>','nav-home')}${groups}<div class="nav-bottom">${link('/updates/','<span data-loading-en="Version history">版本记录</span>')}<small>${SITE_NAME} · GLOBAL</small></div></nav>
+      <nav id="site-navigation" class="site-nav" aria-label="主导航" data-site-nav><p class="nav-caption" data-loading-en="EXPLORE">浏览目录</p>${link('/',svg('M3 10l9-7 9 7 M5 9v12h5v-7h4v7h5V9')+'<span data-loading-en="Overview">首页概览</span>','nav-home')}${groups}<div class="nav-bottom">${link('/about/','<span data-loading-en="About">关于本站</span>')}${link('/updates/','<span data-loading-en="Version history">版本记录</span>')}<small>${SITE_NAME} · GLOBAL</small></div></nav>
       <nav class="site-breadcrumb" aria-label="当前位置">${link('/','<span data-loading-en="Overview">首页概览</span>')}<span aria-hidden="true">/</span><strong data-loading-title>${SITE_NAME}</strong></nav>
       <div class="global-search"><button class="global-search-trigger" disabled type="button">${svg('M16 16l4 4 M17 10a7 7 0 1 1-14 0 7 7 0 0 1 14 0')}<strong>${label('globalSearch')}</strong></button></div>
       <details class="context-switcher"><summary aria-label="切换服务器与语言"><span>GLOBAL</span><strong data-loading-locale>简体中文</strong></summary><div class="context-switcher__panel"><a href="/global/zh-CN/">简体中文</a> · <a href="/global/en/">English</a></div></details>
@@ -45,11 +45,11 @@ export function renderLoadingShell({css, clientScript, codeRoot, boot, brandSvg,
     <button class="nav-backdrop" data-loading-backdrop tabindex="-1" aria-label="关闭导航" hidden></button>
     <main id="main-content" aria-busy="true" tabindex="-1"><section class="loading-page">
       <div class="loading-heading"><h1 data-loading-title>${SITE_NAME}</h1></div>
-      <div class="loading-interlude" data-loading-interlude data-art-root="${codeRoot}loading/">
+      <div class="loading-interlude" data-loading-interlude>
         <div class="loading-mini-stage" aria-hidden="true">
           <span class="loading-stage-orbit"></span><span class="loading-stage-star">✦</span>
           <span class="loading-stage-note">♪</span>
-          <img class="loading-companion" data-loading-companion width="128" height="128" alt="" decoding="async" fetchpriority="low" hidden>
+          <img class="loading-companion" data-loading-companion width="128" height="128" alt="" hidden>
           <span class="loading-stage-shadow"></span>
         </div>
         <div class="loading-interlude-copy">
@@ -64,5 +64,6 @@ export function renderLoadingShell({css, clientScript, codeRoot, boot, brandSvg,
     </section></main>
     ${Object.entries(skeletons).map(([kind,html]) => `<template data-loading-template="${kind}">${html}</template>`).join('')}
     <noscript><style>[data-loading-skeleton],[data-loading-interlude]{display:none}</style><p class="loading-noscript">请启用 JavaScript 查看内容。Enable JavaScript to view the content.</p></noscript>
-    <script>${clientScript}</script><script type="module" src="${codeRoot}${boot}"></script></body></html>`;
+    <script type="application/json" data-loading-art>${JSON.stringify(loadingArt).replace(/</g,'\\u003c')}</script>
+    <script>${clientScript}</script><script data-code-root="${codeRoot}" data-navigation-client>${navigationScript.replace(/<\/script/gi, '<\\/script')}</script><script type="module" src="${codeRoot}${boot}"></script></body></html>`;
 }

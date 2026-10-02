@@ -31,8 +31,8 @@ export function compareScoredFormations(candidate, baseline) {
 
 /** Fixed leader makes the current ordinary power model additive over pairs.
  * Use the SAME native arithmetic as the calculator to obtain edge weights. */
-export async function compilePairingModels(rules, input, { signal, yieldControl, onProgress } = {}) {
-  const calculator = createFormationCalculator(rules), members = input.inventory.memberCardIds, supports = input.inventory.supportCardIds;
+export async function compilePairingModels(rules, input, { signal, yieldControl, onProgress, eventAdapters = [], pairCache, pairCacheKey } = {}) {
+  const calculator = createFormationCalculator(rules, { eventAdapters }), members = input.inventory.memberCardIds, supports = input.inventory.supportCardIds;
   const memberRows = new Map(members.map((id) => [id, calculator.card(id, "member")]));
   const pairs = [];
   const evaluateSlot = (member, support, leader) => {
@@ -41,10 +41,25 @@ export async function compilePairingModels(rules, input, { signal, yieldControl,
     slots[index] = { memberCardId: member, supportCardId: support };
     return calculator.calculate({ ...input.draft, slots }).slots[index];
   };
+  const cached=pairCacheKey==null?null:pairCache?.get(pairCacheKey);
+  if(cached){
+    const musicBonuses=new Map();
+    for(const [i,member] of members.entries()){
+      if(signal?.aborted)return null;
+      const slot=evaluateSlot(member,null,null);
+      musicBonuses.set(member,slot.breakdown.musicType.total+slot.breakdown.musicTag.total);
+      onProgress?.({phase:'pair_weights',completed:i+1,total:members.length});await yieldControl?.();
+    }
+    return cached.models.map(model=>({leader:model.leader,edges:model.edges.map(edge=>({...edge,weight:edge.weight+musicBonuses.get(edge.member)}))}));
+  }
+  const musicBonuses=new Map();
   for (const [i, member] of members.entries()) {
     if (signal?.aborted) return null;
-    for (const support of supports) pairs.push({ key: keyOf(member, support), member, support,
-      character: memberRows.get(member)._characterID, weight: evaluateSlot(member, support, null).total.total });
+    for (const support of supports) {
+      const slot=evaluateSlot(member,support,null);
+      musicBonuses.set(member,slot.breakdown.musicType.total+slot.breakdown.musicTag.total);
+      pairs.push({key:keyOf(member,support),member,support,character:memberRows.get(member)._characterID,weight:slot.total.total});
+    }
     onProgress?.({ phase: "pair_weights", completed: i + 1, total: members.length });
     await yieldControl?.();
   }
@@ -58,6 +73,10 @@ export async function compilePairingModels(rules, input, { signal, yieldControl,
     onProgress?.({ phase: "leader_weights", completed: i + 1, total: leaders.length });
     await yieldControl?.();
   }
+  // Song/type bonuses use only the member base, independently of support and
+  // leader. This optional job cache is only used with the audited event adapter.
+  if(pairCacheKey!=null)pairCache?.set(pairCacheKey,{models:models.map(model=>({leader:model.leader,
+    edges:model.edges.map(edge=>({...edge,weight:edge.weight-musicBonuses.get(edge.member)}))}))});
   return models;
 }
 

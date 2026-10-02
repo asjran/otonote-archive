@@ -1,0 +1,7192 @@
+{
+  "clientSha256": "514a5b73d038c264b60cc91fd4a747cf178190c6b2096e6d7007c2020e2b1bca",
+  "decodedSha256": "393a166e12f1886597709aa82e93bc58283631d629238e10e22fa10efc3f24eb",
+  "scope": "Native priority selector, endpoint match predicate, easing, ID counter/arithmetic and eighth-note iterator; not full conversion or input scheduling",
+  "substitutions": [
+    "managed allocation and property/interface services",
+    "GC and type initialization",
+    "libc modf",
+    "fixture constant-tempo time conversion and bar signature lookup"
+  ],
+  "nativeMethods": {
+    "creationPriority": "0x6a50d68",
+    "endpointMatch": "0x6a50438, stop on success at 0x6a50630",
+    "easing": "0x6a39468",
+    "eighthNoteIterator": "0x6a48448",
+    "authoredCounter": "0x6a3b838..0x6a3b848",
+    "slideCounter": "0x6a3d648..0x6a3d654",
+    "guideCounter": "0x6a40cd0..0x6a40cdc + 0x6a40d04",
+    "comboId": "0x6a44fb0..0x6a44fc4 + 0x6a450f8"
+  },
+  "priorities": [
+    {
+      "type": 0,
+      "priority": 10
+    },
+    {
+      "type": 1,
+      "priority": 10
+    },
+    {
+      "type": 2,
+      "priority": 10
+    },
+    {
+      "type": 3,
+      "priority": 10
+    },
+    {
+      "type": 4,
+      "priority": 10
+    },
+    {
+      "type": 5,
+      "priority": 10
+    },
+    {
+      "type": 6,
+      "priority": 10
+    },
+    {
+      "type": 7,
+      "priority": 10
+    },
+    {
+      "type": 8,
+      "priority": 10
+    },
+    {
+      "type": 9,
+      "priority": 10
+    },
+    {
+      "type": 10,
+      "priority": 10
+    },
+    {
+      "type": 11,
+      "priority": 10
+    },
+    {
+      "type": 12,
+      "priority": 10
+    },
+    {
+      "type": 13,
+      "priority": 10
+    },
+    {
+      "type": 14,
+      "priority": 10
+    },
+    {
+      "type": 15,
+      "priority": 10
+    },
+    {
+      "type": 16,
+      "priority": 10
+    },
+    {
+      "type": 17,
+      "priority": 10
+    },
+    {
+      "type": 18,
+      "priority": 10
+    },
+    {
+      "type": 19,
+      "priority": 10
+    },
+    {
+      "type": 20,
+      "priority": 8
+    },
+    {
+      "type": 21,
+      "priority": 10
+    },
+    {
+      "type": 22,
+      "priority": 10
+    },
+    {
+      "type": 23,
+      "priority": 10
+    },
+    {
+      "type": 24,
+      "priority": 10
+    },
+    {
+      "type": 25,
+      "priority": 10
+    },
+    {
+      "type": 26,
+      "priority": 10
+    },
+    {
+      "type": 27,
+      "priority": 10
+    },
+    {
+      "type": 28,
+      "priority": 10
+    },
+    {
+      "type": 29,
+      "priority": 10
+    },
+    {
+      "type": 30,
+      "priority": 10
+    },
+    {
+      "type": 31,
+      "priority": 10
+    },
+    {
+      "type": 32,
+      "priority": 10
+    },
+    {
+      "type": 33,
+      "priority": 10
+    },
+    {
+      "type": 34,
+      "priority": 10
+    },
+    {
+      "type": 35,
+      "priority": 10
+    },
+    {
+      "type": 36,
+      "priority": 10
+    },
+    {
+      "type": 37,
+      "priority": 10
+    },
+    {
+      "type": 38,
+      "priority": 10
+    },
+    {
+      "type": 39,
+      "priority": 10
+    },
+    {
+      "type": 40,
+      "priority": 10
+    },
+    {
+      "type": 41,
+      "priority": 8
+    },
+    {
+      "type": 42,
+      "priority": 10
+    },
+    {
+      "type": 43,
+      "priority": 10
+    },
+    {
+      "type": 44,
+      "priority": 10
+    },
+    {
+      "type": 45,
+      "priority": 10
+    },
+    {
+      "type": 46,
+      "priority": 10
+    },
+    {
+      "type": 47,
+      "priority": 10
+    },
+    {
+      "type": 48,
+      "priority": 10
+    },
+    {
+      "type": 49,
+      "priority": 10
+    },
+    {
+      "type": 50,
+      "priority": 10
+    },
+    {
+      "type": 51,
+      "priority": 10
+    },
+    {
+      "type": 52,
+      "priority": 10
+    },
+    {
+      "type": 53,
+      "priority": 10
+    },
+    {
+      "type": 54,
+      "priority": 10
+    },
+    {
+      "type": 55,
+      "priority": 10
+    },
+    {
+      "type": 56,
+      "priority": 10
+    },
+    {
+      "type": 57,
+      "priority": 10
+    },
+    {
+      "type": 58,
+      "priority": 10
+    },
+    {
+      "type": 59,
+      "priority": 10
+    },
+    {
+      "type": 60,
+      "priority": 10
+    },
+    {
+      "type": 61,
+      "priority": 8
+    },
+    {
+      "type": 62,
+      "priority": 10
+    },
+    {
+      "type": 63,
+      "priority": 10
+    },
+    {
+      "type": 64,
+      "priority": 10
+    },
+    {
+      "type": 65,
+      "priority": 10
+    },
+    {
+      "type": 66,
+      "priority": 10
+    },
+    {
+      "type": 67,
+      "priority": 10
+    },
+    {
+      "type": 68,
+      "priority": 10
+    },
+    {
+      "type": 69,
+      "priority": 10
+    },
+    {
+      "type": 70,
+      "priority": 10
+    },
+    {
+      "type": 71,
+      "priority": 10
+    },
+    {
+      "type": 72,
+      "priority": 10
+    },
+    {
+      "type": 73,
+      "priority": 10
+    },
+    {
+      "type": 74,
+      "priority": 10
+    },
+    {
+      "type": 75,
+      "priority": 10
+    },
+    {
+      "type": 76,
+      "priority": 10
+    },
+    {
+      "type": 77,
+      "priority": 10
+    },
+    {
+      "type": 78,
+      "priority": 10
+    },
+    {
+      "type": 79,
+      "priority": 10
+    },
+    {
+      "type": 80,
+      "priority": 8
+    },
+    {
+      "type": 81,
+      "priority": 10
+    },
+    {
+      "type": 82,
+      "priority": 10
+    },
+    {
+      "type": 83,
+      "priority": 10
+    },
+    {
+      "type": 84,
+      "priority": 10
+    },
+    {
+      "type": 85,
+      "priority": 10
+    },
+    {
+      "type": 86,
+      "priority": 10
+    },
+    {
+      "type": 87,
+      "priority": 10
+    },
+    {
+      "type": 88,
+      "priority": 10
+    },
+    {
+      "type": 89,
+      "priority": 10
+    },
+    {
+      "type": 90,
+      "priority": 10
+    },
+    {
+      "type": 91,
+      "priority": 10
+    },
+    {
+      "type": 92,
+      "priority": 10
+    },
+    {
+      "type": 93,
+      "priority": 10
+    },
+    {
+      "type": 94,
+      "priority": 10
+    },
+    {
+      "type": 95,
+      "priority": 10
+    },
+    {
+      "type": 96,
+      "priority": 10
+    },
+    {
+      "type": 97,
+      "priority": 10
+    },
+    {
+      "type": 98,
+      "priority": 10
+    },
+    {
+      "type": 99,
+      "priority": 10
+    },
+    {
+      "type": 100,
+      "priority": 8
+    },
+    {
+      "type": 101,
+      "priority": 8
+    },
+    {
+      "type": 102,
+      "priority": 8
+    },
+    {
+      "type": 103,
+      "priority": 10
+    },
+    {
+      "type": 104,
+      "priority": 8
+    },
+    {
+      "type": 105,
+      "priority": 10
+    },
+    {
+      "type": 106,
+      "priority": 10
+    },
+    {
+      "type": 107,
+      "priority": 10
+    },
+    {
+      "type": 108,
+      "priority": 10
+    },
+    {
+      "type": 109,
+      "priority": 10
+    },
+    {
+      "type": 110,
+      "priority": 10
+    },
+    {
+      "type": 111,
+      "priority": 10
+    },
+    {
+      "type": 112,
+      "priority": 10
+    },
+    {
+      "type": 113,
+      "priority": 10
+    },
+    {
+      "type": 114,
+      "priority": 10
+    },
+    {
+      "type": 115,
+      "priority": 10
+    },
+    {
+      "type": 116,
+      "priority": 10
+    },
+    {
+      "type": 117,
+      "priority": 10
+    },
+    {
+      "type": 118,
+      "priority": 10
+    },
+    {
+      "type": 119,
+      "priority": 10
+    },
+    {
+      "type": 120,
+      "priority": 10
+    },
+    {
+      "type": 121,
+      "priority": 10
+    },
+    {
+      "type": 122,
+      "priority": 9
+    },
+    {
+      "type": 123,
+      "priority": 10
+    },
+    {
+      "type": 124,
+      "priority": 10
+    },
+    {
+      "type": 125,
+      "priority": 10
+    },
+    {
+      "type": 126,
+      "priority": 10
+    },
+    {
+      "type": 127,
+      "priority": 10
+    },
+    {
+      "type": 128,
+      "priority": 10
+    },
+    {
+      "type": 129,
+      "priority": 10
+    },
+    {
+      "type": 130,
+      "priority": 10
+    }
+  ],
+  "easing": [
+    {
+      "type": 0,
+      "progress": 0.0,
+      "value": 0.0
+    },
+    {
+      "type": 0,
+      "progress": 0.0078125,
+      "value": 0.0078125
+    },
+    {
+      "type": 0,
+      "progress": 0.015625,
+      "value": 0.015625
+    },
+    {
+      "type": 0,
+      "progress": 0.0234375,
+      "value": 0.0234375
+    },
+    {
+      "type": 0,
+      "progress": 0.03125,
+      "value": 0.03125
+    },
+    {
+      "type": 0,
+      "progress": 0.0390625,
+      "value": 0.0390625
+    },
+    {
+      "type": 0,
+      "progress": 0.046875,
+      "value": 0.046875
+    },
+    {
+      "type": 0,
+      "progress": 0.0546875,
+      "value": 0.0546875
+    },
+    {
+      "type": 0,
+      "progress": 0.0625,
+      "value": 0.0625
+    },
+    {
+      "type": 0,
+      "progress": 0.0703125,
+      "value": 0.0703125
+    },
+    {
+      "type": 0,
+      "progress": 0.078125,
+      "value": 0.078125
+    },
+    {
+      "type": 0,
+      "progress": 0.0859375,
+      "value": 0.0859375
+    },
+    {
+      "type": 0,
+      "progress": 0.09375,
+      "value": 0.09375
+    },
+    {
+      "type": 0,
+      "progress": 0.1015625,
+      "value": 0.1015625
+    },
+    {
+      "type": 0,
+      "progress": 0.109375,
+      "value": 0.109375
+    },
+    {
+      "type": 0,
+      "progress": 0.1171875,
+      "value": 0.1171875
+    },
+    {
+      "type": 0,
+      "progress": 0.125,
+      "value": 0.125
+    },
+    {
+      "type": 0,
+      "progress": 0.1328125,
+      "value": 0.1328125
+    },
+    {
+      "type": 0,
+      "progress": 0.140625,
+      "value": 0.140625
+    },
+    {
+      "type": 0,
+      "progress": 0.1484375,
+      "value": 0.1484375
+    },
+    {
+      "type": 0,
+      "progress": 0.15625,
+      "value": 0.15625
+    },
+    {
+      "type": 0,
+      "progress": 0.1640625,
+      "value": 0.1640625
+    },
+    {
+      "type": 0,
+      "progress": 0.171875,
+      "value": 0.171875
+    },
+    {
+      "type": 0,
+      "progress": 0.1796875,
+      "value": 0.1796875
+    },
+    {
+      "type": 0,
+      "progress": 0.1875,
+      "value": 0.1875
+    },
+    {
+      "type": 0,
+      "progress": 0.1953125,
+      "value": 0.1953125
+    },
+    {
+      "type": 0,
+      "progress": 0.203125,
+      "value": 0.203125
+    },
+    {
+      "type": 0,
+      "progress": 0.2109375,
+      "value": 0.2109375
+    },
+    {
+      "type": 0,
+      "progress": 0.21875,
+      "value": 0.21875
+    },
+    {
+      "type": 0,
+      "progress": 0.2265625,
+      "value": 0.2265625
+    },
+    {
+      "type": 0,
+      "progress": 0.234375,
+      "value": 0.234375
+    },
+    {
+      "type": 0,
+      "progress": 0.2421875,
+      "value": 0.2421875
+    },
+    {
+      "type": 0,
+      "progress": 0.25,
+      "value": 0.25
+    },
+    {
+      "type": 0,
+      "progress": 0.2578125,
+      "value": 0.2578125
+    },
+    {
+      "type": 0,
+      "progress": 0.265625,
+      "value": 0.265625
+    },
+    {
+      "type": 0,
+      "progress": 0.2734375,
+      "value": 0.2734375
+    },
+    {
+      "type": 0,
+      "progress": 0.28125,
+      "value": 0.28125
+    },
+    {
+      "type": 0,
+      "progress": 0.2890625,
+      "value": 0.2890625
+    },
+    {
+      "type": 0,
+      "progress": 0.296875,
+      "value": 0.296875
+    },
+    {
+      "type": 0,
+      "progress": 0.3046875,
+      "value": 0.3046875
+    },
+    {
+      "type": 0,
+      "progress": 0.3125,
+      "value": 0.3125
+    },
+    {
+      "type": 0,
+      "progress": 0.3203125,
+      "value": 0.3203125
+    },
+    {
+      "type": 0,
+      "progress": 0.328125,
+      "value": 0.328125
+    },
+    {
+      "type": 0,
+      "progress": 0.3359375,
+      "value": 0.3359375
+    },
+    {
+      "type": 0,
+      "progress": 0.34375,
+      "value": 0.34375
+    },
+    {
+      "type": 0,
+      "progress": 0.3515625,
+      "value": 0.3515625
+    },
+    {
+      "type": 0,
+      "progress": 0.359375,
+      "value": 0.359375
+    },
+    {
+      "type": 0,
+      "progress": 0.3671875,
+      "value": 0.3671875
+    },
+    {
+      "type": 0,
+      "progress": 0.375,
+      "value": 0.375
+    },
+    {
+      "type": 0,
+      "progress": 0.3828125,
+      "value": 0.3828125
+    },
+    {
+      "type": 0,
+      "progress": 0.390625,
+      "value": 0.390625
+    },
+    {
+      "type": 0,
+      "progress": 0.3984375,
+      "value": 0.3984375
+    },
+    {
+      "type": 0,
+      "progress": 0.40625,
+      "value": 0.40625
+    },
+    {
+      "type": 0,
+      "progress": 0.4140625,
+      "value": 0.4140625
+    },
+    {
+      "type": 0,
+      "progress": 0.421875,
+      "value": 0.421875
+    },
+    {
+      "type": 0,
+      "progress": 0.4296875,
+      "value": 0.4296875
+    },
+    {
+      "type": 0,
+      "progress": 0.4375,
+      "value": 0.4375
+    },
+    {
+      "type": 0,
+      "progress": 0.4453125,
+      "value": 0.4453125
+    },
+    {
+      "type": 0,
+      "progress": 0.453125,
+      "value": 0.453125
+    },
+    {
+      "type": 0,
+      "progress": 0.4609375,
+      "value": 0.4609375
+    },
+    {
+      "type": 0,
+      "progress": 0.46875,
+      "value": 0.46875
+    },
+    {
+      "type": 0,
+      "progress": 0.4765625,
+      "value": 0.4765625
+    },
+    {
+      "type": 0,
+      "progress": 0.484375,
+      "value": 0.484375
+    },
+    {
+      "type": 0,
+      "progress": 0.4921875,
+      "value": 0.4921875
+    },
+    {
+      "type": 0,
+      "progress": 0.5,
+      "value": 0.5
+    },
+    {
+      "type": 0,
+      "progress": 0.5078125,
+      "value": 0.5078125
+    },
+    {
+      "type": 0,
+      "progress": 0.515625,
+      "value": 0.515625
+    },
+    {
+      "type": 0,
+      "progress": 0.5234375,
+      "value": 0.5234375
+    },
+    {
+      "type": 0,
+      "progress": 0.53125,
+      "value": 0.53125
+    },
+    {
+      "type": 0,
+      "progress": 0.5390625,
+      "value": 0.5390625
+    },
+    {
+      "type": 0,
+      "progress": 0.546875,
+      "value": 0.546875
+    },
+    {
+      "type": 0,
+      "progress": 0.5546875,
+      "value": 0.5546875
+    },
+    {
+      "type": 0,
+      "progress": 0.5625,
+      "value": 0.5625
+    },
+    {
+      "type": 0,
+      "progress": 0.5703125,
+      "value": 0.5703125
+    },
+    {
+      "type": 0,
+      "progress": 0.578125,
+      "value": 0.578125
+    },
+    {
+      "type": 0,
+      "progress": 0.5859375,
+      "value": 0.5859375
+    },
+    {
+      "type": 0,
+      "progress": 0.59375,
+      "value": 0.59375
+    },
+    {
+      "type": 0,
+      "progress": 0.6015625,
+      "value": 0.6015625
+    },
+    {
+      "type": 0,
+      "progress": 0.609375,
+      "value": 0.609375
+    },
+    {
+      "type": 0,
+      "progress": 0.6171875,
+      "value": 0.6171875
+    },
+    {
+      "type": 0,
+      "progress": 0.625,
+      "value": 0.625
+    },
+    {
+      "type": 0,
+      "progress": 0.6328125,
+      "value": 0.6328125
+    },
+    {
+      "type": 0,
+      "progress": 0.640625,
+      "value": 0.640625
+    },
+    {
+      "type": 0,
+      "progress": 0.6484375,
+      "value": 0.6484375
+    },
+    {
+      "type": 0,
+      "progress": 0.65625,
+      "value": 0.65625
+    },
+    {
+      "type": 0,
+      "progress": 0.6640625,
+      "value": 0.6640625
+    },
+    {
+      "type": 0,
+      "progress": 0.671875,
+      "value": 0.671875
+    },
+    {
+      "type": 0,
+      "progress": 0.6796875,
+      "value": 0.6796875
+    },
+    {
+      "type": 0,
+      "progress": 0.6875,
+      "value": 0.6875
+    },
+    {
+      "type": 0,
+      "progress": 0.6953125,
+      "value": 0.6953125
+    },
+    {
+      "type": 0,
+      "progress": 0.703125,
+      "value": 0.703125
+    },
+    {
+      "type": 0,
+      "progress": 0.7109375,
+      "value": 0.7109375
+    },
+    {
+      "type": 0,
+      "progress": 0.71875,
+      "value": 0.71875
+    },
+    {
+      "type": 0,
+      "progress": 0.7265625,
+      "value": 0.7265625
+    },
+    {
+      "type": 0,
+      "progress": 0.734375,
+      "value": 0.734375
+    },
+    {
+      "type": 0,
+      "progress": 0.7421875,
+      "value": 0.7421875
+    },
+    {
+      "type": 0,
+      "progress": 0.75,
+      "value": 0.75
+    },
+    {
+      "type": 0,
+      "progress": 0.7578125,
+      "value": 0.7578125
+    },
+    {
+      "type": 0,
+      "progress": 0.765625,
+      "value": 0.765625
+    },
+    {
+      "type": 0,
+      "progress": 0.7734375,
+      "value": 0.7734375
+    },
+    {
+      "type": 0,
+      "progress": 0.78125,
+      "value": 0.78125
+    },
+    {
+      "type": 0,
+      "progress": 0.7890625,
+      "value": 0.7890625
+    },
+    {
+      "type": 0,
+      "progress": 0.796875,
+      "value": 0.796875
+    },
+    {
+      "type": 0,
+      "progress": 0.8046875,
+      "value": 0.8046875
+    },
+    {
+      "type": 0,
+      "progress": 0.8125,
+      "value": 0.8125
+    },
+    {
+      "type": 0,
+      "progress": 0.8203125,
+      "value": 0.8203125
+    },
+    {
+      "type": 0,
+      "progress": 0.828125,
+      "value": 0.828125
+    },
+    {
+      "type": 0,
+      "progress": 0.8359375,
+      "value": 0.8359375
+    },
+    {
+      "type": 0,
+      "progress": 0.84375,
+      "value": 0.84375
+    },
+    {
+      "type": 0,
+      "progress": 0.8515625,
+      "value": 0.8515625
+    },
+    {
+      "type": 0,
+      "progress": 0.859375,
+      "value": 0.859375
+    },
+    {
+      "type": 0,
+      "progress": 0.8671875,
+      "value": 0.8671875
+    },
+    {
+      "type": 0,
+      "progress": 0.875,
+      "value": 0.875
+    },
+    {
+      "type": 0,
+      "progress": 0.8828125,
+      "value": 0.8828125
+    },
+    {
+      "type": 0,
+      "progress": 0.890625,
+      "value": 0.890625
+    },
+    {
+      "type": 0,
+      "progress": 0.8984375,
+      "value": 0.8984375
+    },
+    {
+      "type": 0,
+      "progress": 0.90625,
+      "value": 0.90625
+    },
+    {
+      "type": 0,
+      "progress": 0.9140625,
+      "value": 0.9140625
+    },
+    {
+      "type": 0,
+      "progress": 0.921875,
+      "value": 0.921875
+    },
+    {
+      "type": 0,
+      "progress": 0.9296875,
+      "value": 0.9296875
+    },
+    {
+      "type": 0,
+      "progress": 0.9375,
+      "value": 0.9375
+    },
+    {
+      "type": 0,
+      "progress": 0.9453125,
+      "value": 0.9453125
+    },
+    {
+      "type": 0,
+      "progress": 0.953125,
+      "value": 0.953125
+    },
+    {
+      "type": 0,
+      "progress": 0.9609375,
+      "value": 0.9609375
+    },
+    {
+      "type": 0,
+      "progress": 0.96875,
+      "value": 0.96875
+    },
+    {
+      "type": 0,
+      "progress": 0.9765625,
+      "value": 0.9765625
+    },
+    {
+      "type": 0,
+      "progress": 0.984375,
+      "value": 0.984375
+    },
+    {
+      "type": 0,
+      "progress": 0.9921875,
+      "value": 0.9921875
+    },
+    {
+      "type": 0,
+      "progress": 1.0,
+      "value": 1.0
+    },
+    {
+      "type": 1,
+      "progress": 0.0,
+      "value": 0.0
+    },
+    {
+      "type": 1,
+      "progress": 0.0078125,
+      "value": 0.01556396484375
+    },
+    {
+      "type": 1,
+      "progress": 0.015625,
+      "value": 0.031005859375
+    },
+    {
+      "type": 1,
+      "progress": 0.0234375,
+      "value": 0.04632568359375
+    },
+    {
+      "type": 1,
+      "progress": 0.03125,
+      "value": 0.0615234375
+    },
+    {
+      "type": 1,
+      "progress": 0.0390625,
+      "value": 0.07659912109375
+    },
+    {
+      "type": 1,
+      "progress": 0.046875,
+      "value": 0.091552734375
+    },
+    {
+      "type": 1,
+      "progress": 0.0546875,
+      "value": 0.10638427734375
+    },
+    {
+      "type": 1,
+      "progress": 0.0625,
+      "value": 0.12109375
+    },
+    {
+      "type": 1,
+      "progress": 0.0703125,
+      "value": 0.13568115234375
+    },
+    {
+      "type": 1,
+      "progress": 0.078125,
+      "value": 0.150146484375
+    },
+    {
+      "type": 1,
+      "progress": 0.0859375,
+      "value": 0.16448974609375
+    },
+    {
+      "type": 1,
+      "progress": 0.09375,
+      "value": 0.1787109375
+    },
+    {
+      "type": 1,
+      "progress": 0.1015625,
+      "value": 0.19281005859375
+    },
+    {
+      "type": 1,
+      "progress": 0.109375,
+      "value": 0.206787109375
+    },
+    {
+      "type": 1,
+      "progress": 0.1171875,
+      "value": 0.22064208984375
+    },
+    {
+      "type": 1,
+      "progress": 0.125,
+      "value": 0.234375
+    },
+    {
+      "type": 1,
+      "progress": 0.1328125,
+      "value": 0.24798583984375
+    },
+    {
+      "type": 1,
+      "progress": 0.140625,
+      "value": 0.261474609375
+    },
+    {
+      "type": 1,
+      "progress": 0.1484375,
+      "value": 0.27484130859375
+    },
+    {
+      "type": 1,
+      "progress": 0.15625,
+      "value": 0.2880859375
+    },
+    {
+      "type": 1,
+      "progress": 0.1640625,
+      "value": 0.30120849609375
+    },
+    {
+      "type": 1,
+      "progress": 0.171875,
+      "value": 0.314208984375
+    },
+    {
+      "type": 1,
+      "progress": 0.1796875,
+      "value": 0.32708740234375
+    },
+    {
+      "type": 1,
+      "progress": 0.1875,
+      "value": 0.33984375
+    },
+    {
+      "type": 1,
+      "progress": 0.1953125,
+      "value": 0.35247802734375
+    },
+    {
+      "type": 1,
+      "progress": 0.203125,
+      "value": 0.364990234375
+    },
+    {
+      "type": 1,
+      "progress": 0.2109375,
+      "value": 0.37738037109375
+    },
+    {
+      "type": 1,
+      "progress": 0.21875,
+      "value": 0.3896484375
+    },
+    {
+      "type": 1,
+      "progress": 0.2265625,
+      "value": 0.40179443359375
+    },
+    {
+      "type": 1,
+      "progress": 0.234375,
+      "value": 0.413818359375
+    },
+    {
+      "type": 1,
+      "progress": 0.2421875,
+      "value": 0.42572021484375
+    },
+    {
+      "type": 1,
+      "progress": 0.25,
+      "value": 0.4375
+    },
+    {
+      "type": 1,
+      "progress": 0.2578125,
+      "value": 0.44915771484375
+    },
+    {
+      "type": 1,
+      "progress": 0.265625,
+      "value": 0.460693359375
+    },
+    {
+      "type": 1,
+      "progress": 0.2734375,
+      "value": 0.47210693359375
+    },
+    {
+      "type": 1,
+      "progress": 0.28125,
+      "value": 0.4833984375
+    },
+    {
+      "type": 1,
+      "progress": 0.2890625,
+      "value": 0.49456787109375
+    },
+    {
+      "type": 1,
+      "progress": 0.296875,
+      "value": 0.505615234375
+    },
+    {
+      "type": 1,
+      "progress": 0.3046875,
+      "value": 0.51654052734375
+    },
+    {
+      "type": 1,
+      "progress": 0.3125,
+      "value": 0.52734375
+    },
+    {
+      "type": 1,
+      "progress": 0.3203125,
+      "value": 0.53802490234375
+    },
+    {
+      "type": 1,
+      "progress": 0.328125,
+      "value": 0.548583984375
+    },
+    {
+      "type": 1,
+      "progress": 0.3359375,
+      "value": 0.55902099609375
+    },
+    {
+      "type": 1,
+      "progress": 0.34375,
+      "value": 0.5693359375
+    },
+    {
+      "type": 1,
+      "progress": 0.3515625,
+      "value": 0.57952880859375
+    },
+    {
+      "type": 1,
+      "progress": 0.359375,
+      "value": 0.589599609375
+    },
+    {
+      "type": 1,
+      "progress": 0.3671875,
+      "value": 0.59954833984375
+    },
+    {
+      "type": 1,
+      "progress": 0.375,
+      "value": 0.609375
+    },
+    {
+      "type": 1,
+      "progress": 0.3828125,
+      "value": 0.61907958984375
+    },
+    {
+      "type": 1,
+      "progress": 0.390625,
+      "value": 0.628662109375
+    },
+    {
+      "type": 1,
+      "progress": 0.3984375,
+      "value": 0.63812255859375
+    },
+    {
+      "type": 1,
+      "progress": 0.40625,
+      "value": 0.6474609375
+    },
+    {
+      "type": 1,
+      "progress": 0.4140625,
+      "value": 0.65667724609375
+    },
+    {
+      "type": 1,
+      "progress": 0.421875,
+      "value": 0.665771484375
+    },
+    {
+      "type": 1,
+      "progress": 0.4296875,
+      "value": 0.67474365234375
+    },
+    {
+      "type": 1,
+      "progress": 0.4375,
+      "value": 0.68359375
+    },
+    {
+      "type": 1,
+      "progress": 0.4453125,
+      "value": 0.69232177734375
+    },
+    {
+      "type": 1,
+      "progress": 0.453125,
+      "value": 0.700927734375
+    },
+    {
+      "type": 1,
+      "progress": 0.4609375,
+      "value": 0.70941162109375
+    },
+    {
+      "type": 1,
+      "progress": 0.46875,
+      "value": 0.7177734375
+    },
+    {
+      "type": 1,
+      "progress": 0.4765625,
+      "value": 0.72601318359375
+    },
+    {
+      "type": 1,
+      "progress": 0.484375,
+      "value": 0.734130859375
+    },
+    {
+      "type": 1,
+      "progress": 0.4921875,
+      "value": 0.74212646484375
+    },
+    {
+      "type": 1,
+      "progress": 0.5,
+      "value": 0.75
+    },
+    {
+      "type": 1,
+      "progress": 0.5078125,
+      "value": 0.75775146484375
+    },
+    {
+      "type": 1,
+      "progress": 0.515625,
+      "value": 0.765380859375
+    },
+    {
+      "type": 1,
+      "progress": 0.5234375,
+      "value": 0.77288818359375
+    },
+    {
+      "type": 1,
+      "progress": 0.53125,
+      "value": 0.7802734375
+    },
+    {
+      "type": 1,
+      "progress": 0.5390625,
+      "value": 0.78753662109375
+    },
+    {
+      "type": 1,
+      "progress": 0.546875,
+      "value": 0.794677734375
+    },
+    {
+      "type": 1,
+      "progress": 0.5546875,
+      "value": 0.80169677734375
+    },
+    {
+      "type": 1,
+      "progress": 0.5625,
+      "value": 0.80859375
+    },
+    {
+      "type": 1,
+      "progress": 0.5703125,
+      "value": 0.81536865234375
+    },
+    {
+      "type": 1,
+      "progress": 0.578125,
+      "value": 0.822021484375
+    },
+    {
+      "type": 1,
+      "progress": 0.5859375,
+      "value": 0.82855224609375
+    },
+    {
+      "type": 1,
+      "progress": 0.59375,
+      "value": 0.8349609375
+    },
+    {
+      "type": 1,
+      "progress": 0.6015625,
+      "value": 0.84124755859375
+    },
+    {
+      "type": 1,
+      "progress": 0.609375,
+      "value": 0.847412109375
+    },
+    {
+      "type": 1,
+      "progress": 0.6171875,
+      "value": 0.85345458984375
+    },
+    {
+      "type": 1,
+      "progress": 0.625,
+      "value": 0.859375
+    },
+    {
+      "type": 1,
+      "progress": 0.6328125,
+      "value": 0.86517333984375
+    },
+    {
+      "type": 1,
+      "progress": 0.640625,
+      "value": 0.870849609375
+    },
+    {
+      "type": 1,
+      "progress": 0.6484375,
+      "value": 0.87640380859375
+    },
+    {
+      "type": 1,
+      "progress": 0.65625,
+      "value": 0.8818359375
+    },
+    {
+      "type": 1,
+      "progress": 0.6640625,
+      "value": 0.88714599609375
+    },
+    {
+      "type": 1,
+      "progress": 0.671875,
+      "value": 0.892333984375
+    },
+    {
+      "type": 1,
+      "progress": 0.6796875,
+      "value": 0.89739990234375
+    },
+    {
+      "type": 1,
+      "progress": 0.6875,
+      "value": 0.90234375
+    },
+    {
+      "type": 1,
+      "progress": 0.6953125,
+      "value": 0.90716552734375
+    },
+    {
+      "type": 1,
+      "progress": 0.703125,
+      "value": 0.911865234375
+    },
+    {
+      "type": 1,
+      "progress": 0.7109375,
+      "value": 0.91644287109375
+    },
+    {
+      "type": 1,
+      "progress": 0.71875,
+      "value": 0.9208984375
+    },
+    {
+      "type": 1,
+      "progress": 0.7265625,
+      "value": 0.92523193359375
+    },
+    {
+      "type": 1,
+      "progress": 0.734375,
+      "value": 0.929443359375
+    },
+    {
+      "type": 1,
+      "progress": 0.7421875,
+      "value": 0.93353271484375
+    },
+    {
+      "type": 1,
+      "progress": 0.75,
+      "value": 0.9375
+    },
+    {
+      "type": 1,
+      "progress": 0.7578125,
+      "value": 0.94134521484375
+    },
+    {
+      "type": 1,
+      "progress": 0.765625,
+      "value": 0.945068359375
+    },
+    {
+      "type": 1,
+      "progress": 0.7734375,
+      "value": 0.94866943359375
+    },
+    {
+      "type": 1,
+      "progress": 0.78125,
+      "value": 0.9521484375
+    },
+    {
+      "type": 1,
+      "progress": 0.7890625,
+      "value": 0.95550537109375
+    },
+    {
+      "type": 1,
+      "progress": 0.796875,
+      "value": 0.958740234375
+    },
+    {
+      "type": 1,
+      "progress": 0.8046875,
+      "value": 0.96185302734375
+    },
+    {
+      "type": 1,
+      "progress": 0.8125,
+      "value": 0.96484375
+    },
+    {
+      "type": 1,
+      "progress": 0.8203125,
+      "value": 0.96771240234375
+    },
+    {
+      "type": 1,
+      "progress": 0.828125,
+      "value": 0.970458984375
+    },
+    {
+      "type": 1,
+      "progress": 0.8359375,
+      "value": 0.97308349609375
+    },
+    {
+      "type": 1,
+      "progress": 0.84375,
+      "value": 0.9755859375
+    },
+    {
+      "type": 1,
+      "progress": 0.8515625,
+      "value": 0.97796630859375
+    },
+    {
+      "type": 1,
+      "progress": 0.859375,
+      "value": 0.980224609375
+    },
+    {
+      "type": 1,
+      "progress": 0.8671875,
+      "value": 0.98236083984375
+    },
+    {
+      "type": 1,
+      "progress": 0.875,
+      "value": 0.984375
+    },
+    {
+      "type": 1,
+      "progress": 0.8828125,
+      "value": 0.98626708984375
+    },
+    {
+      "type": 1,
+      "progress": 0.890625,
+      "value": 0.988037109375
+    },
+    {
+      "type": 1,
+      "progress": 0.8984375,
+      "value": 0.98968505859375
+    },
+    {
+      "type": 1,
+      "progress": 0.90625,
+      "value": 0.9912109375
+    },
+    {
+      "type": 1,
+      "progress": 0.9140625,
+      "value": 0.99261474609375
+    },
+    {
+      "type": 1,
+      "progress": 0.921875,
+      "value": 0.993896484375
+    },
+    {
+      "type": 1,
+      "progress": 0.9296875,
+      "value": 0.99505615234375
+    },
+    {
+      "type": 1,
+      "progress": 0.9375,
+      "value": 0.99609375
+    },
+    {
+      "type": 1,
+      "progress": 0.9453125,
+      "value": 0.99700927734375
+    },
+    {
+      "type": 1,
+      "progress": 0.953125,
+      "value": 0.997802734375
+    },
+    {
+      "type": 1,
+      "progress": 0.9609375,
+      "value": 0.99847412109375
+    },
+    {
+      "type": 1,
+      "progress": 0.96875,
+      "value": 0.9990234375
+    },
+    {
+      "type": 1,
+      "progress": 0.9765625,
+      "value": 0.99945068359375
+    },
+    {
+      "type": 1,
+      "progress": 0.984375,
+      "value": 0.999755859375
+    },
+    {
+      "type": 1,
+      "progress": 0.9921875,
+      "value": 0.99993896484375
+    },
+    {
+      "type": 1,
+      "progress": 1.0,
+      "value": 1.0
+    },
+    {
+      "type": 2,
+      "progress": 0.0,
+      "value": 0.0
+    },
+    {
+      "type": 2,
+      "progress": 0.0078125,
+      "value": 6.103515625e-05
+    },
+    {
+      "type": 2,
+      "progress": 0.015625,
+      "value": 0.000244140625
+    },
+    {
+      "type": 2,
+      "progress": 0.0234375,
+      "value": 0.00054931640625
+    },
+    {
+      "type": 2,
+      "progress": 0.03125,
+      "value": 0.0009765625
+    },
+    {
+      "type": 2,
+      "progress": 0.0390625,
+      "value": 0.00152587890625
+    },
+    {
+      "type": 2,
+      "progress": 0.046875,
+      "value": 0.002197265625
+    },
+    {
+      "type": 2,
+      "progress": 0.0546875,
+      "value": 0.00299072265625
+    },
+    {
+      "type": 2,
+      "progress": 0.0625,
+      "value": 0.00390625
+    },
+    {
+      "type": 2,
+      "progress": 0.0703125,
+      "value": 0.00494384765625
+    },
+    {
+      "type": 2,
+      "progress": 0.078125,
+      "value": 0.006103515625
+    },
+    {
+      "type": 2,
+      "progress": 0.0859375,
+      "value": 0.00738525390625
+    },
+    {
+      "type": 2,
+      "progress": 0.09375,
+      "value": 0.0087890625
+    },
+    {
+      "type": 2,
+      "progress": 0.1015625,
+      "value": 0.01031494140625
+    },
+    {
+      "type": 2,
+      "progress": 0.109375,
+      "value": 0.011962890625
+    },
+    {
+      "type": 2,
+      "progress": 0.1171875,
+      "value": 0.01373291015625
+    },
+    {
+      "type": 2,
+      "progress": 0.125,
+      "value": 0.015625
+    },
+    {
+      "type": 2,
+      "progress": 0.1328125,
+      "value": 0.01763916015625
+    },
+    {
+      "type": 2,
+      "progress": 0.140625,
+      "value": 0.019775390625
+    },
+    {
+      "type": 2,
+      "progress": 0.1484375,
+      "value": 0.02203369140625
+    },
+    {
+      "type": 2,
+      "progress": 0.15625,
+      "value": 0.0244140625
+    },
+    {
+      "type": 2,
+      "progress": 0.1640625,
+      "value": 0.02691650390625
+    },
+    {
+      "type": 2,
+      "progress": 0.171875,
+      "value": 0.029541015625
+    },
+    {
+      "type": 2,
+      "progress": 0.1796875,
+      "value": 0.03228759765625
+    },
+    {
+      "type": 2,
+      "progress": 0.1875,
+      "value": 0.03515625
+    },
+    {
+      "type": 2,
+      "progress": 0.1953125,
+      "value": 0.03814697265625
+    },
+    {
+      "type": 2,
+      "progress": 0.203125,
+      "value": 0.041259765625
+    },
+    {
+      "type": 2,
+      "progress": 0.2109375,
+      "value": 0.04449462890625
+    },
+    {
+      "type": 2,
+      "progress": 0.21875,
+      "value": 0.0478515625
+    },
+    {
+      "type": 2,
+      "progress": 0.2265625,
+      "value": 0.05133056640625
+    },
+    {
+      "type": 2,
+      "progress": 0.234375,
+      "value": 0.054931640625
+    },
+    {
+      "type": 2,
+      "progress": 0.2421875,
+      "value": 0.05865478515625
+    },
+    {
+      "type": 2,
+      "progress": 0.25,
+      "value": 0.0625
+    },
+    {
+      "type": 2,
+      "progress": 0.2578125,
+      "value": 0.06646728515625
+    },
+    {
+      "type": 2,
+      "progress": 0.265625,
+      "value": 0.070556640625
+    },
+    {
+      "type": 2,
+      "progress": 0.2734375,
+      "value": 0.07476806640625
+    },
+    {
+      "type": 2,
+      "progress": 0.28125,
+      "value": 0.0791015625
+    },
+    {
+      "type": 2,
+      "progress": 0.2890625,
+      "value": 0.08355712890625
+    },
+    {
+      "type": 2,
+      "progress": 0.296875,
+      "value": 0.088134765625
+    },
+    {
+      "type": 2,
+      "progress": 0.3046875,
+      "value": 0.09283447265625
+    },
+    {
+      "type": 2,
+      "progress": 0.3125,
+      "value": 0.09765625
+    },
+    {
+      "type": 2,
+      "progress": 0.3203125,
+      "value": 0.10260009765625
+    },
+    {
+      "type": 2,
+      "progress": 0.328125,
+      "value": 0.107666015625
+    },
+    {
+      "type": 2,
+      "progress": 0.3359375,
+      "value": 0.11285400390625
+    },
+    {
+      "type": 2,
+      "progress": 0.34375,
+      "value": 0.1181640625
+    },
+    {
+      "type": 2,
+      "progress": 0.3515625,
+      "value": 0.12359619140625
+    },
+    {
+      "type": 2,
+      "progress": 0.359375,
+      "value": 0.129150390625
+    },
+    {
+      "type": 2,
+      "progress": 0.3671875,
+      "value": 0.13482666015625
+    },
+    {
+      "type": 2,
+      "progress": 0.375,
+      "value": 0.140625
+    },
+    {
+      "type": 2,
+      "progress": 0.3828125,
+      "value": 0.14654541015625
+    },
+    {
+      "type": 2,
+      "progress": 0.390625,
+      "value": 0.152587890625
+    },
+    {
+      "type": 2,
+      "progress": 0.3984375,
+      "value": 0.15875244140625
+    },
+    {
+      "type": 2,
+      "progress": 0.40625,
+      "value": 0.1650390625
+    },
+    {
+      "type": 2,
+      "progress": 0.4140625,
+      "value": 0.17144775390625
+    },
+    {
+      "type": 2,
+      "progress": 0.421875,
+      "value": 0.177978515625
+    },
+    {
+      "type": 2,
+      "progress": 0.4296875,
+      "value": 0.18463134765625
+    },
+    {
+      "type": 2,
+      "progress": 0.4375,
+      "value": 0.19140625
+    },
+    {
+      "type": 2,
+      "progress": 0.4453125,
+      "value": 0.19830322265625
+    },
+    {
+      "type": 2,
+      "progress": 0.453125,
+      "value": 0.205322265625
+    },
+    {
+      "type": 2,
+      "progress": 0.4609375,
+      "value": 0.21246337890625
+    },
+    {
+      "type": 2,
+      "progress": 0.46875,
+      "value": 0.2197265625
+    },
+    {
+      "type": 2,
+      "progress": 0.4765625,
+      "value": 0.22711181640625
+    },
+    {
+      "type": 2,
+      "progress": 0.484375,
+      "value": 0.234619140625
+    },
+    {
+      "type": 2,
+      "progress": 0.4921875,
+      "value": 0.24224853515625
+    },
+    {
+      "type": 2,
+      "progress": 0.5,
+      "value": 0.25
+    },
+    {
+      "type": 2,
+      "progress": 0.5078125,
+      "value": 0.25787353515625
+    },
+    {
+      "type": 2,
+      "progress": 0.515625,
+      "value": 0.265869140625
+    },
+    {
+      "type": 2,
+      "progress": 0.5234375,
+      "value": 0.27398681640625
+    },
+    {
+      "type": 2,
+      "progress": 0.53125,
+      "value": 0.2822265625
+    },
+    {
+      "type": 2,
+      "progress": 0.5390625,
+      "value": 0.29058837890625
+    },
+    {
+      "type": 2,
+      "progress": 0.546875,
+      "value": 0.299072265625
+    },
+    {
+      "type": 2,
+      "progress": 0.5546875,
+      "value": 0.30767822265625
+    },
+    {
+      "type": 2,
+      "progress": 0.5625,
+      "value": 0.31640625
+    },
+    {
+      "type": 2,
+      "progress": 0.5703125,
+      "value": 0.32525634765625
+    },
+    {
+      "type": 2,
+      "progress": 0.578125,
+      "value": 0.334228515625
+    },
+    {
+      "type": 2,
+      "progress": 0.5859375,
+      "value": 0.34332275390625
+    },
+    {
+      "type": 2,
+      "progress": 0.59375,
+      "value": 0.3525390625
+    },
+    {
+      "type": 2,
+      "progress": 0.6015625,
+      "value": 0.36187744140625
+    },
+    {
+      "type": 2,
+      "progress": 0.609375,
+      "value": 0.371337890625
+    },
+    {
+      "type": 2,
+      "progress": 0.6171875,
+      "value": 0.38092041015625
+    },
+    {
+      "type": 2,
+      "progress": 0.625,
+      "value": 0.390625
+    },
+    {
+      "type": 2,
+      "progress": 0.6328125,
+      "value": 0.40045166015625
+    },
+    {
+      "type": 2,
+      "progress": 0.640625,
+      "value": 0.410400390625
+    },
+    {
+      "type": 2,
+      "progress": 0.6484375,
+      "value": 0.42047119140625
+    },
+    {
+      "type": 2,
+      "progress": 0.65625,
+      "value": 0.4306640625
+    },
+    {
+      "type": 2,
+      "progress": 0.6640625,
+      "value": 0.44097900390625
+    },
+    {
+      "type": 2,
+      "progress": 0.671875,
+      "value": 0.451416015625
+    },
+    {
+      "type": 2,
+      "progress": 0.6796875,
+      "value": 0.46197509765625
+    },
+    {
+      "type": 2,
+      "progress": 0.6875,
+      "value": 0.47265625
+    },
+    {
+      "type": 2,
+      "progress": 0.6953125,
+      "value": 0.48345947265625
+    },
+    {
+      "type": 2,
+      "progress": 0.703125,
+      "value": 0.494384765625
+    },
+    {
+      "type": 2,
+      "progress": 0.7109375,
+      "value": 0.50543212890625
+    },
+    {
+      "type": 2,
+      "progress": 0.71875,
+      "value": 0.5166015625
+    },
+    {
+      "type": 2,
+      "progress": 0.7265625,
+      "value": 0.52789306640625
+    },
+    {
+      "type": 2,
+      "progress": 0.734375,
+      "value": 0.539306640625
+    },
+    {
+      "type": 2,
+      "progress": 0.7421875,
+      "value": 0.55084228515625
+    },
+    {
+      "type": 2,
+      "progress": 0.75,
+      "value": 0.5625
+    },
+    {
+      "type": 2,
+      "progress": 0.7578125,
+      "value": 0.57427978515625
+    },
+    {
+      "type": 2,
+      "progress": 0.765625,
+      "value": 0.586181640625
+    },
+    {
+      "type": 2,
+      "progress": 0.7734375,
+      "value": 0.59820556640625
+    },
+    {
+      "type": 2,
+      "progress": 0.78125,
+      "value": 0.6103515625
+    },
+    {
+      "type": 2,
+      "progress": 0.7890625,
+      "value": 0.62261962890625
+    },
+    {
+      "type": 2,
+      "progress": 0.796875,
+      "value": 0.635009765625
+    },
+    {
+      "type": 2,
+      "progress": 0.8046875,
+      "value": 0.64752197265625
+    },
+    {
+      "type": 2,
+      "progress": 0.8125,
+      "value": 0.66015625
+    },
+    {
+      "type": 2,
+      "progress": 0.8203125,
+      "value": 0.67291259765625
+    },
+    {
+      "type": 2,
+      "progress": 0.828125,
+      "value": 0.685791015625
+    },
+    {
+      "type": 2,
+      "progress": 0.8359375,
+      "value": 0.69879150390625
+    },
+    {
+      "type": 2,
+      "progress": 0.84375,
+      "value": 0.7119140625
+    },
+    {
+      "type": 2,
+      "progress": 0.8515625,
+      "value": 0.72515869140625
+    },
+    {
+      "type": 2,
+      "progress": 0.859375,
+      "value": 0.738525390625
+    },
+    {
+      "type": 2,
+      "progress": 0.8671875,
+      "value": 0.75201416015625
+    },
+    {
+      "type": 2,
+      "progress": 0.875,
+      "value": 0.765625
+    },
+    {
+      "type": 2,
+      "progress": 0.8828125,
+      "value": 0.77935791015625
+    },
+    {
+      "type": 2,
+      "progress": 0.890625,
+      "value": 0.793212890625
+    },
+    {
+      "type": 2,
+      "progress": 0.8984375,
+      "value": 0.80718994140625
+    },
+    {
+      "type": 2,
+      "progress": 0.90625,
+      "value": 0.8212890625
+    },
+    {
+      "type": 2,
+      "progress": 0.9140625,
+      "value": 0.83551025390625
+    },
+    {
+      "type": 2,
+      "progress": 0.921875,
+      "value": 0.849853515625
+    },
+    {
+      "type": 2,
+      "progress": 0.9296875,
+      "value": 0.86431884765625
+    },
+    {
+      "type": 2,
+      "progress": 0.9375,
+      "value": 0.87890625
+    },
+    {
+      "type": 2,
+      "progress": 0.9453125,
+      "value": 0.89361572265625
+    },
+    {
+      "type": 2,
+      "progress": 0.953125,
+      "value": 0.908447265625
+    },
+    {
+      "type": 2,
+      "progress": 0.9609375,
+      "value": 0.92340087890625
+    },
+    {
+      "type": 2,
+      "progress": 0.96875,
+      "value": 0.9384765625
+    },
+    {
+      "type": 2,
+      "progress": 0.9765625,
+      "value": 0.95367431640625
+    },
+    {
+      "type": 2,
+      "progress": 0.984375,
+      "value": 0.968994140625
+    },
+    {
+      "type": 2,
+      "progress": 0.9921875,
+      "value": 0.98443603515625
+    },
+    {
+      "type": 2,
+      "progress": 1.0,
+      "value": 1.0
+    }
+  ],
+  "mergePredicates": [
+    {
+      "type": 1,
+      "different": null,
+      "merged": false
+    },
+    {
+      "type": 1,
+      "different": "direction",
+      "merged": false
+    },
+    {
+      "type": 1,
+      "different": "easing",
+      "merged": false
+    },
+    {
+      "type": 1,
+      "different": "easingRight",
+      "merged": false
+    },
+    {
+      "type": 1,
+      "different": "width",
+      "merged": false
+    },
+    {
+      "type": 1,
+      "different": "critical",
+      "merged": false
+    },
+    {
+      "type": 20,
+      "different": null,
+      "merged": true
+    },
+    {
+      "type": 20,
+      "different": "direction",
+      "merged": false
+    },
+    {
+      "type": 20,
+      "different": "easing",
+      "merged": false
+    },
+    {
+      "type": 20,
+      "different": "easingRight",
+      "merged": false
+    },
+    {
+      "type": 20,
+      "different": "width",
+      "merged": false
+    },
+    {
+      "type": 20,
+      "different": "critical",
+      "merged": false
+    },
+    {
+      "type": 21,
+      "different": null,
+      "merged": false
+    },
+    {
+      "type": 21,
+      "different": "direction",
+      "merged": false
+    },
+    {
+      "type": 21,
+      "different": "easing",
+      "merged": false
+    },
+    {
+      "type": 21,
+      "different": "easingRight",
+      "merged": false
+    },
+    {
+      "type": 21,
+      "different": "width",
+      "merged": false
+    },
+    {
+      "type": 21,
+      "different": "critical",
+      "merged": false
+    },
+    {
+      "type": 22,
+      "different": null,
+      "merged": true
+    },
+    {
+      "type": 22,
+      "different": "direction",
+      "merged": false
+    },
+    {
+      "type": 22,
+      "different": "easing",
+      "merged": false
+    },
+    {
+      "type": 22,
+      "different": "easingRight",
+      "merged": false
+    },
+    {
+      "type": 22,
+      "different": "width",
+      "merged": false
+    },
+    {
+      "type": 22,
+      "different": "critical",
+      "merged": false
+    },
+    {
+      "type": 40,
+      "different": null,
+      "merged": false
+    },
+    {
+      "type": 40,
+      "different": "direction",
+      "merged": false
+    },
+    {
+      "type": 40,
+      "different": "easing",
+      "merged": false
+    },
+    {
+      "type": 40,
+      "different": "easingRight",
+      "merged": false
+    },
+    {
+      "type": 40,
+      "different": "width",
+      "merged": false
+    },
+    {
+      "type": 40,
+      "different": "critical",
+      "merged": false
+    },
+    {
+      "type": 41,
+      "different": null,
+      "merged": true
+    },
+    {
+      "type": 41,
+      "different": "direction",
+      "merged": false
+    },
+    {
+      "type": 41,
+      "different": "easing",
+      "merged": false
+    },
+    {
+      "type": 41,
+      "different": "easingRight",
+      "merged": false
+    },
+    {
+      "type": 41,
+      "different": "width",
+      "merged": false
+    },
+    {
+      "type": 41,
+      "different": "critical",
+      "merged": false
+    },
+    {
+      "type": 42,
+      "different": null,
+      "merged": true
+    },
+    {
+      "type": 42,
+      "different": "direction",
+      "merged": false
+    },
+    {
+      "type": 42,
+      "different": "easing",
+      "merged": false
+    },
+    {
+      "type": 42,
+      "different": "easingRight",
+      "merged": false
+    },
+    {
+      "type": 42,
+      "different": "width",
+      "merged": false
+    },
+    {
+      "type": 42,
+      "different": "critical",
+      "merged": false
+    },
+    {
+      "type": 60,
+      "different": null,
+      "merged": false
+    },
+    {
+      "type": 60,
+      "different": "direction",
+      "merged": false
+    },
+    {
+      "type": 60,
+      "different": "easing",
+      "merged": false
+    },
+    {
+      "type": 60,
+      "different": "easingRight",
+      "merged": false
+    },
+    {
+      "type": 60,
+      "different": "width",
+      "merged": false
+    },
+    {
+      "type": 60,
+      "different": "critical",
+      "merged": false
+    },
+    {
+      "type": 61,
+      "different": null,
+      "merged": true
+    },
+    {
+      "type": 61,
+      "different": "direction",
+      "merged": false
+    },
+    {
+      "type": 61,
+      "different": "easing",
+      "merged": false
+    },
+    {
+      "type": 61,
+      "different": "easingRight",
+      "merged": false
+    },
+    {
+      "type": 61,
+      "different": "width",
+      "merged": false
+    },
+    {
+      "type": 61,
+      "different": "critical",
+      "merged": false
+    },
+    {
+      "type": 62,
+      "different": null,
+      "merged": true
+    },
+    {
+      "type": 62,
+      "different": "direction",
+      "merged": false
+    },
+    {
+      "type": 62,
+      "different": "easing",
+      "merged": false
+    },
+    {
+      "type": 62,
+      "different": "easingRight",
+      "merged": false
+    },
+    {
+      "type": 62,
+      "different": "width",
+      "merged": false
+    },
+    {
+      "type": 62,
+      "different": "critical",
+      "merged": false
+    },
+    {
+      "type": 63,
+      "different": null,
+      "merged": false
+    },
+    {
+      "type": 63,
+      "different": "direction",
+      "merged": false
+    },
+    {
+      "type": 63,
+      "different": "easing",
+      "merged": false
+    },
+    {
+      "type": 63,
+      "different": "easingRight",
+      "merged": false
+    },
+    {
+      "type": 63,
+      "different": "width",
+      "merged": false
+    },
+    {
+      "type": 63,
+      "different": "critical",
+      "merged": false
+    },
+    {
+      "type": 80,
+      "different": null,
+      "merged": true
+    },
+    {
+      "type": 80,
+      "different": "direction",
+      "merged": false
+    },
+    {
+      "type": 80,
+      "different": "easing",
+      "merged": false
+    },
+    {
+      "type": 80,
+      "different": "easingRight",
+      "merged": false
+    },
+    {
+      "type": 80,
+      "different": "width",
+      "merged": false
+    },
+    {
+      "type": 80,
+      "different": "critical",
+      "merged": false
+    },
+    {
+      "type": 82,
+      "different": null,
+      "merged": true
+    },
+    {
+      "type": 82,
+      "different": "direction",
+      "merged": false
+    },
+    {
+      "type": 82,
+      "different": "easing",
+      "merged": false
+    },
+    {
+      "type": 82,
+      "different": "easingRight",
+      "merged": false
+    },
+    {
+      "type": 82,
+      "different": "width",
+      "merged": false
+    },
+    {
+      "type": 82,
+      "different": "critical",
+      "merged": false
+    },
+    {
+      "type": 100,
+      "different": null,
+      "merged": true
+    },
+    {
+      "type": 100,
+      "different": "direction",
+      "merged": false
+    },
+    {
+      "type": 100,
+      "different": "easing",
+      "merged": false
+    },
+    {
+      "type": 100,
+      "different": "easingRight",
+      "merged": false
+    },
+    {
+      "type": 100,
+      "different": "width",
+      "merged": false
+    },
+    {
+      "type": 100,
+      "different": "critical",
+      "merged": false
+    },
+    {
+      "type": 101,
+      "different": null,
+      "merged": true
+    },
+    {
+      "type": 101,
+      "different": "direction",
+      "merged": false
+    },
+    {
+      "type": 101,
+      "different": "easing",
+      "merged": false
+    },
+    {
+      "type": 101,
+      "different": "easingRight",
+      "merged": false
+    },
+    {
+      "type": 101,
+      "different": "width",
+      "merged": false
+    },
+    {
+      "type": 101,
+      "different": "critical",
+      "merged": false
+    },
+    {
+      "type": 102,
+      "different": null,
+      "merged": true
+    },
+    {
+      "type": 102,
+      "different": "direction",
+      "merged": false
+    },
+    {
+      "type": 102,
+      "different": "easing",
+      "merged": false
+    },
+    {
+      "type": 102,
+      "different": "easingRight",
+      "merged": false
+    },
+    {
+      "type": 102,
+      "different": "width",
+      "merged": false
+    },
+    {
+      "type": 102,
+      "different": "critical",
+      "merged": false
+    },
+    {
+      "type": 103,
+      "different": null,
+      "merged": true
+    },
+    {
+      "type": 103,
+      "different": "direction",
+      "merged": false
+    },
+    {
+      "type": 103,
+      "different": "easing",
+      "merged": false
+    },
+    {
+      "type": 103,
+      "different": "easingRight",
+      "merged": false
+    },
+    {
+      "type": 103,
+      "different": "width",
+      "merged": false
+    },
+    {
+      "type": 103,
+      "different": "critical",
+      "merged": false
+    },
+    {
+      "type": 104,
+      "different": null,
+      "merged": true
+    },
+    {
+      "type": 104,
+      "different": "direction",
+      "merged": false
+    },
+    {
+      "type": 104,
+      "different": "easing",
+      "merged": false
+    },
+    {
+      "type": 104,
+      "different": "easingRight",
+      "merged": false
+    },
+    {
+      "type": 104,
+      "different": "width",
+      "merged": false
+    },
+    {
+      "type": 104,
+      "different": "critical",
+      "merged": false
+    },
+    {
+      "type": 105,
+      "different": null,
+      "merged": true
+    },
+    {
+      "type": 105,
+      "different": "direction",
+      "merged": false
+    },
+    {
+      "type": 105,
+      "different": "easing",
+      "merged": false
+    },
+    {
+      "type": 105,
+      "different": "easingRight",
+      "merged": false
+    },
+    {
+      "type": 105,
+      "different": "width",
+      "merged": false
+    },
+    {
+      "type": 105,
+      "different": "critical",
+      "merged": false
+    },
+    {
+      "type": 122,
+      "different": null,
+      "merged": false
+    },
+    {
+      "type": 122,
+      "different": "direction",
+      "merged": false
+    },
+    {
+      "type": 122,
+      "different": "easing",
+      "merged": false
+    },
+    {
+      "type": 122,
+      "different": "easingRight",
+      "merged": false
+    },
+    {
+      "type": 122,
+      "different": "width",
+      "merged": false
+    },
+    {
+      "type": 122,
+      "different": "critical",
+      "merged": false
+    }
+  ],
+  "counters": [
+    {
+      "initial": 0,
+      "authoredId": 1,
+      "slideId": 1,
+      "guideId": 10001
+    },
+    {
+      "initial": 1,
+      "authoredId": 2,
+      "slideId": 2,
+      "guideId": 10002
+    },
+    {
+      "initial": 19,
+      "authoredId": 20,
+      "slideId": 20,
+      "guideId": 10020
+    },
+    {
+      "initial": 100,
+      "authoredId": 101,
+      "slideId": 101,
+      "guideId": 10101
+    },
+    {
+      "initial": 1024,
+      "authoredId": 1025,
+      "slideId": 1025,
+      "guideId": 11025
+    }
+  ],
+  "ids": [
+    {
+      "lineId": 1,
+      "candidateIndex": 0,
+      "id": 10001
+    },
+    {
+      "lineId": 1,
+      "candidateIndex": 1,
+      "id": 20001
+    },
+    {
+      "lineId": 1,
+      "candidateIndex": 2,
+      "id": 30001
+    },
+    {
+      "lineId": 1,
+      "candidateIndex": 3,
+      "id": 40001
+    },
+    {
+      "lineId": 1,
+      "candidateIndex": 4,
+      "id": 50001
+    },
+    {
+      "lineId": 1,
+      "candidateIndex": 5,
+      "id": 60001
+    },
+    {
+      "lineId": 1,
+      "candidateIndex": 6,
+      "id": 70001
+    },
+    {
+      "lineId": 1,
+      "candidateIndex": 7,
+      "id": 80001
+    },
+    {
+      "lineId": 1,
+      "candidateIndex": 8,
+      "id": 90001
+    },
+    {
+      "lineId": 1,
+      "candidateIndex": 9,
+      "id": 100001
+    },
+    {
+      "lineId": 1,
+      "candidateIndex": 10,
+      "id": 110001
+    },
+    {
+      "lineId": 1,
+      "candidateIndex": 11,
+      "id": 120001
+    },
+    {
+      "lineId": 1,
+      "candidateIndex": 12,
+      "id": 130001
+    },
+    {
+      "lineId": 1,
+      "candidateIndex": 13,
+      "id": 140001
+    },
+    {
+      "lineId": 1,
+      "candidateIndex": 14,
+      "id": 150001
+    },
+    {
+      "lineId": 1,
+      "candidateIndex": 15,
+      "id": 160001
+    },
+    {
+      "lineId": 1,
+      "candidateIndex": 16,
+      "id": 170001
+    },
+    {
+      "lineId": 1,
+      "candidateIndex": 17,
+      "id": 180001
+    },
+    {
+      "lineId": 1,
+      "candidateIndex": 18,
+      "id": 190001
+    },
+    {
+      "lineId": 1,
+      "candidateIndex": 19,
+      "id": 200001
+    },
+    {
+      "lineId": 1,
+      "candidateIndex": 20,
+      "id": 210001
+    },
+    {
+      "lineId": 1,
+      "candidateIndex": 21,
+      "id": 220001
+    },
+    {
+      "lineId": 1,
+      "candidateIndex": 22,
+      "id": 230001
+    },
+    {
+      "lineId": 1,
+      "candidateIndex": 23,
+      "id": 240001
+    },
+    {
+      "lineId": 1,
+      "candidateIndex": 24,
+      "id": 250001
+    },
+    {
+      "lineId": 1,
+      "candidateIndex": 25,
+      "id": 260001
+    },
+    {
+      "lineId": 1,
+      "candidateIndex": 26,
+      "id": 270001
+    },
+    {
+      "lineId": 1,
+      "candidateIndex": 27,
+      "id": 280001
+    },
+    {
+      "lineId": 1,
+      "candidateIndex": 28,
+      "id": 290001
+    },
+    {
+      "lineId": 1,
+      "candidateIndex": 29,
+      "id": 300001
+    },
+    {
+      "lineId": 1,
+      "candidateIndex": 30,
+      "id": 310001
+    },
+    {
+      "lineId": 1,
+      "candidateIndex": 31,
+      "id": 320001
+    },
+    {
+      "lineId": 1,
+      "candidateIndex": 32,
+      "id": 330001
+    },
+    {
+      "lineId": 1,
+      "candidateIndex": 33,
+      "id": 340001
+    },
+    {
+      "lineId": 1,
+      "candidateIndex": 34,
+      "id": 350001
+    },
+    {
+      "lineId": 1,
+      "candidateIndex": 35,
+      "id": 360001
+    },
+    {
+      "lineId": 1,
+      "candidateIndex": 36,
+      "id": 370001
+    },
+    {
+      "lineId": 1,
+      "candidateIndex": 37,
+      "id": 380001
+    },
+    {
+      "lineId": 1,
+      "candidateIndex": 38,
+      "id": 390001
+    },
+    {
+      "lineId": 1,
+      "candidateIndex": 39,
+      "id": 400001
+    },
+    {
+      "lineId": 1,
+      "candidateIndex": 40,
+      "id": 410001
+    },
+    {
+      "lineId": 1,
+      "candidateIndex": 41,
+      "id": 420001
+    },
+    {
+      "lineId": 1,
+      "candidateIndex": 42,
+      "id": 430001
+    },
+    {
+      "lineId": 1,
+      "candidateIndex": 43,
+      "id": 440001
+    },
+    {
+      "lineId": 1,
+      "candidateIndex": 44,
+      "id": 450001
+    },
+    {
+      "lineId": 1,
+      "candidateIndex": 45,
+      "id": 460001
+    },
+    {
+      "lineId": 1,
+      "candidateIndex": 46,
+      "id": 470001
+    },
+    {
+      "lineId": 1,
+      "candidateIndex": 47,
+      "id": 480001
+    },
+    {
+      "lineId": 1,
+      "candidateIndex": 48,
+      "id": 490001
+    },
+    {
+      "lineId": 1,
+      "candidateIndex": 49,
+      "id": 500001
+    },
+    {
+      "lineId": 1,
+      "candidateIndex": 50,
+      "id": 510001
+    },
+    {
+      "lineId": 1,
+      "candidateIndex": 51,
+      "id": 520001
+    },
+    {
+      "lineId": 1,
+      "candidateIndex": 52,
+      "id": 530001
+    },
+    {
+      "lineId": 1,
+      "candidateIndex": 53,
+      "id": 540001
+    },
+    {
+      "lineId": 1,
+      "candidateIndex": 54,
+      "id": 550001
+    },
+    {
+      "lineId": 1,
+      "candidateIndex": 55,
+      "id": 560001
+    },
+    {
+      "lineId": 1,
+      "candidateIndex": 56,
+      "id": 570001
+    },
+    {
+      "lineId": 1,
+      "candidateIndex": 57,
+      "id": 580001
+    },
+    {
+      "lineId": 1,
+      "candidateIndex": 58,
+      "id": 590001
+    },
+    {
+      "lineId": 1,
+      "candidateIndex": 59,
+      "id": 600001
+    },
+    {
+      "lineId": 1,
+      "candidateIndex": 60,
+      "id": 610001
+    },
+    {
+      "lineId": 1,
+      "candidateIndex": 61,
+      "id": 620001
+    },
+    {
+      "lineId": 1,
+      "candidateIndex": 62,
+      "id": 630001
+    },
+    {
+      "lineId": 1,
+      "candidateIndex": 63,
+      "id": 640001
+    },
+    {
+      "lineId": 2,
+      "candidateIndex": 0,
+      "id": 10002
+    },
+    {
+      "lineId": 2,
+      "candidateIndex": 1,
+      "id": 20002
+    },
+    {
+      "lineId": 2,
+      "candidateIndex": 2,
+      "id": 30002
+    },
+    {
+      "lineId": 2,
+      "candidateIndex": 3,
+      "id": 40002
+    },
+    {
+      "lineId": 2,
+      "candidateIndex": 4,
+      "id": 50002
+    },
+    {
+      "lineId": 2,
+      "candidateIndex": 5,
+      "id": 60002
+    },
+    {
+      "lineId": 2,
+      "candidateIndex": 6,
+      "id": 70002
+    },
+    {
+      "lineId": 2,
+      "candidateIndex": 7,
+      "id": 80002
+    },
+    {
+      "lineId": 2,
+      "candidateIndex": 8,
+      "id": 90002
+    },
+    {
+      "lineId": 2,
+      "candidateIndex": 9,
+      "id": 100002
+    },
+    {
+      "lineId": 2,
+      "candidateIndex": 10,
+      "id": 110002
+    },
+    {
+      "lineId": 2,
+      "candidateIndex": 11,
+      "id": 120002
+    },
+    {
+      "lineId": 2,
+      "candidateIndex": 12,
+      "id": 130002
+    },
+    {
+      "lineId": 2,
+      "candidateIndex": 13,
+      "id": 140002
+    },
+    {
+      "lineId": 2,
+      "candidateIndex": 14,
+      "id": 150002
+    },
+    {
+      "lineId": 2,
+      "candidateIndex": 15,
+      "id": 160002
+    },
+    {
+      "lineId": 2,
+      "candidateIndex": 16,
+      "id": 170002
+    },
+    {
+      "lineId": 2,
+      "candidateIndex": 17,
+      "id": 180002
+    },
+    {
+      "lineId": 2,
+      "candidateIndex": 18,
+      "id": 190002
+    },
+    {
+      "lineId": 2,
+      "candidateIndex": 19,
+      "id": 200002
+    },
+    {
+      "lineId": 2,
+      "candidateIndex": 20,
+      "id": 210002
+    },
+    {
+      "lineId": 2,
+      "candidateIndex": 21,
+      "id": 220002
+    },
+    {
+      "lineId": 2,
+      "candidateIndex": 22,
+      "id": 230002
+    },
+    {
+      "lineId": 2,
+      "candidateIndex": 23,
+      "id": 240002
+    },
+    {
+      "lineId": 2,
+      "candidateIndex": 24,
+      "id": 250002
+    },
+    {
+      "lineId": 2,
+      "candidateIndex": 25,
+      "id": 260002
+    },
+    {
+      "lineId": 2,
+      "candidateIndex": 26,
+      "id": 270002
+    },
+    {
+      "lineId": 2,
+      "candidateIndex": 27,
+      "id": 280002
+    },
+    {
+      "lineId": 2,
+      "candidateIndex": 28,
+      "id": 290002
+    },
+    {
+      "lineId": 2,
+      "candidateIndex": 29,
+      "id": 300002
+    },
+    {
+      "lineId": 2,
+      "candidateIndex": 30,
+      "id": 310002
+    },
+    {
+      "lineId": 2,
+      "candidateIndex": 31,
+      "id": 320002
+    },
+    {
+      "lineId": 2,
+      "candidateIndex": 32,
+      "id": 330002
+    },
+    {
+      "lineId": 2,
+      "candidateIndex": 33,
+      "id": 340002
+    },
+    {
+      "lineId": 2,
+      "candidateIndex": 34,
+      "id": 350002
+    },
+    {
+      "lineId": 2,
+      "candidateIndex": 35,
+      "id": 360002
+    },
+    {
+      "lineId": 2,
+      "candidateIndex": 36,
+      "id": 370002
+    },
+    {
+      "lineId": 2,
+      "candidateIndex": 37,
+      "id": 380002
+    },
+    {
+      "lineId": 2,
+      "candidateIndex": 38,
+      "id": 390002
+    },
+    {
+      "lineId": 2,
+      "candidateIndex": 39,
+      "id": 400002
+    },
+    {
+      "lineId": 2,
+      "candidateIndex": 40,
+      "id": 410002
+    },
+    {
+      "lineId": 2,
+      "candidateIndex": 41,
+      "id": 420002
+    },
+    {
+      "lineId": 2,
+      "candidateIndex": 42,
+      "id": 430002
+    },
+    {
+      "lineId": 2,
+      "candidateIndex": 43,
+      "id": 440002
+    },
+    {
+      "lineId": 2,
+      "candidateIndex": 44,
+      "id": 450002
+    },
+    {
+      "lineId": 2,
+      "candidateIndex": 45,
+      "id": 460002
+    },
+    {
+      "lineId": 2,
+      "candidateIndex": 46,
+      "id": 470002
+    },
+    {
+      "lineId": 2,
+      "candidateIndex": 47,
+      "id": 480002
+    },
+    {
+      "lineId": 2,
+      "candidateIndex": 48,
+      "id": 490002
+    },
+    {
+      "lineId": 2,
+      "candidateIndex": 49,
+      "id": 500002
+    },
+    {
+      "lineId": 2,
+      "candidateIndex": 50,
+      "id": 510002
+    },
+    {
+      "lineId": 2,
+      "candidateIndex": 51,
+      "id": 520002
+    },
+    {
+      "lineId": 2,
+      "candidateIndex": 52,
+      "id": 530002
+    },
+    {
+      "lineId": 2,
+      "candidateIndex": 53,
+      "id": 540002
+    },
+    {
+      "lineId": 2,
+      "candidateIndex": 54,
+      "id": 550002
+    },
+    {
+      "lineId": 2,
+      "candidateIndex": 55,
+      "id": 560002
+    },
+    {
+      "lineId": 2,
+      "candidateIndex": 56,
+      "id": 570002
+    },
+    {
+      "lineId": 2,
+      "candidateIndex": 57,
+      "id": 580002
+    },
+    {
+      "lineId": 2,
+      "candidateIndex": 58,
+      "id": 590002
+    },
+    {
+      "lineId": 2,
+      "candidateIndex": 59,
+      "id": 600002
+    },
+    {
+      "lineId": 2,
+      "candidateIndex": 60,
+      "id": 610002
+    },
+    {
+      "lineId": 2,
+      "candidateIndex": 61,
+      "id": 620002
+    },
+    {
+      "lineId": 2,
+      "candidateIndex": 62,
+      "id": 630002
+    },
+    {
+      "lineId": 2,
+      "candidateIndex": 63,
+      "id": 640002
+    },
+    {
+      "lineId": 19,
+      "candidateIndex": 0,
+      "id": 10019
+    },
+    {
+      "lineId": 19,
+      "candidateIndex": 1,
+      "id": 20019
+    },
+    {
+      "lineId": 19,
+      "candidateIndex": 2,
+      "id": 30019
+    },
+    {
+      "lineId": 19,
+      "candidateIndex": 3,
+      "id": 40019
+    },
+    {
+      "lineId": 19,
+      "candidateIndex": 4,
+      "id": 50019
+    },
+    {
+      "lineId": 19,
+      "candidateIndex": 5,
+      "id": 60019
+    },
+    {
+      "lineId": 19,
+      "candidateIndex": 6,
+      "id": 70019
+    },
+    {
+      "lineId": 19,
+      "candidateIndex": 7,
+      "id": 80019
+    },
+    {
+      "lineId": 19,
+      "candidateIndex": 8,
+      "id": 90019
+    },
+    {
+      "lineId": 19,
+      "candidateIndex": 9,
+      "id": 100019
+    },
+    {
+      "lineId": 19,
+      "candidateIndex": 10,
+      "id": 110019
+    },
+    {
+      "lineId": 19,
+      "candidateIndex": 11,
+      "id": 120019
+    },
+    {
+      "lineId": 19,
+      "candidateIndex": 12,
+      "id": 130019
+    },
+    {
+      "lineId": 19,
+      "candidateIndex": 13,
+      "id": 140019
+    },
+    {
+      "lineId": 19,
+      "candidateIndex": 14,
+      "id": 150019
+    },
+    {
+      "lineId": 19,
+      "candidateIndex": 15,
+      "id": 160019
+    },
+    {
+      "lineId": 19,
+      "candidateIndex": 16,
+      "id": 170019
+    },
+    {
+      "lineId": 19,
+      "candidateIndex": 17,
+      "id": 180019
+    },
+    {
+      "lineId": 19,
+      "candidateIndex": 18,
+      "id": 190019
+    },
+    {
+      "lineId": 19,
+      "candidateIndex": 19,
+      "id": 200019
+    },
+    {
+      "lineId": 19,
+      "candidateIndex": 20,
+      "id": 210019
+    },
+    {
+      "lineId": 19,
+      "candidateIndex": 21,
+      "id": 220019
+    },
+    {
+      "lineId": 19,
+      "candidateIndex": 22,
+      "id": 230019
+    },
+    {
+      "lineId": 19,
+      "candidateIndex": 23,
+      "id": 240019
+    },
+    {
+      "lineId": 19,
+      "candidateIndex": 24,
+      "id": 250019
+    },
+    {
+      "lineId": 19,
+      "candidateIndex": 25,
+      "id": 260019
+    },
+    {
+      "lineId": 19,
+      "candidateIndex": 26,
+      "id": 270019
+    },
+    {
+      "lineId": 19,
+      "candidateIndex": 27,
+      "id": 280019
+    },
+    {
+      "lineId": 19,
+      "candidateIndex": 28,
+      "id": 290019
+    },
+    {
+      "lineId": 19,
+      "candidateIndex": 29,
+      "id": 300019
+    },
+    {
+      "lineId": 19,
+      "candidateIndex": 30,
+      "id": 310019
+    },
+    {
+      "lineId": 19,
+      "candidateIndex": 31,
+      "id": 320019
+    },
+    {
+      "lineId": 19,
+      "candidateIndex": 32,
+      "id": 330019
+    },
+    {
+      "lineId": 19,
+      "candidateIndex": 33,
+      "id": 340019
+    },
+    {
+      "lineId": 19,
+      "candidateIndex": 34,
+      "id": 350019
+    },
+    {
+      "lineId": 19,
+      "candidateIndex": 35,
+      "id": 360019
+    },
+    {
+      "lineId": 19,
+      "candidateIndex": 36,
+      "id": 370019
+    },
+    {
+      "lineId": 19,
+      "candidateIndex": 37,
+      "id": 380019
+    },
+    {
+      "lineId": 19,
+      "candidateIndex": 38,
+      "id": 390019
+    },
+    {
+      "lineId": 19,
+      "candidateIndex": 39,
+      "id": 400019
+    },
+    {
+      "lineId": 19,
+      "candidateIndex": 40,
+      "id": 410019
+    },
+    {
+      "lineId": 19,
+      "candidateIndex": 41,
+      "id": 420019
+    },
+    {
+      "lineId": 19,
+      "candidateIndex": 42,
+      "id": 430019
+    },
+    {
+      "lineId": 19,
+      "candidateIndex": 43,
+      "id": 440019
+    },
+    {
+      "lineId": 19,
+      "candidateIndex": 44,
+      "id": 450019
+    },
+    {
+      "lineId": 19,
+      "candidateIndex": 45,
+      "id": 460019
+    },
+    {
+      "lineId": 19,
+      "candidateIndex": 46,
+      "id": 470019
+    },
+    {
+      "lineId": 19,
+      "candidateIndex": 47,
+      "id": 480019
+    },
+    {
+      "lineId": 19,
+      "candidateIndex": 48,
+      "id": 490019
+    },
+    {
+      "lineId": 19,
+      "candidateIndex": 49,
+      "id": 500019
+    },
+    {
+      "lineId": 19,
+      "candidateIndex": 50,
+      "id": 510019
+    },
+    {
+      "lineId": 19,
+      "candidateIndex": 51,
+      "id": 520019
+    },
+    {
+      "lineId": 19,
+      "candidateIndex": 52,
+      "id": 530019
+    },
+    {
+      "lineId": 19,
+      "candidateIndex": 53,
+      "id": 540019
+    },
+    {
+      "lineId": 19,
+      "candidateIndex": 54,
+      "id": 550019
+    },
+    {
+      "lineId": 19,
+      "candidateIndex": 55,
+      "id": 560019
+    },
+    {
+      "lineId": 19,
+      "candidateIndex": 56,
+      "id": 570019
+    },
+    {
+      "lineId": 19,
+      "candidateIndex": 57,
+      "id": 580019
+    },
+    {
+      "lineId": 19,
+      "candidateIndex": 58,
+      "id": 590019
+    },
+    {
+      "lineId": 19,
+      "candidateIndex": 59,
+      "id": 600019
+    },
+    {
+      "lineId": 19,
+      "candidateIndex": 60,
+      "id": 610019
+    },
+    {
+      "lineId": 19,
+      "candidateIndex": 61,
+      "id": 620019
+    },
+    {
+      "lineId": 19,
+      "candidateIndex": 62,
+      "id": 630019
+    },
+    {
+      "lineId": 19,
+      "candidateIndex": 63,
+      "id": 640019
+    },
+    {
+      "lineId": 123,
+      "candidateIndex": 0,
+      "id": 10123
+    },
+    {
+      "lineId": 123,
+      "candidateIndex": 1,
+      "id": 20123
+    },
+    {
+      "lineId": 123,
+      "candidateIndex": 2,
+      "id": 30123
+    },
+    {
+      "lineId": 123,
+      "candidateIndex": 3,
+      "id": 40123
+    },
+    {
+      "lineId": 123,
+      "candidateIndex": 4,
+      "id": 50123
+    },
+    {
+      "lineId": 123,
+      "candidateIndex": 5,
+      "id": 60123
+    },
+    {
+      "lineId": 123,
+      "candidateIndex": 6,
+      "id": 70123
+    },
+    {
+      "lineId": 123,
+      "candidateIndex": 7,
+      "id": 80123
+    },
+    {
+      "lineId": 123,
+      "candidateIndex": 8,
+      "id": 90123
+    },
+    {
+      "lineId": 123,
+      "candidateIndex": 9,
+      "id": 100123
+    },
+    {
+      "lineId": 123,
+      "candidateIndex": 10,
+      "id": 110123
+    },
+    {
+      "lineId": 123,
+      "candidateIndex": 11,
+      "id": 120123
+    },
+    {
+      "lineId": 123,
+      "candidateIndex": 12,
+      "id": 130123
+    },
+    {
+      "lineId": 123,
+      "candidateIndex": 13,
+      "id": 140123
+    },
+    {
+      "lineId": 123,
+      "candidateIndex": 14,
+      "id": 150123
+    },
+    {
+      "lineId": 123,
+      "candidateIndex": 15,
+      "id": 160123
+    },
+    {
+      "lineId": 123,
+      "candidateIndex": 16,
+      "id": 170123
+    },
+    {
+      "lineId": 123,
+      "candidateIndex": 17,
+      "id": 180123
+    },
+    {
+      "lineId": 123,
+      "candidateIndex": 18,
+      "id": 190123
+    },
+    {
+      "lineId": 123,
+      "candidateIndex": 19,
+      "id": 200123
+    },
+    {
+      "lineId": 123,
+      "candidateIndex": 20,
+      "id": 210123
+    },
+    {
+      "lineId": 123,
+      "candidateIndex": 21,
+      "id": 220123
+    },
+    {
+      "lineId": 123,
+      "candidateIndex": 22,
+      "id": 230123
+    },
+    {
+      "lineId": 123,
+      "candidateIndex": 23,
+      "id": 240123
+    },
+    {
+      "lineId": 123,
+      "candidateIndex": 24,
+      "id": 250123
+    },
+    {
+      "lineId": 123,
+      "candidateIndex": 25,
+      "id": 260123
+    },
+    {
+      "lineId": 123,
+      "candidateIndex": 26,
+      "id": 270123
+    },
+    {
+      "lineId": 123,
+      "candidateIndex": 27,
+      "id": 280123
+    },
+    {
+      "lineId": 123,
+      "candidateIndex": 28,
+      "id": 290123
+    },
+    {
+      "lineId": 123,
+      "candidateIndex": 29,
+      "id": 300123
+    },
+    {
+      "lineId": 123,
+      "candidateIndex": 30,
+      "id": 310123
+    },
+    {
+      "lineId": 123,
+      "candidateIndex": 31,
+      "id": 320123
+    },
+    {
+      "lineId": 123,
+      "candidateIndex": 32,
+      "id": 330123
+    },
+    {
+      "lineId": 123,
+      "candidateIndex": 33,
+      "id": 340123
+    },
+    {
+      "lineId": 123,
+      "candidateIndex": 34,
+      "id": 350123
+    },
+    {
+      "lineId": 123,
+      "candidateIndex": 35,
+      "id": 360123
+    },
+    {
+      "lineId": 123,
+      "candidateIndex": 36,
+      "id": 370123
+    },
+    {
+      "lineId": 123,
+      "candidateIndex": 37,
+      "id": 380123
+    },
+    {
+      "lineId": 123,
+      "candidateIndex": 38,
+      "id": 390123
+    },
+    {
+      "lineId": 123,
+      "candidateIndex": 39,
+      "id": 400123
+    },
+    {
+      "lineId": 123,
+      "candidateIndex": 40,
+      "id": 410123
+    },
+    {
+      "lineId": 123,
+      "candidateIndex": 41,
+      "id": 420123
+    },
+    {
+      "lineId": 123,
+      "candidateIndex": 42,
+      "id": 430123
+    },
+    {
+      "lineId": 123,
+      "candidateIndex": 43,
+      "id": 440123
+    },
+    {
+      "lineId": 123,
+      "candidateIndex": 44,
+      "id": 450123
+    },
+    {
+      "lineId": 123,
+      "candidateIndex": 45,
+      "id": 460123
+    },
+    {
+      "lineId": 123,
+      "candidateIndex": 46,
+      "id": 470123
+    },
+    {
+      "lineId": 123,
+      "candidateIndex": 47,
+      "id": 480123
+    },
+    {
+      "lineId": 123,
+      "candidateIndex": 48,
+      "id": 490123
+    },
+    {
+      "lineId": 123,
+      "candidateIndex": 49,
+      "id": 500123
+    },
+    {
+      "lineId": 123,
+      "candidateIndex": 50,
+      "id": 510123
+    },
+    {
+      "lineId": 123,
+      "candidateIndex": 51,
+      "id": 520123
+    },
+    {
+      "lineId": 123,
+      "candidateIndex": 52,
+      "id": 530123
+    },
+    {
+      "lineId": 123,
+      "candidateIndex": 53,
+      "id": 540123
+    },
+    {
+      "lineId": 123,
+      "candidateIndex": 54,
+      "id": 550123
+    },
+    {
+      "lineId": 123,
+      "candidateIndex": 55,
+      "id": 560123
+    },
+    {
+      "lineId": 123,
+      "candidateIndex": 56,
+      "id": 570123
+    },
+    {
+      "lineId": 123,
+      "candidateIndex": 57,
+      "id": 580123
+    },
+    {
+      "lineId": 123,
+      "candidateIndex": 58,
+      "id": 590123
+    },
+    {
+      "lineId": 123,
+      "candidateIndex": 59,
+      "id": 600123
+    },
+    {
+      "lineId": 123,
+      "candidateIndex": 60,
+      "id": 610123
+    },
+    {
+      "lineId": 123,
+      "candidateIndex": 61,
+      "id": 620123
+    },
+    {
+      "lineId": 123,
+      "candidateIndex": 62,
+      "id": 630123
+    },
+    {
+      "lineId": 123,
+      "candidateIndex": 63,
+      "id": 640123
+    },
+    {
+      "lineId": 1024,
+      "candidateIndex": 0,
+      "id": 11024
+    },
+    {
+      "lineId": 1024,
+      "candidateIndex": 1,
+      "id": 21024
+    },
+    {
+      "lineId": 1024,
+      "candidateIndex": 2,
+      "id": 31024
+    },
+    {
+      "lineId": 1024,
+      "candidateIndex": 3,
+      "id": 41024
+    },
+    {
+      "lineId": 1024,
+      "candidateIndex": 4,
+      "id": 51024
+    },
+    {
+      "lineId": 1024,
+      "candidateIndex": 5,
+      "id": 61024
+    },
+    {
+      "lineId": 1024,
+      "candidateIndex": 6,
+      "id": 71024
+    },
+    {
+      "lineId": 1024,
+      "candidateIndex": 7,
+      "id": 81024
+    },
+    {
+      "lineId": 1024,
+      "candidateIndex": 8,
+      "id": 91024
+    },
+    {
+      "lineId": 1024,
+      "candidateIndex": 9,
+      "id": 101024
+    },
+    {
+      "lineId": 1024,
+      "candidateIndex": 10,
+      "id": 111024
+    },
+    {
+      "lineId": 1024,
+      "candidateIndex": 11,
+      "id": 121024
+    },
+    {
+      "lineId": 1024,
+      "candidateIndex": 12,
+      "id": 131024
+    },
+    {
+      "lineId": 1024,
+      "candidateIndex": 13,
+      "id": 141024
+    },
+    {
+      "lineId": 1024,
+      "candidateIndex": 14,
+      "id": 151024
+    },
+    {
+      "lineId": 1024,
+      "candidateIndex": 15,
+      "id": 161024
+    },
+    {
+      "lineId": 1024,
+      "candidateIndex": 16,
+      "id": 171024
+    },
+    {
+      "lineId": 1024,
+      "candidateIndex": 17,
+      "id": 181024
+    },
+    {
+      "lineId": 1024,
+      "candidateIndex": 18,
+      "id": 191024
+    },
+    {
+      "lineId": 1024,
+      "candidateIndex": 19,
+      "id": 201024
+    },
+    {
+      "lineId": 1024,
+      "candidateIndex": 20,
+      "id": 211024
+    },
+    {
+      "lineId": 1024,
+      "candidateIndex": 21,
+      "id": 221024
+    },
+    {
+      "lineId": 1024,
+      "candidateIndex": 22,
+      "id": 231024
+    },
+    {
+      "lineId": 1024,
+      "candidateIndex": 23,
+      "id": 241024
+    },
+    {
+      "lineId": 1024,
+      "candidateIndex": 24,
+      "id": 251024
+    },
+    {
+      "lineId": 1024,
+      "candidateIndex": 25,
+      "id": 261024
+    },
+    {
+      "lineId": 1024,
+      "candidateIndex": 26,
+      "id": 271024
+    },
+    {
+      "lineId": 1024,
+      "candidateIndex": 27,
+      "id": 281024
+    },
+    {
+      "lineId": 1024,
+      "candidateIndex": 28,
+      "id": 291024
+    },
+    {
+      "lineId": 1024,
+      "candidateIndex": 29,
+      "id": 301024
+    },
+    {
+      "lineId": 1024,
+      "candidateIndex": 30,
+      "id": 311024
+    },
+    {
+      "lineId": 1024,
+      "candidateIndex": 31,
+      "id": 321024
+    },
+    {
+      "lineId": 1024,
+      "candidateIndex": 32,
+      "id": 331024
+    },
+    {
+      "lineId": 1024,
+      "candidateIndex": 33,
+      "id": 341024
+    },
+    {
+      "lineId": 1024,
+      "candidateIndex": 34,
+      "id": 351024
+    },
+    {
+      "lineId": 1024,
+      "candidateIndex": 35,
+      "id": 361024
+    },
+    {
+      "lineId": 1024,
+      "candidateIndex": 36,
+      "id": 371024
+    },
+    {
+      "lineId": 1024,
+      "candidateIndex": 37,
+      "id": 381024
+    },
+    {
+      "lineId": 1024,
+      "candidateIndex": 38,
+      "id": 391024
+    },
+    {
+      "lineId": 1024,
+      "candidateIndex": 39,
+      "id": 401024
+    },
+    {
+      "lineId": 1024,
+      "candidateIndex": 40,
+      "id": 411024
+    },
+    {
+      "lineId": 1024,
+      "candidateIndex": 41,
+      "id": 421024
+    },
+    {
+      "lineId": 1024,
+      "candidateIndex": 42,
+      "id": 431024
+    },
+    {
+      "lineId": 1024,
+      "candidateIndex": 43,
+      "id": 441024
+    },
+    {
+      "lineId": 1024,
+      "candidateIndex": 44,
+      "id": 451024
+    },
+    {
+      "lineId": 1024,
+      "candidateIndex": 45,
+      "id": 461024
+    },
+    {
+      "lineId": 1024,
+      "candidateIndex": 46,
+      "id": 471024
+    },
+    {
+      "lineId": 1024,
+      "candidateIndex": 47,
+      "id": 481024
+    },
+    {
+      "lineId": 1024,
+      "candidateIndex": 48,
+      "id": 491024
+    },
+    {
+      "lineId": 1024,
+      "candidateIndex": 49,
+      "id": 501024
+    },
+    {
+      "lineId": 1024,
+      "candidateIndex": 50,
+      "id": 511024
+    },
+    {
+      "lineId": 1024,
+      "candidateIndex": 51,
+      "id": 521024
+    },
+    {
+      "lineId": 1024,
+      "candidateIndex": 52,
+      "id": 531024
+    },
+    {
+      "lineId": 1024,
+      "candidateIndex": 53,
+      "id": 541024
+    },
+    {
+      "lineId": 1024,
+      "candidateIndex": 54,
+      "id": 551024
+    },
+    {
+      "lineId": 1024,
+      "candidateIndex": 55,
+      "id": 561024
+    },
+    {
+      "lineId": 1024,
+      "candidateIndex": 56,
+      "id": 571024
+    },
+    {
+      "lineId": 1024,
+      "candidateIndex": 57,
+      "id": 581024
+    },
+    {
+      "lineId": 1024,
+      "candidateIndex": 58,
+      "id": 591024
+    },
+    {
+      "lineId": 1024,
+      "candidateIndex": 59,
+      "id": 601024
+    },
+    {
+      "lineId": 1024,
+      "candidateIndex": 60,
+      "id": 611024
+    },
+    {
+      "lineId": 1024,
+      "candidateIndex": 61,
+      "id": 621024
+    },
+    {
+      "lineId": 1024,
+      "candidateIndex": 62,
+      "id": 631024
+    },
+    {
+      "lineId": 1024,
+      "candidateIndex": 63,
+      "id": 641024
+    },
+    {
+      "lineId": 9999,
+      "candidateIndex": 0,
+      "id": 19999
+    },
+    {
+      "lineId": 9999,
+      "candidateIndex": 1,
+      "id": 29999
+    },
+    {
+      "lineId": 9999,
+      "candidateIndex": 2,
+      "id": 39999
+    },
+    {
+      "lineId": 9999,
+      "candidateIndex": 3,
+      "id": 49999
+    },
+    {
+      "lineId": 9999,
+      "candidateIndex": 4,
+      "id": 59999
+    },
+    {
+      "lineId": 9999,
+      "candidateIndex": 5,
+      "id": 69999
+    },
+    {
+      "lineId": 9999,
+      "candidateIndex": 6,
+      "id": 79999
+    },
+    {
+      "lineId": 9999,
+      "candidateIndex": 7,
+      "id": 89999
+    },
+    {
+      "lineId": 9999,
+      "candidateIndex": 8,
+      "id": 99999
+    },
+    {
+      "lineId": 9999,
+      "candidateIndex": 9,
+      "id": 109999
+    },
+    {
+      "lineId": 9999,
+      "candidateIndex": 10,
+      "id": 119999
+    },
+    {
+      "lineId": 9999,
+      "candidateIndex": 11,
+      "id": 129999
+    },
+    {
+      "lineId": 9999,
+      "candidateIndex": 12,
+      "id": 139999
+    },
+    {
+      "lineId": 9999,
+      "candidateIndex": 13,
+      "id": 149999
+    },
+    {
+      "lineId": 9999,
+      "candidateIndex": 14,
+      "id": 159999
+    },
+    {
+      "lineId": 9999,
+      "candidateIndex": 15,
+      "id": 169999
+    },
+    {
+      "lineId": 9999,
+      "candidateIndex": 16,
+      "id": 179999
+    },
+    {
+      "lineId": 9999,
+      "candidateIndex": 17,
+      "id": 189999
+    },
+    {
+      "lineId": 9999,
+      "candidateIndex": 18,
+      "id": 199999
+    },
+    {
+      "lineId": 9999,
+      "candidateIndex": 19,
+      "id": 209999
+    },
+    {
+      "lineId": 9999,
+      "candidateIndex": 20,
+      "id": 219999
+    },
+    {
+      "lineId": 9999,
+      "candidateIndex": 21,
+      "id": 229999
+    },
+    {
+      "lineId": 9999,
+      "candidateIndex": 22,
+      "id": 239999
+    },
+    {
+      "lineId": 9999,
+      "candidateIndex": 23,
+      "id": 249999
+    },
+    {
+      "lineId": 9999,
+      "candidateIndex": 24,
+      "id": 259999
+    },
+    {
+      "lineId": 9999,
+      "candidateIndex": 25,
+      "id": 269999
+    },
+    {
+      "lineId": 9999,
+      "candidateIndex": 26,
+      "id": 279999
+    },
+    {
+      "lineId": 9999,
+      "candidateIndex": 27,
+      "id": 289999
+    },
+    {
+      "lineId": 9999,
+      "candidateIndex": 28,
+      "id": 299999
+    },
+    {
+      "lineId": 9999,
+      "candidateIndex": 29,
+      "id": 309999
+    },
+    {
+      "lineId": 9999,
+      "candidateIndex": 30,
+      "id": 319999
+    },
+    {
+      "lineId": 9999,
+      "candidateIndex": 31,
+      "id": 329999
+    },
+    {
+      "lineId": 9999,
+      "candidateIndex": 32,
+      "id": 339999
+    },
+    {
+      "lineId": 9999,
+      "candidateIndex": 33,
+      "id": 349999
+    },
+    {
+      "lineId": 9999,
+      "candidateIndex": 34,
+      "id": 359999
+    },
+    {
+      "lineId": 9999,
+      "candidateIndex": 35,
+      "id": 369999
+    },
+    {
+      "lineId": 9999,
+      "candidateIndex": 36,
+      "id": 379999
+    },
+    {
+      "lineId": 9999,
+      "candidateIndex": 37,
+      "id": 389999
+    },
+    {
+      "lineId": 9999,
+      "candidateIndex": 38,
+      "id": 399999
+    },
+    {
+      "lineId": 9999,
+      "candidateIndex": 39,
+      "id": 409999
+    },
+    {
+      "lineId": 9999,
+      "candidateIndex": 40,
+      "id": 419999
+    },
+    {
+      "lineId": 9999,
+      "candidateIndex": 41,
+      "id": 429999
+    },
+    {
+      "lineId": 9999,
+      "candidateIndex": 42,
+      "id": 439999
+    },
+    {
+      "lineId": 9999,
+      "candidateIndex": 43,
+      "id": 449999
+    },
+    {
+      "lineId": 9999,
+      "candidateIndex": 44,
+      "id": 459999
+    },
+    {
+      "lineId": 9999,
+      "candidateIndex": 45,
+      "id": 469999
+    },
+    {
+      "lineId": 9999,
+      "candidateIndex": 46,
+      "id": 479999
+    },
+    {
+      "lineId": 9999,
+      "candidateIndex": 47,
+      "id": 489999
+    },
+    {
+      "lineId": 9999,
+      "candidateIndex": 48,
+      "id": 499999
+    },
+    {
+      "lineId": 9999,
+      "candidateIndex": 49,
+      "id": 509999
+    },
+    {
+      "lineId": 9999,
+      "candidateIndex": 50,
+      "id": 519999
+    },
+    {
+      "lineId": 9999,
+      "candidateIndex": 51,
+      "id": 529999
+    },
+    {
+      "lineId": 9999,
+      "candidateIndex": 52,
+      "id": 539999
+    },
+    {
+      "lineId": 9999,
+      "candidateIndex": 53,
+      "id": 549999
+    },
+    {
+      "lineId": 9999,
+      "candidateIndex": 54,
+      "id": 559999
+    },
+    {
+      "lineId": 9999,
+      "candidateIndex": 55,
+      "id": 569999
+    },
+    {
+      "lineId": 9999,
+      "candidateIndex": 56,
+      "id": 579999
+    },
+    {
+      "lineId": 9999,
+      "candidateIndex": 57,
+      "id": 589999
+    },
+    {
+      "lineId": 9999,
+      "candidateIndex": 58,
+      "id": 599999
+    },
+    {
+      "lineId": 9999,
+      "candidateIndex": 59,
+      "id": 609999
+    },
+    {
+      "lineId": 9999,
+      "candidateIndex": 60,
+      "id": 619999
+    },
+    {
+      "lineId": 9999,
+      "candidateIndex": 61,
+      "id": 629999
+    },
+    {
+      "lineId": 9999,
+      "candidateIndex": 62,
+      "id": 639999
+    },
+    {
+      "lineId": 9999,
+      "candidateIndex": 63,
+      "id": 649999
+    }
+  ],
+  "intervals": [
+    {
+      "beats": 2,
+      "startTick": 0,
+      "endTick": 1920,
+      "points": [
+        {
+          "bar": 0,
+          "progress": 0.25,
+          "timeMs": 250
+        },
+        {
+          "bar": 0,
+          "progress": 0.5,
+          "timeMs": 500
+        },
+        {
+          "bar": 0,
+          "progress": 0.75,
+          "timeMs": 750
+        },
+        {
+          "bar": 1,
+          "progress": 0.0,
+          "timeMs": 1000
+        },
+        {
+          "bar": 1,
+          "progress": 0.25,
+          "timeMs": 1250
+        },
+        {
+          "bar": 1,
+          "progress": 0.5,
+          "timeMs": 1500
+        },
+        {
+          "bar": 1,
+          "progress": 0.75,
+          "timeMs": 1750
+        }
+      ]
+    },
+    {
+      "beats": 2,
+      "startTick": 13,
+      "endTick": 1933,
+      "points": [
+        {
+          "bar": 0,
+          "progress": 0.26354166865348816,
+          "timeMs": 263
+        },
+        {
+          "bar": 0,
+          "progress": 0.5135416388511658,
+          "timeMs": 513
+        },
+        {
+          "bar": 0,
+          "progress": 0.7635416388511658,
+          "timeMs": 763
+        },
+        {
+          "bar": 1,
+          "progress": 0.01354166679084301,
+          "timeMs": 1013
+        },
+        {
+          "bar": 1,
+          "progress": 0.26354166865348816,
+          "timeMs": 1263
+        },
+        {
+          "bar": 1,
+          "progress": 0.5135416388511658,
+          "timeMs": 1513
+        },
+        {
+          "bar": 1,
+          "progress": 0.7635416388511658,
+          "timeMs": 1763
+        }
+      ]
+    },
+    {
+      "beats": 2,
+      "startTick": 119,
+      "endTick": 2039,
+      "points": [
+        {
+          "bar": 0,
+          "progress": 0.3739583492279053,
+          "timeMs": 373
+        },
+        {
+          "bar": 0,
+          "progress": 0.6239583492279053,
+          "timeMs": 623
+        },
+        {
+          "bar": 0,
+          "progress": 0.8739583492279053,
+          "timeMs": 873
+        },
+        {
+          "bar": 1,
+          "progress": 0.12395833432674408,
+          "timeMs": 1123
+        },
+        {
+          "bar": 1,
+          "progress": 0.3739583492279053,
+          "timeMs": 1373
+        },
+        {
+          "bar": 1,
+          "progress": 0.6239583492279053,
+          "timeMs": 1623
+        },
+        {
+          "bar": 1,
+          "progress": 0.8739583492279053,
+          "timeMs": 1873
+        }
+      ]
+    },
+    {
+      "beats": 2,
+      "startTick": 240,
+      "endTick": 2160,
+      "points": [
+        {
+          "bar": 0,
+          "progress": 0.5,
+          "timeMs": 500
+        },
+        {
+          "bar": 0,
+          "progress": 0.75,
+          "timeMs": 750
+        },
+        {
+          "bar": 1,
+          "progress": 0.0,
+          "timeMs": 1000
+        },
+        {
+          "bar": 1,
+          "progress": 0.25,
+          "timeMs": 1250
+        },
+        {
+          "bar": 1,
+          "progress": 0.5,
+          "timeMs": 1500
+        },
+        {
+          "bar": 1,
+          "progress": 0.75,
+          "timeMs": 1750
+        },
+        {
+          "bar": 2,
+          "progress": 0.0,
+          "timeMs": 2000
+        }
+      ]
+    },
+    {
+      "beats": 2,
+      "startTick": 479,
+      "endTick": 2399,
+      "points": [
+        {
+          "bar": 0,
+          "progress": 0.7489583492279053,
+          "timeMs": 748
+        },
+        {
+          "bar": 0,
+          "progress": 0.9989583492279053,
+          "timeMs": 998
+        },
+        {
+          "bar": 1,
+          "progress": 0.24895831942558289,
+          "timeMs": 1248
+        },
+        {
+          "bar": 1,
+          "progress": 0.4989583194255829,
+          "timeMs": 1498
+        },
+        {
+          "bar": 1,
+          "progress": 0.7489583492279053,
+          "timeMs": 1748
+        },
+        {
+          "bar": 1,
+          "progress": 0.9989583492279053,
+          "timeMs": 1998
+        },
+        {
+          "bar": 2,
+          "progress": 0.24895831942558289,
+          "timeMs": 2248
+        }
+      ]
+    },
+    {
+      "beats": 3,
+      "startTick": 0,
+      "endTick": 2880,
+      "points": [
+        {
+          "bar": 0,
+          "progress": 0.1666666716337204,
+          "timeMs": 250
+        },
+        {
+          "bar": 0,
+          "progress": 0.3333333432674408,
+          "timeMs": 500
+        },
+        {
+          "bar": 0,
+          "progress": 0.5,
+          "timeMs": 750
+        },
+        {
+          "bar": 0,
+          "progress": 0.6666666865348816,
+          "timeMs": 1000
+        },
+        {
+          "bar": 0,
+          "progress": 0.8333333134651184,
+          "timeMs": 1250
+        },
+        {
+          "bar": 0,
+          "progress": 1.0,
+          "timeMs": 1500
+        },
+        {
+          "bar": 1,
+          "progress": 0.1666666716337204,
+          "timeMs": 1750
+        },
+        {
+          "bar": 1,
+          "progress": 0.3333333432674408,
+          "timeMs": 2000
+        },
+        {
+          "bar": 1,
+          "progress": 0.5,
+          "timeMs": 2250
+        },
+        {
+          "bar": 1,
+          "progress": 0.6666666865348816,
+          "timeMs": 2500
+        },
+        {
+          "bar": 1,
+          "progress": 0.8333333134651184,
+          "timeMs": 2750
+        }
+      ]
+    },
+    {
+      "beats": 3,
+      "startTick": 13,
+      "endTick": 2893,
+      "points": [
+        {
+          "bar": 0,
+          "progress": 0.17569445073604584,
+          "timeMs": 263
+        },
+        {
+          "bar": 0,
+          "progress": 0.34236112236976624,
+          "timeMs": 513
+        },
+        {
+          "bar": 0,
+          "progress": 0.5090277791023254,
+          "timeMs": 763
+        },
+        {
+          "bar": 0,
+          "progress": 0.675694465637207,
+          "timeMs": 1013
+        },
+        {
+          "bar": 0,
+          "progress": 0.8423610925674438,
+          "timeMs": 1263
+        },
+        {
+          "bar": 1,
+          "progress": 0.009027778171002865,
+          "timeMs": 1513
+        },
+        {
+          "bar": 1,
+          "progress": 0.17569445073604584,
+          "timeMs": 1763
+        },
+        {
+          "bar": 1,
+          "progress": 0.34236112236976624,
+          "timeMs": 2013
+        },
+        {
+          "bar": 1,
+          "progress": 0.5090277791023254,
+          "timeMs": 2263
+        },
+        {
+          "bar": 1,
+          "progress": 0.675694465637207,
+          "timeMs": 2513
+        },
+        {
+          "bar": 1,
+          "progress": 0.8423610925674438,
+          "timeMs": 2763
+        }
+      ]
+    },
+    {
+      "beats": 3,
+      "startTick": 119,
+      "endTick": 2999,
+      "points": [
+        {
+          "bar": 0,
+          "progress": 0.24930556118488312,
+          "timeMs": 373
+        },
+        {
+          "bar": 0,
+          "progress": 0.4159722328186035,
+          "timeMs": 623
+        },
+        {
+          "bar": 0,
+          "progress": 0.5826388597488403,
+          "timeMs": 873
+        },
+        {
+          "bar": 0,
+          "progress": 0.7493055462837219,
+          "timeMs": 1123
+        },
+        {
+          "bar": 0,
+          "progress": 0.9159722328186035,
+          "timeMs": 1373
+        },
+        {
+          "bar": 1,
+          "progress": 0.08263888955116272,
+          "timeMs": 1623
+        },
+        {
+          "bar": 1,
+          "progress": 0.24930556118488312,
+          "timeMs": 1873
+        },
+        {
+          "bar": 1,
+          "progress": 0.4159722328186035,
+          "timeMs": 2123
+        },
+        {
+          "bar": 1,
+          "progress": 0.5826388597488403,
+          "timeMs": 2373
+        },
+        {
+          "bar": 1,
+          "progress": 0.7493055462837219,
+          "timeMs": 2623
+        },
+        {
+          "bar": 1,
+          "progress": 0.9159722328186035,
+          "timeMs": 2873
+        }
+      ]
+    },
+    {
+      "beats": 3,
+      "startTick": 240,
+      "endTick": 3120,
+      "points": [
+        {
+          "bar": 0,
+          "progress": 0.3333333432674408,
+          "timeMs": 500
+        },
+        {
+          "bar": 0,
+          "progress": 0.5,
+          "timeMs": 750
+        },
+        {
+          "bar": 0,
+          "progress": 0.6666666865348816,
+          "timeMs": 1000
+        },
+        {
+          "bar": 0,
+          "progress": 0.8333333134651184,
+          "timeMs": 1250
+        },
+        {
+          "bar": 1,
+          "progress": 4.967053435223079e-09,
+          "timeMs": 1500
+        },
+        {
+          "bar": 1,
+          "progress": 0.1666666716337204,
+          "timeMs": 1750
+        },
+        {
+          "bar": 1,
+          "progress": 0.3333333432674408,
+          "timeMs": 2000
+        },
+        {
+          "bar": 1,
+          "progress": 0.5,
+          "timeMs": 2250
+        },
+        {
+          "bar": 1,
+          "progress": 0.6666666865348816,
+          "timeMs": 2500
+        },
+        {
+          "bar": 1,
+          "progress": 0.8333333134651184,
+          "timeMs": 2750
+        },
+        {
+          "bar": 2,
+          "progress": 4.967053435223079e-09,
+          "timeMs": 3000
+        }
+      ]
+    },
+    {
+      "beats": 3,
+      "startTick": 479,
+      "endTick": 3359,
+      "points": [
+        {
+          "bar": 0,
+          "progress": 0.4993055462837219,
+          "timeMs": 748
+        },
+        {
+          "bar": 0,
+          "progress": 0.6659722328186035,
+          "timeMs": 998
+        },
+        {
+          "bar": 0,
+          "progress": 0.8326388597488403,
+          "timeMs": 1248
+        },
+        {
+          "bar": 0,
+          "progress": 0.9993055462837219,
+          "timeMs": 1498
+        },
+        {
+          "bar": 1,
+          "progress": 0.16597221791744232,
+          "timeMs": 1748
+        },
+        {
+          "bar": 1,
+          "progress": 0.3326388895511627,
+          "timeMs": 1998
+        },
+        {
+          "bar": 1,
+          "progress": 0.4993055462837219,
+          "timeMs": 2248
+        },
+        {
+          "bar": 1,
+          "progress": 0.6659722328186035,
+          "timeMs": 2498
+        },
+        {
+          "bar": 1,
+          "progress": 0.8326388597488403,
+          "timeMs": 2748
+        },
+        {
+          "bar": 1,
+          "progress": 0.9993055462837219,
+          "timeMs": 2998
+        },
+        {
+          "bar": 2,
+          "progress": 0.16597221791744232,
+          "timeMs": 3248
+        }
+      ]
+    },
+    {
+      "beats": 4,
+      "startTick": 0,
+      "endTick": 3840,
+      "points": [
+        {
+          "bar": 0,
+          "progress": 0.125,
+          "timeMs": 250
+        },
+        {
+          "bar": 0,
+          "progress": 0.25,
+          "timeMs": 500
+        },
+        {
+          "bar": 0,
+          "progress": 0.375,
+          "timeMs": 750
+        },
+        {
+          "bar": 0,
+          "progress": 0.5,
+          "timeMs": 1000
+        },
+        {
+          "bar": 0,
+          "progress": 0.625,
+          "timeMs": 1250
+        },
+        {
+          "bar": 0,
+          "progress": 0.75,
+          "timeMs": 1500
+        },
+        {
+          "bar": 0,
+          "progress": 0.875,
+          "timeMs": 1750
+        },
+        {
+          "bar": 1,
+          "progress": 0.0,
+          "timeMs": 2000
+        },
+        {
+          "bar": 1,
+          "progress": 0.125,
+          "timeMs": 2250
+        },
+        {
+          "bar": 1,
+          "progress": 0.25,
+          "timeMs": 2500
+        },
+        {
+          "bar": 1,
+          "progress": 0.375,
+          "timeMs": 2750
+        },
+        {
+          "bar": 1,
+          "progress": 0.5,
+          "timeMs": 3000
+        },
+        {
+          "bar": 1,
+          "progress": 0.625,
+          "timeMs": 3250
+        },
+        {
+          "bar": 1,
+          "progress": 0.75,
+          "timeMs": 3500
+        },
+        {
+          "bar": 1,
+          "progress": 0.875,
+          "timeMs": 3750
+        }
+      ]
+    },
+    {
+      "beats": 4,
+      "startTick": 13,
+      "endTick": 3853,
+      "points": [
+        {
+          "bar": 0,
+          "progress": 0.13177083432674408,
+          "timeMs": 263
+        },
+        {
+          "bar": 0,
+          "progress": 0.2567708194255829,
+          "timeMs": 513
+        },
+        {
+          "bar": 0,
+          "progress": 0.3817708194255829,
+          "timeMs": 763
+        },
+        {
+          "bar": 0,
+          "progress": 0.5067708492279053,
+          "timeMs": 1013
+        },
+        {
+          "bar": 0,
+          "progress": 0.6317708492279053,
+          "timeMs": 1263
+        },
+        {
+          "bar": 0,
+          "progress": 0.7567708492279053,
+          "timeMs": 1513
+        },
+        {
+          "bar": 0,
+          "progress": 0.8817708492279053,
+          "timeMs": 1763
+        },
+        {
+          "bar": 1,
+          "progress": 0.006770833395421505,
+          "timeMs": 2013
+        },
+        {
+          "bar": 1,
+          "progress": 0.13177083432674408,
+          "timeMs": 2263
+        },
+        {
+          "bar": 1,
+          "progress": 0.2567708194255829,
+          "timeMs": 2513
+        },
+        {
+          "bar": 1,
+          "progress": 0.3817708194255829,
+          "timeMs": 2763
+        },
+        {
+          "bar": 1,
+          "progress": 0.5067708492279053,
+          "timeMs": 3013
+        },
+        {
+          "bar": 1,
+          "progress": 0.6317708492279053,
+          "timeMs": 3263
+        },
+        {
+          "bar": 1,
+          "progress": 0.7567708492279053,
+          "timeMs": 3513
+        },
+        {
+          "bar": 1,
+          "progress": 0.8817708492279053,
+          "timeMs": 3763
+        }
+      ]
+    },
+    {
+      "beats": 4,
+      "startTick": 119,
+      "endTick": 3959,
+      "points": [
+        {
+          "bar": 0,
+          "progress": 0.18697917461395264,
+          "timeMs": 373
+        },
+        {
+          "bar": 0,
+          "progress": 0.31197917461395264,
+          "timeMs": 623
+        },
+        {
+          "bar": 0,
+          "progress": 0.43697917461395264,
+          "timeMs": 873
+        },
+        {
+          "bar": 0,
+          "progress": 0.5619791746139526,
+          "timeMs": 1123
+        },
+        {
+          "bar": 0,
+          "progress": 0.6869791746139526,
+          "timeMs": 1373
+        },
+        {
+          "bar": 0,
+          "progress": 0.8119791746139526,
+          "timeMs": 1623
+        },
+        {
+          "bar": 0,
+          "progress": 0.9369791746139526,
+          "timeMs": 1873
+        },
+        {
+          "bar": 1,
+          "progress": 0.06197916716337204,
+          "timeMs": 2123
+        },
+        {
+          "bar": 1,
+          "progress": 0.18697917461395264,
+          "timeMs": 2373
+        },
+        {
+          "bar": 1,
+          "progress": 0.31197917461395264,
+          "timeMs": 2623
+        },
+        {
+          "bar": 1,
+          "progress": 0.43697917461395264,
+          "timeMs": 2873
+        },
+        {
+          "bar": 1,
+          "progress": 0.5619791746139526,
+          "timeMs": 3123
+        },
+        {
+          "bar": 1,
+          "progress": 0.6869791746139526,
+          "timeMs": 3373
+        },
+        {
+          "bar": 1,
+          "progress": 0.8119791746139526,
+          "timeMs": 3623
+        },
+        {
+          "bar": 1,
+          "progress": 0.9369791746139526,
+          "timeMs": 3873
+        }
+      ]
+    },
+    {
+      "beats": 4,
+      "startTick": 240,
+      "endTick": 4080,
+      "points": [
+        {
+          "bar": 0,
+          "progress": 0.25,
+          "timeMs": 500
+        },
+        {
+          "bar": 0,
+          "progress": 0.375,
+          "timeMs": 750
+        },
+        {
+          "bar": 0,
+          "progress": 0.5,
+          "timeMs": 1000
+        },
+        {
+          "bar": 0,
+          "progress": 0.625,
+          "timeMs": 1250
+        },
+        {
+          "bar": 0,
+          "progress": 0.75,
+          "timeMs": 1500
+        },
+        {
+          "bar": 0,
+          "progress": 0.875,
+          "timeMs": 1750
+        },
+        {
+          "bar": 1,
+          "progress": 0.0,
+          "timeMs": 2000
+        },
+        {
+          "bar": 1,
+          "progress": 0.125,
+          "timeMs": 2250
+        },
+        {
+          "bar": 1,
+          "progress": 0.25,
+          "timeMs": 2500
+        },
+        {
+          "bar": 1,
+          "progress": 0.375,
+          "timeMs": 2750
+        },
+        {
+          "bar": 1,
+          "progress": 0.5,
+          "timeMs": 3000
+        },
+        {
+          "bar": 1,
+          "progress": 0.625,
+          "timeMs": 3250
+        },
+        {
+          "bar": 1,
+          "progress": 0.75,
+          "timeMs": 3500
+        },
+        {
+          "bar": 1,
+          "progress": 0.875,
+          "timeMs": 3750
+        },
+        {
+          "bar": 2,
+          "progress": 0.0,
+          "timeMs": 4000
+        }
+      ]
+    },
+    {
+      "beats": 4,
+      "startTick": 479,
+      "endTick": 4319,
+      "points": [
+        {
+          "bar": 0,
+          "progress": 0.37447917461395264,
+          "timeMs": 748
+        },
+        {
+          "bar": 0,
+          "progress": 0.49947917461395264,
+          "timeMs": 998
+        },
+        {
+          "bar": 0,
+          "progress": 0.6244791746139526,
+          "timeMs": 1248
+        },
+        {
+          "bar": 0,
+          "progress": 0.7494791746139526,
+          "timeMs": 1498
+        },
+        {
+          "bar": 0,
+          "progress": 0.8744791746139526,
+          "timeMs": 1748
+        },
+        {
+          "bar": 0,
+          "progress": 0.9994791746139526,
+          "timeMs": 1998
+        },
+        {
+          "bar": 1,
+          "progress": 0.12447915971279144,
+          "timeMs": 2248
+        },
+        {
+          "bar": 1,
+          "progress": 0.24947915971279144,
+          "timeMs": 2498
+        },
+        {
+          "bar": 1,
+          "progress": 0.37447917461395264,
+          "timeMs": 2748
+        },
+        {
+          "bar": 1,
+          "progress": 0.49947917461395264,
+          "timeMs": 2998
+        },
+        {
+          "bar": 1,
+          "progress": 0.6244791746139526,
+          "timeMs": 3248
+        },
+        {
+          "bar": 1,
+          "progress": 0.7494791746139526,
+          "timeMs": 3498
+        },
+        {
+          "bar": 1,
+          "progress": 0.8744791746139526,
+          "timeMs": 3748
+        },
+        {
+          "bar": 1,
+          "progress": 0.9994791746139526,
+          "timeMs": 3998
+        },
+        {
+          "bar": 2,
+          "progress": 0.12447915971279144,
+          "timeMs": 4248
+        }
+      ]
+    },
+    {
+      "beats": 5,
+      "startTick": 0,
+      "endTick": 4800,
+      "points": [
+        {
+          "bar": 0,
+          "progress": 0.10000000149011612,
+          "timeMs": 250
+        },
+        {
+          "bar": 0,
+          "progress": 0.20000000298023224,
+          "timeMs": 500
+        },
+        {
+          "bar": 0,
+          "progress": 0.30000001192092896,
+          "timeMs": 750
+        },
+        {
+          "bar": 0,
+          "progress": 0.4000000059604645,
+          "timeMs": 1000
+        },
+        {
+          "bar": 0,
+          "progress": 0.5,
+          "timeMs": 1250
+        },
+        {
+          "bar": 0,
+          "progress": 0.6000000238418579,
+          "timeMs": 1500
+        },
+        {
+          "bar": 0,
+          "progress": 0.699999988079071,
+          "timeMs": 1750
+        },
+        {
+          "bar": 0,
+          "progress": 0.800000011920929,
+          "timeMs": 2000
+        },
+        {
+          "bar": 0,
+          "progress": 0.8999999761581421,
+          "timeMs": 2250
+        },
+        {
+          "bar": 0,
+          "progress": 1.0,
+          "timeMs": 2500
+        },
+        {
+          "bar": 1,
+          "progress": 0.10000000149011612,
+          "timeMs": 2750
+        },
+        {
+          "bar": 1,
+          "progress": 0.20000000298023224,
+          "timeMs": 3000
+        },
+        {
+          "bar": 1,
+          "progress": 0.30000001192092896,
+          "timeMs": 3250
+        },
+        {
+          "bar": 1,
+          "progress": 0.4000000059604645,
+          "timeMs": 3500
+        },
+        {
+          "bar": 1,
+          "progress": 0.5,
+          "timeMs": 3750
+        },
+        {
+          "bar": 1,
+          "progress": 0.6000000238418579,
+          "timeMs": 4000
+        },
+        {
+          "bar": 1,
+          "progress": 0.699999988079071,
+          "timeMs": 4250
+        },
+        {
+          "bar": 1,
+          "progress": 0.800000011920929,
+          "timeMs": 4500
+        },
+        {
+          "bar": 1,
+          "progress": 0.8999999761581421,
+          "timeMs": 4750
+        }
+      ]
+    },
+    {
+      "beats": 5,
+      "startTick": 13,
+      "endTick": 4813,
+      "points": [
+        {
+          "bar": 0,
+          "progress": 0.1054166629910469,
+          "timeMs": 263
+        },
+        {
+          "bar": 0,
+          "progress": 0.20541666448116302,
+          "timeMs": 513
+        },
+        {
+          "bar": 0,
+          "progress": 0.30541667342185974,
+          "timeMs": 763
+        },
+        {
+          "bar": 0,
+          "progress": 0.40541666746139526,
+          "timeMs": 1013
+        },
+        {
+          "bar": 0,
+          "progress": 0.5054166913032532,
+          "timeMs": 1263
+        },
+        {
+          "bar": 0,
+          "progress": 0.6054166555404663,
+          "timeMs": 1513
+        },
+        {
+          "bar": 0,
+          "progress": 0.7054166793823242,
+          "timeMs": 1763
+        },
+        {
+          "bar": 0,
+          "progress": 0.8054166436195374,
+          "timeMs": 2013
+        },
+        {
+          "bar": 0,
+          "progress": 0.9054166674613953,
+          "timeMs": 2263
+        },
+        {
+          "bar": 1,
+          "progress": 0.0054166666232049465,
+          "timeMs": 2513
+        },
+        {
+          "bar": 1,
+          "progress": 0.1054166629910469,
+          "timeMs": 2763
+        },
+        {
+          "bar": 1,
+          "progress": 0.20541666448116302,
+          "timeMs": 3013
+        },
+        {
+          "bar": 1,
+          "progress": 0.30541667342185974,
+          "timeMs": 3263
+        },
+        {
+          "bar": 1,
+          "progress": 0.40541666746139526,
+          "timeMs": 3513
+        },
+        {
+          "bar": 1,
+          "progress": 0.5054166913032532,
+          "timeMs": 3763
+        },
+        {
+          "bar": 1,
+          "progress": 0.6054166555404663,
+          "timeMs": 4013
+        },
+        {
+          "bar": 1,
+          "progress": 0.7054166793823242,
+          "timeMs": 4263
+        },
+        {
+          "bar": 1,
+          "progress": 0.8054166436195374,
+          "timeMs": 4513
+        },
+        {
+          "bar": 1,
+          "progress": 0.9054166674613953,
+          "timeMs": 4763
+        }
+      ]
+    },
+    {
+      "beats": 5,
+      "startTick": 119,
+      "endTick": 4919,
+      "points": [
+        {
+          "bar": 0,
+          "progress": 0.1495833396911621,
+          "timeMs": 373
+        },
+        {
+          "bar": 0,
+          "progress": 0.24958333373069763,
+          "timeMs": 623
+        },
+        {
+          "bar": 0,
+          "progress": 0.34958332777023315,
+          "timeMs": 873
+        },
+        {
+          "bar": 0,
+          "progress": 0.4495833218097687,
+          "timeMs": 1123
+        },
+        {
+          "bar": 0,
+          "progress": 0.5495833158493042,
+          "timeMs": 1373
+        },
+        {
+          "bar": 0,
+          "progress": 0.6495833396911621,
+          "timeMs": 1623
+        },
+        {
+          "bar": 0,
+          "progress": 0.74958336353302,
+          "timeMs": 1873
+        },
+        {
+          "bar": 0,
+          "progress": 0.8495833277702332,
+          "timeMs": 2123
+        },
+        {
+          "bar": 0,
+          "progress": 0.9495833516120911,
+          "timeMs": 2373
+        },
+        {
+          "bar": 1,
+          "progress": 0.04958333447575569,
+          "timeMs": 2623
+        },
+        {
+          "bar": 1,
+          "progress": 0.1495833396911621,
+          "timeMs": 2873
+        },
+        {
+          "bar": 1,
+          "progress": 0.24958333373069763,
+          "timeMs": 3123
+        },
+        {
+          "bar": 1,
+          "progress": 0.34958332777023315,
+          "timeMs": 3373
+        },
+        {
+          "bar": 1,
+          "progress": 0.4495833218097687,
+          "timeMs": 3623
+        },
+        {
+          "bar": 1,
+          "progress": 0.5495833158493042,
+          "timeMs": 3873
+        },
+        {
+          "bar": 1,
+          "progress": 0.6495833396911621,
+          "timeMs": 4123
+        },
+        {
+          "bar": 1,
+          "progress": 0.74958336353302,
+          "timeMs": 4373
+        },
+        {
+          "bar": 1,
+          "progress": 0.8495833277702332,
+          "timeMs": 4623
+        },
+        {
+          "bar": 1,
+          "progress": 0.9495833516120911,
+          "timeMs": 4873
+        }
+      ]
+    },
+    {
+      "beats": 5,
+      "startTick": 240,
+      "endTick": 5040,
+      "points": [
+        {
+          "bar": 0,
+          "progress": 0.20000000298023224,
+          "timeMs": 500
+        },
+        {
+          "bar": 0,
+          "progress": 0.30000001192092896,
+          "timeMs": 750
+        },
+        {
+          "bar": 0,
+          "progress": 0.4000000059604645,
+          "timeMs": 1000
+        },
+        {
+          "bar": 0,
+          "progress": 0.5,
+          "timeMs": 1250
+        },
+        {
+          "bar": 0,
+          "progress": 0.6000000238418579,
+          "timeMs": 1500
+        },
+        {
+          "bar": 0,
+          "progress": 0.699999988079071,
+          "timeMs": 1750
+        },
+        {
+          "bar": 0,
+          "progress": 0.800000011920929,
+          "timeMs": 2000
+        },
+        {
+          "bar": 0,
+          "progress": 0.8999999761581421,
+          "timeMs": 2250
+        },
+        {
+          "bar": 1,
+          "progress": 1.4901160305669237e-09,
+          "timeMs": 2500
+        },
+        {
+          "bar": 1,
+          "progress": 0.10000000149011612,
+          "timeMs": 2750
+        },
+        {
+          "bar": 1,
+          "progress": 0.20000000298023224,
+          "timeMs": 3000
+        },
+        {
+          "bar": 1,
+          "progress": 0.30000001192092896,
+          "timeMs": 3250
+        },
+        {
+          "bar": 1,
+          "progress": 0.4000000059604645,
+          "timeMs": 3500
+        },
+        {
+          "bar": 1,
+          "progress": 0.5,
+          "timeMs": 3750
+        },
+        {
+          "bar": 1,
+          "progress": 0.6000000238418579,
+          "timeMs": 4000
+        },
+        {
+          "bar": 1,
+          "progress": 0.699999988079071,
+          "timeMs": 4250
+        },
+        {
+          "bar": 1,
+          "progress": 0.800000011920929,
+          "timeMs": 4500
+        },
+        {
+          "bar": 1,
+          "progress": 0.8999999761581421,
+          "timeMs": 4750
+        },
+        {
+          "bar": 2,
+          "progress": 1.4901160305669237e-09,
+          "timeMs": 5000
+        }
+      ]
+    },
+    {
+      "beats": 5,
+      "startTick": 479,
+      "endTick": 5279,
+      "points": [
+        {
+          "bar": 0,
+          "progress": 0.2995833456516266,
+          "timeMs": 748
+        },
+        {
+          "bar": 0,
+          "progress": 0.3995833396911621,
+          "timeMs": 998
+        },
+        {
+          "bar": 0,
+          "progress": 0.49958333373069763,
+          "timeMs": 1248
+        },
+        {
+          "bar": 0,
+          "progress": 0.5995833277702332,
+          "timeMs": 1498
+        },
+        {
+          "bar": 0,
+          "progress": 0.6995833516120911,
+          "timeMs": 1748
+        },
+        {
+          "bar": 0,
+          "progress": 0.7995833158493042,
+          "timeMs": 1998
+        },
+        {
+          "bar": 0,
+          "progress": 0.8995833396911621,
+          "timeMs": 2248
+        },
+        {
+          "bar": 0,
+          "progress": 0.99958336353302,
+          "timeMs": 2498
+        },
+        {
+          "bar": 1,
+          "progress": 0.09958333522081375,
+          "timeMs": 2748
+        },
+        {
+          "bar": 1,
+          "progress": 0.19958333671092987,
+          "timeMs": 2998
+        },
+        {
+          "bar": 1,
+          "progress": 0.2995833456516266,
+          "timeMs": 3248
+        },
+        {
+          "bar": 1,
+          "progress": 0.3995833396911621,
+          "timeMs": 3498
+        },
+        {
+          "bar": 1,
+          "progress": 0.49958333373069763,
+          "timeMs": 3748
+        },
+        {
+          "bar": 1,
+          "progress": 0.5995833277702332,
+          "timeMs": 3998
+        },
+        {
+          "bar": 1,
+          "progress": 0.6995833516120911,
+          "timeMs": 4248
+        },
+        {
+          "bar": 1,
+          "progress": 0.7995833158493042,
+          "timeMs": 4498
+        },
+        {
+          "bar": 1,
+          "progress": 0.8995833396911621,
+          "timeMs": 4748
+        },
+        {
+          "bar": 1,
+          "progress": 0.99958336353302,
+          "timeMs": 4998
+        },
+        {
+          "bar": 2,
+          "progress": 0.09958333522081375,
+          "timeMs": 5248
+        }
+      ]
+    },
+    {
+      "beats": 7,
+      "startTick": 0,
+      "endTick": 6720,
+      "points": [
+        {
+          "bar": 0,
+          "progress": 0.0714285746216774,
+          "timeMs": 250
+        },
+        {
+          "bar": 0,
+          "progress": 0.1428571492433548,
+          "timeMs": 500
+        },
+        {
+          "bar": 0,
+          "progress": 0.2142857164144516,
+          "timeMs": 750
+        },
+        {
+          "bar": 0,
+          "progress": 0.2857142984867096,
+          "timeMs": 1000
+        },
+        {
+          "bar": 0,
+          "progress": 0.3571428656578064,
+          "timeMs": 1250
+        },
+        {
+          "bar": 0,
+          "progress": 0.4285714328289032,
+          "timeMs": 1500
+        },
+        {
+          "bar": 0,
+          "progress": 0.5,
+          "timeMs": 1750
+        },
+        {
+          "bar": 0,
+          "progress": 0.5714285969734192,
+          "timeMs": 2000
+        },
+        {
+          "bar": 0,
+          "progress": 0.6428571343421936,
+          "timeMs": 2250
+        },
+        {
+          "bar": 0,
+          "progress": 0.7142857313156128,
+          "timeMs": 2500
+        },
+        {
+          "bar": 0,
+          "progress": 0.7857142686843872,
+          "timeMs": 2750
+        },
+        {
+          "bar": 0,
+          "progress": 0.8571428656578064,
+          "timeMs": 3000
+        },
+        {
+          "bar": 0,
+          "progress": 0.9285714030265808,
+          "timeMs": 3250
+        },
+        {
+          "bar": 0,
+          "progress": 1.0,
+          "timeMs": 3500
+        },
+        {
+          "bar": 1,
+          "progress": 0.0714285746216774,
+          "timeMs": 3750
+        },
+        {
+          "bar": 1,
+          "progress": 0.1428571492433548,
+          "timeMs": 4000
+        },
+        {
+          "bar": 1,
+          "progress": 0.2142857164144516,
+          "timeMs": 4250
+        },
+        {
+          "bar": 1,
+          "progress": 0.2857142984867096,
+          "timeMs": 4500
+        },
+        {
+          "bar": 1,
+          "progress": 0.3571428656578064,
+          "timeMs": 4750
+        },
+        {
+          "bar": 1,
+          "progress": 0.4285714328289032,
+          "timeMs": 5000
+        },
+        {
+          "bar": 1,
+          "progress": 0.5,
+          "timeMs": 5250
+        },
+        {
+          "bar": 1,
+          "progress": 0.5714285969734192,
+          "timeMs": 5500
+        },
+        {
+          "bar": 1,
+          "progress": 0.6428571343421936,
+          "timeMs": 5750
+        },
+        {
+          "bar": 1,
+          "progress": 0.7142857313156128,
+          "timeMs": 6000
+        },
+        {
+          "bar": 1,
+          "progress": 0.7857142686843872,
+          "timeMs": 6250
+        },
+        {
+          "bar": 1,
+          "progress": 0.8571428656578064,
+          "timeMs": 6500
+        },
+        {
+          "bar": 1,
+          "progress": 0.9285714030265808,
+          "timeMs": 6750
+        }
+      ]
+    },
+    {
+      "beats": 7,
+      "startTick": 13,
+      "endTick": 6733,
+      "points": [
+        {
+          "bar": 0,
+          "progress": 0.07529761642217636,
+          "timeMs": 263
+        },
+        {
+          "bar": 0,
+          "progress": 0.14672619104385376,
+          "timeMs": 513
+        },
+        {
+          "bar": 0,
+          "progress": 0.21815475821495056,
+          "timeMs": 763
+        },
+        {
+          "bar": 0,
+          "progress": 0.28958332538604736,
+          "timeMs": 1013
+        },
+        {
+          "bar": 0,
+          "progress": 0.36101189255714417,
+          "timeMs": 1263
+        },
+        {
+          "bar": 0,
+          "progress": 0.43244048953056335,
+          "timeMs": 1513
+        },
+        {
+          "bar": 0,
+          "progress": 0.5038690567016602,
+          "timeMs": 1763
+        },
+        {
+          "bar": 0,
+          "progress": 0.5752975940704346,
+          "timeMs": 2013
+        },
+        {
+          "bar": 0,
+          "progress": 0.6467261910438538,
+          "timeMs": 2263
+        },
+        {
+          "bar": 0,
+          "progress": 0.718154788017273,
+          "timeMs": 2513
+        },
+        {
+          "bar": 0,
+          "progress": 0.7895833253860474,
+          "timeMs": 2763
+        },
+        {
+          "bar": 0,
+          "progress": 0.8610119223594666,
+          "timeMs": 3013
+        },
+        {
+          "bar": 0,
+          "progress": 0.932440459728241,
+          "timeMs": 3263
+        },
+        {
+          "bar": 1,
+          "progress": 0.0038690476212650537,
+          "timeMs": 3513
+        },
+        {
+          "bar": 1,
+          "progress": 0.07529761642217636,
+          "timeMs": 3763
+        },
+        {
+          "bar": 1,
+          "progress": 0.14672619104385376,
+          "timeMs": 4013
+        },
+        {
+          "bar": 1,
+          "progress": 0.21815475821495056,
+          "timeMs": 4263
+        },
+        {
+          "bar": 1,
+          "progress": 0.28958332538604736,
+          "timeMs": 4513
+        },
+        {
+          "bar": 1,
+          "progress": 0.36101189255714417,
+          "timeMs": 4763
+        },
+        {
+          "bar": 1,
+          "progress": 0.43244048953056335,
+          "timeMs": 5013
+        },
+        {
+          "bar": 1,
+          "progress": 0.5038690567016602,
+          "timeMs": 5263
+        },
+        {
+          "bar": 1,
+          "progress": 0.5752975940704346,
+          "timeMs": 5513
+        },
+        {
+          "bar": 1,
+          "progress": 0.6467261910438538,
+          "timeMs": 5763
+        },
+        {
+          "bar": 1,
+          "progress": 0.718154788017273,
+          "timeMs": 6013
+        },
+        {
+          "bar": 1,
+          "progress": 0.7895833253860474,
+          "timeMs": 6263
+        },
+        {
+          "bar": 1,
+          "progress": 0.8610119223594666,
+          "timeMs": 6513
+        },
+        {
+          "bar": 1,
+          "progress": 0.932440459728241,
+          "timeMs": 6763
+        }
+      ]
+    },
+    {
+      "beats": 7,
+      "startTick": 119,
+      "endTick": 6839,
+      "points": [
+        {
+          "bar": 0,
+          "progress": 0.10684523731470108,
+          "timeMs": 373
+        },
+        {
+          "bar": 0,
+          "progress": 0.17827381193637848,
+          "timeMs": 623
+        },
+        {
+          "bar": 0,
+          "progress": 0.24970237910747528,
+          "timeMs": 873
+        },
+        {
+          "bar": 0,
+          "progress": 0.3211309611797333,
+          "timeMs": 1123
+        },
+        {
+          "bar": 0,
+          "progress": 0.3925595283508301,
+          "timeMs": 1373
+        },
+        {
+          "bar": 0,
+          "progress": 0.4639880955219269,
+          "timeMs": 1623
+        },
+        {
+          "bar": 0,
+          "progress": 0.5354166626930237,
+          "timeMs": 1873
+        },
+        {
+          "bar": 0,
+          "progress": 0.6068452596664429,
+          "timeMs": 2123
+        },
+        {
+          "bar": 0,
+          "progress": 0.6782737970352173,
+          "timeMs": 2373
+        },
+        {
+          "bar": 0,
+          "progress": 0.7497023940086365,
+          "timeMs": 2623
+        },
+        {
+          "bar": 0,
+          "progress": 0.8211309313774109,
+          "timeMs": 2873
+        },
+        {
+          "bar": 0,
+          "progress": 0.8925595283508301,
+          "timeMs": 3123
+        },
+        {
+          "bar": 0,
+          "progress": 0.9639880657196045,
+          "timeMs": 3373
+        },
+        {
+          "bar": 1,
+          "progress": 0.03541666641831398,
+          "timeMs": 3623
+        },
+        {
+          "bar": 1,
+          "progress": 0.10684523731470108,
+          "timeMs": 3873
+        },
+        {
+          "bar": 1,
+          "progress": 0.17827381193637848,
+          "timeMs": 4123
+        },
+        {
+          "bar": 1,
+          "progress": 0.24970237910747528,
+          "timeMs": 4373
+        },
+        {
+          "bar": 1,
+          "progress": 0.3211309611797333,
+          "timeMs": 4623
+        },
+        {
+          "bar": 1,
+          "progress": 0.3925595283508301,
+          "timeMs": 4873
+        },
+        {
+          "bar": 1,
+          "progress": 0.4639880955219269,
+          "timeMs": 5123
+        },
+        {
+          "bar": 1,
+          "progress": 0.5354166626930237,
+          "timeMs": 5373
+        },
+        {
+          "bar": 1,
+          "progress": 0.6068452596664429,
+          "timeMs": 5623
+        },
+        {
+          "bar": 1,
+          "progress": 0.6782737970352173,
+          "timeMs": 5873
+        },
+        {
+          "bar": 1,
+          "progress": 0.7497023940086365,
+          "timeMs": 6123
+        },
+        {
+          "bar": 1,
+          "progress": 0.8211309313774109,
+          "timeMs": 6373
+        },
+        {
+          "bar": 1,
+          "progress": 0.8925595283508301,
+          "timeMs": 6623
+        },
+        {
+          "bar": 1,
+          "progress": 0.9639880657196045,
+          "timeMs": 6873
+        }
+      ]
+    },
+    {
+      "beats": 7,
+      "startTick": 240,
+      "endTick": 6960,
+      "points": [
+        {
+          "bar": 0,
+          "progress": 0.1428571492433548,
+          "timeMs": 500
+        },
+        {
+          "bar": 0,
+          "progress": 0.2142857164144516,
+          "timeMs": 750
+        },
+        {
+          "bar": 0,
+          "progress": 0.2857142984867096,
+          "timeMs": 1000
+        },
+        {
+          "bar": 0,
+          "progress": 0.3571428656578064,
+          "timeMs": 1250
+        },
+        {
+          "bar": 0,
+          "progress": 0.4285714328289032,
+          "timeMs": 1500
+        },
+        {
+          "bar": 0,
+          "progress": 0.5,
+          "timeMs": 1750
+        },
+        {
+          "bar": 0,
+          "progress": 0.5714285969734192,
+          "timeMs": 2000
+        },
+        {
+          "bar": 0,
+          "progress": 0.6428571343421936,
+          "timeMs": 2250
+        },
+        {
+          "bar": 0,
+          "progress": 0.7142857313156128,
+          "timeMs": 2500
+        },
+        {
+          "bar": 0,
+          "progress": 0.7857142686843872,
+          "timeMs": 2750
+        },
+        {
+          "bar": 0,
+          "progress": 0.8571428656578064,
+          "timeMs": 3000
+        },
+        {
+          "bar": 0,
+          "progress": 0.9285714030265808,
+          "timeMs": 3250
+        },
+        {
+          "bar": 1,
+          "progress": 3.193105779786265e-09,
+          "timeMs": 3500
+        },
+        {
+          "bar": 1,
+          "progress": 0.0714285746216774,
+          "timeMs": 3750
+        },
+        {
+          "bar": 1,
+          "progress": 0.1428571492433548,
+          "timeMs": 4000
+        },
+        {
+          "bar": 1,
+          "progress": 0.2142857164144516,
+          "timeMs": 4250
+        },
+        {
+          "bar": 1,
+          "progress": 0.2857142984867096,
+          "timeMs": 4500
+        },
+        {
+          "bar": 1,
+          "progress": 0.3571428656578064,
+          "timeMs": 4750
+        },
+        {
+          "bar": 1,
+          "progress": 0.4285714328289032,
+          "timeMs": 5000
+        },
+        {
+          "bar": 1,
+          "progress": 0.5,
+          "timeMs": 5250
+        },
+        {
+          "bar": 1,
+          "progress": 0.5714285969734192,
+          "timeMs": 5500
+        },
+        {
+          "bar": 1,
+          "progress": 0.6428571343421936,
+          "timeMs": 5750
+        },
+        {
+          "bar": 1,
+          "progress": 0.7142857313156128,
+          "timeMs": 6000
+        },
+        {
+          "bar": 1,
+          "progress": 0.7857142686843872,
+          "timeMs": 6250
+        },
+        {
+          "bar": 1,
+          "progress": 0.8571428656578064,
+          "timeMs": 6500
+        },
+        {
+          "bar": 1,
+          "progress": 0.9285714030265808,
+          "timeMs": 6750
+        },
+        {
+          "bar": 2,
+          "progress": 3.19310555774166e-09,
+          "timeMs": 7000
+        }
+      ]
+    },
+    {
+      "beats": 7,
+      "startTick": 479,
+      "endTick": 7199,
+      "points": [
+        {
+          "bar": 0,
+          "progress": 0.21398809552192688,
+          "timeMs": 748
+        },
+        {
+          "bar": 0,
+          "progress": 0.2854166626930237,
+          "timeMs": 998
+        },
+        {
+          "bar": 0,
+          "progress": 0.3568452298641205,
+          "timeMs": 1248
+        },
+        {
+          "bar": 0,
+          "progress": 0.4282738268375397,
+          "timeMs": 1498
+        },
+        {
+          "bar": 0,
+          "progress": 0.4997023940086365,
+          "timeMs": 1748
+        },
+        {
+          "bar": 0,
+          "progress": 0.5711309313774109,
+          "timeMs": 1998
+        },
+        {
+          "bar": 0,
+          "progress": 0.6425595283508301,
+          "timeMs": 2248
+        },
+        {
+          "bar": 0,
+          "progress": 0.7139881253242493,
+          "timeMs": 2498
+        },
+        {
+          "bar": 0,
+          "progress": 0.7854166626930237,
+          "timeMs": 2748
+        },
+        {
+          "bar": 0,
+          "progress": 0.8568452596664429,
+          "timeMs": 2998
+        },
+        {
+          "bar": 0,
+          "progress": 0.9282737970352173,
+          "timeMs": 3248
+        },
+        {
+          "bar": 0,
+          "progress": 0.9997023940086365,
+          "timeMs": 3498
+        },
+        {
+          "bar": 1,
+          "progress": 0.07113095372915268,
+          "timeMs": 3748
+        },
+        {
+          "bar": 1,
+          "progress": 0.14255952835083008,
+          "timeMs": 3998
+        },
+        {
+          "bar": 1,
+          "progress": 0.21398809552192688,
+          "timeMs": 4248
+        },
+        {
+          "bar": 1,
+          "progress": 0.2854166626930237,
+          "timeMs": 4498
+        },
+        {
+          "bar": 1,
+          "progress": 0.3568452298641205,
+          "timeMs": 4748
+        },
+        {
+          "bar": 1,
+          "progress": 0.4282738268375397,
+          "timeMs": 4998
+        },
+        {
+          "bar": 1,
+          "progress": 0.4997023940086365,
+          "timeMs": 5248
+        },
+        {
+          "bar": 1,
+          "progress": 0.5711309313774109,
+          "timeMs": 5498
+        },
+        {
+          "bar": 1,
+          "progress": 0.6425595283508301,
+          "timeMs": 5748
+        },
+        {
+          "bar": 1,
+          "progress": 0.7139881253242493,
+          "timeMs": 5998
+        },
+        {
+          "bar": 1,
+          "progress": 0.7854166626930237,
+          "timeMs": 6248
+        },
+        {
+          "bar": 1,
+          "progress": 0.8568452596664429,
+          "timeMs": 6498
+        },
+        {
+          "bar": 1,
+          "progress": 0.9282737970352173,
+          "timeMs": 6748
+        },
+        {
+          "bar": 1,
+          "progress": 0.9997023940086365,
+          "timeMs": 6998
+        },
+        {
+          "bar": 2,
+          "progress": 0.07113095372915268,
+          "timeMs": 7248
+        }
+      ]
+    }
+  ]
+}

@@ -1,5 +1,6 @@
 import { EXPORT_SIZE, webmMimeType } from './immersive-export.mjs';
 import { beginExport, recordDownload } from './site-analytics.mjs';
+import { loadImmersivePreview } from './immersive-loading.mjs';
 
 export function initImmersiveScenes() {
   document.querySelectorAll('[data-immersive]').forEach(root => {
@@ -12,6 +13,24 @@ export function initImmersiveScenes() {
     const load = find('[data-scene-load]'), play = find('[data-scene-play]'), status = find('[data-scene-status]');
     const timeline = find('[data-scene-time]'), clock = find('[data-scene-clock]'), cancel = find('[data-scene-cancel]');
     const controls = find('[data-scene-controls]'), download = find('[data-scene-download]');
+    const loadProgress = find('[data-load-progress]'), loadBar = find('[data-load-bar]');
+    const loadStage = find('[data-load-stage]'), loadPercent = find('[data-load-percent]'), loadBytes = find('[data-load-bytes]');
+    function showLoadProgress({ phase, loaded = 0, total = 0 }) {
+      if (disposed) return;
+      loadProgress.hidden = false;
+      const labels = { prepare: say('准备场景', 'Preparing scene'), download: say('下载场景资源', 'Downloading scene'),
+        initialize: say('生成画面', 'Preparing the first frame'), ready: say('加载完成', 'Scene ready') };
+      const label = labels[phase];
+      if (loadStage.textContent !== label) loadStage.textContent = label;
+      // Byte-driven download occupies 90%; the first rendered frame completes loading.
+      const percent = phase === 'ready' ? 100 : phase === 'initialize' ? 90
+        : phase === 'download' && total > 0 ? Math.min(90, Math.floor(loaded / total * 90)) : null;
+      if (percent === null) loadBar.removeAttribute('value'); else loadBar.value = percent;
+      loadPercent.textContent = percent === null ? '' : `${percent}%`;
+      loadBar.setAttribute('aria-valuetext', percent === null ? label : `${label} · ${percent}%`);
+      loadBytes.textContent = phase === 'download' && total > 0
+        ? `${(loaded / 1_000_000).toFixed(1)} / ${(total / 1_000_000).toFixed(1)} MB` : '';
+    }
     const progressPanel = find('[data-export-progress]'), progressBar = find('[data-export-bar]');
     const progressLabel = find('[data-export-stage]'), progressPercent = find('[data-export-percent]');
     function showProgress(value, label) {
@@ -40,10 +59,17 @@ export function initImmersiveScenes() {
       loading = true; load.disabled = true; load.textContent = say('正在载入…', 'Loading…');
       root.dataset.state = 'loading'; status.textContent = say('正在载入场景，请稍候。', 'Loading the scene.');
       controller = new AbortController();
+      root.setAttribute('aria-busy', 'true'); showLoadProgress({ phase: 'prepare' });
       try {
-        const { createImmersiveScene } = await import('./immersive-renderer.mjs');
+        const { resources, createImmersiveScene } = await loadImmersivePreview(root.dataset.assets, {
+          signal: controller.signal, onProgress: showLoadProgress
+        });
         if (disposed) return;
-        viewer = await createImmersiveScene(find('[data-scene-canvas]'), root.dataset.assets, {
+        showLoadProgress({ phase: 'initialize' });
+        // Paint the final preparation stage before synchronous WebGL/Spine work.
+        await new Promise(resolve => setTimeout(resolve, 0));
+        controller.signal.throwIfAborted();
+        viewer = await createImmersiveScene(find('[data-scene-canvas]'), resources, {
           signal: controller.signal, onError: broken,
           onTime(time) { if (timeline) timeline.value = String(time); if (clock) clock.textContent = `${time.toFixed(2)} / ${duration.toFixed(2)} s`; }
         });
@@ -51,15 +77,21 @@ export function initImmersiveScenes() {
         duration = viewer.duration; if (timeline) timeline.max = String(duration);
         const quality = find('[data-png-quality]');
         if (quality) quality.textContent = `PNG ${viewer.pngSize.width} × ${viewer.pngSize.height} · WebM 1920 × 1080`;
+        showLoadProgress({ phase: 'ready' });
         root.dataset.state = 'ready'; controls.hidden = false; updateExportButtons();
         pause(reduced.matches); status.textContent = reduced.matches ? say('已按减少动态效果设置暂停，可手动播放。', 'Paused for reduced motion. You can play manually.') : '';
         if (!compact && !webmMimeType()) status.textContent = say('可下载 PNG；当前浏览器不支持 WebM 导出。', 'PNG is available. This browser cannot export WebM.');
       } catch (error) {
-        if (disposed || error.name === 'AbortError') return;
+        if (disposed) return;
+        if (error.name === 'AbortError') {
+          root.dataset.state = 'idle'; load.disabled = false;
+          load.textContent = say('播放动态场景', 'Play the scene'); status.textContent = '';
+          return;
+        }
         console.error('Immersive scene could not load', error);
         root.dataset.state = 'error'; load.disabled = false; load.textContent = say('重试载入', 'Try again');
         status.textContent = say('场景载入失败。请检查网络及浏览器图形加速，然后重试。', 'Could not load the scene. Check your connection and browser graphics support, then try again.');
-      } finally { loading = false; }
+      } finally { loading = false; loadProgress.hidden = true; root.removeAttribute('aria-busy'); }
     });
     play.addEventListener('click', () => pause(!paused));
     timeline?.addEventListener('input', () => { pause(true); viewer.seek(Number(timeline.value)); });
@@ -115,7 +147,7 @@ export function initImmersiveScenes() {
     });
     cancel?.addEventListener('click', () => viewer?.cancelExport());
     addEventListener('pagehide', event => {
-      if (event.persisted) { viewer?.cancelExport(); pause(true); return; }
+      if (event.persisted) { if (loading) controller?.abort(); viewer?.cancelExport(); pause(true); return; }
       disposed = true; controller?.abort(); viewer?.dispose(); if (objectURL) URL.revokeObjectURL(objectURL);
     });
   });

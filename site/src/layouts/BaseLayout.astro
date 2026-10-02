@@ -2,6 +2,7 @@
 import { SITE_NAME, siteDescription } from "../lib/site-brand.mjs";
 import { navIcons } from "../lib/navigation-icons.mjs";
 import { catalog, pageTitle } from "../lib/catalog";
+import PageEditionSwitcher from "../components/PageEditionSwitcher.astro";
 import RegionLocaleSwitcher from "../components/RegionLocaleSwitcher.astro";
 import UnifiedSearch from "../components/UnifiedSearch.astro";
 import TransitionPreview from "../components/TransitionPreview.astro";
@@ -24,6 +25,8 @@ import "../styles/page-transitions.css";
 import { filterVisualOptions } from "../lib/filter-visuals";
 
 interface Props {
+  navigationPath?: string;
+  editionCounterparts?: {edition:string;href:string}[];
   title?: string;
   description?: string;
   image?: string;
@@ -60,7 +63,7 @@ const navItems = NAVIGATION_GROUPS.map((group) => ({
 }));
 const activeNavId = activeNavigationGroup(pathname);
 const activeGroup = navItems.find((item) => item.id === activeNavId);
-const activeChild = activeNavigationChild(pathname, activeGroup?.children ?? []);
+const activeChild = activeNavigationChild(Astro.props.navigationPath ?? pathname, activeGroup?.children ?? []);
 const homeLabel = activeReleaseContext.locale === "en" ? "Overview" : "首页概览";
 const currentLabel = title ?? activeChild?.label ?? activeGroup?.label ?? homeLabel;
 
@@ -213,6 +216,7 @@ const htmlLanguage = activeReleaseContext.locale;
           });
         </script>
         <div class="nav-bottom">
+          <a href={href("/about/")} aria-current={pathname === "/about/" ? "page" : undefined}>{htmlLanguage === "en" ? "About" : "关于本站"}<span aria-hidden="true">↗</span></a>
           <a href={href("/updates/")} aria-current={pathname === "/updates/" ? "page" : undefined}>{htmlLanguage === "en" ? "Version history" : "版本记录"}<span aria-hidden="true">↗</span></a>
           <small>{SITE_NAME} · {activeReleaseContext.region.toUpperCase()}</small>
         </div>
@@ -248,6 +252,7 @@ const htmlLanguage = activeReleaseContext.locale;
     </aside>
 
     <main id="main-content" data-page-kind={pathname === "/" ? "home" : "module"} tabindex="-1">
+      {(/^\/(events|recruitment|missions|tools\/(deck-builder|song-calculator|optimizer|gekisou-lab))(\/|$)/.test(pathname)) && <PageEditionSwitcher counterparts={Astro.props.editionCounterparts} />}
       <slot />
     </main>
     <span id="page-content-ready" hidden aria-hidden="true"></span>

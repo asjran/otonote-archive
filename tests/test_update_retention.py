@@ -15,7 +15,7 @@ class RetentionTests(unittest.TestCase):
             (root/'current').symlink_to(releases/('auto-'+'a'*20));(root/'previous').symlink_to(releases/('auto-'+'b'*20))
             keep=workspace/'builds'/('a'*20);old=workspace/'builds'/('b'*20)
             for folder in (keep,old):write_json(folder/'package/bundle.json',{})
-            sync=workspace/'sync-complete';current=sync/'192.0.2.10-aaaaaaaa-bbbbbbbb-complete-v2-cccccccc';expired=sync/'192.0.2.10-aaaaaaaa-bbbbbbbb-complete-v2-cccccccc'
+            sync=workspace/'sync-complete';current=sync/'1.0.0.1-aaaaaaaa-bbbbbbbb-complete-v2-cccccccc';expired=sync/'1.0.0.2-aaaaaaaa-bbbbbbbb-complete-v2-cccccccc'
             for folder in (current,expired):write_json(folder/'inputs/release-inputs.json',{})
             write_json(sync/'state.json',{'inputPlan':str(current/'inputs/release-inputs.json'),'snapshot':str(current/'snapshot')})
             result=cleanup(workspace,root,[str(keep)])

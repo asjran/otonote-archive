@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { createFormalBarConverter, reconstructFormalChart } from "../src/lib/scoring-rules/formal-chart.mjs";
+import { readFileSync } from "node:fs";
+import { createFormalBarConverter, reconstructFormalChart, formalNoteCreationPriority, formalLineNodeGeometry } from "../src/lib/scoring-rules/formal-chart.mjs";
 
 const node = (tick, extra = {}) => ({ tick, position: 0, size: 6, visible: true, operateType: "normal", ...extra });
 const chart = (notes, extra = {}) => ({ notes, bpmEvents: [{ tick: 0, bpm: 125 }],
@@ -58,4 +59,84 @@ test("last combo at exactly 15000/BPM from end is included; just inside is skipp
 test("legacy heuristic comboEvents cannot affect reconstructed scoring events", () => {
   const c = chart([{ id: "tap", type: "tap", ...node(480) }]);
   assert.deepEqual(reconstructFormalChart(c), reconstructFormalChart({ ...c, comboEvents: [{ garbage: true }] }));
+});
+
+test("creation priority and automatic-node easing match unchanged native ARM64 functions", () => {
+  const data = JSON.parse(readFileSync(new URL("./fixtures/formal-chart-native-kernels.json", import.meta.url)));
+  for (const row of data.priorities) assert.equal(formalNoteCreationPriority(row.type), row.priority);
+  for (const row of data.easing) {
+    const kind = ["linear", "out", "in"][row.type];
+    const line = { nodes: [node(0, { position: 0, size: 1, easing: kind, easingRight: kind }),
+      node(row.progress * 128, { position: null }), node(128, { position: 1, size: 1 })] };
+    assert.equal(formalLineNodeGeometry(line, 1).position, row.value);
+  }
+});
+
+test("periodic combos match native MoveNext across fractional starts and time signatures", () => {
+  const data = JSON.parse(readFileSync(new URL("./fixtures/formal-chart-native-kernels.json", import.meta.url)));
+  for (const row of data.intervals) {
+    const events = reconstructFormalChart(chart([{ id: "line", type: "long", nodes: [node(row.startTick), node(row.endTick)] }],
+      { bpmEvents: [{ tick: 0, bpm: 120 }], timeSignatureEvents: [{ tick: 0, numerator: row.beats, denominator: 4 }] }));
+    assert.deepEqual(events.filter((e) => e.type === 120).map(({ bar, progress, timeMs }) => ({ bar, progress, timeMs })), row.points);
+  }
+});
+
+test("same-position creation prioritizes long starts before singles", () => {
+  const events = reconstructFormalChart(chart([{ id: "tap", type: "tap", ...node(0) },
+    { id: "long", type: "long", nodes: [node(0, { position: 6 }), node(480)] }]));
+  assert.deepEqual(events.slice(0, 2).map((e) => [e.noteId, e.nativeNoteId]), [["long", 1], ["tap", 2]]);
+  assert.equal(events.find((e) => e.type === 120).nativeNoteId, 10001);
+});
+
+test("same-position lane groups preserve insertion order before stable type ordering", () => {
+  const events = reconstructFormalChart(chart([
+    { id: "a", type: "tap", ...node(0) }, { id: "b", type: "tap", ...node(0, { position: 12 }) },
+    { id: "c", type: "trace", ...node(0) },
+  ]));
+  assert.deepEqual(events.map((e) => [e.noteId, e.nativeNoteId, e.sourceIndex]), [["a", 1, 0], ["c", 2, 2], ["b", 3, 1]]);
+});
+
+test("hidden authored nodes reserve IDs and are created before scoring connections", () => {
+  const diagnostics = {};
+  const events = reconstructFormalChart(chart([{ id: "tap", type: "tap", ...node(240) },
+    { id: "line", type: "long", nodes: [node(0), node(240, { visible: false }), node(480)] }]), diagnostics);
+  assert.equal(events.find((e) => e.noteId === "tap").nativeNoteId, 3);
+  assert.equal(events.find((e) => e.type === 22).nativeNoteId, 4);
+  assert.equal(diagnostics.nativeAuthoredNoteCount, 4);
+});
+
+test("merged starts retain distinct line ownership and periodic combo IDs", () => {
+  const diagnostics = {};
+  const events = reconstructFormalChart(chart([0, 12].map((position, i) => ({ id: `line-${i}`, type: "long",
+    nodes: [node(0), node(480, { position })] }))), diagnostics);
+  assert.equal(events.filter((e) => e.type === 20).length, 1);
+  assert.deepEqual(events.find((e) => e.type === 20).nativeLineIds, [1, 2]);
+  assert.deepEqual(events.filter((e) => e.type === 120).map((e) => e.nativeNoteId), [10001, 10002]);
+  assert.equal(diagnostics.nativeLineCount, 2);
+});
+
+test("skipped periodic candidates leave native ID gaps", () => {
+  const events = reconstructFormalChart(chart([{ id: "line", type: "long", nodes: [node(0), node(300), node(1200)] }]));
+  assert.deepEqual(events.filter((e) => e.type === 120).map((e) => e.nativeNoteId), [20001, 30001, 40001]);
+});
+
+test("guide starts reserve note IDs but use an independent line-ID counter", () => {
+  const events = reconstructFormalChart(chart([
+    { id: "long", type: "long", nodes: [node(240), node(720)] },
+    { id: "guide", type: "guide", nodes: [node(0), node(960, { operateType: "trace" })] },
+  ]));
+  assert.equal(events.find((e) => e.type === 120).nativeNoteId, 10001);
+  assert.equal(events.find((e) => e.type === 20).nativeNoteId, 2);
+  assert.deepEqual(events.find((e) => e.type === 105).nativeLineIds, [10001]);
+});
+
+test("merged endpoint ownership follows native start-time order rather than source line order", () => {
+  const events = reconstructFormalChart(chart([
+    { id: "late", type: "long", nodes: [node(240), node(960)] },
+    { id: "early", type: "long", nodes: [node(0), node(960)] },
+  ]));
+  const end = events.find((e) => e.type === 22);
+  assert.equal(end.noteId, "early");
+  assert.deepEqual(end.nativeLineIds, [1, 2]);
+  assert.equal(new Set(events.map((e) => e.nativeNoteId)).size, events.length);
 });

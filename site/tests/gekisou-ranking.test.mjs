@@ -14,7 +14,7 @@ test('native mission count outranks score, then score outranks Perfect count', (
 });
 test('ranking section score subtracts whole 40 ms endpoint buckets, not note-ID membership', () => {
   const ranges=[{startMs:1001,endMs:2001}];
-  // GetScoreAtTimeMs(start,end) = Calculate(end)-Calculate(start).
+  // GetScoreAtTimeMs reads start first, then end, and subtracts the snapshots.
   assert.deepEqual([1000,1001,1040,1041,2000,2001,2040,2041].map(t=>gekisouScoreSection(ranges,t)),[-1,-1,-1,0,0,0,0,-1]);
 });
 test('native ties use dense groups, including exact ties with the player', () => {

@@ -81,3 +81,48 @@ test('bad tables fail closed instead of silently dropping data',()=>{
   assert.match(manager.preview('id,level\n1,2,3')[0].error,/列数/);
   assert.throws(()=>manager.preview(''),/清单/);
 });
+
+test('skill-only maximum preserves level, rank, awakening and unselected cards',()=>{
+  const original=manager.batch(manager.empty(),['member-card-1','member-card-2'],{patch:{level:7,skillLevel:2,gekisouSkillLevel:3}});
+  const saved=structuredClone(original);
+  const next=manager.batch(original,['member-card-1'],{mode:'skills'});
+  assert.deepEqual(next.growth['member-card-1'],{...original.growth['member-card-1'],skillLevel:5,gekisouSkillLevel:5});
+  assert.deepEqual(next.growth['member-card-2'],original.growth['member-card-2']);
+  assert.deepEqual(original,saved);
+  assert.throws(()=>manager.batch(original,['support-card-1'],{mode:'skills'}),/留影/);
+});
+
+test('per-card maximum level uses each cards own stage and preserves every other field',()=>{
+  let original=manager.batch(manager.empty(),['support-card-1','support-card-2']);
+  original=manager.batch(original,['support-card-2'],{patch:{rank:2}});
+  const next=manager.batch(original,original.supportCardIds,{patch:{level:'maximum'}});
+  for(const id of original.supportCardIds) {
+    assert.equal(next.growth[id].level,manager.preset(id,'support','level',original.growth[id]).level);
+    assert.equal(next.growth[id].rank,original.growth[id].rank);
+  }
+  assert.notEqual(next.growth['support-card-1'].level,next.growth['support-card-2'].level);
+});
+
+test('mixed field selections resolve stage maximum before level and can update one skill only',()=>{
+  const original=manager.batch(manager.empty(),['member-card-1','member-card-2'],{patch:{level:7,skillLevel:2,gekisouSkillLevel:3}});
+  const skills=manager.batch(original,original.memberCardIds,{patch:{skillLevel:'maximum'}});
+  for(const id of original.memberCardIds)assert.deepEqual(skills.growth[id],{...original.growth[id],skillLevel:5});
+  const changes={level:'maximum',rank:'maximum',awake:'maximum',skillLevel:'maximum',gekisouSkillLevel:'maximum'};
+  const full=manager.batch(original,original.memberCardIds,{patch:changes});
+  assert.deepEqual(full,manager.batch(original,original.memberCardIds,{mode:'maximum'}));
+});
+
+test('choice lists reflect real per-card limits and invalid batch stays atomic',()=>{
+  for(const kind of ['member','support'])for(const row of rules.tables[kind==='member'?'MemberCard':'SupportCard']) {
+    const id=`${kind}-card-${row._id}`,base=manager.preset(id,kind);
+    for(const field of kind==='member'?['level','rank','awake','skillLevel','gekisouSkillLevel']:['level','rank']) {
+      const options=manager.choices(id,kind,field,base);
+      assert.ok(options.length>0);
+      for(const value of options)assert.doesNotThrow(()=>manager.batch(manager.empty(),[id],{patch:{[field]:value}}));
+    }
+  }
+  const original=manager.batch(manager.empty(),['member-card-1','support-card-1']),saved=structuredClone(original);
+  assert.throws(()=>manager.batch(original,['member-card-1','support-card-1'],{patch:{level:999,rank:'maximum'}}));
+  assert.deepEqual(original,saved);
+  assert.throws(()=>manager.batch(original,['member-card-1'],{mode:'typo'}),/未知/);
+});

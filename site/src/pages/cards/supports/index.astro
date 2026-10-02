@@ -2,15 +2,12 @@
 import CatalogBrowser from "../../../components/CatalogBrowser.astro";
 import SupportCardTile from "../../../components/SupportCardTile.astro";
 import BaseLayout from "../../../layouts/BaseLayout.astro";
-import { catalog, getAsset, getCardAttribute } from "../../../lib/catalog";
+import { catalog, getAsset, getCardAttribute } from "../../../lib/shared-catalog";
 import { filterVisualOptions } from "../../../lib/filter-visuals";
-import { cardDetailProjections, publicSkills } from "../../../lib/game-database";
-import { buildCardSkillFilters } from "../../../lib/card-skill-filtering.mjs";
+import { cardDetailProjections, publicSkills } from "../../../lib/support-card-list-data";
+import { sharedCardFilters } from "../../../lib/shared-card-filters";
 
-const skillFilters = buildCardSkillFilters(
-  cardDetailProjections.supportCards.filter(projection => catalog.supportCards.some(card => card.id === projection.cardId)),
-  publicSkills, catalog.release.locale
-);
+const skillFilters = await sharedCardFilters("support", cardDetailProjections.supportCards, publicSkills);
 
 const rarityOptions = filterVisualOptions.rarity;
 const attributeOptions = [

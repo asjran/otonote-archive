@@ -200,7 +200,7 @@ class BuildContext:
             )
         manifest_region = str(content_release.get("region") or "")
         selected_region = region or manifest_region
-        if selected_region != "global":
+        if selected_region not in {"global", "jp"}:
             raise CatalogError(f"unsupported region: {selected_region}")
         if selected_region != manifest_region:
             raise CatalogError(
@@ -478,6 +478,11 @@ def select_catalog_records(
             str(record.get("container_path", "")),
         )
     ]
+    event_images = [
+        record for record in records
+        if re.fullmatch(r"Assets/AddressableResources/Image/Event/[^/]+/(?:Logo|Top)/[^/]+\.png",
+                        str(record.get("container_path", "")))
+    ]
     band_item_and_stamp_images = [
         record
         for record in records
@@ -493,6 +498,7 @@ def select_catalog_records(
         *card_taxonomy_assets,
         *character_media_images,
         *band_item_and_stamp_images,
+        *event_images,
     ]:
         selected[str(record["source_file"])] = record
     return list(selected.values())
@@ -1179,14 +1185,14 @@ def build_catalog(
         game_database = game_build.database
         global_systems = (
             build_global_systems(master_root, release_id, build_context.locale)
-            if build_context.region == "global"
+            if build_context.region in {"global", "jp"}
             and build_context.channel == "production"
             else empty_global_systems(release_id)
         )
         card_projections = game_build.card_projections
         game_warnings = game_build.warnings
         if (master_root / "MasterLiveFreeReward.json").is_file():
-            game_modes = build_game_modes(master_root, release_id)
+            game_modes = build_game_modes(master_root, release_id, edition=build_context.region, locale=build_context.locale)
         else:
             game_modes = empty_game_modes(
                 release_id,
@@ -1383,6 +1389,19 @@ def build_catalog(
             asset["classificationReason"] = "verified_entity_label"
             asset["classificationEvidence"] = "master_or_projection_relation"
             asset["publicPolicy"] = "public"
+    event_art_names = {
+        f"Assets/AddressableResources/Image/Event/{path}.png": event["name"]
+        for event in game_modes.get("events", {}).get("records", [])
+        for kind in ("logo", "background")
+        if (path := event.get("assets", {}).get(kind))
+    }
+    for asset in assets:
+        if asset["containerPath"] in event_art_names:
+            asset.update(displayName=event_art_names[asset["containerPath"]],
+                         catalogStatus="identified", publicPolicy="public",
+                         classificationConfidence=1.0,
+                         classificationReason="verified_event_artwork",
+                         classificationEvidence="MasterEvent._logoAsset/_backgroundAsset")
     if global_systems["status"] == "configured_snapshot":
         gacha_banner_names = {
             f"Assets/AddressableResources/{pool['bannerAssetName']}.png": pool["name"]

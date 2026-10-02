@@ -1,3 +1,5 @@
+import {createPersonalGrowthStore} from './personal-growth-store.mjs';
+import {scopedStorageKey, currentServerContext, assertAccountServer} from './game-servers.mjs';
 import {teamLineup,scoreComposition,scoreRanking,replacementSummary} from './score-visuals.mjs';
 import { preparePresetDraft, comparePresetReplacement } from './preset-portfolio.mjs';
 import { stableSnapshotHash } from './scoring-engine.mjs';
@@ -20,7 +22,7 @@ function table(headers, rows) {
 export function setupPresetPortfolio(workbench) {
   const q = selector => workbench.querySelector(selector);
   if (!q('[data-preset-run]')) return null;
-  const rules = workbench.data.formalRules, key = `ournotes:presets:${rules.sourceReleaseId}`;
+  const rules = workbench.data.formalRules, key = scopedStorageKey('presets',rules.sourceReleaseId);
   const storageStatus = q('[data-preset-storage-status]'), status = q('[data-preset-status]'), results = q('[data-preset-results]');
   let candidates = [], worker, request = 0, report, abort, storageBlocked = false;
   const busyButtons = ['save', 'generate', 'run', 'compare', 'import'];
@@ -31,13 +33,15 @@ export function setupPresetPortfolio(workbench) {
     status.textContent = '输入已更新，可重新比较这首歌。';
   }
   function persist(next) {
+    assertAccountServer(currentServerContext().serverId);
     if (storageBlocked) throw new Error('原候选备份无法读取，未覆盖。请先导出当前候选，检查浏览器存储。');
     if (next.length > 100) throw new Error('最多保存 100 支候选，请先删除重复候选');
-    localStorage.setItem(key, JSON.stringify({ schemaVersion: 1, sourceReleaseId: rules.sourceReleaseId, candidates: next }));
+    localStorage.setItem(key, JSON.stringify({ schemaVersion: 1, ...currentServerContext(), sourceReleaseId: rules.sourceReleaseId, candidates: next }));
     candidates = next; invalidate(); renderCandidates();
     storageStatus.textContent = `已在本浏览器保存 ${candidates.length} 支候选。`;
   }
   function validateFile(value) {
+    assertAccountServer(value?.serverId);
     if (value?.schemaVersion !== 1 || value.sourceReleaseId !== rules.sourceReleaseId || !Array.isArray(value.candidates) || value.candidates.length > 100) throw new Error('候选文件格式或版本不一致');
     const ids = new Set();
     return value.candidates.map(c => {
@@ -78,7 +82,7 @@ export function setupPresetPortfolio(workbench) {
   workbench.addEventListener('save-preset-candidate', event => {
     try { add(event.detail.draft, event.detail.name); event.detail.onSaved?.(); } catch (e) { storageStatus.textContent = e.message; event.detail.onError?.(e.message); }
   });
-  q('[data-preset-export]').addEventListener('click', () => download('otonote-presets.json', { schemaVersion: 1, sourceReleaseId: rules.sourceReleaseId, candidates }));
+  q('[data-preset-export]').addEventListener('click', () => download('otonote-presets.json', { schemaVersion: 1, ...currentServerContext(), sourceReleaseId: rules.sourceReleaseId, candidates }));
   q('[data-preset-import]').addEventListener('change', async event => {
     invalidate(); const token = request, file = event.target.files?.[0]; if (!file) return;
     try {
@@ -155,9 +159,9 @@ export function setupPresetPortfolio(workbench) {
       const songs = songList(), mode = q('[data-preset-mode]').value, maxWindowCards = Number(q('[data-preset-window]').value);
       let payload, baselineId;
       if (type === 'generate') {
-        const raw = localStorage.getItem(`ournotes:inventory:${rules.sourceReleaseId}`);
-        if (!raw) throw new Error('请先在个人卡库录入实际持有与突破');
-        const inventory = createInventoryManager(rules).validate(JSON.parse(raw));
+        const profile = createPersonalGrowthStore({rules,vipRanks:workbench.data.vipRanks}).read();
+        if (!profile) throw new Error('请先在个人卡库录入实际持有与突破');
+        const inventory = createInventoryManager(rules).validate(profile.inventory);
         payload = { rules, draft: structuredClone(workbench.draft), inventory, songs, mode, maxWindowCards };
       } else {
         let inputs = structuredClone(candidates);

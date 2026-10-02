@@ -17,6 +17,9 @@ from pathlib import Path
 from tools.growth_export import ExportError, MAX_BYTES, extract_growth, fields
 
 SDK_ROOT = 'https://l11-sdk-login-intl.biligame.net'
+# Official GetServerList requires 1.0.2 as observed on 2026-10-02.
+# Keep SDK, game requests and snapshot provenance on the same version.
+CLIENT_VERSION = '1.0.2'
 GAME_HOSTS = {'l14-prod-hk-all-gs-sirius.gamerfusiontech.com',
               'l12-prod-hk-all-gs-sirius.gamerfusiontech.com'}
 BOOTSTRAP = 'l14-prod-hk-all-gs-sirius.gamerfusiontech.com'
@@ -64,7 +67,7 @@ class Profile:
     merchant_id: str = '1045'
     server_id: str = '16841'
     channel_id: str = '2001'
-    version: str = '1.0.1'
+    version: str = CLIENT_VERSION
 
     @classmethod
     def from_resources(cls, path: Path):
@@ -233,18 +236,20 @@ def string(data, number, *, optional=False):
 def build_login(identity, device_id):
     # Native BuildRequest uses PlatformID 0 and leaves InitialDataGroup empty.
     return b''.join((message(1, identity.uid), message(2, identity.access_token),
-        message(4, 'OurNotes local exporter'), message(5, platform.system()), message(6, '1.0.1'),
+        message(4, 'OurNotes local exporter'), message(5, platform.system()), message(6, CLIENT_VERSION),
         message(7, message(2, device_id)), message(8, 'com.bilibili.sirius'),
         integer(10, 2001), integer(11, 5), integer(12, 6),
         message(13, identity.id_token) if identity.id_token else b''))
 
 
 class GameClient:
+    read_methods = frozenset(READ_METHODS)
+
     def rpc(self, host, method, payload=b'', auth=()):
-        if host not in GAME_HOSTS or method not in READ_METHODS:
+        if host not in GAME_HOSTS or method not in self.read_methods:
             raise LoginError('game_target_refused')
         import grpc
-        metadata = [('x-client-version', '1.0.1'), ('x-platform', 'android'),
+        metadata = [('x-client-version', CLIENT_VERSION), ('x-platform', 'android'),
                     ('x-request-id', str(uuid.uuid4()))] + list(auth)
         try:
             with grpc.secure_channel(host + ':443', grpc.ssl_channel_credentials(), options=(
@@ -253,6 +258,8 @@ class GameClient:
                                            response_deserializer=lambda b: b)
                 return call(payload, metadata=metadata, timeout=25, wait_for_ready=False)
         except grpc.RpcError as exc:
+            if exc.code() == grpc.StatusCode.UNKNOWN and exc.details() == 'authentication failed':
+                raise LoginError('game_authentication_failed') from None
             raise LoginError('game_rpc_' + exc.code().name.lower()) from None
 
     def discover(self):
@@ -270,7 +277,7 @@ class GameClient:
             raise LoginError('tw_server_not_unique')
         return matches[0]
 
-    def export(self, identity, device_id, host, progress=lambda s: None):
+    def authenticate(self, identity, device_id, host, progress=lambda s: None):
         payload = build_login(identity, device_id)
         auth = [('x-player-bid', identity.uid)]
         progress('checking_existing_account')
@@ -290,9 +297,13 @@ class GameClient:
         auth += [('x-player-id', player_id), ('x-player-credential', token)]
         if server_device_id:
             auth.append(('x-device-id', server_device_id))
+        return auth
+
+    def export(self, identity, device_id, host, progress=lambda s: None):
+        auth = self.authenticate(identity, device_id, host, progress)
         progress('reading_growth')
         raw = self.rpc(host, 'app.player.PlayerService/GetPlayerData', b'', auth)
         snapshot = extract_growth(raw)
         snapshot['verification'] = 'live_response_not_ui_reconciled'
-        snapshot['source'] = {'kind': 'direct_game_read', 'region': 'TW/HK/MO', 'clientVersion': '1.0.1'}
+        snapshot['source'] = {'kind': 'direct_game_read', 'region': 'TW/HK/MO', 'clientVersion': CLIENT_VERSION}
         return snapshot

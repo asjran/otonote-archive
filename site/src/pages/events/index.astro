@@ -1,55 +1,11 @@
 ---
 import BaseLayout from "../../layouts/BaseLayout.astro";
-import { gameModeDatabase } from "../../lib/game-modes";
+import EventArchive from "../../components/EventArchive.astro";
+import { eventRecords, eventHref, eventIdentities, eventCards, eventArtworks } from "../../lib/event-pages";
+import { eventCopy } from "../../lib/event-copy";
 import { activeReleaseContext } from "../../lib/release-context";
-import "../../styles/modes.css";
-
-const { events } = gameModeDatabase;
-const en = activeReleaseContext.locale === "en";
+const copy = eventCopy(activeReleaseContext.locale);
 ---
-
-<BaseLayout title={en ? "Events and rankings" : "活动与排行榜"}>
-  <section class="event-hero">
-    <div class="content-shell event-hero-grid">
-      <div>
-        <div class="eyebrow">EVENTS & RANKINGS</div>
-        <h1>{en ? "Events and rankings" : "活动与排行榜"}</h1>
-        <p>{en ? "No verified event information is available in this data release yet." : "当前资料版本尚未提供可展示的已验证活动信息。"}</p>
-      </div>
-      <div class="event-zero" aria-label={en ? "Events in this collection" : "当前版本已收录活动数量"}>
-        <strong>{events.definitionCount}</strong>
-        <span>{en ? "EVENTS" : "已收录活动"}</span>
-      </div>
-    </div>
-  </section>
-  <section class="event-body">
-    <div class="content-shell event-layout">
-      <div class="mode-main-column">
-        <section class="mode-panel">
-          <header><div class="eyebrow">DATA AVAILABILITY</div><h2>{en ? "Awaiting event data" : "活动资料待补充"}</h2></header>
-          <p>{en ? "Event schedules and rewards will appear after verification. Rankings have not yet been collected here; missing information does not mean a player has a zero score." : "活动时间和奖励将在资料核实后展示。本站暂未收录排行榜，缺少资料不代表玩家积分为零。"}</p>
-          <div class="event-capability-grid">
-            {[en ? "Schedule" : "活动时间", en ? "Rewards" : "活动奖励", en ? "Top players" : "积分排行", en ? "Rank cutoffs" : "关键档位"].map(label => (
-              <div><span>{label}</span><strong>{en ? "Not yet available" : "暂未收录"}</strong></div>
-            ))}
-          </div>
-        </section>
-        <details class="mode-panel">
-          <summary>{en ? "Data sources" : "资料来源"}</summary>
-          <p>{en ? "Event information is organized from game materials. Event schedules, rewards and rankings have not yet been collected here; missing information does not mean no event is running or that a score is zero. Please check in-game announcements and rankings." : "活动资料根据游戏内容整理。本站暂未收录可展示的活动时间、奖励和排行榜；没有资料不代表游戏内没有活动，也不代表玩家积分为零。请以游戏内公告和排行榜为准。"}</p>
-        </details>
-      </div>
-      <aside class="event-roadmap">
-        <div class="eyebrow">PLANNED COVERAGE</div>
-        <h2>{en ? "What will be available" : "后续提供的内容"}</h2>
-        <ol>
-          <li><span>01</span>{en ? "Event schedule and rewards" : "活动时间与奖励资料"}</li>
-          <li><span>02</span>{en ? "Player rankings" : "玩家积分排行"}</li>
-          <li><span>03</span>{en ? "Key rank cutoffs" : "关键档位积分"}</li>
-          <li><span>04</span>{en ? "Last updated" : "更新时间"}</li>
-        </ol>
-        <p>{en ? "Availability depends on verified data from the selected server." : "收录范围以已确认的游戏内容为准。"}</p>
-      </aside>
-    </div>
-  </section>
+<BaseLayout title={copy.title} description={copy.intro}>
+  <EventArchive archive={{ records: eventRecords, definitionCount: eventRecords.length }} locale={activeReleaseContext.locale} href={eventHref} artworks={eventArtworks} identities={eventIdentities} cards={eventCards} />
 </BaseLayout>

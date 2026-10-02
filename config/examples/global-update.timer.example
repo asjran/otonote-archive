@@ -1,0 +1,5 @@
+# Generic baseline: production currently waits 2h after each completed run.
+# Compare other values to the private live configuration before installation.
+[Timer]
+OnUnitInactiveSec=2h
+Unit=global-update.service

@@ -1,3 +1,6 @@
+import {readToolPresets} from './tool-presets.mjs';
+import {setupQuickOptions} from './tool-quick-options.mjs';
+import {createPersonalGrowthStore, applyPersonalGrowth} from './personal-growth-store.mjs';
 import {setupCalculatorSongPicker} from './calculator-song-picker.mjs';
 import { readGekisouOpponentInputs, writeGekisouOpponentInputs } from './gekisou-opponent-inputs.mjs';
 import { readScoringScenarioSearch } from './scoring-rules/scenario-search.mjs';
@@ -14,6 +17,7 @@ import {
 } from "./scoring-engine.mjs";
 import { resolveTgwCardRankBonus } from "./scoring-rules/tgw-card.mjs";
 import { createFormationCalculator } from "./scoring-rules/formation-power.mjs";
+import { setupPerformanceInput } from './performance-input.mjs';
 
 class ScoringResearchWorkbench extends HTMLElement {
   async connectedCallback() {
@@ -28,6 +32,7 @@ class ScoringResearchWorkbench extends HTMLElement {
         writeGekisouOpponentInputs(this,scenario.opponents);
         for(const [field,selector] of [['timingOffsetMs','offset'],['batches','batches'],['seed','seed'],['frameRate','fps']]) this.querySelector(`[data-gekisou-${selector}]`).value=String(scenario[field]);
         [...this.querySelectorAll('[data-gekisou-rank]')].forEach((node,i)=>node.value=String(scenario.ranks[i]));
+        [...this.querySelectorAll('[data-gekisou-confirmation]')].forEach((node,i)=>node.value=String(scenario.confirmationDelayFrames[i]));
       }
     } catch(error) { this.scenarioError=error.message; }
     this.memberById = new Map(this.data.memberCards.map((card) => [card.id, card]));
@@ -43,7 +48,18 @@ class ScoringResearchWorkbench extends HTMLElement {
     }
     const parsed = parseTeamDraftSearch(window.location.search, known);
     this.draft = createTeamDraft(parsed.draft);
+    try{applyPersonalGrowth(this.draft,createPersonalGrowthStore({rules:this.data.formalRules,vipRanks:this.data.vipRanks}).read());}
+    catch(error){parsed.issues.push({code:'personal_growth_unavailable',severity:'warning',message:`${this.labels.song.growthUnavailable}${error.message}`});}
     this.inputIssues=parsed.issues;this.inputRequest=0;this.scoreRequest=0;
+    const initialDraft=structuredClone(this.draft);
+    const presetSelect=this.querySelector('[data-score-preset]');
+    try {this.savedTeams=readToolPresets(this.data.formalRules);for(const [i,preset] of this.savedTeams.entries()){const o=new Option(preset.name,String(i));presetSelect.append(o);}}
+    catch(error){this.savedTeams=[];parsed.issues.push({code:'preset_unavailable',severity:'warning',message:error.message});}
+    presetSelect.disabled=!this.savedTeams.length;
+    presetSelect.addEventListener('change',()=>{const {selectedSongId,selectedDifficulty}=this.draft;this.draft=createTeamDraft(presetSelect.value===''?initialDraft:this.savedTeams[Number(presetSelect.value)].draft);if(selectedSongId)Object.assign(this.draft,{selectedSongId,selectedDifficulty});try{applyPersonalGrowth(this.draft,createPersonalGrowthStore({rules:this.data.formalRules,vipRanks:this.data.vipRanks}).read());}catch{}this.songPicker.sync();this.refreshInput();});
+    this.shortcuts=setupQuickOptions(this);
+    this.querySelector('[data-score-song-picker]').open=!this.draft.selectedSongId;
+
     this.querySelector('[data-calculator-song]').value=this.draft.selectedSongId??'';
     this.querySelector('[data-calculator-difficulty]').value=this.draft.selectedDifficulty??'';
     for(const [selector,field] of [['[data-calculator-song]','selectedSongId'],['[data-calculator-difficulty]','selectedDifficulty']]) {
@@ -51,6 +67,7 @@ class ScoringResearchWorkbench extends HTMLElement {
     }
     this.songPicker=setupCalculatorSongPicker(this,{getSelection:()=>this.draft,onSelect:selection=>{
       Object.assign(this.draft,selection);
+      this.querySelector('[data-score-song-picker]').open=false;
       this.querySelector('[data-calculator-song]').value=selection.selectedSongId;
       this.querySelector('[data-calculator-difficulty]').value=selection.selectedDifficulty;
       this.refreshInput();
@@ -58,10 +75,21 @@ class ScoringResearchWorkbench extends HTMLElement {
     const recalculate=()=>{this.scenarioError=null;if(this.loadedSnapshot)this.renderSongScore(this.loadedChart,this.loadedSnapshot,this.inputIssues);};
     this.querySelector('[data-scoring-mode]').addEventListener('change',recalculate);
     this.querySelector('[data-gekisou-scenario]').addEventListener('change',recalculate);
+    this.performanceInput=setupPerformanceInput(this,{rules:this.data.formalRules,getChart:()=>this.loadedChart,recalculate,labels:this.labels.performance});
     await this.refreshInput();
   }
 
   async refreshInput() {
+    const team=this.querySelector('[data-score-team]');team.replaceChildren();
+    let selected=0;
+    for(const [i,slot] of this.draft.slots.entries()){
+      const item=document.createElement('div');
+      for(const kind of ['member','support']){const card=this[kind==='member'?'memberById':'supportById'].get(slot[`${kind}CardId`]);if(card){selected++;if(card.imageUrl){const img=document.createElement('img');img.src=card.imageUrl;img.alt=card.displayName;item.append(img);}}}
+      const caption=document.createElement('small');caption.textContent=i===2?this.labels.song.leader:`${this.labels.song.slot} ${i+1}`;item.append(caption);team.append(item);
+    }
+    this.querySelector('[data-score-team-note]').textContent=selected===10?this.labels.song.teamReady:this.labels.song.teamIncomplete.replace('{selected}',String(selected));
+    this.querySelector('[data-score-song-name]').textContent=this.draft.selectedSongId?`${this.trackById.get(this.draft.selectedSongId)?.title??''} · ${this.draft.selectedDifficulty?.toUpperCase()??''}`:this.labels.song.chooseDifficulty;
+
     this.scoreRequest++;this.rejectScore?.(new Error('Cancelled'));this.scoreWorker?.terminate();
     this.loadedSnapshot=null;this.loadedChart=null;
     const summary = deriveTeamDraftSummary(this.draft, {
@@ -75,7 +103,7 @@ class ScoringResearchWorkbench extends HTMLElement {
     ) ?? null;
     let chart = chartSummary;
     const request=++this.inputRequest;
-    this.querySelector('[data-song-score]').textContent='读取谱面…';
+    this.querySelector('[data-song-score]').textContent=this.labels.song.readingChart;
     if (chartSummary?.analysisDataUrl) {
       try {
         const response = await fetch(chartSummary.analysisDataUrl);
@@ -85,6 +113,7 @@ class ScoringResearchWorkbench extends HTMLElement {
       }
     }
     if(request!==this.inputRequest)return;
+    if(chart)chart={...chart,sourceReleaseId:this.data.sourceReleaseId};
     let tgwCardBonus;
     if (this.draft.modifiers.tgwCardRank && this.data.vipRanks?.length) {
       try {
@@ -112,18 +141,21 @@ class ScoringResearchWorkbench extends HTMLElement {
     });
     const result = evaluateScoringResearch(snapshot, this.data.evidence);
     this.render(snapshot, result, summary, this.inputIssues);
+    const eventLink=this.querySelector('[data-event-efficiency-link]');
+    if(eventLink)eventLink.href=toolRoute('/tools/event-efficiency/',location.pathname)+serializeTeamDraftSearch(this.draft);
     this.loadedChart=chart;this.loadedSnapshot=snapshot;
+    this.performanceInput?.sync(chart);
     this.renderSongScore(chart, snapshot, this.inputIssues);
   }
 
-  disconnectedCallback(){this.inputRequest++;this.scoreRequest++;this.rejectScore?.(new Error('Cancelled'));this.scoreWorker?.terminate();}
+  disconnectedCallback(){this.shortcuts?.destroy();this.performanceInput?.destroy();this.inputRequest++;this.scoreRequest++;this.rejectScore?.(new Error('Cancelled'));this.scoreWorker?.terminate();}
 
   calculateInWorker(payload) {
     return new Promise((resolve,reject)=>{
       const worker=new Worker(new URL('./song-calculation-worker.mjs',import.meta.url),{type:'module'});
       this.scoreWorker=worker;this.rejectScore=reject;
       worker.onmessage=({data})=>{worker.terminate();if(this.scoreWorker===worker){this.scoreWorker=null;this.rejectScore=null;}data.error?reject(new Error(data.error)):resolve(data.result);};
-      worker.onerror=()=>{worker.terminate();reject(new Error('后台计算失败，请重新选择模式再试。'));};
+      worker.onerror=()=>{worker.terminate();reject(new Error(this.labels.song.workerFailed));};
       worker.postMessage(payload);
     });
   }
@@ -135,25 +167,36 @@ class ScoringResearchWorkbench extends HTMLElement {
     const details = this.querySelector("[data-song-score-details]");
     const trace = this.querySelector("[data-scoring-trace]");
     trace?.replaceChildren();
+    this.querySelector('[data-scoring-snapshot-json]').textContent=JSON.stringify({input:snapshot,status:'pending'},null,2);
+    this.querySelector('[data-scoring-input-hash]').textContent=snapshot.inputHash??'—';
     const labels = this.labels.song;
+    const inputWarnings = issues.filter(issue => issue.severity === 'warning').map(issue => issue.message);
     const format = (n) => n == null ? '—' : n.toLocaleString(undefined, { maximumFractionDigits: 2 });
     const interpolate = (template, values) => template.replace(/\{(\w+)\}/g, (_, key) => String(values[key] ?? ""));
     this.querySelector('[data-gekisou-scenario]').hidden = this.querySelector('[data-scoring-mode]')?.value !== 'gekisou';
+    this.querySelector('[data-performance-settings]').hidden = this.querySelector('[data-scoring-mode]')?.value === 'gekisou';
+    this.querySelector('[data-score-result-title]').textContent=labels.resultTitle;
+    this.querySelector('[data-score-result-assumption]').textContent=labels.resultAssumption;
+    this.querySelector('[data-performance-summary]').hidden=true;
     try {
       if (this.scenarioError) throw new Error(this.scenarioError);
-      if (issues.length) throw new Error(labels.invalidShare);
-      if (!chart?.notes?.length) throw new Error('请选择歌曲和难度。');
-      if (this.draft.slots.some(s=>!s.memberCardId||!s.supportCardId)) throw new Error('还没有完整队伍。先自动配队，或在编队页选满 5 张成员和 5 张留影。');
-      output.textContent='计算中…';details.textContent='正在后台逐音符计算，你可以继续调整条件。';
+      if (issues.some(issue => issue.severity !== 'warning')) throw new Error(labels.invalidShare);
+      if (!chart?.notes?.length) throw new Error(labels.chooseChart);
+      if (this.draft.slots.some(s=>!s.memberCardId||!s.supportCardId)) throw new Error(labels.completeTeam);
+      output.textContent=labels.calculating;details.textContent=labels.calculatingDetail;
       if (this.querySelector('[data-scoring-mode]')?.value === 'gekisou') {
         const scenario = { timingOffsetMs:Number(this.querySelector('[data-gekisou-offset]').value),
           frameRate:Number(this.querySelector('[data-gekisou-fps]').value),opponents:readGekisouOpponentInputs(this),
           ranks:[...this.querySelectorAll('[data-gekisou-rank]')].map(n=>Number(n.value)),
+          confirmationDelayFrames:[...this.querySelectorAll('[data-gekisou-confirmation]')].map(n=>Number(n.value)),
           batches:Number(this.querySelector('[data-gekisou-batches]').value),seed:Number(this.querySelector('[data-gekisou-seed]').value) };
         const result = await this.calculateInWorker({mode:'gekisou',rules:this.data.formalRules,chart:{...chart,sourceReleaseId:this.data.sourceReleaseId},scenario,draft:this.draft});
         if(request!==this.scoreRequest)return;
         output.textContent = format(result.expectedScore);
         details.textContent = interpolate(labels.gekisouEstimate, {power:format(result.power),samples:result.sampleCount,min:format(result.minimumScore),max:format(result.maximumScore),error:format(result.standardError),share:format(result.rankingBonusShare*100)});
+        if (inputWarnings.length) details.textContent += ' ' + inputWarnings.join(' ');
+        const distribution=result.scoreDistribution;
+        if(distribution)details.textContent+=' '+interpolate(distribution.kind==='seed_samples'?labels.samplePercentiles:labels.orderPercentiles,{p10:format(distribution.p10),p50:format(distribution.p50),p90:format(distribution.p90)});
         const names = {1:'COMBO',2:'LUCK',3:'JUST'};
         for (const section of result.sections) {
           const item = document.createElement('li');
@@ -165,14 +208,25 @@ class ScoringResearchWorkbench extends HTMLElement {
         this.querySelector('[data-scoring-snapshot-json]').textContent = JSON.stringify({input:snapshot,result},null,2);
         return;
       }
-      const result = await this.calculateInWorker({mode:'ordinary',rules:this.data.formalRules,chart:{...chart,sourceReleaseId:this.data.sourceReleaseId},draft:this.draft});
+      const performance=this.performanceInput?.value??null;
+      const result = await this.calculateInWorker({mode:'ordinary',rules:this.data.formalRules,chart:{...chart,sourceReleaseId:this.data.sourceReleaseId},draft:this.draft,performance});
       if(request!==this.scoreRequest)return;
       output.textContent = format(result.expectedScore);
       const comboSummary = this.querySelector("[data-scoring-event-count]");
       if (comboSummary) comboSummary.textContent = String(result.chart.eventCount);
-      details.textContent = interpolate(labels.breakdown, { base: format(result.baseScore), gain: format(result.skillScoreGain), min: format(result.minimumScore), max: format(result.maximumScore) });
+      details.textContent = interpolate(performance?labels.replayBreakdown:labels.breakdown, { base: format(result.baseScore), gain: format(result.skillScoreGain), min: format(result.minimumScore), max: format(result.maximumScore) });
+      if(performance){
+        this.querySelector('[data-score-result-title]').textContent=labels.replayTitle;
+        this.querySelector('[data-score-result-assumption]').textContent=labels.replayAssumption;
+        const state=result.performance;
+        const summary=this.querySelector('[data-performance-summary]');
+        summary.textContent=interpolate(labels.replayState,{combo:format(state.maxCombo),life:format(state.life),lowest:format(state.lowestLife),miss:format(state.judgementCounts[1]),bad:format(state.judgementCounts[2]),converted:format(state.convertedCount)});
+        summary.hidden=false;
+      }
+      if (inputWarnings.length) details.textContent += ' ' + inputWarnings.join(' ');
       const messages = [
-        labels.scenario,
+        performance?labels.replayScenario:labels.scenario,
+        performance?labels.replayOrder:interpolate(labels.orderPercentiles,{p10:format(result.scoreDistribution.p10),p50:format(result.scoreDistribution.p50),p90:format(result.scoreDistribution.p90)}),
         interpolate(labels.topology, { events: result.chart.eventCount, master: result.chart.masterFullCombo }),
         interpolate(labels.factors, { power: format(result.power), factor: result.chart.difficultyFactor.toFixed(3), notes: result.chart.convertedNoteCount }),
         ...result.skills.map((skill) => interpolate(labels.skill, { slot: skill.slotIndex + 1, member: skill.memberLevel, support: skill.supportLevels.join(" / "), duration: skill.extensionMs })),
@@ -182,11 +236,12 @@ class ScoringResearchWorkbench extends HTMLElement {
         const item = document.createElement("li"); item.textContent = message; trace?.append(item);
       }
       this.querySelector("[data-scoring-input-hash]").textContent = result.inputHash;
-      this.querySelector("[data-scoring-snapshot-json]").textContent = JSON.stringify({ input: snapshot, result }, null, 2);
+      this.querySelector("[data-scoring-snapshot-json]").textContent = JSON.stringify({ input: snapshot, ...(performance?{performance}:{}), result }, null, 2);
     } catch (error) {
       if(request!==this.scoreRequest)return;
       output.textContent = labels.unavailable;
       details.textContent = error.message;
+      this.querySelector('[data-scoring-snapshot-json]').textContent=JSON.stringify({input:snapshot,status:'unavailable',error:error.message},null,2);
       const item = document.createElement("li"); item.textContent = error.message; trace?.append(item);
     }
   }
@@ -207,7 +262,7 @@ class ScoringResearchWorkbench extends HTMLElement {
     if(optimizeLink)optimizeLink.href=toolRoute(`/tools/optimizer/${serializeTeamDraftSearch(this.draft)}`,window.location.pathname);
     const editLink = this.querySelector("[data-edit-scoring-draft]");
     let rankingLink = this.querySelector('[data-song-ranking-link]');
-    if (!rankingLink) { rankingLink = document.createElement('a'); rankingLink.dataset.songRankingLink = ''; rankingLink.textContent = '查看歌曲排行榜 →'; this.querySelector('.calculator-links').append(rankingLink); }
+    if (!rankingLink) { rankingLink = document.createElement('a'); rankingLink.dataset.songRankingLink = ''; rankingLink.textContent = this.labels.song.rankingLink; this.querySelector('.calculator-links').append(rankingLink); }
     rankingLink.href = toolRoute('/tools/song-ranking/', window.location.pathname);
     if (editLink instanceof HTMLAnchorElement) {
       editLink.href = toolRoute(`/tools/deck-builder/${serializeTeamDraftSearch(this.draft)}`, window.location.pathname);

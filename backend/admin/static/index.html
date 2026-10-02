@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Our Notes · 管理工作台</title>
+  <link rel="stylesheet" href="/assets/admin.css"><script type="module" src="/assets/admin.mjs"></script>
+</head>
+<body>
+  <aside class="sidebar">
+    <a class="brand" href="#overview"><span class="brand-mark" aria-hidden="true">ON</span><span>Our Notes<small>管理工作台</small></span></a>
+    <p class="nav-caption">网站运行</p>
+    <nav aria-label="管理导航">
+      <a href="#overview" data-view="overview" aria-current="page"><span aria-hidden="true">◷</span>访问与下载</a>
+      <a href="#load" data-view="load"><span aria-hidden="true">⌁</span>并发与带宽</a>
+      <a href="#tasks" data-view="tasks"><span aria-hidden="true">⇅</span>资源任务</a>
+      <a href="#settings" data-view="settings"><span aria-hidden="true">⊞</span>节点与配置</a>
+    </nav>
+    <div class="sidebar-foot"><span class="dot"></span> SSH 私有入口<small>公开网站与管理权限分离</small></div>
+  </aside>
+  <main>
+    <header class="topbar"><span id="breadcrumb">网站运行 / 访问与下载</span><span class="connection">回环连接 <span class="dot"></span></span></header>
+    <div id="preview" class="notice" hidden>本地只读预览 · 未连接线上服务，资源操作已禁用。</div>
+    <div class="page-heading"><div><p class="eyebrow">OUR NOTES / OPERATIONS</p><h1 id="title">访问与下载</h1><p id="subtitle">了解内容如何被访问，以及资源如何被使用。</p></div><div class="toolbar"><label>站点<select id="site" aria-label="选择站点"></select></label><button id="refresh" class="secondary">刷新数据</button></div></div>
+    <div class="status-line" role="status" aria-live="polite"><span id="health">正在连接统计来源…</span><span id="updated">尚未更新</span></div>
+    <section id="view-overview" class="view">
+      <div class="section-bar"><h2>访问概览</h2><label class="compact">统计窗口<select id="window" aria-label="统计窗口"><option value="today">今日</option><option value="yesterday">昨天</option><option value="date">指定日期</option><option value="7d">近 7 天</option><option value="30d">近 30 天</option><option value="month">本月</option></select><input id="summary-date" type="date" aria-label="统计日期（北京时间）" hidden></label></div>
+      <div class="metrics" id="visit-metrics"></div>
+      <div class="panel"><div class="panel-heading"><h2>访问趋势</h2><span class="legend"><i></i> 浏览量 <i class="teal"></i> 下载点击</span></div><div id="visits-chart" class="chart"></div><p class="caption">网页事件统计 · 不包含预加载和服务器静态资源请求</p></div>
+      <div class="columns"><div class="panel"><div class="panel-heading"><h2>热门页面</h2><span>按浏览量</span></div><div id="pages"></div></div><div class="panel"><div class="panel-heading"><h2>下载与导出</h2><span>按资源</span></div><div id="downloads"></div></div></div>
+      <div class="columns"><div class="panel"><div class="panel-heading"><h2>访问来源</h2><span>仅来源主机</span></div><div id="referrers"></div></div><div class="panel"><div class="panel-heading"><h2>网站传输量</h2><span>源站日志 · 响应体</span></div><div id="traffic"></div><p class="caption">完成请求后入账，不等于实时整机带宽或 CDN 流量。</p></div></div>
+    </section>
+    <section id="view-load" class="view" hidden>
+      <div class="section-bar"><h2>运行负载</h2><div class="toolbar"><label class="compact">来源<select id="load-source" aria-label="负载来源"></select></label><label class="compact">时间<select id="load-window" aria-label="负载时间窗口"><option value="900">近 15 分钟</option><option value="3600" selected>近 1 小时</option><option value="86400">近 24 小时</option><option value="today">今日</option><option value="yesterday">昨天</option><option value="date">指定日期</option></select><input id="load-date" type="date" aria-label="负载日期（北京时间）" hidden></label></div></div>
+      <div class="metrics" id="load-metrics"></div>
+      <div class="panel"><div class="panel-heading"><h2>收发带宽</h2><span class="legend"><i></i> 出站 <i class="teal"></i> 入站 · Mbps</span></div><div id="bandwidth-chart" class="chart"></div><div id="bandwidth-detail" class="chart-footer"></div><p class="caption">服务器选定网卡的采样平均值，包含资源拉取与 SSH；空缺表示未采集到有效速率。</p></div>
+      <div class="columns"><div class="panel"><div class="panel-heading"><h2>连接并发</h2><span>共享 Nginx 实例</span></div><div id="connections-chart" class="chart short"></div><div id="connection-detail" class="chart-footer"></div></div><div class="panel"><div class="panel-heading"><h2>请求速率</h2><span>请求 / 秒</span></div><div id="requests-chart" class="chart short"></div><p class="caption">RPS 与连接数均不等于正在处理的请求数。当前标准来源未提供请求并发。</p></div></div>
+    </section>
+    <section id="view-tasks" class="view" hidden><div class="section-bar"><h2>资源节点</h2><span>关闭面板不影响节点上的任务</span></div><div id="nodes"></div></section>
+    <section id="view-settings" class="view" hidden><div class="panel"><div class="panel-heading"><h2>站点与连接</h2><span>只读配置</span></div><div id="settings"></div><p class="caption">配置文件由部署管理员维护。浏览器不接收节点地址、密钥和服务器文件路径。</p></div></section>
+    <footer>Our Notes <span>采集状态、指标口径与数据来源始终分开显示</span></footer>
+  </main>
+<dialog id="publish-confirm"><form method="dialog"><h2>确认发布候选</h2><p id="publish-description"></p><div class="toolbar"><button value="cancel">取消</button><button value="publish">确认发布</button></div></form></dialog>
+</body>
+</html>

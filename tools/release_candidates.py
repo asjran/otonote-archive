@@ -27,6 +27,7 @@ from tools.supplemental_inputs import read_supplemental
 from tools.immutable_files import link_or_copy
 from tools.bgm_catalog import project_bgm, read_bgm_inputs
 from tools.scoring_content import bind_scoring_rules
+from tools.formal_chart_projection import project_formal_charts
 
 
 def write_json(path: Path, value: object) -> None:
@@ -53,10 +54,12 @@ def compile_core(source: dict, destination: Path, locales: tuple[str, ...], root
     bgm_inputs = read_bgm_inputs(source, root)
     story_inputs = read_story_inputs(source, root, lazy=True)
     supplemental = read_supplemental(source, root)
+    if source['region'] == 'jp' and supplemental is None:
+        raise PreflightError('JP requires its own supplemental inputs; Global fallbacks are forbidden')
     if supplemental:
-        shutil.copytree(supplemental / 'data', destination / 'supplemental-data')
+        shutil.copytree(supplemental / 'data', destination / 'supplemental-data', ignore=shutil.ignore_patterns('.DS_Store'))
         for group in ('live2d', 'immersive', 'system-banners', 'mission-rewards', 'auto-stage', 'growth'):
-            shutil.copytree(supplemental / 'public' / group, public / group, copy_function=link_or_copy)
+            shutil.copytree(supplemental / 'public' / group, public / group, copy_function=link_or_copy, ignore=shutil.ignore_patterns('.DS_Store'))
     write_json(destination / 'supplemental-data/formal-scoring-rules.json',
                bind_scoring_rules(root / source['masterRoot'], source['contentReleaseId']))
     # Gallery is maintained separately. Freeze and validate it before lengthy
@@ -77,6 +80,7 @@ def compile_core(source: dict, destination: Path, locales: tuple[str, ...], root
                 bound_score_payloads=scores,
                 supplemental_extracted_roots=(), functional_ui_extracted_roots=(),
             )
+            project_formal_charts(build)
             # Local source paths belong in audit reports, not public catalogs.
             for asset in build.catalog.get('assets', []):
                 asset['sourcePath'] = f"{asset.get('sourceBundle', 'bundle')}/{asset.get('sourceObjectId', 'object')}"
@@ -89,7 +93,8 @@ def compile_core(source: dict, destination: Path, locales: tuple[str, ...], root
             if gallery['comics'] and not (public / 'gallery').exists():
                 shutil.copytree(gallery_input, public / 'gallery')
             story_library, story_documents = project_library(
-                root / source['masterRoot'], context.content_release_id, locale, story_inputs)
+                root / source['masterRoot'], context.content_release_id, locale, story_inputs,
+                fallback_locale='ja' if source['region'] == 'jp' else None)
             bgm = project_bgm(source, root, public, locale, inputs=bgm_inputs)
             for data_root in (generated_data, public_data):
                 write_json(data_root / 'story-library.json', story_library)
@@ -147,8 +152,8 @@ def build_candidates(plan: Path, output: Path, *, root: Path = ROOT,
     plan_digest = digest(plan)
     sources = load_plan(plan)
     expected_channel = 'production'
-    if len(sources) != 1 or sources[0]['region'] != 'global' or any(s['channel'] != expected_channel for s in sources):
-        raise PreflightError('candidate requires one Global input with the selected source identity')
+    if len(sources) != 1 or sources[0]['region'] not in {'global', 'jp'} or any(s['channel'] != expected_channel for s in sources):
+        raise PreflightError('candidate requires one production edition with the selected source identity')
     readiness = inspect_plan(plan, root=root, require_production=True)
     if readiness['status'] != 'passed':
         raise PreflightError(f"candidate inputs: {readiness['status']}; run release_preflight for details")

@@ -3,6 +3,7 @@ import { siteDescription } from "../lib/site-brand.mjs";
 import GalleryEntrypoints from '../components/GalleryEntrypoints.astro';
 import HomeImmersiveHero from '../components/HomeImmersiveHero.astro';
 import HomeBirthdays from '../components/HomeBirthdays.astro';
+import HomeEvents from '../components/HomeEvents.astro';
 import SourceDisclosure from "../components/SourceDisclosure.astro";
 import ArchiveImage from "../components/ArchiveImage.astro";
 import CardRarityBadge from "../components/CardRarityBadge.astro";
@@ -13,31 +14,34 @@ import { activeReleaseContext } from "../lib/release-context";
 import { getUi } from "../lib/ui-i18n";
 import { siteHref } from "../lib/site-context";
 import "../styles/home.css";
+import { scheduleLabel } from "../lib/home-content.mjs";
 import { recentReleases, releaseTimestamp, releaseDateLabel } from "../lib/recent-releases.mjs";
+import { eventRecords } from "../lib/event-pages";
+import { homeMusic, challengeSongLabel } from "../lib/home-music.mjs";
 const en = activeReleaseContext.locale === "en";
 const href = (path: string) => import.meta.env.BASE_URL === "/" ? path : siteHref(path, activeReleaseContext);
 const entries = [
   { href: "/catalog/", title: en ? "Characters & cards" : "角色与卡牌", text: en ? "Members, snaps & growth" : "成员、留影与养成", count: `${catalog.characters.length} / ${catalog.memberCards.length + catalog.supportCards.length}` },
   { href: "/music/", title: en ? "Music & charts" : "歌曲与谱面", text: en ? "Songs, difficulty & charts" : "曲目、难度与谱面", count: String(catalog.musicTracks.length) },
-  { href: "/tools/deck-builder/", title: en ? "Team builder" : "编成与比较", text: en ? "Build and compare teams" : "编辑队伍、比较属性", count: "" },
+  { href: "/tools/deck-builder/", title: en ? "Team builder" : "卡组配队", text: en ? "Build and compare teams" : "编辑队伍、比较属性", count: "" },
   { href: "/tools/", title: en ? "Scoring tools" : "计分与攻略", text: en ? "Calculators & score analysis" : "分数估算、攻略工具", count: "" }
 ];
 const now = Date.now();
+const region = activeReleaseContext.region;
+const releaseOptions = {region, includeUpcoming:true};
 const shortcutIcons = [
   'M7 4h12v16H7z M3 7v13a3 3 0 0 0 3 3 M10 8h6 M10 12h6 M10 16h3',
   'M9 18V5l11-2v13 M9 8l11-2 M9 18a3 3 0 1 1-3-3c1.7 0 3 1.3 3 3 M20 16a3 3 0 1 1-3-3c1.7 0 3 1.3 3 3',
   'M4 6h16 M4 12h16 M4 18h16 M8 3v6 M16 9v6 M10 15v6',
   'M4 3v17h17 M8 16v-4 M13 16V8 M18 16V5'
 ];
-const cards = recentReleases([...catalog.memberCards].sort((a,b) => b.rarity-a.rarity), now);
-const recentSnaps = recentReleases(catalog.supportCards, now, 2);
-const initialSnapDate = Math.min(...catalog.supportCards.map(card => releaseTimestamp(card.startAt) ?? Infinity));
-const newSnaps = recentSnaps.filter(card => (releaseTimestamp(card.startAt) ?? 0) > initialSnapDate);
-const tracks = recentReleases(catalog.musicTracks, now, 8);
+const cards = recentReleases([...catalog.memberCards].sort((a,b) => b.rarity-a.rarity), now, 6, releaseOptions);
+const recentSnaps = recentReleases(catalog.supportCards, now, 2, releaseOptions);
+const initialSnapDate = Math.min(...catalog.supportCards.map(card => releaseTimestamp(card.startAt, region) ?? Infinity));
+const newSnaps = recentSnaps.filter(card => (releaseTimestamp(card.startAt, region) ?? 0) > initialSnapDate);
+const { recent: tracks, upcoming: upcomingTracks } = homeMusic(catalog.musicTracks, eventRecords, region, now);
 const heroCard = catalog.supportCards.find(card => card.masterId === 61);
 const heroArt = getAsset(heroCard?.thumbnailAssetId);
-const upcomingTracks = catalog.musicTracks.filter(track => (releaseTimestamp(track.startAt) ?? 0) > now)
-  .sort((a,b) => releaseTimestamp(a.startAt)! - releaseTimestamp(b.startAt)!).slice(0,3);
 const sameMemberBatch = new Set(catalog.memberCards.map(card=>card.startAt)).size === 1;
 ---
 <BaseLayout description={siteDescription(activeReleaseContext.locale)}>
@@ -45,7 +49,7 @@ const sameMemberBatch = new Set(catalog.memberCards.map(card=>card.startAt)).siz
     <script is:inline>
       document.documentElement.dataset.home = new URLSearchParams(location.search).get('home') === 'immersive' ? 'immersive' : 'original';
     </script>
-    <nav class="home-scene-switch" aria-label={en ? 'Homepage appearance preview' : '首页效果对比'}><a href={href('/')} data-home-mode="original">{en ? 'Original' : '原版首页'}</a><a href={`${href('/')}?home=immersive`} data-home-mode="immersive">{en ? 'Immersive preview' : '沉浸式预览'}</a></nav>
+    <nav class="home-scene-switch" aria-label={en ? 'Homepage appearance preview' : '首页效果对比'}><a href={href('/')} data-home-mode="original">{en ? 'Original' : '原版首页'}</a><a href={href('/?home=immersive')} data-home-mode="immersive">{en ? 'Immersive preview' : '沉浸式预览'}</a></nav>
     <HomeImmersiveHero />
     <header class="home-intro home-intro--illustrated">
       {heroArt && <div class="home-hero-art"><ArchiveImage asset={heroArt} alt="BanG Dream! Our Notes 乐队成员主视觉" eager /><a href={href(`/cards/supports/${heroCard!.id}/`)}>{en ? "Explore the artwork" : "查看这张留影"}</a></div>}
@@ -62,24 +66,12 @@ const sameMemberBatch = new Set(catalog.memberCards.map(card=>card.startAt)).siz
       </a>
     </header>
 
+    <HomeEvents />
     <HomeBirthdays />
 
     <nav class="home-shortcuts home-shortcuts--illustrated" aria-label={en ? "Quick access" : "快捷入口"}>
       {entries.map((entry, index) => <a href={href(entry.href)}><span class="home-shortcut-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d={shortcutIcons[index]} /></svg></span><span class="home-shortcut-copy"><span class="home-shortcut-title">{entry.title}<span aria-hidden="true">{entry.count}</span></span><small>{entry.text}</small></span></a>)}
     </nav>
-
-    <GalleryEntrypoints />
-    <a class="home-scene-banner" href={href('/immersive/')}>
-      <img src={href('/immersive/thumbnails/10007.webp')} alt="" width="240" height="135" loading="lazy" />
-      <span class="home-scene-copy"><small>MyGO!!!!! <span aria-hidden="true">/</span> {en ? 'ANIMATED SCENES' : '动态场景'}</small><strong>{en ? 'Immersive scenes' : '沉浸式主页'}</strong><span>{en ? 'Browse, play & download scenes' : '浏览场景，播放动态并下载'}</span></span>
-      <span class="home-scene-link">{en ? 'Explore scenes' : '进入场景'}</span>
-    </a>
-
-    <section class="home-event" aria-labelledby="event-heading">
-      <div class="home-event-label"><span aria-hidden="true">○</span><h2 id="event-heading">{en ? "Event updates" : "活动情报"}</h2></div>
-      <p>{en ? "No verified event updates yet." : "暂无已确认的活动情报"}</p>
-      <a href={href("/events/")}>{en ? "View status" : "查看状态"}<span aria-hidden="true"> →</span></a>
-    </section>
 
     {cards.length > 0 && <section class="home-section" aria-labelledby="home-cards-title">
       <header class="home-section-heading">
@@ -88,7 +80,15 @@ const sameMemberBatch = new Set(catalog.memberCards.map(card=>card.startAt)).siz
       </header>
       {newSnaps.length > 0 && <div class="home-new-snaps">{newSnaps.map(card => {
         const asset = getAsset(card.thumbnailAssetId);
-        return <a href={href(`/cards/supports/${card.id}/`)}>{asset && <ArchiveImage asset={asset} alt="" />}<div><small>{en ? "NEW SNAP" : "新加入的留影"} · {releaseDateLabel(card.startAt)}</small><h3>{card.description || card.name}</h3><p>{card.featuredCharacterIds.map(id=>getCharacter(id)?.displayName).filter(Boolean).join(" · ")}</p></div><span aria-hidden="true">→</span></a>;
+        return <a href={href(`/cards/supports/${card.id}/`)}>
+          {asset && <ArchiveImage asset={asset} alt="" />}
+          <div class="home-snap-copy">
+            <small>{en ? "NEW SNAP" : "新加入的留影"} · {releaseDateLabel(card.startAt)}</small>
+            <div class="home-snap-taxonomy"><CardRarityBadge rarity={card.rarity} compact /><CardAttributeBadge code={card.attributeCode} compact /></div>
+            <h3>{card.description || card.name}</h3>
+            <p>{card.featuredCharacterIds.map(id=>getCharacter(id)?.displayName).filter(Boolean).join(" · ")}</p>
+          </div><span aria-hidden="true">→</span>
+        </a>;
       })}</div>}
       {sameMemberBatch && <p class="home-section-note">{en ? "Member cards share the same start date in this data version. Showing a selection from that batch." : "当前资料中的成员卡为同批收录，以下优先展示高稀有度成员。"}</p>}
       <div class="home-card-grid">
@@ -99,7 +99,7 @@ const sameMemberBatch = new Set(catalog.memberCards.map(card=>card.startAt)).siz
             <div class="home-card-art">
               {asset ? <ArchiveImage asset={asset} alt={card.subtitle} /> : <span class="media-missing">{en ? "Preview unavailable" : "暂无预览"}</span>}
             </div>
-            <div class="home-card-copy"><div class="home-card-taxonomy"><CardRarityBadge rarity={card.rarity} compact /><CardAttributeBadge code={card.attributeCode} compact /></div><h3>{card.subtitle}</h3><p>{character?.displayName ?? card.name}</p></div>
+            <div class="home-card-copy"><div class="home-card-taxonomy"><CardRarityBadge rarity={card.rarity} compact /><CardAttributeBadge code={card.attributeCode} compact /></div><h3>{card.subtitle}</h3><p>{character?.displayName ?? card.name}</p><small data-home-start={releaseTimestamp(card.startAt, region) ?? ''} data-home-locale={en ? 'en' : 'zh-CN'}>{scheduleLabel(releaseTimestamp(card.startAt, region), null, now, en, true)}</small><time>{releaseDateLabel(card.startAt)}</time></div>
           </a>;
         })}
       </div>
@@ -112,7 +112,8 @@ const sameMemberBatch = new Set(catalog.memberCards.map(card=>card.startAt)).siz
         <a href={href("/music/")}>{en ? "All songs" : "全部歌曲"}<span aria-hidden="true"> →</span></a>
       </header>
       <div class="home-music-grid">
-        {tracks.map((track) => {
+        {tracks.map((release) => {
+          const { track, addedAt, challengeDebut } = release;
           const jacket = getAsset(track.jacketAssetId);
           const expert = getMusicCharts(track.id).find(chart => chart.difficulty === 'expert');
           const gekisouCounts = (['just', 'combo', 'luck'] as const).map(type => ({
@@ -123,19 +124,30 @@ const sameMemberBatch = new Set(catalog.memberCards.map(card=>card.startAt)).siz
             <div class="home-track-art">{jacket ? <ArchiveImage asset={jacket} alt={track.title} /> : <span aria-hidden="true">♪</span>}</div>
             <div class="home-track-copy">
               <h3 title={track.title}>{track.title}</h3>
-              <div class="home-track-ex" aria-label={en ? 'Expert difficulty' : 'EX 难度'}>EX <strong>{expert?.displayLevel ?? '—'}</strong></div>
+              {challengeDebut && <div class="home-track-availability">
+                <span class="home-track-status" data-home-song={JSON.stringify({freeLiveStart: release.freeLiveStart, challengePeriods: release.challengePeriods})} data-home-locale={en ? 'en' : 'zh-CN'}>{challengeSongLabel(release, now, en)}</span>
+                {release.freeLiveStart !== null && <small>{en ? 'Free Live' : '自由演出'} <time datetime={new Date(release.freeLiveStart).toISOString()} title={`${track.startAt} ${region === 'jp' ? 'JST' : 'UTC+8'}`}>{releaseDateLabel(track.startAt).slice(5)} {track.startAt.split(/[ T]/)[1]?.slice(0,-3).padStart(5,'0')} {region === 'jp' ? 'JST' : 'UTC+8'}</time></small>}
+              </div>}
+              <div class="home-track-metadata"><div class="home-track-ex" aria-label={en ? 'Expert difficulty' : 'EX 难度'}>EX <strong>{expert?.displayLevel ?? '—'}</strong></div><CardAttributeBadge code={track.musicType} compact /></div>
               {gekisouCounts.length > 0 && <div class="home-track-gekisou" aria-label={en ? 'Gekisou type counts' : '激奏类型数量'}>
                 {gekisouCounts.map(({type, count}) => <span data-type={type} title={`${type.toUpperCase()} ×${count}`} aria-label={`${type.toUpperCase()} ×${count}`}>{type[0].toUpperCase()}×{count}</span>)}
               </div>}
             </div>
-            <time class="home-track-date" datetime={releaseDateLabel(track.startAt)}>{releaseDateLabel(track.startAt).slice(5)}</time>
+            <time class="home-track-date" datetime={releaseDateLabel(addedAt)} title={`${en ? 'Added to game' : '加入游戏'} · ${addedAt}`}>{releaseDateLabel(addedAt).slice(5)}</time>
           </a>;
         })}
       </div>
-      {upcomingTracks.length > 0 && <div class="home-upcoming"><span>{en ? "Coming next" : "即将加入"}</span>{upcomingTracks.map(track=><a href={href(`/music/${track.id}/`)}>{track.title}<time datetime={releaseDateLabel(track.startAt)}>{releaseDateLabel(track.startAt).slice(5)}</time></a>)}</div>}
-      <p class="home-section-note">{en ? "Sorted by the data version’s start time (UTC+8)." : "按当前资料中的开放时间排序（UTC+8）。"}</p>
+      {upcomingTracks.length > 0 && <div class="home-upcoming"><span>{en ? "Coming next" : "即将加入"}</span>{upcomingTracks.map(({track, addedAt, challengeDebut})=><a href={href(`/music/${track.id}/`)}>{track.title}{challengeDebut && <span> · {en ? 'Challenge debut' : '挑战演出先行'}</span>}<time datetime={releaseDateLabel(addedAt)}>{releaseDateLabel(addedAt).slice(5)}</time></a>)}</div>}
+      <p class="home-section-note">{en ? "Sorted by first availability in game, including Challenge Live debuts." : "按首次加入游戏的时间排序，包含挑战演出先行开放的歌曲。"}</p>
       {tracks.length === 0 && <p>{en ? "No songs in this data version yet." : "当前资料版本暂无歌曲。"}</p>}
     </section>
+
+    <GalleryEntrypoints />
+    <a class="home-scene-banner" href={href('/immersive/')}>
+      <img src={href('/immersive/thumbnails/10007.webp')} alt="" width="240" height="135" loading="lazy" />
+      <span class="home-scene-copy"><small>MyGO!!!!! <span aria-hidden="true">/</span> {en ? 'ANIMATED SCENES' : '动态场景'}</small><strong>{en ? 'Immersive scenes' : '沉浸式主页'}</strong><span>{en ? 'Browse, play & download scenes' : '浏览场景，播放动态并下载'}</span></span>
+      <span class="home-scene-link">{en ? 'Explore scenes' : '进入场景'}</span>
+    </a>
 
     <section class="home-workbench" aria-labelledby="home-workbench-title">
       <div class="home-workbench-intro">
@@ -143,10 +155,27 @@ const sameMemberBatch = new Set(catalog.memberCards.map(card=>card.startAt)).siz
         <div><h2 id="home-workbench-title">{en ? 'Team tools' : '配队工具'}</h2><p>{en ? 'Choose members and snaps, compare stats and estimate scores.' : '选择成员与留影，比较属性和预估分数。'}</p></div>
       </div>
       <div class="home-workbench-actions">
-        <a class="home-workbench-primary" href={href('/tools/deck-builder/')}>{en ? 'Build a team' : '开始编成'}</a>
-        <a href={href('/tools/song-calculator/')}>{en ? 'Score calculator' : '分数计算'}</a>
+        <a class="home-workbench-primary" href={href('/tools/deck-builder/')}>{en ? 'Build a team' : '卡组配队'}</a>
+        <a href={href('/tools/song-calculator/')}>{en ? 'Score calculator' : '歌曲计算'}</a>
       </div>
     </section>
     <SourceDisclosure><p>{getUi(activeReleaseContext.locale).siteSourceNote}</p></SourceDisclosure>
   </div>
 </BaseLayout>
+<script>
+  import { scheduleLabel } from '../lib/home-content.mjs';
+  import { challengeSongLabel } from '../lib/home-music.mjs';
+  const update = () => {
+    document.querySelectorAll<HTMLElement>('[data-home-start]').forEach(node => {
+      const parse = (value: string | undefined) => value ? Number(value) : null;
+      node.textContent = scheduleLabel(parse(node.dataset.homeStart), parse(node.dataset.homeEnd), Date.now(), node.dataset.homeLocale === 'en', !node.hasAttribute('data-home-end'));
+    });
+    document.querySelectorAll<HTMLElement>('[data-home-song]').forEach(node => {
+      node.textContent = challengeSongLabel(JSON.parse(node.dataset.homeSong!), Date.now(), node.dataset.homeLocale === 'en');
+    });
+  };
+  update();
+  document.addEventListener('visibilitychange', update);
+  const timer = setInterval(update, 60000);
+  window.addEventListener('pagehide', () => { clearInterval(timer); document.removeEventListener('visibilitychange', update); }, {once:true});
+</script>

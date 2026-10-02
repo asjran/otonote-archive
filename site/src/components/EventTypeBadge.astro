@@ -1,0 +1,7 @@
+---
+import EventIcon from './EventIcon.astro';
+interface Props { mode: string; locale?: string }
+const { mode, locale = 'zh-CN' } = Astro.props;
+const label = locale === 'en' ? 'Challenge Live event' : locale === 'ja' ? 'チャレンジライブイベント' : locale === 'zh-TW' ? '挑戰演出活動' : '挑战演出活动';
+---
+{mode === 'challenge_live' && <span class="ef-event-type" title="チャレンジライブイベント"><EventIcon name="music" size={13} />{label}</span>}

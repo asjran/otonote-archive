@@ -1,6 +1,8 @@
+import type {EditionRecord} from "./catalog";
 import { activeReleaseContext } from './release-context';
 
-export interface BgmTrack {
+export interface BgmTrack extends EditionRecord {
+  contentIdentity?:string; sourceSha256?:string;
   id: string;
   title: string;
   cueName: string;

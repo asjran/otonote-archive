@@ -24,7 +24,9 @@
     "refresh:anontokyo": "python3 ../tools/anontokyo_refresh_static.py",
     "catalog:preflight": "python3 ../tools/release_preflight.py",
     "catalog:candidate": "python3 ../tools/release_candidates.py",
-    "build:candidate": "python3 ../tools/release_site.py"
+    "build:candidate": "python3 ../tools/release_site.py",
+    "build:code": "bash ../scripts/build-web-client.sh --preview",
+    "build:code:candidate": "cd .. && python3 -m tools.release_candidate"
   },
   "dependencies": {
     "@astrojs/check": "^0.9.9",
@@ -38,9 +40,5 @@
   "devDependencies": {
     "@astrojs/compiler": "^2.13.1",
     "postcss": "8.5.25"
-  },
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/stonesver/otonote.git"
   }
 }

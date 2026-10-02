@@ -67,5 +67,5 @@ def project_gallery(master: Path, release_id: str, locale: str, asset_root: Path
                 'status': asset['status'], 'description': label(row.get('_descriptionTextId', ''), ''), 'startAt': row.get('_startAt'), 'endAt': row.get('_endAt'),
                 'image': '/gallery/' + asset['image'] if asset['status'] == 'available' else None,
                 'thumbnail': '/gallery/' + asset['thumbnail'] if asset['status'] == 'available' else None,
-                'width': asset.get('width'), 'height': asset.get('height')})
+                'sourceSha256': asset.get('sha256'), 'width': asset.get('width'), 'height': asset.get('height')})
     return result

@@ -110,6 +110,7 @@ const ui = getUi(activeReleaseContext.locale);
     sortMusicRecords
   } from "../lib/music-filtering.mjs";
   import { createPaginationAdapter } from "../lib/pagination-browser.mjs";
+  import { serverSearchParams } from "../lib/game-servers.mjs";
 
   class MusicCatalogBrowser extends HTMLElement {
     connectedCallback() {
@@ -255,7 +256,7 @@ const ui = getUi(activeReleaseContext.locale);
         });
         if (level !== "all") filterParams.set("level", level);
         if (bpm !== "all") filterParams.set("bpm", bpm);
-        const next = pagination?.params(filterParams) ?? filterParams;
+        const next = serverSearchParams(pagination?.params(filterParams) ?? filterParams);
         if (historyMode !== "none") {
           history[historyMode === "push" ? "pushState" : "replaceState"](
             null,

@@ -1,0 +1,23 @@
+---
+import { eventTimestamp } from '../lib/event-time.mjs';
+import EventIcon from './EventIcon.astro';
+interface Props { start: string | null; end: string | null; edition: string; timeZone?: string | null; locale?: string }
+const { start, end, edition, timeZone, locale = 'zh-CN' } = Astro.props;
+const startMs = eventTimestamp(start, edition, timeZone), endMs = eventTimestamp(end, edition, timeZone);
+const note = timeZone ?? (edition === 'jp' ? 'JST (UTC+9)' : 'UTC+8');
+---
+<span class="ef-countdown" data-event-countdown data-start={startMs} data-end={endMs} data-en={locale === 'en'} title={note}><EventIcon name="clock" size={14} /><span>{locale === 'en' ? 'Calculating…' : '计算时间中…'}</span></span>
+<script>
+  import { eventCountdown } from '../lib/event-time.mjs';
+  const refresh = () => document.querySelectorAll<HTMLElement>('[data-event-countdown]').forEach(node => {
+    const start = node.dataset.start ? Number(node.dataset.start) : null;
+    const end = node.dataset.end ? Number(node.dataset.end) : null;
+    const state = eventCountdown(start, end, Date.now(), node.dataset.en === 'true');
+    node.dataset.state = state.state;
+    node.querySelector('span')!.textContent = state.label;
+  });
+  refresh();
+  const timer = window.setInterval(refresh, 30000);
+  document.addEventListener('visibilitychange', refresh);
+  window.addEventListener('pagehide', () => { clearInterval(timer); document.removeEventListener('visibilitychange', refresh); }, {once:true});
+</script>

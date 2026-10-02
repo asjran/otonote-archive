@@ -1,5 +1,6 @@
 ---
 import FilterDrawer from './FilterDrawer.astro';
+import '../styles/calculator-filter-layout.css';
 interface Props { title: string; }
 const {title}=Astro.props;
 ---
@@ -8,6 +9,7 @@ const {title}=Astro.props;
     <slot name="search" />
     <FilterDrawer title={title} count={0} noun="" controls><slot /></FilterDrawer>
   </div>
+  <div class="selection-quick"><slot name="quick" /></div>
   <div class="selection-results-bar"><slot name="results" /></div>
   <div class="selection-active-filters" data-filter-summary aria-label="已选筛选条件" hidden></div>
 </div>

@@ -1,3 +1,4 @@
+import {currentServerContext, assertAccountServer} from './game-servers.mjs';
 export const TEAM_DRAFT_SCHEMA_VERSION = 1;
 
 export const TEAM_RULE_SET = Object.freeze({
@@ -200,6 +201,8 @@ export function parseTeamDraftSearch(search, known = {}) {
 export function serializeTeamDraftSearch(draft) {
   const normalized = createTeamDraft(draft);
   const params = new URLSearchParams();
+  const serverId = currentServerContext().serverId;
+  if(serverId) params.set('server',serverId);
   params.set(
     "members",
     normalized.slots.map((slot) => slot.memberCardId ?? "").join(",")
@@ -226,6 +229,16 @@ export function serializeTeamDraftSearch(draft) {
   }
   if (Object.keys(otherModifiers).length) params.set("modifiers", JSON.stringify(otherModifiers));
   return `?${params.toString()}`;
+}
+
+export function serializeTeamDraftJson(draft, context = currentServerContext()) {
+  return JSON.stringify({...createTeamDraft(draft), ...context}, null, 2);
+}
+
+export function parseScopedTeamDraftJson(raw, context = currentServerContext()) {
+  const value = JSON.parse(raw);
+  assertAccountServer(value?.serverId, context);
+  return createTeamDraft(value);
 }
 
 const basePower = (card) => ({

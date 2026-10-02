@@ -12,6 +12,16 @@
 .immersive-canvas canvas { display:block; width:100%; height:100%; }
 .immersive-start { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px; background:#13151a26; }
 .immersive-start > span { color:white; font-size:11px; text-shadow:0 1px 4px #000; }
+.immersive-load-progress { width:min(300px,calc(100% - 40px)); box-sizing:border-box; padding:12px 14px; border:1px solid #fff5; border-radius:10px; color:#fff; background:#201e25ed; font-size:12px; box-shadow:0 5px 26px #0002; }
+.immersive-load-progress > div { display:flex; justify-content:space-between; gap:12px; }
+.immersive-load-progress [data-load-percent],.immersive-load-progress small { font-variant-numeric:tabular-nums; }
+.immersive-load-progress progress { display:block; appearance:none; width:100%; height:6px; margin-top:9px; border:0; border-radius:99px; overflow:hidden; background:#ffffff30; accent-color:#e8bad4; }
+.immersive-load-progress progress::-webkit-progress-bar { background:#ffffff30; border-radius:99px; }
+.immersive-load-progress progress::-webkit-progress-value { background:#e8bad4; border-radius:99px; }
+.immersive-load-progress progress::-moz-progress-bar { background:#e8bad4; border-radius:99px; }
+.immersive-load-progress small { display:block; margin-top:6px; font-size:10px; color:#e8dfe9; }
+.immersive-load-progress small:empty { display:none; }
+.immersive-scene[data-state="loading"] .immersive-start > span { display:none; }
 .immersive-load { display:flex; align-items:center; gap:10px; padding:13px 22px; border:1px solid #fff9; border-radius:99px; color:#fff; background:#27232ce6; font:600 13px var(--font-body); cursor:pointer; box-shadow:0 5px 26px #0002; }
 .immersive-load span { font-size:22px; line-height:1; }
 .immersive-scene[data-state="ready"] .immersive-poster,.immersive-scene[data-state="ready"] .immersive-start { display:none; }

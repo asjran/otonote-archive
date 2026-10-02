@@ -10,10 +10,10 @@ from analysis.crypto.extract_cri_media import (
 
 class CriMediaTest(unittest.TestCase):
     def test_defaults_hca_key_to_raw_cri_key(self) -> None:
-        self.assertEqual(resolve_hca_key(123456789, None), 123456789)
+        self.assertEqual(resolve_hca_key(123_456_789, None), 123_456_789)
 
     def test_explicit_hca_key_overrides_raw_cri_key(self) -> None:
-        self.assertEqual(resolve_hca_key(123456789, 12345), 12345)
+        self.assertEqual(resolve_hca_key(123_456_789, 12345), 12345)
 
     def test_classifies_low_entropy_full_scale_audio_as_suspicious(self) -> None:
         quality = parse_audio_quality(

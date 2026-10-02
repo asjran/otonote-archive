@@ -1,0 +1,46 @@
+{
+  "schemaVersion": 1,
+  "sampleId": "replace-with-anonymized-sample-id",
+  "sourceReleaseId": "replace-with-content-release-id",
+  "ruleSetVersion": "replace-with-rule-set-id",
+  "verificationStatus": "observed",
+  "sourceEvidence": [
+    "sha256:replace-with-redacted-client-result-hash"
+  ],
+  "formation": {
+    "totalPower": 0,
+    "cardIds": []
+  },
+  "judgements": [
+    {
+      "eventId": "note-1",
+      "judgement": "replace-with-client-judgement",
+      "comboBefore": 0
+    }
+  ],
+  "scoreCommands": [
+    {
+      "commandId": "replace-with-command-id",
+      "eventId": "note-1",
+      "kind": "replace-with-skill-leader-fixed-or-mode-command"
+    }
+  ],
+  "chart": {
+    "musicId": 0,
+    "difficulty": 0,
+    "events": [
+      {
+        "id": "note-1",
+        "notePercent": 0,
+        "judgementPercent": 0,
+        "comboPercent": 0,
+        "scorePercent": 0,
+        "fixedScore": 0
+      }
+    ]
+  },
+  "expected": {
+    "finalScore": 0,
+    "noteScores": []
+  }
+}

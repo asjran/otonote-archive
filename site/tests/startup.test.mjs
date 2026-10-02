@@ -14,7 +14,7 @@ for (const locale of ['zh-CN', 'en']) for (const corrupt of [false, true]) {
     const root = '/content/releases/' + 'a'.repeat(24) + '/';
     const names = ['catalog', 'release-index', 'media-index'];
     const data = JSON.stringify({version:'original'});
-    const manifest = JSON.stringify({schemaVersion:1, root, locales:{[locale]:{files:Object.fromEntries(names.map(name => [
+    const manifest = JSON.stringify({schemaVersion:1, region:'global', root, locales:{[locale]:{files:Object.fromEntries(names.map(name => [
       `projection/${name}.json`, {path:`${locale}/${name}.json`, sha256:hash(data)}
     ]))}}});
     const pointer = JSON.stringify({schemaVersion:1, manifest:root+'manifest.json', sha256:hash(manifest)});
@@ -57,3 +57,39 @@ for (const locale of ['zh-CN', 'en']) for (const corrupt of [false, true]) {
     }
   });
 }
+
+
+test('compiled page profile starts collection reads before sequential template awaits', async () => {
+  const keys = ['ournotes.page-startup.v1', 'ournotes.content.snapshot.v1', 'ournotes.content-root.v1', 'ournotes.code-root.v1'].map(Symbol.for);
+  const originals = keys.map(key => globalThis[key]);
+  const originalFetch = globalThis.fetch, originalLocation = globalThis.location, originalBase = globalThis.__OURNOTES_BASE__;
+  keys.forEach(key => delete globalThis[key]);
+  const root = '/content/releases/' + 'b'.repeat(24) + '/';
+  const data = JSON.stringify({version:'checked'}), collection = JSON.stringify({'@projection-data/database-shards/skills/a.json':{schemaVersion:1}});
+  const manifest = JSON.stringify({schemaVersion:1, region:'global', root, locales:{'zh-CN':{files:{
+    'projection/catalog.json':{path:'zh-CN/catalog.json',sha256:hash(data)}
+  }, groups:{'@projection-data/database-shards/skills/*.json':{path:'zh-CN/_groups/skills.json',sha256:hash(collection)}}}}});
+  const pending = new Map(), counts = new Map();
+  globalThis.location = new URL('https://example.test/global/zh-CN/cards/members/');
+  globalThis.fetch = async url => {
+    counts.set(url,(counts.get(url) ?? 0) + 1);
+    if (url === '/content/current.json') return new Response(JSON.stringify({schemaVersion:1,manifest:root+'manifest.json',sha256:hash(manifest)}));
+    if (url === root+'manifest.json') return new Response(manifest);
+    return new Promise(resolve => pending.set(url,resolve));
+  };
+  try {
+    const app = {schemaVersion:1,contentSchemaVersion:1,routes:[{pattern:'cards/members',module:'page.js',dataProfile:0}],
+      dataProfiles:[{files:['projection/catalog.json','supplemental/optional.json'],groups:['@projection-data/database-shards/skills/*.json']}]};
+    const task = startPageInputs(app,'https://example.test/app/',{importPage:async()=>({default:await artifact('projection/catalog.json')})});
+    for(let i=0;i<100 && pending.size<2;i++) await new Promise(resolve=>setTimeout(resolve,5));
+    assert.equal(pending.size,2,'collection starts even while the template is blocked on catalog');
+    pending.get(root+'zh-CN/catalog.json')(new Response(data));
+    pending.get(root+'zh-CN/_groups/skills.json')(new Response('{}'));
+    await assert.rejects(task,/校验失败/,'prefetched corrupt collections fail closed');
+    assert.ok([...counts.values()].every(value=>value===1));
+  } finally {
+    globalThis.fetch=originalFetch;globalThis.location=originalLocation;
+    if(originalBase===undefined)delete globalThis.__OURNOTES_BASE__;else globalThis.__OURNOTES_BASE__=originalBase;
+    keys.forEach((key,i)=>{if(originals[i]===undefined)delete globalThis[key];else globalThis[key]=originals[i];});
+  }
+});

@@ -1,7 +1,8 @@
 ---
+import EditionBadge from "../../../components/EditionBadge.astro";
 import BaseLayout from '../../../layouts/BaseLayout.astro';
 import SourceDisclosure from '../../../components/SourceDisclosure.astro';
-import { bgmCatalog, isBgmEnglish as en } from '../../../lib/bgm-catalog';
+import { bgmCatalog, isBgmEnglish as en } from '../../../lib/shared-bgm';
 import { formatBgmSize, formatBgmTime } from '../../../lib/bgm-filtering.mjs';
 import { activeReleaseContext } from '../../../lib/release-context';
 import { siteHref } from '../../../lib/site-context';
@@ -66,7 +67,7 @@ const symbols: Record<string, string> = { home: '⌂', event: '✦', story: '≋
         data-bgm-track={track.id} data-title={track.title} data-cue={track.cueName} data-categories={track.categoryIds.join(' ')} data-status={track.status}>
         {track.audio ? <button class="bgm-track-play" type="button" data-bgm-play data-url={track.audio.url} aria-label={`${copy.play} ${track.title}`} aria-pressed="false" title={`${copy.play} ${track.title}`}><span aria-hidden="true" data-play-icon>▶</span><span class="visually-hidden" data-play-text>{copy.play}</span></button>
           : <span class="bgm-track-unavailable" aria-hidden="true">—</span>}
-        <div class="bgm-track-body"><h3 title={track.title}>{track.title}</h3>
+        <div class="bgm-track-body"><div class="bgm-track-heading"><h3 title={track.title}>{track.title}</h3><EditionBadge record={track} /></div>
           <p class="bgm-cue" title={track.cueName}>{track.cueName}</p>
           {!track.classificationConfirmed && <span class="bgm-pending">{copy.pending}</span>}
         </div>

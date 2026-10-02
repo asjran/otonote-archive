@@ -1,0 +1,44 @@
+---
+import { catalog, getAsset, getBand, getCharacter } from '../lib/catalog';
+import CardAttributeBadge from './CardAttributeBadge.astro';
+import CardRarityBadge from './CardRarityBadge.astro';
+import BandMark from './BandMark.astro';
+interface Props { resourceType: number | null; resourceId: number | null; rarity?: number | null; locale?: string; part?: 'all' | 'traits' | 'band' }
+const { resourceType, resourceId, rarity, locale = 'zh-CN', part = 'all' } = Astro.props;
+const card = resourceType === 2 ? catalog.memberCards.find(card => card.masterId === resourceId)
+  : resourceType === 3 ? catalog.supportCards.find(card => card.masterId === resourceId) : undefined;
+const characterIds = card ? ('characterId' in card ? [card.characterId] : card.featuredCharacterIds) : [];
+const bands = [...new Map(characterIds.map(getCharacter).flatMap(character => {
+  const band = getBand(character?.bandId);
+  return band ? [[band.id, band] as const] : [];
+})).values()];
+const cardRarity = card?.rarity ?? rarity;
+---
+{(card || cardRarity != null) && <span class:list={["ef-card-basics", {"ef-card-basics--inline": part !== 'all'}]} aria-label={part === 'traits' ? (locale === 'en' ? 'Attribute and rarity' : '属性与稀有度') : part === 'band' ? (locale === 'en' ? 'Band' : '乐队') : (locale === 'en' ? 'Card attribute, rarity and band' : '卡牌属性、稀有度与乐队')}>
+  {part !== 'band' && card && <CardAttributeBadge code={card.attributeCode} compact />}
+  {part !== 'band' && cardRarity != null && <CardRarityBadge rarity={cardRarity} compact />}
+  {part !== 'traits' && bands.map(band => <BandMark band={band} compact iconOnly={Boolean(getAsset(band.logoAssetId))} />)}
+</span>}
+<style>
+  .ef-card-basics { display:flex; flex-wrap:wrap; align-items:center; gap:4px 7px; min-width:0; margin:5px 0; }
+  .ef-card-basics :global(.card-attribute-badge),
+  .ef-card-basics :global(.rarity-badge),
+  .ef-card-basics :global(.band-mark) { display:inline-flex; align-items:center; justify-content:center; flex-shrink:0; padding:0; border:0; background:transparent; min-height:22px; }
+  .ef-card-basics :global(.card-attribute-badge img) { display:block; width:20px; height:20px; object-fit:contain; }
+  .ef-card-basics :global(.rarity-badge img) { display:block; width:auto; max-width:40px; height:18px; object-fit:contain; }
+  .ef-card-basics :global(.band-mark img) { display:block; width:62px; height:24px; object-fit:contain; }
+  .ef-card-basics :global(.band-mark > span:not(.visually-hidden)) { max-width:100%; font-size:9px; white-space:normal; }
+  .ef-card-basics :global(.rarity-badge > strong:not(.visually-hidden)) { font:600 11px var(--font-body); }
+  .ef-card-basics--inline { flex-wrap:nowrap; flex-shrink:0; gap:3px; margin:0; }
+  .ef-card-basics--inline :global(.card-attribute-badge),
+  .ef-card-basics--inline :global(.rarity-badge),
+  .ef-card-basics--inline :global(.band-mark) { min-height:18px; }
+  .ef-card-basics--inline :global(.card-attribute-badge img) { width:16px; height:16px; }
+  .ef-card-basics--inline :global(.rarity-badge img) { width:27px; height:17px; }
+  .ef-card-basics--inline :global(.band-mark img) { width:42px; height:22px; }
+  @media(max-width:760px) {
+    .ef-card-basics--inline :global(.card-attribute-badge img) { width:14px; height:14px; }
+    .ef-card-basics--inline :global(.rarity-badge img) { width:24px; height:16px; }
+    .ef-card-basics--inline :global(.band-mark img) { width:34px; height:20px; }
+  }
+</style>

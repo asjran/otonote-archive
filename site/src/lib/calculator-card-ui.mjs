@@ -21,7 +21,7 @@ export function skillBlock(workbench, card, { growth, maximum = false, mode, lea
 export function cardIdentity(workbench, card) {
   const root=cardElement('div',null,'card-identity');
   if(card.imageUrl){const img=cardElement('img');img.src=card.imageUrl;img.alt='';img.loading='lazy';root.append(img);}
-  const text=cardElement('div');text.append(cardElement('small',`${card.kind==='member'?'成员':'留影'} · ${({1:'R',2:'SR',3:'SSR',4:'EX',5:'BD'})[card.rarity]??card.rarity} · #${card.masterId}`),cardElement('strong',card.shortLabel),cardElement('span',card.relationLabel));
+  const text=cardElement('div');text.append(cardElement('small',`${card.kind==='member'?'成员':'留影'} · ${card.rarityLabel??`RARITY ${card.rarity}`} · #${card.masterId}`),cardElement('strong',card.shortLabel),cardElement('span',card.relationLabel));
   root.append(text,attributeBadge(card.attributeCode,workbench.data.attributeVisuals));return root;
 }
 

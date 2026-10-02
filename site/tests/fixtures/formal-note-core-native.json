@@ -1,0 +1,873 @@
+{
+  "client": "global Android 1.0.1 (25)",
+  "nativeSha256": "514a5b73d038c264b60cc91fd4a747cf178190c6b2096e6d7007c2020e2b1bca",
+  "method": "0x55e4e38",
+  "executedInstructions": "0x55e5018..0x55e50c0 (ABI stack restores replaced)",
+  "generator": "analysis/crypto/verify_scoring_core_native.py",
+  "vectors": [
+    {
+      "input": {
+        "totalPower": 675215,
+        "scoreAdjustmentFactor": 1,
+        "musicScoreLevelFactor": 1.15,
+        "noteFactorPercent": 20,
+        "judgementFactorPercent": 100,
+        "comboBonusFactor": 1.2,
+        "scoreUpFactor": 0.9999999403953552,
+        "luckScoreFactorPercent": 200,
+        "convertedNoteCount": 1024,
+        "eventBonusFactor": 1.3333,
+        "lifeOnusFactor": 0.5,
+        "assistModeNoteScoreFactor": 0.5,
+        "currentLife": 1000
+      },
+      "score": 241
+    },
+    {
+      "input": {
+        "totalPower": 100000,
+        "scoreAdjustmentFactor": 1,
+        "musicScoreLevelFactor": 1.15,
+        "noteFactorPercent": 50,
+        "judgementFactorPercent": 50,
+        "comboBonusFactor": 1.2,
+        "scoreUpFactor": 2.299990177154541,
+        "luckScoreFactorPercent": 200,
+        "convertedNoteCount": 3,
+        "eventBonusFactor": 1,
+        "lifeOnusFactor": 0.3,
+        "assistModeNoteScoreFactor": 1,
+        "currentLife": 1000
+      },
+      "score": 52899
+    },
+    {
+      "input": {
+        "totalPower": 99999,
+        "scoreAdjustmentFactor": 3,
+        "musicScoreLevelFactor": 1,
+        "noteFactorPercent": 200,
+        "judgementFactorPercent": 0,
+        "comboBonusFactor": 1.1,
+        "scoreUpFactor": 4.5,
+        "luckScoreFactorPercent": 110,
+        "convertedNoteCount": 1024,
+        "eventBonusFactor": 1.3333,
+        "lifeOnusFactor": 0.5,
+        "assistModeNoteScoreFactor": 0.5,
+        "currentLife": 1000
+      },
+      "score": 0
+    },
+    {
+      "input": {
+        "totalPower": 1118790,
+        "scoreAdjustmentFactor": 3,
+        "musicScoreLevelFactor": 1.105,
+        "noteFactorPercent": 10,
+        "judgementFactorPercent": 100,
+        "comboBonusFactor": 1.1,
+        "scoreUpFactor": 0.9999999403953552,
+        "luckScoreFactorPercent": 200,
+        "convertedNoteCount": 525,
+        "eventBonusFactor": 2.25,
+        "lifeOnusFactor": 0.5,
+        "assistModeNoteScoreFactor": 1,
+        "currentLife": 1000
+      },
+      "score": 3496
+    },
+    {
+      "input": {
+        "totalPower": 99999,
+        "scoreAdjustmentFactor": 3,
+        "musicScoreLevelFactor": 1,
+        "noteFactorPercent": 20,
+        "judgementFactorPercent": 101,
+        "comboBonusFactor": 4,
+        "scoreUpFactor": 1,
+        "luckScoreFactorPercent": 100,
+        "convertedNoteCount": 525,
+        "eventBonusFactor": 1.3333,
+        "lifeOnusFactor": 0.5,
+        "assistModeNoteScoreFactor": 0.8,
+        "currentLife": 1000
+      },
+      "score": 491
+    },
+    {
+      "input": {
+        "totalPower": 1118790,
+        "scoreAdjustmentFactor": 3,
+        "musicScoreLevelFactor": 1.15,
+        "noteFactorPercent": 10,
+        "judgementFactorPercent": 100,
+        "comboBonusFactor": 2,
+        "scoreUpFactor": 0.9999999403953552,
+        "luckScoreFactorPercent": 100,
+        "convertedNoteCount": 3,
+        "eventBonusFactor": 1,
+        "lifeOnusFactor": 0.3,
+        "assistModeNoteScoreFactor": 1,
+        "currentLife": 1000
+      },
+      "score": 257321
+    },
+    {
+      "input": {
+        "totalPower": 2254656,
+        "scoreAdjustmentFactor": 1,
+        "musicScoreLevelFactor": 1,
+        "noteFactorPercent": 10,
+        "judgementFactorPercent": 0,
+        "comboBonusFactor": 4,
+        "scoreUpFactor": 0.9999999403953552,
+        "luckScoreFactorPercent": 200,
+        "convertedNoteCount": 1024,
+        "eventBonusFactor": 1.1,
+        "lifeOnusFactor": 0.5,
+        "assistModeNoteScoreFactor": 1,
+        "currentLife": 1
+      },
+      "score": 0
+    },
+    {
+      "input": {
+        "totalPower": 1118790,
+        "scoreAdjustmentFactor": 3,
+        "musicScoreLevelFactor": 1,
+        "noteFactorPercent": 50,
+        "judgementFactorPercent": 100,
+        "comboBonusFactor": 1.1,
+        "scoreUpFactor": 4.5,
+        "luckScoreFactorPercent": 200,
+        "convertedNoteCount": 525,
+        "eventBonusFactor": 2.25,
+        "lifeOnusFactor": 0.5,
+        "assistModeNoteScoreFactor": 0.5,
+        "currentLife": 1
+      },
+      "score": 35600
+    },
+    {
+      "input": {
+        "totalPower": 1118790,
+        "scoreAdjustmentFactor": 3,
+        "musicScoreLevelFactor": 1.105,
+        "noteFactorPercent": 100,
+        "judgementFactorPercent": 80,
+        "comboBonusFactor": 2,
+        "scoreUpFactor": 0.9999999403953552,
+        "luckScoreFactorPercent": 200,
+        "convertedNoteCount": 525,
+        "eventBonusFactor": 2.25,
+        "lifeOnusFactor": 0.5,
+        "assistModeNoteScoreFactor": 1,
+        "currentLife": 1
+      },
+      "score": 50861
+    },
+    {
+      "input": {
+        "totalPower": 1118790,
+        "scoreAdjustmentFactor": 1,
+        "musicScoreLevelFactor": 1.15,
+        "noteFactorPercent": 0,
+        "judgementFactorPercent": 50,
+        "comboBonusFactor": 2,
+        "scoreUpFactor": 4.5,
+        "luckScoreFactorPercent": 200,
+        "convertedNoteCount": 3,
+        "eventBonusFactor": 2.25,
+        "lifeOnusFactor": 0.3,
+        "assistModeNoteScoreFactor": 0.8,
+        "currentLife": 1
+      },
+      "score": 0
+    },
+    {
+      "input": {
+        "totalPower": 16777217,
+        "scoreAdjustmentFactor": 1,
+        "musicScoreLevelFactor": 1.105,
+        "noteFactorPercent": 50,
+        "judgementFactorPercent": 0,
+        "comboBonusFactor": 1.2,
+        "scoreUpFactor": 1.3,
+        "luckScoreFactorPercent": 110,
+        "convertedNoteCount": 555,
+        "eventBonusFactor": 1.1,
+        "lifeOnusFactor": 0.5,
+        "assistModeNoteScoreFactor": 0.5,
+        "currentLife": 0
+      },
+      "score": 0
+    },
+    {
+      "input": {
+        "totalPower": 1256610,
+        "scoreAdjustmentFactor": 3,
+        "musicScoreLevelFactor": 1.15,
+        "noteFactorPercent": 100,
+        "judgementFactorPercent": 80,
+        "comboBonusFactor": 2,
+        "scoreUpFactor": 2.299990177154541,
+        "luckScoreFactorPercent": 110,
+        "convertedNoteCount": 3,
+        "eventBonusFactor": 1,
+        "lifeOnusFactor": 0.3,
+        "assistModeNoteScoreFactor": 0.5,
+        "currentLife": 1
+      },
+      "score": 2924873
+    },
+    {
+      "input": {
+        "totalPower": 99999,
+        "scoreAdjustmentFactor": 3,
+        "musicScoreLevelFactor": 1.105,
+        "noteFactorPercent": 100,
+        "judgementFactorPercent": 80,
+        "comboBonusFactor": 2,
+        "scoreUpFactor": 2.299990177154541,
+        "luckScoreFactorPercent": 200,
+        "convertedNoteCount": 525,
+        "eventBonusFactor": 1.3333,
+        "lifeOnusFactor": 0.3,
+        "assistModeNoteScoreFactor": 0.5,
+        "currentLife": 1000
+      },
+      "score": 3097
+    },
+    {
+      "input": {
+        "totalPower": 919582,
+        "scoreAdjustmentFactor": 3,
+        "musicScoreLevelFactor": 1.105,
+        "noteFactorPercent": 50,
+        "judgementFactorPercent": 100,
+        "comboBonusFactor": 1.1,
+        "scoreUpFactor": 4.5,
+        "luckScoreFactorPercent": 110,
+        "convertedNoteCount": 3,
+        "eventBonusFactor": 1.3333,
+        "lifeOnusFactor": 0.3,
+        "assistModeNoteScoreFactor": 1,
+        "currentLife": 0
+      },
+      "score": 1106546
+    },
+    {
+      "input": {
+        "totalPower": 99999,
+        "scoreAdjustmentFactor": 1,
+        "musicScoreLevelFactor": 1.105,
+        "noteFactorPercent": 50,
+        "judgementFactorPercent": 80,
+        "comboBonusFactor": 4,
+        "scoreUpFactor": 1,
+        "luckScoreFactorPercent": 200,
+        "convertedNoteCount": 1024,
+        "eventBonusFactor": 1.3333,
+        "lifeOnusFactor": 0.5,
+        "assistModeNoteScoreFactor": 0.5,
+        "currentLife": 1
+      },
+      "score": 229
+    },
+    {
+      "input": {
+        "totalPower": 16777217,
+        "scoreAdjustmentFactor": 1,
+        "musicScoreLevelFactor": 1.105,
+        "noteFactorPercent": 20,
+        "judgementFactorPercent": 100,
+        "comboBonusFactor": 1.2,
+        "scoreUpFactor": 4.5,
+        "luckScoreFactorPercent": 110,
+        "convertedNoteCount": 3,
+        "eventBonusFactor": 1.3333,
+        "lifeOnusFactor": 0.3,
+        "assistModeNoteScoreFactor": 0.5,
+        "currentLife": 1000
+      },
+      "score": 4894127
+    },
+    {
+      "input": {
+        "totalPower": 1118790,
+        "scoreAdjustmentFactor": 3,
+        "musicScoreLevelFactor": 1.15,
+        "noteFactorPercent": 50,
+        "judgementFactorPercent": 100,
+        "comboBonusFactor": 1.2,
+        "scoreUpFactor": 1.3,
+        "luckScoreFactorPercent": 100,
+        "convertedNoteCount": 3,
+        "eventBonusFactor": 1,
+        "lifeOnusFactor": 0.5,
+        "assistModeNoteScoreFactor": 0.5,
+        "currentLife": 0
+      },
+      "score": 250888
+    },
+    {
+      "input": {
+        "totalPower": 100000,
+        "scoreAdjustmentFactor": 1,
+        "musicScoreLevelFactor": 1.105,
+        "noteFactorPercent": 200,
+        "judgementFactorPercent": 0,
+        "comboBonusFactor": 2,
+        "scoreUpFactor": 4.5,
+        "luckScoreFactorPercent": 200,
+        "convertedNoteCount": 555,
+        "eventBonusFactor": 1.3333,
+        "lifeOnusFactor": 0.3,
+        "assistModeNoteScoreFactor": 1,
+        "currentLife": 1000
+      },
+      "score": 0
+    },
+    {
+      "input": {
+        "totalPower": 1,
+        "scoreAdjustmentFactor": 3,
+        "musicScoreLevelFactor": 1.105,
+        "noteFactorPercent": 200,
+        "judgementFactorPercent": 0,
+        "comboBonusFactor": 1.2,
+        "scoreUpFactor": 4.5,
+        "luckScoreFactorPercent": 200,
+        "convertedNoteCount": 555,
+        "eventBonusFactor": 2.25,
+        "lifeOnusFactor": 0.5,
+        "assistModeNoteScoreFactor": 1,
+        "currentLife": 1
+      },
+      "score": 0
+    },
+    {
+      "input": {
+        "totalPower": 100000,
+        "scoreAdjustmentFactor": 3,
+        "musicScoreLevelFactor": 1.15,
+        "noteFactorPercent": 100,
+        "judgementFactorPercent": 0,
+        "comboBonusFactor": 1.2,
+        "scoreUpFactor": 1.3,
+        "luckScoreFactorPercent": 110,
+        "convertedNoteCount": 525,
+        "eventBonusFactor": 1.1,
+        "lifeOnusFactor": 0.3,
+        "assistModeNoteScoreFactor": 0.5,
+        "currentLife": 0
+      },
+      "score": 0
+    },
+    {
+      "input": {
+        "totalPower": 100000,
+        "scoreAdjustmentFactor": 1,
+        "musicScoreLevelFactor": 1,
+        "noteFactorPercent": 0,
+        "judgementFactorPercent": 100,
+        "comboBonusFactor": 1,
+        "scoreUpFactor": 2.299990177154541,
+        "luckScoreFactorPercent": 100,
+        "convertedNoteCount": 1024,
+        "eventBonusFactor": 1.3333,
+        "lifeOnusFactor": 0.5,
+        "assistModeNoteScoreFactor": 0.5,
+        "currentLife": 1
+      },
+      "score": 0
+    },
+    {
+      "input": {
+        "totalPower": 100000,
+        "scoreAdjustmentFactor": 1,
+        "musicScoreLevelFactor": 1.15,
+        "noteFactorPercent": 10,
+        "judgementFactorPercent": 100,
+        "comboBonusFactor": 4,
+        "scoreUpFactor": 1.3,
+        "luckScoreFactorPercent": 110,
+        "convertedNoteCount": 3,
+        "eventBonusFactor": 1.3333,
+        "lifeOnusFactor": 0.3,
+        "assistModeNoteScoreFactor": 0.5,
+        "currentLife": 0
+      },
+      "score": 4385
+    },
+    {
+      "input": {
+        "totalPower": 1,
+        "scoreAdjustmentFactor": 3,
+        "musicScoreLevelFactor": 1.105,
+        "noteFactorPercent": 100,
+        "judgementFactorPercent": 100,
+        "comboBonusFactor": 1,
+        "scoreUpFactor": 2.299990177154541,
+        "luckScoreFactorPercent": 200,
+        "convertedNoteCount": 555,
+        "eventBonusFactor": 2.25,
+        "lifeOnusFactor": 0.3,
+        "assistModeNoteScoreFactor": 1,
+        "currentLife": 1
+      },
+      "score": 0
+    },
+    {
+      "input": {
+        "totalPower": 1,
+        "scoreAdjustmentFactor": 3,
+        "musicScoreLevelFactor": 1.105,
+        "noteFactorPercent": 200,
+        "judgementFactorPercent": 80,
+        "comboBonusFactor": 1.1,
+        "scoreUpFactor": 2.299990177154541,
+        "luckScoreFactorPercent": 200,
+        "convertedNoteCount": 1024,
+        "eventBonusFactor": 1,
+        "lifeOnusFactor": 0.3,
+        "assistModeNoteScoreFactor": 1,
+        "currentLife": 1
+      },
+      "score": 0
+    },
+    {
+      "input": {
+        "totalPower": 100000,
+        "scoreAdjustmentFactor": 1,
+        "musicScoreLevelFactor": 1.15,
+        "noteFactorPercent": 0,
+        "judgementFactorPercent": 100,
+        "comboBonusFactor": 1,
+        "scoreUpFactor": 2.299990177154541,
+        "luckScoreFactorPercent": 200,
+        "convertedNoteCount": 525,
+        "eventBonusFactor": 1,
+        "lifeOnusFactor": 0.5,
+        "assistModeNoteScoreFactor": 1,
+        "currentLife": 1000
+      },
+      "score": 0
+    },
+    {
+      "input": {
+        "totalPower": 1,
+        "scoreAdjustmentFactor": 1,
+        "musicScoreLevelFactor": 1.105,
+        "noteFactorPercent": 10,
+        "judgementFactorPercent": 100,
+        "comboBonusFactor": 1.2,
+        "scoreUpFactor": 4.5,
+        "luckScoreFactorPercent": 200,
+        "convertedNoteCount": 555,
+        "eventBonusFactor": 1.3333,
+        "lifeOnusFactor": 0.3,
+        "assistModeNoteScoreFactor": 0.5,
+        "currentLife": 1000
+      },
+      "score": 0
+    },
+    {
+      "input": {
+        "totalPower": 252696,
+        "scoreAdjustmentFactor": 3,
+        "musicScoreLevelFactor": 1.15,
+        "noteFactorPercent": 100,
+        "judgementFactorPercent": 0,
+        "comboBonusFactor": 2,
+        "scoreUpFactor": 1.3,
+        "luckScoreFactorPercent": 110,
+        "convertedNoteCount": 1024,
+        "eventBonusFactor": 1.1,
+        "lifeOnusFactor": 0.3,
+        "assistModeNoteScoreFactor": 0.8,
+        "currentLife": 1000
+      },
+      "score": 0
+    },
+    {
+      "input": {
+        "totalPower": 99999,
+        "scoreAdjustmentFactor": 1,
+        "musicScoreLevelFactor": 1.105,
+        "noteFactorPercent": 10,
+        "judgementFactorPercent": 80,
+        "comboBonusFactor": 4,
+        "scoreUpFactor": 1,
+        "luckScoreFactorPercent": 110,
+        "convertedNoteCount": 525,
+        "eventBonusFactor": 1,
+        "lifeOnusFactor": 0.3,
+        "assistModeNoteScoreFactor": 0.8,
+        "currentLife": 0
+      },
+      "score": 17
+    },
+    {
+      "input": {
+        "totalPower": 1,
+        "scoreAdjustmentFactor": 3,
+        "musicScoreLevelFactor": 1.105,
+        "noteFactorPercent": 20,
+        "judgementFactorPercent": 101,
+        "comboBonusFactor": 1,
+        "scoreUpFactor": 4.5,
+        "luckScoreFactorPercent": 110,
+        "convertedNoteCount": 555,
+        "eventBonusFactor": 2.25,
+        "lifeOnusFactor": 0.3,
+        "assistModeNoteScoreFactor": 0.8,
+        "currentLife": 1
+      },
+      "score": 0
+    },
+    {
+      "input": {
+        "totalPower": 1,
+        "scoreAdjustmentFactor": 3,
+        "musicScoreLevelFactor": 1.15,
+        "noteFactorPercent": 10,
+        "judgementFactorPercent": 80,
+        "comboBonusFactor": 1.1,
+        "scoreUpFactor": 1.3,
+        "luckScoreFactorPercent": 100,
+        "convertedNoteCount": 3,
+        "eventBonusFactor": 1.3333,
+        "lifeOnusFactor": 0.5,
+        "assistModeNoteScoreFactor": 0.8,
+        "currentLife": 1000
+      },
+      "score": 0
+    },
+    {
+      "input": {
+        "totalPower": 2375313,
+        "scoreAdjustmentFactor": 3,
+        "musicScoreLevelFactor": 1,
+        "noteFactorPercent": 50,
+        "judgementFactorPercent": 101,
+        "comboBonusFactor": 1.2,
+        "scoreUpFactor": 4.5,
+        "luckScoreFactorPercent": 100,
+        "convertedNoteCount": 525,
+        "eventBonusFactor": 1,
+        "lifeOnusFactor": 0.3,
+        "assistModeNoteScoreFactor": 0.8,
+        "currentLife": 1000
+      },
+      "score": 29611
+    },
+    {
+      "input": {
+        "totalPower": 99999,
+        "scoreAdjustmentFactor": 1,
+        "musicScoreLevelFactor": 1.105,
+        "noteFactorPercent": 200,
+        "judgementFactorPercent": 50,
+        "comboBonusFactor": 1,
+        "scoreUpFactor": 2.299990177154541,
+        "luckScoreFactorPercent": 110,
+        "convertedNoteCount": 525,
+        "eventBonusFactor": 1.3333,
+        "lifeOnusFactor": 0.5,
+        "assistModeNoteScoreFactor": 0.5,
+        "currentLife": 1000
+      },
+      "score": 354
+    },
+    {
+      "input": {
+        "totalPower": 2354839,
+        "scoreAdjustmentFactor": 1,
+        "musicScoreLevelFactor": 1,
+        "noteFactorPercent": 100,
+        "judgementFactorPercent": 50,
+        "comboBonusFactor": 2,
+        "scoreUpFactor": 1,
+        "luckScoreFactorPercent": 110,
+        "convertedNoteCount": 555,
+        "eventBonusFactor": 2.25,
+        "lifeOnusFactor": 0.5,
+        "assistModeNoteScoreFactor": 1,
+        "currentLife": 1
+      },
+      "score": 10500
+    },
+    {
+      "input": {
+        "totalPower": 1,
+        "scoreAdjustmentFactor": 3,
+        "musicScoreLevelFactor": 1,
+        "noteFactorPercent": 50,
+        "judgementFactorPercent": 101,
+        "comboBonusFactor": 4,
+        "scoreUpFactor": 0.9999999403953552,
+        "luckScoreFactorPercent": 200,
+        "convertedNoteCount": 1024,
+        "eventBonusFactor": 1.3333,
+        "lifeOnusFactor": 0.5,
+        "assistModeNoteScoreFactor": 0.8,
+        "currentLife": 1000
+      },
+      "score": 0
+    },
+    {
+      "input": {
+        "totalPower": 100000,
+        "scoreAdjustmentFactor": 3,
+        "musicScoreLevelFactor": 1,
+        "noteFactorPercent": 0,
+        "judgementFactorPercent": 101,
+        "comboBonusFactor": 2,
+        "scoreUpFactor": 4.5,
+        "luckScoreFactorPercent": 110,
+        "convertedNoteCount": 555,
+        "eventBonusFactor": 1.3333,
+        "lifeOnusFactor": 0.5,
+        "assistModeNoteScoreFactor": 0.8,
+        "currentLife": 0
+      },
+      "score": 0
+    },
+    {
+      "input": {
+        "totalPower": 964503,
+        "scoreAdjustmentFactor": 3,
+        "musicScoreLevelFactor": 1,
+        "noteFactorPercent": 100,
+        "judgementFactorPercent": 50,
+        "comboBonusFactor": 1.2,
+        "scoreUpFactor": 1,
+        "luckScoreFactorPercent": 100,
+        "convertedNoteCount": 3,
+        "eventBonusFactor": 1,
+        "lifeOnusFactor": 0.3,
+        "assistModeNoteScoreFactor": 0.5,
+        "currentLife": 1
+      },
+      "score": 289350
+    },
+    {
+      "input": {
+        "totalPower": 100000,
+        "scoreAdjustmentFactor": 3,
+        "musicScoreLevelFactor": 1.15,
+        "noteFactorPercent": 200,
+        "judgementFactorPercent": 80,
+        "comboBonusFactor": 1,
+        "scoreUpFactor": 4.5,
+        "luckScoreFactorPercent": 110,
+        "convertedNoteCount": 525,
+        "eventBonusFactor": 1.3333,
+        "lifeOnusFactor": 0.5,
+        "assistModeNoteScoreFactor": 0.5,
+        "currentLife": 1000
+      },
+      "score": 3469
+    },
+    {
+      "input": {
+        "totalPower": 99999,
+        "scoreAdjustmentFactor": 1,
+        "musicScoreLevelFactor": 1.105,
+        "noteFactorPercent": 10,
+        "judgementFactorPercent": 50,
+        "comboBonusFactor": 1,
+        "scoreUpFactor": 1,
+        "luckScoreFactorPercent": 110,
+        "convertedNoteCount": 1024,
+        "eventBonusFactor": 2.25,
+        "lifeOnusFactor": 0.5,
+        "assistModeNoteScoreFactor": 1,
+        "currentLife": 0
+      },
+      "score": 5
+    },
+    {
+      "input": {
+        "totalPower": 1,
+        "scoreAdjustmentFactor": 1,
+        "musicScoreLevelFactor": 1.105,
+        "noteFactorPercent": 10,
+        "judgementFactorPercent": 101,
+        "comboBonusFactor": 1,
+        "scoreUpFactor": 0.9999999403953552,
+        "luckScoreFactorPercent": 200,
+        "convertedNoteCount": 3,
+        "eventBonusFactor": 1,
+        "lifeOnusFactor": 0.3,
+        "assistModeNoteScoreFactor": 1,
+        "currentLife": 1
+      },
+      "score": 0
+    },
+    {
+      "input": {
+        "totalPower": 1118790,
+        "scoreAdjustmentFactor": 1,
+        "musicScoreLevelFactor": 1,
+        "noteFactorPercent": 200,
+        "judgementFactorPercent": 80,
+        "comboBonusFactor": 1,
+        "scoreUpFactor": 4.5,
+        "luckScoreFactorPercent": 100,
+        "convertedNoteCount": 555,
+        "eventBonusFactor": 2.25,
+        "lifeOnusFactor": 0.3,
+        "assistModeNoteScoreFactor": 0.5,
+        "currentLife": 1
+      },
+      "score": 16328
+    },
+    {
+      "input": {
+        "totalPower": 16777217,
+        "scoreAdjustmentFactor": 1,
+        "musicScoreLevelFactor": 1.15,
+        "noteFactorPercent": 10,
+        "judgementFactorPercent": 50,
+        "comboBonusFactor": 1.1,
+        "scoreUpFactor": 1.3,
+        "luckScoreFactorPercent": 100,
+        "convertedNoteCount": 555,
+        "eventBonusFactor": 2.25,
+        "lifeOnusFactor": 0.5,
+        "assistModeNoteScoreFactor": 0.5,
+        "currentLife": 1000
+      },
+      "score": 2795
+    },
+    {
+      "input": {
+        "totalPower": 1,
+        "scoreAdjustmentFactor": 3,
+        "musicScoreLevelFactor": 1.15,
+        "noteFactorPercent": 100,
+        "judgementFactorPercent": 101,
+        "comboBonusFactor": 4,
+        "scoreUpFactor": 1,
+        "luckScoreFactorPercent": 110,
+        "convertedNoteCount": 555,
+        "eventBonusFactor": 2.25,
+        "lifeOnusFactor": 0.3,
+        "assistModeNoteScoreFactor": 0.8,
+        "currentLife": 1000
+      },
+      "score": 0
+    },
+    {
+      "input": {
+        "totalPower": 1118790,
+        "scoreAdjustmentFactor": 3,
+        "musicScoreLevelFactor": 1.105,
+        "noteFactorPercent": 20,
+        "judgementFactorPercent": 101,
+        "comboBonusFactor": 2,
+        "scoreUpFactor": 1,
+        "luckScoreFactorPercent": 110,
+        "convertedNoteCount": 1024,
+        "eventBonusFactor": 1.3333,
+        "lifeOnusFactor": 0.3,
+        "assistModeNoteScoreFactor": 1,
+        "currentLife": 1000
+      },
+      "score": 2145
+    },
+    {
+      "input": {
+        "totalPower": 1,
+        "scoreAdjustmentFactor": 1,
+        "musicScoreLevelFactor": 1.105,
+        "noteFactorPercent": 20,
+        "judgementFactorPercent": 0,
+        "comboBonusFactor": 2,
+        "scoreUpFactor": 0.9999999403953552,
+        "luckScoreFactorPercent": 110,
+        "convertedNoteCount": 555,
+        "eventBonusFactor": 1.3333,
+        "lifeOnusFactor": 0.3,
+        "assistModeNoteScoreFactor": 1,
+        "currentLife": 1000
+      },
+      "score": 0
+    },
+    {
+      "input": {
+        "totalPower": 16777217,
+        "scoreAdjustmentFactor": 1,
+        "musicScoreLevelFactor": 1.15,
+        "noteFactorPercent": 10,
+        "judgementFactorPercent": 0,
+        "comboBonusFactor": 2,
+        "scoreUpFactor": 1,
+        "luckScoreFactorPercent": 100,
+        "convertedNoteCount": 555,
+        "eventBonusFactor": 1.3333,
+        "lifeOnusFactor": 0.5,
+        "assistModeNoteScoreFactor": 0.8,
+        "currentLife": 1000
+      },
+      "score": 0
+    },
+    {
+      "input": {
+        "totalPower": 1,
+        "scoreAdjustmentFactor": 1,
+        "musicScoreLevelFactor": 1.15,
+        "noteFactorPercent": 10,
+        "judgementFactorPercent": 50,
+        "comboBonusFactor": 4,
+        "scoreUpFactor": 0.9999999403953552,
+        "luckScoreFactorPercent": 100,
+        "convertedNoteCount": 1024,
+        "eventBonusFactor": 1.3333,
+        "lifeOnusFactor": 0.5,
+        "assistModeNoteScoreFactor": 1,
+        "currentLife": 1
+      },
+      "score": 0
+    },
+    {
+      "input": {
+        "totalPower": 100000,
+        "scoreAdjustmentFactor": 3,
+        "musicScoreLevelFactor": 1.105,
+        "noteFactorPercent": 100,
+        "judgementFactorPercent": 80,
+        "comboBonusFactor": 1.2,
+        "scoreUpFactor": 1,
+        "luckScoreFactorPercent": 110,
+        "convertedNoteCount": 555,
+        "eventBonusFactor": 1.1,
+        "lifeOnusFactor": 0.3,
+        "assistModeNoteScoreFactor": 1,
+        "currentLife": 0
+      },
+      "score": 207
+    },
+    {
+      "input": {
+        "totalPower": 2669939,
+        "scoreAdjustmentFactor": 3,
+        "musicScoreLevelFactor": 1.105,
+        "noteFactorPercent": 0,
+        "judgementFactorPercent": 0,
+        "comboBonusFactor": 1.1,
+        "scoreUpFactor": 1,
+        "luckScoreFactorPercent": 110,
+        "convertedNoteCount": 525,
+        "eventBonusFactor": 1.1,
+        "lifeOnusFactor": 0.5,
+        "assistModeNoteScoreFactor": 1,
+        "currentLife": 0
+      },
+      "score": 0
+    }
+  ]
+}

@@ -1,0 +1,14 @@
+**
+!backend/
+!backend/__init__.py
+!backend/player_rankings.py
+!tools/
+!tools/collect_player_rankings.py
+!tools/growth_login.py
+!tools/growth_export.py
+!tools/import_player_rankings.py
+!tools/growth-export-requirements.txt
+!tools/resource_pipeline/
+!tools/resource_pipeline/__init__.py
+!tools/resource_pipeline/localization.py
+!tools/resource_pipeline/models.py

@@ -19,9 +19,9 @@ const styles = readFileSync(
   "utf8"
 );
 
-test("keeps the laboratory implementation while its public route is paused", () => {
+test("keeps the laboratory implementation while old bookmarks redirect to the supported tool", () => {
   assert.doesNotMatch(page, /GekisouBattleLab/);
-  assert.match(page, /暂停开放/);
+  assert.match(page, /Astro\.redirect\(href\('\/tools\/deck-builder\/'\), 301\)/);
   assert.match(component, /规则模式只展示已确认的三段结构/);
   assert.match(component, /data-gekisou-participant-count/);
   assert.match(component, /data-gekisou-scenario-json/);

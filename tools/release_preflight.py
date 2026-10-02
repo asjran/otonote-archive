@@ -52,7 +52,7 @@ def load_plan(path: Path) -> list[dict]:
         if not isinstance(entry, dict):
             raise PreflightError('environment must be an object')
         region, channel = entry.get('region'), entry.get('channel')
-        if region != 'global' or channel not in {'staging', 'production'}:
+        if region not in {'global', 'jp'} or channel not in {'staging', 'production'}:
             raise PreflightError('unsupported region/channel')
         name = f'{region}-{channel}'
         if entry.get('id') != name or name in seen:
@@ -141,9 +141,8 @@ def inspect_plan(path: Path, *, root: Path = ROOT, environments: list[str] | Non
     if unknown:
         raise PreflightError('unknown environments: ' + ', '.join(sorted(unknown)))
     if require_production:
-        required = {'global-production'}
-        if not required <= selected:
-            raise PreflightError('production readiness requires global-production')
+        if any(entry['channel'] != 'production' for entry in entries if entry['id'] in selected):
+            raise PreflightError('production readiness requires production inputs')
     results = [check_environment(entry, root) for entry in entries if entry['id'] in selected]
     statuses = {result['status'] for result in results}
     return {'schemaVersion': 1, 'status': 'failed' if 'failed' in statuses else 'external_gate' if 'external_gate' in statuses else 'passed',

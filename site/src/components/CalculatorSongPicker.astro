@@ -1,4 +1,9 @@
 ---
+import {filterVisual} from '../lib/filter-visuals';
+const optionVisual = (kind: string, value: string | number) => {
+  const visual = filterVisual(kind, String(value));
+  return {'data-icon': visual.icon, 'data-icon-only': visual.iconOnly ? 'true' : undefined, 'data-round': visual.round ? 'true' : undefined};
+};
 import SelectionFilters from "./SelectionFilters.astro";
 import {catalog,getAsset,getCardAttribute} from '../lib/catalog';
 import CardAttributeBadge from './CardAttributeBadge.astro';
@@ -11,17 +16,20 @@ const difficulties=[['easy','EASY'],['normal','NORMAL'],['hard','HARD'],['expert
   <div class="song-selection-pin"><p data-song-selection aria-live="polite">还没选歌。点击一个难度开始。</p><button type="button" data-song-locate>定位已选</button></div>
   <SelectionFilters title="筛选歌曲">
     <label slot="search" class="selection-search">找歌曲<input type="search" data-song-query placeholder="歌名或乐队，支持多个关键词" /></label>
+    <div slot="quick" class="selection-filter-rows">
     <div data-song-attributes><CalculatorAttributeFilter label="筛选歌曲属性" /></div>
-    <div class="selection-filter-grid">
-      <label>演奏乐队<select data-song-band><option value="">全部乐队</option>{catalog.bands.map(b=><option value={b.id}>{b.displayName}</option>)}</select></label>
-      <label>难度<select data-song-difficulty><option value="">全部难度</option>{difficulties.map(([d,l])=><option value={d}>{l}</option>)}</select></label>
-      <label>激奏段落<select data-song-mission><option value="">全部组合</option><option value="1">包含 COMBO</option><option value="2">包含 LUCK</option><option value="3">包含 JUST</option><option value="1-only">三个 COMBO</option><option value="2-only">三个 LUCK</option><option value="3-only">三个 JUST</option><option value="mixed">混合类型</option></select></label>
-      <label>排序<select data-song-sort><option value="default">默认顺序</option><option value="name">歌曲名称</option><option value="level">谱面等级从高到低</option></select></label>
+    <div class="selection-quick-grid selection-filter-rows">
+      <label class="selection-filter-row"><span>演奏乐队</span><select data-song-band data-quick><option value="">全部乐队</option>{catalog.bands.map(b=><option value={b.id} {...optionVisual('band', b.id)}>{b.displayName}</option>)}</select></label>
+      <label class="selection-filter-row"><span>难度</span><select data-song-difficulty data-quick><option value="">全部难度</option>{difficulties.map(([d,l])=><option value={d} data-difficulty={d}>{l}</option>)}</select></label>
+    </div></div>
+    <div class="selection-filter-grid selection-filter-rows">
+      <label class="selection-filter-row"><span>激奏段落</span><select data-song-mission data-quick><option value="">全部组合</option><option value="1">含 COMBO</option><option value="2">含 LUCK</option><option value="3">含 JUST</option><option value="1-only">三段 COMBO</option><option value="2-only">三段 LUCK</option><option value="3-only">三段 JUST</option><option value="mixed">混合类型</option></select></label>
+      <label class="selection-filter-row"><span>排序</span><select data-song-sort><option value="default">默认顺序</option><option value="name">歌曲名称</option><option value="level">谱面等级从高到低</option></select></label>
       <div class="song-level-range"><label>最低等级<input type="number" min="1" max="50" data-song-min placeholder="不限" /></label><span>—</span><label>最高等级<input type="number" min="1" max="50" data-song-max placeholder="不限" /></label></div>
     </div>
     <span slot="results" data-song-count data-filter-count role="status"></span><button slot="results" type="button" data-song-reset data-filter-reset>重置筛选</button>
   </SelectionFilters>
-  <p class="song-picker-tip">点难度即可选定谱面；COMBO / LUCK / JUST 按三段的实际顺序展示。</p>
+  <p class="song-picker-tip">点击歌曲右侧的难度即可选中。</p>
   <div class="song-picker-list" data-song-list>
     {catalog.musicTracks.map(track=>{
       const jacket=getAsset(track.jacketAssetId),attribute=getCardAttribute(track.musicType)?.names[catalog.release.locale]??track.musicTypeLabel;

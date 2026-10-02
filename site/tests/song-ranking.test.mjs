@@ -1,13 +1,15 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { mkdtemp, writeFile, rm } from 'node:fs/promises';
+import { mkdtemp, writeFile, rm, mkdir, cp, copyFile, appendFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { calculateRankingRow, SONG_RANKING_BENCHMARK, rankingMetrics, rankSongRows } from '../src/lib/song-ranking.mjs';
 import { loadSongRankingData } from '../src/lib/song-ranking-data.mjs';
 import { createGekisouSongCalculator } from '../src/lib/scoring-rules/gekisou-song-score.mjs';
 import { gekisouRankingBonus } from '../src/lib/scoring-rules/gekisou-rules.mjs';
+import {prepareFormalChart} from '../src/lib/scoring-rules/formal-song-score.mjs';
+import {buildSkillWindowReference} from '../src/lib/song-skill-windows.mjs';
 const rules = JSON.parse(readFileSync(new URL('../src/data/formal-scoring-rules.json', import.meta.url)));
 const loadChart = id => ({ ...JSON.parse(readFileSync(new URL(`../public/data/music-charts/music-chart-${id}.json`, import.meta.url))), sourceReleaseId: rules.sourceReleaseId });
 const chart = loadChart('10000103');
@@ -28,6 +30,18 @@ test('fixed neutral baseline has independently calculable score; no visitor conf
   assert.equal(result.comboFactor, 1); assert.equal(result.power, 100000);
   assert.equal(calculateRankingRow({ rules: r, chart: c, track, settings: { power: 1 }, draft: { slots: [] } }).expectedScore, 500000);
   assert.throws(() => { SONG_RANKING_BENCHMARK.power = 1; }, TypeError);
+});
+test('precomputed skill windows include starts, exclude ends and add overlapping activations',()=>{
+ const {r,c}=simpleChart();
+ const reference=buildSkillWindowReference(r,prepareFormalChart(r,c));
+ assert.equal(reference.gains[0],0);
+ assert.equal(reference.gains[10],200000);
+ assert.equal(reference.gains[11],300000);
+ assert.deepEqual(reference.gainsByPosition.map(values=>values[10]),[200000,0,0,0,0]);
+ assert.deepEqual(reference.gainsByPosition.map(values=>values[11]),[300000,0,0,0,0]);
+ assert.deepEqual(reference.startsSeconds,[0,10,20,30,40]);
+ c.skillTimings=[0,1,2,3,4];
+ assert.equal(buildSkillWindowReference(r,prepareFormalChart(r,c)).gains[10],1000000);
 });
 test('overlapping fixed skills add; reference results ignore song band and attribute affinity', () => {
   const { r, c } = simpleChart(); c.skillTimings = [0, 1, 2, 3, 4];
@@ -88,4 +102,25 @@ test('cache invalidates on bound chart bytes; release mismatch is blocked', asyn
     assert.notEqual(changed.fingerprint, a.fingerprint); assert.equal(changed.ordinary[0].chartSeconds, chart.duration + 2);
     await assert.rejects(loadSongRankingData({ ...input, releaseId: 'other' }), /版本/);
   } finally { await rm(root, { recursive: true, force: true }); }
+});
+test('ranking cache invalidates when a transitive scoring helper changes', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'song-ranking-source-'));
+  try {
+    const sourceRoot = join(root, 'source');
+    await mkdir(sourceRoot);
+    await cp(new URL('../../packages/scoring/scoring-rules/', import.meta.url), join(sourceRoot, 'scoring-rules'), {recursive:true});
+    for (const name of ['song-ranking.mjs','song-ranking-meta.mjs','song-skill-windows.mjs',
+      'song-ranking-view.mjs','scoring-engine.mjs','scoring-release-gate.mjs']) {
+      await copyFile(new URL(`../../packages/scoring/${name}`, import.meta.url), join(sourceRoot, name));
+    }
+    await writeFile(join(root, 'chart.json'), JSON.stringify(chart));
+    const input = {rules,releaseId:rules.sourceReleaseId,tracks:[track],charts:[{id:chart.id,
+      trackId:track.id,difficulty:chart.difficulty,analysisDataUrl:'/chart.json'}],sourceRoot,
+      publicRoot:root,cacheRoot:join(root,'cache')};
+    const before = await loadSongRankingData(input);
+    await appendFile(join(sourceRoot, 'scoring-engine.mjs'), '\n// Different bound helper revision.\n');
+    const after = await loadSongRankingData(input);
+    assert.notEqual(before.fingerprint, after.fingerprint);
+    assert.equal((await loadSongRankingData(input)).fingerprint, after.fingerprint);
+  } finally { await rm(root, {recursive:true,force:true}); }
 });

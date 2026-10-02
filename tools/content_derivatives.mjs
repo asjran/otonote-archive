@@ -2,12 +2,12 @@
 // Compute content-dependent tables on update, without invoking the website build.
 import {readFile,writeFile} from 'node:fs/promises';
 import {resolve,join} from 'node:path';
-import {loadSongRankingData} from '../site/src/lib/song-ranking-data.mjs';
-import {scoringRulesAvailable} from '../site/src/lib/scoring-release-gate.mjs';
+import {loadSongRankingData} from '../packages/scoring/server/song-ranking-data.mjs';
+import {scoringRulesAvailable} from '../packages/scoring/scoring-release-gate.mjs';
 const [boundPath,release,locale,output,cache,rulesPath] = process.argv.slice(2);
 const bound=resolve(boundPath);
 const catalog=JSON.parse(await readFile(join(bound,'generated/releases',release,locale,'catalog.json'),'utf8'));
-const rules=JSON.parse(await readFile(rulesPath ?? new URL('../site/src/data/formal-scoring-rules.json',import.meta.url),'utf8'));
+const rules=JSON.parse(await readFile(rulesPath ?? new URL('../packages/scoring/data/formal-scoring-rules.json',import.meta.url),'utf8'));
 if(!scoringRulesAvailable(rules,catalog.release.id)) {
   await writeFile(output,JSON.stringify({sourceReleaseId:catalog.release.id,unavailable:true}));
 } else {

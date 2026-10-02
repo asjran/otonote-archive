@@ -1,9 +1,10 @@
 ---
+import EditionBadge from "./EditionBadge.astro";
 import BaseLayout from '../layouts/BaseLayout.astro';
 import FilterPanel from './FilterPanel.astro';
 import PaginationControls from './PaginationControls.astro';
 import SourceDisclosure from './SourceDisclosure.astro';
-import { gallery } from '../lib/gallery';
+import { gallery } from '../lib/shared-gallery';
 import { activeReleaseContext } from '../lib/release-context';
 import { siteHref } from '../lib/site-context';
 import '../styles/gallery.css';
@@ -53,7 +54,7 @@ const categoryIds = [...new Set(entries.map(e => e.category))];
               <img src={href(entry.thumbnail)} alt={entry.title} width={entry.width ?? undefined} height={entry.height ?? undefined} loading={index < 6 ? 'eager' : 'lazy'} decoding="async" />
               <span class="gallery-enlarge" aria-hidden="true">↗</span>
             </a> : <div class="gallery-art gallery-missing"><span aria-hidden="true">◇</span><strong>{say('资源缺失','Image unavailable')}</strong><small>{say('已收录相关资料，图片暂未收录','The entry is listed, but its image is not yet available')}</small></div>}
-            <div class="gallery-card-copy"><div class="gallery-card-meta"><span>{comic ? band : categories[entry.category]}</span><span>#{String(entry.id).padStart(3, '0')}</span></div><h2>{entry.title}</h2>{!comic && cast && <p>{cast}</p>}</div>
+            <div class="gallery-card-copy"><div class="gallery-card-meta"><span>{comic ? band : categories[entry.category]}</span><EditionBadge record={entry} /><span>#{String(entry.sourceId ?? entry.id).padStart(3, '0')}</span></div><h2>{entry.title}</h2>{!comic && cast && <p>{cast}</p>}</div>
           </article>;
         })}
       </div>

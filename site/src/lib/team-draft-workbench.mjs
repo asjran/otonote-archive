@@ -2,6 +2,7 @@ import {setupCalculatorCardPicker} from './calculator-card-picker.mjs';
 import {skillPeek,destroySkillPopover} from './calculator-card-ui.mjs';
 import {setupCalculatorSongPicker} from './calculator-song-picker.mjs';
 import {setupCalculatorJourney} from './calculator-journey.mjs';
+import {setupQuickOptions} from './tool-quick-options.mjs';
 import {attributeBadge} from './calculator-attribute-ui.mjs';
 
   import { toolRoute } from "./tool-route.mjs";
@@ -12,6 +13,7 @@ import {attributeBadge} from './calculator-attribute-ui.mjs';
     deriveTeamDraftSummary,
     parseTeamDraftSearch,
     serializeTeamDraftSearch,
+    serializeTeamDraftJson,
     validateTeamDraft
   } from "./team-draft.mjs";
 
@@ -47,6 +49,7 @@ import {attributeBadge} from './calculator-attribute-ui.mjs';
       this.bindEvents();
       this.songPicker=setupCalculatorSongPicker(this,{getSelection:()=>this.draft,onSelect:selection=>{Object.assign(this.draft,selection);this.commit();}});
       this.journey=setupCalculatorJourney(this);
+      this.quickOptions=setupQuickOptions(this);
       this.render();
     }
 
@@ -68,7 +71,7 @@ import {attributeBadge} from './calculator-attribute-ui.mjs';
         this.commit();
       });
       this.querySelector("[data-copy-draft]")?.addEventListener("click", async () => {
-        const text = JSON.stringify(this.draft, null, 2);
+        const text = serializeTeamDraftJson(this.draft);
         const status = this.querySelector("[data-copy-status]");
         try {
           await navigator.clipboard.writeText(text);
@@ -127,9 +130,9 @@ import {attributeBadge} from './calculator-attribute-ui.mjs';
         button.classList.toggle("is-active", index === this.activeSlot);
 
         const number = document.createElement("button");
-        number.type="button";number.setAttribute("aria-pressed",String(index===this.activeSlot));number.setAttribute("aria-label",`编辑位置 ${index+1}${index===2?" 队长":""}`);
+        number.type="button";number.setAttribute("aria-pressed",String(index===this.activeSlot));number.setAttribute("aria-label",`${this.labels.editSlot} ${index+1}${index===2?` ${this.labels.leader}`:""}`);
         number.className = "team-slot-number";
-        number.textContent = index === 2 ? "03 · 队长" : String(index + 1).padStart(2, "0");
+        number.textContent = index === 2 ? `03 · ${this.labels.leader}` : String(index + 1).padStart(2, "0");
         const cards = document.createElement("span");
         cards.className = "team-slot-pair";
         cards.append(
@@ -234,7 +237,8 @@ import {attributeBadge} from './calculator-attribute-ui.mjs';
         tgwNote.textContent = this.labels.tgwDefault;
       }
       const json = this.querySelector("[data-draft-json]");
-      if (json) json.textContent = JSON.stringify(this.draft, null, 2);
+      if (json) json.textContent = serializeTeamDraftJson(this.draft);
+      const apLink=this.querySelector('[data-ap-grade-link]');if(apLink)apLink.href=toolRoute('/tools/ap-grade/',location.pathname)+serializeTeamDraftSearch(this.draft);
       const researchLink = this.querySelector("[data-scoring-research-link]");
       if (researchLink instanceof HTMLAnchorElement) {
         researchLink.href = toolRoute(`/tools/song-calculator/${serializeTeamDraftSearch(this.draft)}`, window.location.pathname);
@@ -275,9 +279,10 @@ import {attributeBadge} from './calculator-attribute-ui.mjs';
       this.productionPower?.settings();
       this.songPicker?.sync();
       this.journey?.refresh();
+      this.quickOptions?.sync();
     }
 
-    disconnectedCallback() { destroySkillPopover(this); this.productionPower?.disconnect(); this.journey?.disconnect(); }
+    disconnectedCallback() { destroySkillPopover(this); this.productionPower?.disconnect(); this.journey?.disconnect(); this.quickOptions?.destroy(); }
   }
 
   if (!customElements.get("team-draft-workbench")) {
