@@ -6,8 +6,9 @@
 
 | Document | Status | Superseded by | Evidence | Last verified |
 | --- | --- | --- | --- | --- |
-| `docs/DEVELOPMENT_GOVERNANCE_PLAN.md` | `partially-implemented` | — | 分阶段验收项；完成情况由最终脱敏交付记录确认 | 2026-10-02 |
-| `docs/DEVELOPMENT_WORKFLOW.md` | `implemented` | — | 独立候选、来源校验、固定程序包和发布回滚测试 | 2026-10-02 |
-| `docs/CONFIGURATION_POLICY.md` | `implemented` | — | 工作区/索引检查、配置排除、确定性导出及负向用例 | 2026-10-02 |
-| `docs/OPERATIONS.md` | `implemented` | — | 独立空间审计、引用保护和回收演练 | 2026-10-02 |
-| `docs/RANKING_OPERATIONS.md` | `implemented` | — | 采集版本、阶段状态及外置 SDK/凭据契约 | 2026-10-02 |
+| `docs/DEVELOPMENT_GOVERNANCE_PLAN.md` | `implemented` | — | 全阶段实施与脱敏验收见 `docs/DEVELOPMENT_ACCEPTANCE.md` | 2026-10-03 |
+| `docs/DEVELOPMENT_WORKFLOW.md` | `implemented` | — | 独立候选、来源校验、固定程序包和发布回滚测试 | 2026-10-03 |
+| `docs/CONFIGURATION_POLICY.md` | `implemented` | — | 工作区/索引检查、配置排除、确定性导出及负向用例 | 2026-10-03 |
+| `docs/OPERATIONS.md` | `implemented` | — | 独立空间审计、引用保护和回收演练 | 2026-10-03 |
+| `docs/RANKING_OPERATIONS.md` | `implemented` | — | 采集版本、阶段状态及外置 SDK/凭据契约 | 2026-10-03 |
+| `docs/DEVELOPMENT_ACCEPTANCE.md` | `implemented` | — | 真实更新、预渲染、线上健康、调度恢复、容量与测试边界 | 2026-10-03 |
