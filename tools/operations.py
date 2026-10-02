@@ -1,10 +1,11 @@
-"""Offline audit and lossless deduplication of immutable render/code assets.
+"""Offline audit and lossless deduplication of immutable render/code/content assets.
 
 No production defaults. Actual paths/configuration stay outside version control.
 Deduplication preserves every URL, byte and release; it never removes releases.
 Compatible with Python 3.6+ for maintenance hosts; no third-party dependencies.
 """
 import argparse
+import array
 import collections
 import contextlib
 import errno
@@ -308,6 +309,280 @@ def deduplication_plan(files, skipped, *, operation='deduplicate-render-payloads
     return dict(body, planId=identity(body))
 
 
+def content_lock(root):
+    # Exactly the lock used by publish_content and rollback_content.
+    return store_lock(root, '.publication.lock', 'content_publication_in_progress')
+
+
+def filesystem_flags(path):
+    """Linux stat has no st_flags: query the filesystem instead of assuming zero."""
+    if sys.platform.startswith('linux'):
+        flags = array.array('L', [0])
+        try:
+            with path.open('rb') as stream:
+                fcntl.ioctl(stream.fileno(), 0x80006601 | (flags.itemsize << 16), flags, True)
+        except OSError:
+            raise AuditError('content_filesystem_flags_unavailable')
+        return int(flags[0])
+    metadata = path.stat()
+    if not hasattr(metadata, 'st_flags'):
+        raise AuditError('content_filesystem_flags_unavailable')
+    return metadata.st_flags
+
+
+def content_signature(metadata):
+    return (metadata.st_dev, metadata.st_ino, metadata.st_size, metadata.st_mtime_ns,
+            metadata.st_ctime_ns, metadata.st_uid, metadata.st_gid,
+            metadata.st_mode, metadata.st_nlink)
+
+
+def content_relative(value):
+    if (not isinstance(value, str) or not value or '\\' in value or
+            any(ord(char) < 32 for char in value) or
+            any(part in ('', '.', '..') for part in value.split('/'))):
+        raise AuditError('invalid_content_path')
+    return value
+
+
+def safe_content_file(root, relative):
+    parts = content_relative(relative).split('/')
+    if len(parts) < 3 or parts[0] != 'releases' or not CODE.fullmatch(parts[1]):
+        raise AuditError('invalid_content_asset_path')
+    if parts[-1] in ('.receipt.json', 'manifest.json', 'current.json', 'previous.json'):
+        raise AuditError('protected_content_asset')
+    return content_checked_file(root, relative)
+
+
+def content_checked_file(root, relative):
+    path = root
+    for part in content_relative(relative).split('/'):
+        path = path / part
+        if path.is_symlink():
+            raise AuditError('linked_content_path')
+    if not stat.S_ISREG(path.lstat().st_mode):
+        raise AuditError('nonregular_content_asset')
+    return path
+
+
+def content_json(path):
+    def unique_object(pairs):
+        result = {}
+        for key, value in pairs:
+            if key in result:
+                raise AuditError('duplicate_content_json_key')
+            result[key] = value
+        return result
+    try:
+        value = json.loads(path.read_text(), object_pairs_hook=unique_object)
+    except (OSError, ValueError, UnicodeError):
+        raise AuditError('invalid_content_json')
+    if not isinstance(value, dict):
+        raise AuditError('invalid_content_json')
+    return value
+
+
+def content_inventory(root):
+    """Verify sealed snapshots without requiring historical candidate/source trees.
+
+    Snapshot IDs cannot be regenerated from the receipt alone: their historical
+    inputs include publisher code. Instead bind directory ID to manifest.root,
+    every receipt entry to actual bytes, and regional pointers to that manifest.
+    """
+    releases = root / 'releases'
+    if releases.is_symlink() or not releases.is_dir():
+        raise AuditError('invalid_content_releases')
+    files, preserved, cache, checked, directories, manifests = [], [], {}, {}, {}, {}
+
+    def record(path):
+        relative = path.relative_to(root).as_posix()
+        path = content_checked_file(root, relative)
+        before = content_signature(path.lstat())
+        key = before[:2]
+        if key not in cache:
+            item = file_record(root, path, digest(path))
+            item['flags'] = filesystem_flags(path)
+            item['ctimeNs'] = before[4]
+            if content_signature(path.lstat()) != before:
+                raise AuditError('content_changed_during_audit')
+            cache[key] = (before, item)
+        elif cache[key][0] != before:
+            raise AuditError('content_changed_during_audit')
+        checked[relative] = before
+        return dict(cache[key][1], path=relative)
+
+    names = sorted(path.name for path in releases.iterdir())
+    if any(not CODE.fullmatch(name) for name in names):
+        raise AuditError('unexpected_content_release')
+    for name in names:
+        release = releases / name
+        if release.is_symlink() or not release.is_dir():
+            raise AuditError('invalid_content_release')
+        marker = content_checked_file(root, 'releases/' + name + '/.receipt.json')
+        receipt_record = record(marker)
+        receipt = content_json(marker)
+        expected = receipt.get('files')
+        candidate = receipt.get('candidateSha256')
+        if (receipt.get('schemaVersion') != 1 or not isinstance(expected, dict) or not expected or
+                not isinstance(candidate, str) or not SHA256.fullmatch(candidate)):
+            raise AuditError('invalid_content_receipt')
+        for relative, sha in expected.items():
+            content_relative(relative)
+            if relative == '.receipt.json' or not isinstance(sha, str) or not SHA256.fullmatch(sha):
+                raise AuditError('invalid_content_receipt')
+        found = {}
+        for directory, dirs, entries in os.walk(str(release), followlinks=False):
+            folder = Path(directory)
+            metadata = folder.stat()
+            directories[folder] = (metadata.st_dev, metadata.st_ino, metadata.st_mtime_ns, metadata.st_ctime_ns)
+            for entry in sorted(dirs + entries):
+                path = folder / entry
+                if path.is_symlink():
+                    raise AuditError('linked_content_path')
+                if entry in dirs:
+                    continue
+                relative = path.relative_to(release).as_posix()
+                item = record(path)
+                if relative == '.receipt.json':
+                    continue
+                if expected.get(relative) != item['sha256']:
+                    raise AuditError('content_inventory_or_digest_mismatch')
+                found[relative] = item
+                if path.name in ('.receipt.json', 'manifest.json', 'current.json', 'previous.json'):
+                    preserved.append(item)
+                else:
+                    files.append(item)
+        if set(found) != set(expected):
+            raise AuditError('content_inventory_mismatch')
+        preserved.append(receipt_record)
+        manifest_path = content_checked_file(root, 'releases/' + name + '/manifest.json')
+        manifest = content_json(manifest_path)
+        locales = manifest.get('locales')
+        release_id = manifest.get('contentReleaseId')
+        if (manifest.get('schemaVersion') != 1 or manifest.get('root') != '/content/releases/' + name + '/' or
+                manifest.get('region') not in ('global', 'jp') or manifest.get('channel') != 'production' or
+                not isinstance(release_id, str) or not re.fullmatch(r'[A-Za-z0-9_-]+', release_id) or
+                not isinstance(locales, dict) or set(locales) != {'en', 'zh-CN'}):
+            raise AuditError('invalid_content_manifest')
+        for locale, groups in locales.items():
+            if not isinstance(groups, dict):
+                raise AuditError('invalid_content_locale')
+            for group in ('files', 'groups'):
+                if not isinstance(groups.get(group), dict):
+                    raise AuditError('invalid_content_locale')
+                for entry in groups[group].values():
+                    if not isinstance(entry, dict):
+                        raise AuditError('invalid_content_record')
+                    relative = content_relative(entry.get('path'))
+                    item = found.get(relative)
+                    if (not relative.startswith(locale + '/') or not item or entry.get('sha256') != item['sha256'] or
+                            type(entry.get('bytes')) is not int or entry['bytes'] != item['size']):
+                        raise AuditError('content_manifest_binding_mismatch')
+        manifests[name] = (manifest, found['manifest.json']['sha256'])
+    pointer_names = ('current.json', 'previous.json', 'jp/current.json', 'jp/previous.json')
+    if (root / 'jp').is_symlink():
+        raise AuditError('linked_content_pointer_directory')
+    absent = []
+    for relative in pointer_names:
+        path = root / relative
+        if path.is_symlink():
+            raise AuditError('linked_content_pointer')
+        if not path.exists():
+            absent.append(relative)
+            continue
+        item = record(path)
+        pointer = content_json(path)
+        target = pointer.get('manifest')
+        match = re.fullmatch(r'/content/releases/([a-f0-9]{24})/manifest.json', target) if isinstance(target, str) else None
+        if pointer.get('schemaVersion') != 1 or not match or match.group(1) not in manifests:
+            raise AuditError('invalid_content_pointer')
+        manifest, sha = manifests[match.group(1)]
+        region = 'jp' if relative.startswith('jp/') else 'global'
+        if (pointer.get('sha256') != sha or manifest['region'] != region or
+                pointer.get('contentReleaseId') != manifest['contentReleaseId']):
+            raise AuditError('content_pointer_binding_mismatch')
+        preserved.append(item)
+    # Detect uncooperative writers as well as publication under the shared lock.
+    for relative, before in checked.items():
+        if content_signature(content_checked_file(root, relative).lstat()) != before:
+            raise AuditError('content_changed_during_audit')
+    for folder, before in directories.items():
+        metadata = folder.stat()
+        if folder.is_symlink() or before != (metadata.st_dev, metadata.st_ino, metadata.st_mtime_ns, metadata.st_ctime_ns):
+            raise AuditError('content_changed_during_audit')
+    if names != sorted(path.name for path in releases.iterdir()) or any(os.path.lexists(str(root / name)) for name in absent):
+        raise AuditError('content_changed_during_audit')
+    return sorted(files, key=lambda item: item['path']), sorted(preserved, key=lambda item: item['path'])
+
+
+def content_action_state(item):
+    # Link creation/removal changes ctime and nlink during our own apply.
+    return {key:value for key,value in item.items() if key not in ('path', 'ctimeNs', 'links', 'allocated')}
+
+
+def make_content_plan(root):
+    files, preserved = content_inventory(root)
+    protected_inodes = {(item['device'], item['inode']) for item in preserved}
+    groups = collections.defaultdict(lambda: collections.defaultdict(list))
+    for item in files:
+        if (item['device'], item['inode']) in protected_inodes:
+            continue
+        key = tuple(item[field] for field in ('sha256', 'size', 'device', 'mode', 'uid', 'gid', 'attributes', 'flags'))
+        groups[key][item['inode']].append(item)
+    selected, states = [], {item['path']:item for item in files}
+    for inodes in groups.values():
+        members = sorted(inodes.values(), key=lambda items: items[0]['path'])
+        if len(members) < 2:
+            continue
+        flags = members[0][0]['flags']
+        # Immutable/append-only files cannot be safely replaced or hardlinked.
+        blocked_flags = (0x10 | 0x20) if sys.platform.startswith('linux') else (0x2 | 0x4 | 0x20000 | 0x40000)
+        if flags & blocked_flags:
+            continue
+        external = [items for items in members if len(items) < items[0]['links']]
+        if any(len(items) > items[0]['links'] for items in members):
+            raise AuditError('invalid_content_link_count')
+        keeper = external[0] if external else min(members, key=lambda items: (items[0]['allocated'], items[0]['path']))
+        targets = [items for items in members if items is not keeper and len(items) == items[0]['links'] and items[0]['allocated'] > 0]
+        if targets:
+            selected.extend(keeper)
+            for items in targets:
+                selected.extend(items)
+    plan = deduplication_plan(selected, 0, operation='deduplicate-content-assets', preserved=preserved)
+    plan['inventoryDigest'] = identity({'assets':files, 'preserved':preserved})
+    plan['assetFiles'] = len(files)
+    replaced = collections.Counter()
+    for action in plan['actions']:
+        action['sourceState'] = content_action_state(states[action['source']])
+        action['targetState'] = content_action_state(states[action['target']])
+        target = states[action['target']]
+        inode = (target['device'], target['inode'])
+        action['targetLinksRemaining'] = target['links'] - replaced[inode]
+        replaced[inode] += 1
+    plan['planId'] = identity({key:value for key,value in plan.items() if key != 'planId'})
+    return plan
+
+
+def plan_content_deduplication(value):
+    root = root_path(value)
+    with content_lock(root):
+        return make_content_plan(root)
+
+
+def validate_content_action(root, action, source, target):
+    for path, key in ((source, 'sourceState'), (target, 'targetState')):
+        item = file_record(root, path, action['sha256'])
+        item['flags'] = filesystem_flags(path)
+        if content_action_state(item) != action[key]:
+            raise AuditError('content_metadata_changed_during_apply')
+        if key == 'targetState' and item['links'] != action['targetLinksRemaining']:
+            raise AuditError('content_links_changed_during_apply')
+
+
+def apply_content_deduplication(value, expected):
+    return apply_plan(value, expected, content_lock, make_content_plan, safe_content_file,
+                      validate_content_action)
+
+
 def make_plan(root):
     files, skipped = inventory(root)
     return deduplication_plan(files, skipped)
@@ -352,7 +627,7 @@ def apply_code_deduplication(value, expected, exclude_code_ids=()):
                       lambda root: make_code_plan(root, excluded), safe_code_file)
 
 
-def apply_plan(value, expected, lock, planner, resolve_file):
+def apply_plan(value, expected, lock, planner, resolve_file, validate_action=None):
     root = root_path(value)
     with lock(root):
         current = planner(root)
@@ -367,6 +642,8 @@ def apply_plan(value, expected, lock, planner, resolve_file):
             # canonical file still satisfies its content-addressed identity.
             if digest(source) != action['sha256'] or digest(target) != action['sha256']:
                 raise AuditError('payload_changed_during_apply')
+            if validate_action is not None:
+                validate_action(root, action, source, target)
             temporary = target.parent / ('.dedupe-' + uuid.uuid4().hex)
             try:
                 os.link(str(source), str(temporary))
@@ -406,6 +683,7 @@ def main(argv=None):
         roots = child.add_mutually_exclusive_group(required=True)
         roots.add_argument('--rendered-root')
         roots.add_argument('--code-root')
+        roots.add_argument('--content-root')
         child.add_argument('--plan', required=True, type=Path)
         child.add_argument('--exclude-code-id', action='append', default=[],
                            help='leave this 24-hex code version untouched; repeat on both plan and apply')
@@ -414,14 +692,18 @@ def main(argv=None):
         if getattr(args, 'exclude_code_id', None) and not args.code_root:
             raise AuditError('code_exclusions_require_code_root')
         if args.command == 'dedupe-plan':
-            result = plan_code_deduplication(args.code_root, args.exclude_code_id) if args.code_root else plan_deduplication(args.rendered_root)
+            result = (plan_content_deduplication(args.content_root) if args.content_root else
+                      plan_code_deduplication(args.code_root, args.exclude_code_id) if args.code_root else
+                      plan_deduplication(args.rendered_root))
             fd = os.open(str(args.plan), os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
             with os.fdopen(fd, 'w') as stream:
                 json.dump(result, stream, sort_keys=True, indent=2)
             print(json.dumps({k:v for k,v in result.items() if k != 'actions'}))
         elif args.command == 'dedupe-apply':
             expected = json.loads(args.plan.read_text())
-            print(json.dumps(apply_code_deduplication(args.code_root, expected, args.exclude_code_id) if args.code_root else apply_deduplication(args.rendered_root, expected)))
+            print(json.dumps(apply_content_deduplication(args.content_root, expected) if args.content_root else
+                             apply_code_deduplication(args.code_root, expected, args.exclude_code_id) if args.code_root else
+                             apply_deduplication(args.rendered_root, expected)))
         else:
             parser.error('command required')
     except AuditError as error:

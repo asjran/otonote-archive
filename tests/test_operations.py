@@ -324,5 +324,210 @@ class CodeMaintenanceTests(unittest.TestCase):
                     self.assertEqual(main([command,'--rendered-root',str(root),'--plan',str(plan)]+exclusions),2)
                 self.assertEqual(json.loads(err.getvalue())['reason'],'code_exclusions_require_code_root')
 
+class ContentMaintenanceTests(unittest.TestCase):
+    def setUp(self):
+        from tools.operations import plan_content_deduplication, apply_content_deduplication
+        self.plan = plan_content_deduplication
+        self.apply = apply_content_deduplication
+
+    def snapshot(self, root, number, region='global'):
+        name = '%024x' % number
+        release = root/'releases'/name
+        data = {'public/media/shared.bin':b'fixture-media-'*1024,
+                'en/catalog.json':b'{"fixture":true}', 'zh-CN/catalog.json':b'{"fixture":true}'}
+        for relative, value in data.items():
+            path=release/relative;path.parent.mkdir(parents=True,exist_ok=True);path.write_bytes(value)
+        manifest={'schemaVersion':1,'root':'/content/releases/'+name+'/', 'contentReleaseId':'fixture-'+str(number),
+                  'region':region,'channel':'production','locales':{}}
+        for locale in ('en','zh-CN'):
+            relative=locale+'/catalog.json';value=data[relative]
+            manifest['locales'][locale]={'files':{'catalog':{'path':relative,'bytes':len(value),'sha256':hashlib.sha256(value).hexdigest()}},'groups':{}}
+        (release/'manifest.json').write_text(json.dumps(manifest))
+        self.seal(release)
+        return release
+
+    def seal(self, release):
+        files={p.relative_to(release).as_posix():hashlib.sha256(p.read_bytes()).hexdigest()
+               for p in sorted(release.rglob('*')) if p.is_file() and p.name!='.receipt.json'}
+        (release/'.receipt.json').write_text(json.dumps({'schemaVersion':1,'candidateSha256':'a'*64,'files':files}))
+
+    def pointer(self, root, release, previous=False):
+        manifest=json.loads((release/'manifest.json').read_text())
+        folder=root if manifest['region']=='global' else root/'jp';folder.mkdir(exist_ok=True)
+        path=folder/('previous.json' if previous else 'current.json')
+        path.write_text(json.dumps({'schemaVersion':1,'contentReleaseId':manifest['contentReleaseId'],
+            'manifest':manifest['root']+'manifest.json','sha256':hashlib.sha256((release/'manifest.json').read_bytes()).hexdigest()}))
+        return path
+
+    def test_four_snapshots_preserve_every_byte_pointer_and_protected_inode(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root=Path(tmp);snapshots=[self.snapshot(root,n,'global' if n<3 else 'jp') for n in range(1,5)]
+            pointers=[self.pointer(root,s,previous=i%2==1) for i,s in enumerate(snapshots)]
+            before={p:p.read_bytes() for p in root.rglob('*') if p.is_file()}
+            protected={p:p.stat().st_ino for p in list(pointers)+[s/n for s in snapshots for n in ('manifest.json','.receipt.json')]}
+            plan=self.plan(root)
+            self.assertEqual(plan['operation'],'deduplicate-content-assets')
+            self.assertEqual(len(plan['actions']),10)
+            self.assertGreater(plan['estimatedReclaimBytes'],0)
+            self.apply(root,plan)
+            self.assertEqual(before,{p:p.read_bytes() for p in before})
+            self.assertEqual(protected,{p:p.stat().st_ino for p in protected})
+            self.assertEqual(len({(s/'public/media/shared.bin').stat().st_ino for s in snapshots}),1)
+            self.assertEqual(self.plan(root)['actions'],[])
+
+    def test_external_links_are_not_targets_or_estimated_reclaim(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root=Path(tmp);a=self.snapshot(root,1);b=self.snapshot(root,2)
+            # Every eligible inode has an external link: there must be no work.
+            for i,p in enumerate([p for s in (a,b) for p in s.rglob('*') if p.is_file() and p.name not in ('.receipt.json','manifest.json')]):
+                os.link(p,root/('outside-'+str(i)))
+            plan=self.plan(root)
+            self.assertEqual(plan['actions'],[]);self.assertEqual(plan['estimatedReclaimBytes'],0)
+            self.apply(root,plan)
+
+    def test_externally_linked_keeper_reclaims_all_internal_target_links_only(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root=Path(tmp);a=self.snapshot(root,1);b=self.snapshot(root,2)
+            keeper=a/'public/media/shared.bin';target=b/'public/media/shared.bin'
+            os.link(keeper,root/'outside');os.link(target,b/'public/media/alias.bin');self.seal(b)
+            plan=self.plan(root)
+            media=[action for action in plan['actions'] if '/media/' in action['target']]
+            self.assertEqual(len(media),2)
+            self.assertTrue(all(action['source']==keeper.relative_to(root).as_posix() for action in media))
+            self.apply(root,plan)
+            self.assertEqual(keeper.stat().st_ino,target.stat().st_ino)
+            self.assertEqual((root/'outside').read_bytes(),target.read_bytes())
+
+    def test_receipt_actual_bytes_missing_extra_and_duplicate_keys_rejected(self):
+        mutations=('bad-json','candidate','digest','missing','extra','duplicate','traversal')
+        for kind in mutations:
+            with self.subTest(kind=kind),tempfile.TemporaryDirectory() as tmp:
+                root=Path(tmp);s=self.snapshot(root,1);marker=s/'.receipt.json';value=json.loads(marker.read_text())
+                if kind=='bad-json':marker.write_text('[]')
+                elif kind=='candidate':value['candidateSha256']='invalid';marker.write_text(json.dumps(value))
+                elif kind=='digest':(s/'public/media/shared.bin').write_bytes(b'corrupt')
+                elif kind=='missing':(s/'en/catalog.json').unlink()
+                elif kind=='extra':(s/'extra.bin').write_bytes(b'extra')
+                elif kind=='duplicate':marker.write_text('{"schemaVersion":1,"schemaVersion":1}')
+                else:value['files']['../escape']='a'*64;marker.write_text(json.dumps(value))
+                with self.assertRaises(AuditError):self.plan(root)
+
+    def test_symlink_files_directories_receipts_and_pointers_rejected(self):
+        for relative in ('public/media/shared.bin','public/media','.receipt.json','manifest.json'):
+            with self.subTest(relative=relative),tempfile.TemporaryDirectory() as tmp:
+                root=Path(tmp);s=self.snapshot(root,1);p=s/relative;outside=root/'outside';p.rename(outside);p.symlink_to(outside)
+                with self.assertRaises(AuditError):self.plan(root)
+        with tempfile.TemporaryDirectory() as tmp:
+            root=Path(tmp);s=self.snapshot(root,1);p=self.pointer(root,s);p.rename(root/'outside');p.symlink_to(root/'outside')
+            with self.assertRaises(AuditError):self.plan(root)
+
+    def test_manifest_and_pointer_bindings_rejected(self):
+        for kind in ('root','locale-digest','locale-size','pointer-digest','pointer-region','pointer-release'):
+            with self.subTest(kind=kind),tempfile.TemporaryDirectory() as tmp:
+                root=Path(tmp);s=self.snapshot(root,1);p=self.pointer(root,s)
+                if kind.startswith('pointer'):
+                    value=json.loads(p.read_text())
+                    if kind=='pointer-digest':value['sha256']='b'*64
+                    elif kind=='pointer-release':value['contentReleaseId']='other'
+                    else:(root/'jp').mkdir();p.rename(root/'jp/current.json');p=root/'jp/current.json'
+                    p.write_text(json.dumps(value))
+                else:
+                    value=json.loads((s/'manifest.json').read_text())
+                    if kind=='root':value['root']='/content/releases/'+'f'*24+'/'
+                    elif kind=='locale-digest':value['locales']['en']['files']['catalog']['sha256']='b'*64
+                    else:value['locales']['en']['files']['catalog']['bytes']+=1
+                    (s/'manifest.json').write_text(json.dumps(value));self.seal(s)
+                with self.assertRaises(AuditError):self.plan(root)
+
+    def test_plan_tampering_and_changed_receipt_pointer_or_links_block_before_apply(self):
+        for kind in ('forged','receipt','pointer','external-link'):
+            with self.subTest(kind=kind),tempfile.TemporaryDirectory() as tmp:
+                root=Path(tmp);a=self.snapshot(root,1);b=self.snapshot(root,2);p=self.pointer(root,a)
+                plan=self.plan(root);before=(a/'public/media/shared.bin').stat().st_ino
+                if kind=='forged':plan['actions'][0]['target']='../../outside'
+                elif kind=='receipt':
+                    value=json.loads((a/'.receipt.json').read_text());value['candidateSha256']='b'*64;(a/'.receipt.json').write_text(json.dumps(value))
+                elif kind=='pointer':self.pointer(root,b)
+                else:os.link(b/'public/media/shared.bin',root/'outside')
+                with self.assertRaisesRegex(AuditError,'plan_changed'):self.apply(root,plan)
+                self.assertEqual((a/'public/media/shared.bin').stat().st_ino,before)
+                self.assertNotEqual(before,(b/'public/media/shared.bin').stat().st_ino)
+
+    def test_shared_publication_lock_blocks_plan_and_apply(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root=Path(tmp);self.snapshot(root,1);plan=self.plan(root)
+            with (root/'.publication.lock').open('a+') as stream:
+                fcntl.flock(stream,fcntl.LOCK_EX|fcntl.LOCK_NB)
+                with self.assertRaisesRegex(AuditError,'content_publication_in_progress'):self.plan(root)
+                with self.assertRaisesRegex(AuditError,'content_publication_in_progress'):self.apply(root,plan)
+
+    def test_permissions_attributes_and_actual_flags_are_not_merged(self):
+        for kind in ('mode','attributes','flags','immutable'):
+            with self.subTest(kind=kind),tempfile.TemporaryDirectory() as tmp:
+                root=Path(tmp);a=self.snapshot(root,1);b=self.snapshot(root,2);target=b/'public/media/shared.bin'
+                if kind=='mode':target.chmod(0o600)
+                with contextlib.ExitStack() as stack:
+                    if kind=='attributes':stack.enter_context(patch('tools.operations.attribute_identity',side_effect=lambda p:'other' if p==target.resolve() else 'common'))
+                    if kind in ('flags','immutable'):
+                        stack.enter_context(patch('tools.operations.filesystem_flags',side_effect=lambda p:(0x10 if sys.platform.startswith('linux') else 0x2) if kind=='immutable' else (1 if p==target.resolve() else 0)))
+                    plan=self.plan(root)
+                self.assertFalse(any('/media/' in action['target'] for action in plan['actions']))
+
+    def test_linux_flags_use_ioctl_and_fail_closed_if_unavailable(self):
+        from tools.operations import filesystem_flags
+        with tempfile.TemporaryDirectory() as tmp:
+            path=Path(tmp)/'file';path.write_bytes(b'fixture')
+            def ioctl(fd,request,buffer,mutate):buffer[0]=0x80000
+            with patch('tools.operations.sys.platform','linux'),patch('tools.operations.fcntl.ioctl',side_effect=ioctl) as called:
+                self.assertEqual(filesystem_flags(path),0x80000);self.assertEqual(called.call_count,1)
+            with patch('tools.operations.sys.platform','linux'),patch('tools.operations.fcntl.ioctl',side_effect=OSError()):
+                with self.assertRaisesRegex(AuditError,'flags_unavailable'):filesystem_flags(path)
+
+    def test_stable_hardlinks_are_hashed_once_and_late_metadata_changes_block(self):
+        import tools.operations as operations
+        with tempfile.TemporaryDirectory() as tmp:
+            root=Path(tmp);a=self.snapshot(root,1);self.snapshot(root,2)
+            os.link(a/'public/media/shared.bin',a/'public/media/alias.bin');self.seal(a)
+            with patch('tools.operations.digest',wraps=operations.digest) as hashed:
+                plan=self.plan(root)
+            paths=[call.args[0] for call in hashed.call_args_list]
+            self.assertEqual(sum(path.name in ('shared.bin','alias.bin') for path in paths),2)
+            original=operations.make_content_plan
+            def changed_after_inventory(store):
+                fresh=original(store)
+                target=store/fresh['actions'][0]['target']
+                target.chmod(target.stat().st_mode ^ 0o100)
+                return fresh
+            with patch('tools.operations.make_content_plan',side_effect=changed_after_inventory):
+                with self.assertRaisesRegex(AuditError,'content_metadata_changed_during_apply'):
+                    self.apply(root,plan)
+
+    def test_link_added_after_inventory_blocks_before_replacement(self):
+        import tools.operations as operations
+        with tempfile.TemporaryDirectory() as tmp:
+            root=Path(tmp);self.snapshot(root,1);self.snapshot(root,2);plan=self.plan(root)
+            original=operations.make_content_plan
+            def changed_after_inventory(store):
+                fresh=original(store)
+                os.link(store/fresh['actions'][0]['target'],store/'late-external-link')
+                return fresh
+            with patch('tools.operations.make_content_plan',side_effect=changed_after_inventory):
+                with self.assertRaisesRegex(AuditError,'content_links_changed_during_apply'):
+                    self.apply(root,plan)
+
+    def test_cli_private_plan_mutual_exclusion_and_sanitized_failure(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root=Path(tmp);self.snapshot(root,1);self.snapshot(root,2);plan=root/'plan.json'
+            with contextlib.redirect_stdout(io.StringIO()):
+                self.assertEqual(main(['dedupe-plan','--content-root',str(root),'--plan',str(plan)]),0)
+                self.assertEqual(plan.stat().st_mode&0o777,0o600)
+                self.assertEqual(main(['dedupe-apply','--content-root',str(root),'--plan',str(plan)]),0)
+            with contextlib.redirect_stderr(io.StringIO()),self.assertRaises(SystemExit):
+                main(['dedupe-plan','--content-root',str(root),'--code-root',str(root),'--plan',str(plan)])
+            with contextlib.redirect_stderr(io.StringIO()) as err:
+                self.assertEqual(main(['dedupe-plan','--content-root',str(root),'--exclude-code-id','a'*24,'--plan',str(plan)]),2)
+            self.assertNotIn(tmp,err.getvalue())
+
+
 if __name__=='__main__':
     unittest.main()

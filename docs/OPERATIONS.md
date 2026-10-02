@@ -29,6 +29,19 @@ python3 tools/operations.py dedupe-apply --rendered-root /PRIVATE_RENDER_STORE -
 
 遇到历史目录不符合清单时先停止并检查原因。如需保留整个目录，可在计划和执行命令中都明确传入 `--exclude-code-id REVIEWED_CODE_ID`（可重复）。排除集合写入计划，执行时必须一致；指定版本完全不访问、不修改，其余版本仍执行完整校验。不能通过排除来宣称该版本已通过验证。
 
+内容快照使用独立入口，与内容发布共用 `.publication.lock`：
+
+```sh
+python3 tools/operations.py dedupe-plan --content-root /PRIVATE_CONTENT_STORE --plan /PRIVATE_DIRECTORY/content-plan.json
+python3 tools/operations.py dedupe-apply --content-root /PRIVATE_CONTENT_STORE --plan /PRIVATE_DIRECTORY/content-plan.json
+```
+
+该入口逐一验证回执库存、实际文件摘要、manifest 身份和区域指针绑定，保护所有清单和指针。Linux 文件标志通过文件系统接口读取，不能以缺少 `st_flags` 推定没有标志。只选择全部硬链接均在审查范围内、确实能够释放空间的目标 inode；保留外部仍被引用的 inode。计划后库存、元数据或链接数变化即拒绝继续。
+
+硬链接合并会改变 inode、ctime 和链接数，目标文件会继承保留文件的 mtime；保留的是内容、URL、权限及扩展属性，并非所有元数据。中途 I/O 失败可能已经完成部分无损合并，应重新生成计划，不能强行重试旧计划。
+
+维护前确认内容任务空闲并安排发布静默窗口；完整库存检查会持有发布锁。实际配置中的根目录与计划位置均在仓库之外，不能把上述占位值直接用于生产。
+
 估计回收量会受其他硬链接及并发磁盘写入影响，执行后重新检查空间。不可变文件只能新建并切换，不得原地覆盖；去重不能代替长期容量规划。
 
 ## 回收与恢复
