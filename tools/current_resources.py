@@ -35,8 +35,15 @@ class CurrentResources:
         if decoder and (decoder.get('signatureVerified') is not True or file_hash(self.apk) != decoder['apkSha256']):
             raise ValueError('decoder APK provenance mismatch')
         self.metadata = MetadataV39(self.metadata_path)
-        self.key = field_bytes(self.metadata, KEY_FIELD_USAGE, 16)
-        self.seed = field_bytes(self.metadata, NONCE_SEED_FIELD_USAGE, 8)
+        if decoder:
+            from tools.bundle_decoder import resolve_bundle_decoder
+            self.key, self.seed, binding = resolve_bundle_decoder(self.metadata, decoder['clientVersion'])
+            if decoder.get('bundleDecoderBindingSha256') != binding:
+                raise ValueError('bundle decoder binding changed since intake')
+        else:
+            # Historical offline mode already requires the exact pinned metadata.
+            self.key = field_bytes(self.metadata, KEY_FIELD_USAGE, 16)
+            self.seed = field_bytes(self.metadata, NONCE_SEED_FIELD_USAGE, 8)
         self.downloaded, self.budget = 0, max_download_bytes
         self.imports = {}
         self.used = {}

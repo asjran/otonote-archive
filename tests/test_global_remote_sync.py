@@ -132,6 +132,52 @@ class GlobalRemoteTest(unittest.TestCase):
                 result = _update(FakeClient(), root, root / "absent", root / "absent-plan", False)
             self.assertEqual(result["status"], "unchanged")
 
+    def test_cached_success_with_missing_decoder_binding_is_not_unchanged(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root=Path(tmp);plan=root/'plan.json';plan.write_text('{}')
+            old={'observation':FakeClient().discover(),'inputPlan':str(plan),'snapshot':str(root/'old'),
+                 'site':None,'decoderSha256':'a'*64,'pipelineVersion':2}
+            (root/'state.json').write_text(json.dumps(old))
+            decoder={'apkSha256':'a'*64,'bundleDecoderBindingSha256':'d'*64}
+            def capture(client,path,*args):
+                self.assertTrue(path.parent.name.endswith('-d'+'d'*12))
+                raise ProtocolError('binding forces isolated candidate')
+            with patch('tools.release_preflight.load_plan',return_value=[{'id':'global-production','masterRoot':'old'}]),patch('tools.global_remote_sync.snapshot',side_effect=capture):
+                with self.assertRaisesRegex(ProtocolError,'isolated candidate'):
+                    _update(FakeClient(),root,root,plan,False,complete_content=True,decoder=decoder)
+            self.assertEqual(json.loads((root/'state.json').read_text()),old)
+
+    def test_initial_complete_inputs_without_binding_cannot_be_adopted(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root=Path(tmp);baseline=root/'baseline';baseline.mkdir()
+            (baseline/'observation.json').write_text(json.dumps(FakeClient().discover()))
+            (root/'manifest.json').write_text(json.dumps({'provenance':{'apkSha256':{'base.apk':'a'*64}}}))
+            previous={'id':'global-production','manifest':'manifest.json','masterRoot':'master','supplementalInputs':True,'bgmAudioInputs':True}
+            decoder={'apkSha256':'a'*64,'bundleDecoderBindingSha256':'d'*64}
+            with patch('tools.build_remote_global_inputs.ROOT',root),patch('tools.release_preflight.load_plan',return_value=[previous]),patch('tools.global_remote_sync.snapshot',side_effect=ProtocolError('unbound baseline rejected')):
+                with self.assertRaisesRegex(ProtocolError,'unbound baseline rejected'):
+                    _update(FakeClient(),root,baseline,root/'plan',False,complete_content=True,decoder=decoder)
+            self.assertFalse((root/'state.json').exists())
+
+    def test_existing_inputs_without_binding_receipt_are_rejected(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root=Path(tmp);observed=FakeClient().discover()
+            decoder={'apkSha256':'a'*64,'bundleDecoderBindingSha256':'d'*64}
+            current=root/('1.0.0.104-bbbbbbbb-cccccccc-complete-v2-aaaaaaaa-d'+'d'*12)
+            captured=current/'snapshot';captured.mkdir(parents=True);(current/'inputs').mkdir()
+            (captured/'report.json').write_text(json.dumps({'observation':observed}))
+            (captured/'status.json').write_text(json.dumps({'status':'verified_snapshot'}))
+            with patch('tools.release_preflight.load_plan',return_value=[{'id':'global-production'}]):
+                with self.assertRaisesRegex(ProtocolError,'cached inputs bundle decoder binding mismatch'):
+                    _update(FakeClient(),root,root,root/'plan',False,complete_content=True,decoder=decoder)
+            self.assertFalse((root/'state.json').exists())
+
+    def test_unverified_decoder_binding_rejected_before_discovery(self):
+        client=Mock()
+        with self.assertRaisesRegex(ProtocolError,'missing verified bundle decoder binding'):
+            _update(client,Path('/unused'),Path('/unused'),Path('/unused'),False,decoder={'apkSha256':'a'*64})
+        client.discover.assert_not_called()
+
     def test_version_identity_ignores_observation_time(self):
         a = FakeClient().discover()
         self.assertEqual(version_identity(a), version_identity({**a, "observedAt": "later"}))

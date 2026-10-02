@@ -26,14 +26,19 @@ def intake(package, cache, apksig):
         if (profile.get('apkSha256') != sha or profile.get('certificateSha256') != CERTIFICATE
                 or profile.get('signatureVerified') is not True or file_hash(Path(profile['metadata'])) != profile['metadataSha256']):
             raise ValueError('cached decoder profile integrity mismatch')
-        return profile
+        from analysis.crypto.decrypt_global_formal_scores import MetadataV39
+        from tools.bundle_decoder import resolve_bundle_decoder
+        parsed = MetadataV39(Path(profile['metadata']))
+        _, _, binding = resolve_bundle_decoder(parsed, profile['clientVersion'])
+        return {**profile, 'bundleDecoderBindingSha256': binding}
     identity = inspect_apk(apk)
     if identity['packageName'] not in ('com.bilibili.sirius.official','com.bilibili.sirius'):
         raise ValueError('unexpected APK package identity')
     if identity['certificateSha256'] != CERTIFICATE: raise ValueError('APK signer changed')
     verify_apk_signature(apk, apksig, CERTIFICATE)
     from analysis.crypto.deobfuscate_paged_il2cpp_metadata import decode, read_sections
-    from analysis.crypto.decrypt_global_formal_scores import MetadataV39, field_bytes, KEY_FIELD_USAGE, NONCE_SEED_FIELD_USAGE
+    from analysis.crypto.decrypt_global_formal_scores import MetadataV39
+    from tools.bundle_decoder import resolve_bundle_decoder
     from tools.extract_global_stories import command_enum
     with zipfile.ZipFile(apk) as archive:
         names = [n for n in archive.namelist() if n.endswith('/global-metadata.dat')]
@@ -48,14 +53,13 @@ def intake(package, cache, apksig):
     metadata.parent.mkdir(parents=True, exist_ok=True)
     metadata.write_bytes(clear)
     parsed = MetadataV39(metadata)
-    field_bytes(parsed, KEY_FIELD_USAGE, 16)
-    field_bytes(parsed, NONCE_SEED_FIELD_USAGE, 8)
+    _, _, binding = resolve_bundle_decoder(parsed, identity['versionName'])
     command_enum(parsed)
     # Actual resource decryption is checked by each extractor before publication.
     profile = {'schemaVersion': 1, 'apk': str(apk.resolve()), 'apkSha256': sha,
         'metadata': str(metadata.resolve()), 'metadataSha256': file_hash(metadata),
         'clientVersion': identity['versionName'], 'versionCode': identity['versionCode'],
         'packageName': identity['packageName'], 'certificateSha256': CERTIFICATE,
-        'signatureVerified': True, 'decoder': 'global-v39-paged-xor-66', 'gameplayVerified': False}
+        'signatureVerified': True, 'bundleDecoderBindingSha256': binding, 'decoder': 'global-v39-paged-xor-66', 'gameplayVerified': False}
     write_json(profile_path, profile)
     return profile

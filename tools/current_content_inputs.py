@@ -229,7 +229,8 @@ def refresh_current(snapshot, baseline_catalog, plan, output, *, decoder=None):
     stage = output.with_name('.' + output.name + '.working')
     stage.mkdir(parents=True, exist_ok=True)
     fingerprint = {'report': file_hash(snapshot / 'report.json'), 'plan': file_hash(plan), 'decoder': file_hash(apk),
-        'code': {name: file_hash(ROOT / 'tools' / name) for name in ('current_resources.py','current_content_inputs.py','current_content_media.py','export_immersive_scenes.py','prepare_auto_stage.py','current_bgm_inputs.py','current_input_cache.py','current_growth_inputs.py')}}
+        'bundleDecoderBindingSha256': decoder.get('bundleDecoderBindingSha256') if decoder else None,
+        'code': {name: file_hash(ROOT / 'tools' / name) for name in ('bundle_decoder.py','current_resources.py','current_content_inputs.py','current_content_media.py','export_immersive_scenes.py','prepare_auto_stage.py','current_bgm_inputs.py','current_input_cache.py','current_growth_inputs.py')}}
     identity = stage / '.identity.json'
     if identity.exists() and read_json(identity) != fingerprint:
         raise ValueError('partial inputs belong to another source/compiler; use a new output directory')

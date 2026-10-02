@@ -24,7 +24,7 @@ flowchart LR
 
 - 每项任务使用独立分支；并行开发使用独立 worktree，避免把他人的未完成修改打包。
 - PR 验证不下载整套游戏资源。CI 使用已提交的合成样例及计分回放样例，执行来源检查、依赖安装、离线测试和独立网页构建。
-- 本地预览：`bash scripts/build-web-client.sh --preview output/code-preview`。预览清单明确标记 `local-preview`，正式发布入口拒绝此产物。
+- 本地预览：先执行 `npm --prefix site ci`，再执行 `bash scripts/build-web-client.sh --preview output/code-preview`。输出目录必须尚不存在；再次预览使用新的目录名。预览清单明确标记 `local-preview`，正式发布入口拒绝此产物。
 - 正式候选：`bash scripts/build-web-client.sh --candidate HEAD output/code-candidate`。运行环境使用 Node 22.22.0 与 Python 3.12（见 CI）。必须在干净检出上执行，指定提交必须等于 HEAD。
 - 原有完整静态资源构建脚本保留给资源回放/旧版本维护；网页代码正式交付统一走上述候选入口。
 
@@ -33,6 +33,16 @@ flowchart LR
 `code-release.json` 记录文件摘要、Git 提交和 tree、源码文件指纹、依赖锁摘要、Node/npm/Python 版本。`verification.json` 绑定完整代码清单和 HTML 摘要，并记录实际执行的固定测试命令、退出码与输出摘要。测试输出不打进公开产物，避免意外带入敏感信息。每次正式验证分配独立运行 ID，计入代码身份；同一提交重新验证也产生新的发布身份，避免不同回执争用同一个不可变目录。源码指纹仍可用于比较是否同源。
 
 验证回执是执行记录，不是数字签名。发布者必须从受信任的 CI 运行摘要或自己完成的本地验收取得 `verification.json` 的 SHA-256，并通过独立参数固定它；不能把下载文件自行声称的 `passed: true` 当作授权。GitHub 工作流上传代码包和程序包，预览与生产晋级同一份代码包，发布时不重新构建。
+
+从已成功的受信任 CI 运行下载产物，替换以下运行编号与完整提交号：
+
+```sh
+gh run download RUN_ID --repo stonesver/otonote \
+  --name verified-candidates-COMMIT \
+  --dir output/reviewed-RUN_ID
+```
+
+解包结果为 `output/reviewed-RUN_ID/code-candidate/` 和 `output/reviewed-RUN_ID/runtime-candidate/`。从同一个成功运行的 Summary 获取代码回执与程序包两个 SHA-256；核对该运行的提交号和审查版本一致。发布时将下文 `--source` 改为下载的 `code-candidate` 目录，程序安装使用下载的 `runtime-candidate`，不重新构建晋级产物。下载目录应为新的空目录，避免混入旧产物。
 
 ## 程序不可变交付
 
@@ -51,6 +61,8 @@ python3 -m tools.runtime_bundle verify --root output/runtime-candidate --expecte
 
 Python/Node/系统工具由另行审查的 digest 固定基础镜像提供；程序包本身不伪装成包含这些依赖的完整镜像。新版更新器程序包仅支持内容生产，完整旧网站构建不在此包契约内。基础镜像、状态根、程序包根、配置根和容器参数属于私有部署配置，均不能写入公开仓库。
 切换程序版本前先运行现有预检，确认基础镜像依赖和外部资源契约满足要求；再对照旧版本执行样例任务。预检还须显式检查 `OURNOTES_MASTER_SALT_HEX`、`OURNOTES_MASTER_KEY_HEX`、`OURNOTES_MASTER_IV_HEX` 各为 32 字节，以及非零的 `OURNOTES_CRI_KEY`；`doctor(build=True)` 的依赖检查不能替代这些材料检查。真实值通过仓库外的受限 env 文件传入更新容器，不放入源码、镜像层或命令行。只读渲染容器不需要这些解密材料。
+
+当前资源解码还需通过 `OURNOTES_BUNDLE_DECODER_PROFILE` 指向只读外置 JSON。字段契约为 `schemaVersion: 1` 与 `profiles` 数组；每项包含 `clientVersion`、`metadataSha256`、整数 `keyFieldUsage` 和 `nonceSeedFieldUsage`。实际版本、摘要与字段映射由私有资源验证流程提供，不提交真实文件。配置必须精确匹配待用客户端和元数据，旧索引不能自动回退到新版本；缓存命中也必须重新校验绑定。该文件不含复制出的密钥，运行时只从已验证元数据解析材料。
 
 预检以原工作目录、原路径和新只读程序覆盖运行，状态挂载也设为只读，并禁用网络，验证 import、依赖、私有输入存在及路径绑定。记录程序摘要与基础镜像 digest，保留旧单元、原配置和上个版本用于回滚。预检成功不等于生产已切换；需在单次真实任务和两服渲染验证后才宣称不可变程序交付已在线生效。不得继续在活动版本目录覆盖源码。
 
@@ -83,7 +95,7 @@ bash scripts/publish-web-client.sh \
   --dry-run
 ```
 
-移除 `--dry-run` 才执行上传和切换。首次安装的 `--expected-current` 使用 `none`。发布锁覆盖旧版本检查、安装、指针切换和健康检查；如果当前版本已经变化，候选不会切换。健康检查失败时恢复原 current/previous 指针。没有旧版本的首次安装失败会移除新 current 指针。
+`--dry-run` 只做本地产物及配置结构校验，不连接或验证远端运行环境。移除 `--dry-run` 才执行上传、远端验证和切换。首次安装的 `--expected-current` 使用 `none`。发布锁覆盖旧版本检查、安装、指针切换和健康检查；如果当前版本已经变化，候选不会切换。健康检查失败时恢复原 current/previous 指针。没有旧版本的首次安装失败会移除新 current 指针。
 
 前端包的 HTTP 健康检查和真实用户验收是不同关卡：发布后仍需检查预渲染组合、CDN、主要页面及浏览器交互。只有源码和内容都通过相应验收，才记录为完成发布。预渲染仍引用旧代码/内容时不能立即回收旧版本。
 
