@@ -324,13 +324,13 @@ def run_update(config, journal, client, *, rebuild=False):
                   'buildDirectory': str(build), 'candidate': str(candidate), 'publicationReady': False,
                   'chartProjectionFingerprint': projection_fingerprint,
                   'limitations': ['formal_gameplay_not_verified'], **package}
-        from tools.update_retention import history, cleanup
-        from tools.content_retention import cleanup_content
+        from tools.update_retention import history
         result['retainedBuilds'] = history(previous, result)
+        # A successful publication does not authorize removing older content or
+        # inputs. Independent maintenance must first audit all serving/render refs.
+        result['retention'] = {'status': 'deferred_to_operations'}
         write_json(build/'content-publication.json',published)
         journal.step('save-success', lambda: write_json(state_path, result))
-        journal.step('content-retention', lambda: cleanup_content(config['contentPublication']['root']))
-        journal.step('input-retention', lambda: cleanup(workspace, config['contentPublication']['root'], result['retainedBuilds']))
         return result
     if not site.exists():
         if not candidate.exists():

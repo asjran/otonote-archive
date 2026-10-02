@@ -1,4 +1,4 @@
-"""Generate bounded, disposable HTML from independently sealed code and content."""
+"""Generate HTML from sealed code/content; historical retention is external."""
 import argparse
 import fcntl
 import hashlib
@@ -146,24 +146,10 @@ def publish(code_root, content, output, runner=subprocess.run, region="global"):
             return {'status':'superseded', 'pair':pair}
         switch(output, 'current' + suffix, target)
         pending_file.unlink(missing_ok=True)
-        protected = {pair}
-        previous = output / ('previous' + suffix)
-        if previous.is_symlink(): protected.add(previous.resolve().name)
-        candidates = sorted([p for p in releases.iterdir() if re.fullmatch('[a-f0-9]{24}-[a-f0-9]{24}', p.name) and p.is_dir() and not p.is_symlink()], key=lambda p:p.stat().st_mtime, reverse=True)
-        # Each region has its own retention budget and serving pointers.
-        candidates = [p for p in candidates if (p/'complete.json').is_file() and json.loads((p/'complete.json').read_text()).get('region', 'global') == region]
-        protected.update(p.name for p in candidates[:3])
-        for path in candidates:
-            if path.name in protected: continue
-            modified = path.stat().st_mtime
-            # Only current/previous/recent HTML can be served. Old HTML can be
-            # regenerated; keep small immutable tool payloads for open tabs.
-            for name in ('global', 'jp'):
-                directory = path / name
-                if directory.is_dir() and not directory.is_symlink(): shutil.rmtree(directory)
-            os.utime(path, (modified, modified))
-            if time.time() - modified > 7*86400: shutil.rmtree(path)
-        return {'status':'published', 'pair':pair}
+        # Historical HTML and open-tab payloads belong to independent audited
+        # maintenance. Publication changes pointers, never deletes other releases.
+        return {'status':'published', 'pair':pair,
+                'retention':{'status':'deferred_to_operations'}}
 
 
 if __name__ == '__main__':

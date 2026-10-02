@@ -1,4 +1,5 @@
 import hashlib
+import os
 import json
 from pathlib import Path
 import subprocess
@@ -107,17 +108,38 @@ class PrerenderPublicationTests(unittest.TestCase):
         self.assertTrue((final/'global/en/music/index.html').is_file())
         self.assertEqual((final/'payloads/old.json').read_text(),'{}')
 
-    def test_old_html_is_bounded_while_payloads_remain_available(self):
+    def test_publication_preserves_all_historical_html_and_payloads_even_after_a_week(self):
         publish(self.code,self.content,self.output,self.render)
         first = (self.output/'current').resolve()
         (first/'payloads').mkdir()
         (first/'payloads/open-tab.json').write_text('{}')
-        for digit in 'bcd':
+        expired=time.time()-8*86400
+        os.utime(first,(expired,expired))
+        before={path:(path.read_bytes(),path.stat().st_ino,path.stat().st_mtime_ns)
+                for path in first.rglob('*') if path.is_file()}
+        for digit in 'bcde':
             self.pointer(digit*24)
-            publish(self.code,self.content,self.output,self.render)
-        self.assertFalse((first/'global').exists())
-        self.assertTrue((first/'payloads/open-tab.json').is_file())
+            result=publish(self.code,self.content,self.output,self.render)
+        self.assertTrue((first/'global/en/music/index.html').is_file())
+        self.assertEqual(before,{path:(path.read_bytes(),path.stat().st_ino,path.stat().st_mtime_ns) for path in before})
+        self.assertEqual(len(list((self.output/'releases').iterdir())),5)
+        self.assertEqual(result['retention'],{'status':'deferred_to_operations'})
         self.assertTrue(((self.output/'current').resolve()/'global').is_dir())
+
+    def test_partial_failed_stage_is_removed_without_changing_previous_release(self):
+        publish(self.code,self.content,self.output,self.render)
+        previous=(self.output/'current').resolve()
+        before={path:path.read_bytes() for path in previous.rglob('*') if path.is_file()}
+        self.pointer('b'*24)
+        def fail_second(args,**kwargs):
+            self.render(args,**kwargs)
+            if args[6]=='en':raise subprocess.CalledProcessError(1,'node')
+        with self.assertRaises(subprocess.CalledProcessError):
+            publish(self.code,self.content,self.output,fail_second)
+        self.assertEqual((self.output/'current').resolve(),previous)
+        self.assertEqual((self.output/'previous').resolve(),previous)
+        self.assertEqual(before,{path:path.read_bytes() for path in before})
+        self.assertFalse(list((self.output/'releases').glob('.render-*')))
 
     def test_jp_uses_own_pointer_and_switch_without_touching_global(self):
         publish(self.code,self.content,self.output,self.render)
@@ -151,7 +173,7 @@ class PrerenderPublicationTests(unittest.TestCase):
             publish(self.code,self.content,self.output,self.render,region='jp')
         self.assertFalse(self.calls)
 
-    def test_jp_failure_and_retention_leave_global_view_untouched(self):
+    def test_jp_failure_and_history_leave_global_view_untouched(self):
         publish(self.code,self.content,self.output,self.render)
         original=(self.output/'current').resolve()
         for digit in 'bcde':

@@ -111,9 +111,11 @@ def execute(config, journal, action, candidate_id=None):
     result = {k: record[k] for k in ('schemaVersion', 'observation', 'inputPlan', 'inputPlanSha256', 'buildDirectory', 'candidate', 'package', 'packageChanged', 'chartProjectionFingerprint') if k in record}
     result.update(status=published['status'], publication=published, publicationReady=False, limitations=['formal_gameplay_not_verified'])
     result['retainedBuilds'] = history(previous, result)
+    result['retention'] = {'status': 'deferred_to_operations'}
     write_json(Path(record['buildDirectory'])/'content-publication.json', published)
     journal.step('save-success', lambda: write_json(state_path, result))
     staged_path.unlink(missing_ok=True)
-    from tools.content_retention import cleanup_content
-    journal.step('content-retention', lambda: cleanup_content(config['contentPublication']['root']))
-    return {'status': published['status'], 'candidateId': candidate_id, 'publication': published}
+    # Manual publication has the same boundary as automatic content publication:
+    # independent audited maintenance owns historical inputs/content lifecycle.
+    return {'status': published['status'], 'candidateId': candidate_id, 'publication': published,
+            'retention': result['retention']}

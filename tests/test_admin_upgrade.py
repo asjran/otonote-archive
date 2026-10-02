@@ -146,12 +146,23 @@ class ManualStageTests(unittest.TestCase):
         self.assertEqual(selected['chartProjectionFingerprint'],workflow.chart_projection_fingerprint())
         self.assertEqual((self.candidate/'candidate.json').read_bytes(),original)
 
-    def test_success_updates_automatic_workflow_baseline(self):
+    def test_success_updates_baseline_and_defers_history_deletion_to_operations(self):
         identity=self.invoke('build')['candidateId']
-        with patch('tools.content_publication.publish_content',return_value={'status':'content_published'}), patch('tools.content_retention.cleanup_content') as cleanup:
-            self.invoke('publish',identity)
-            cleanup.assert_called_once_with(self.config['contentPublication']['root'])
-        self.assertEqual(read_json(self.workspace/'state.json')['candidate'],str(self.candidate))
+        old_content=self.root/'content/releases'/('a'*24)/'manifest.json'
+        old_input=self.workspace/'sync-complete/old-input/release-inputs.json'
+        for path in (old_content,old_input):write_json(path,{'fixture':'preserve'})
+        protected={path:path.read_bytes() for path in (old_content,old_input,self.plan,self.candidate/'candidate.json')}
+        with patch('tools.content_publication.publish_content',return_value={'status':'content_published'}), \
+             patch('tools.content_retention.cleanup_content',side_effect=AssertionError('automatic content deletion')) as cleanup, \
+             patch('tools.update_retention.cleanup',side_effect=AssertionError('automatic input deletion')) as inputs_cleanup:
+            result=self.invoke('publish',identity)
+            cleanup.assert_not_called();inputs_cleanup.assert_not_called()
+        saved=read_json(self.workspace/'state.json')
+        self.assertEqual(saved['candidate'],str(self.candidate))
+        self.assertEqual(saved['retention'],{'status':'deferred_to_operations'})
+        self.assertEqual(result['retention'],saved['retention'])
+        self.assertIn(str(self.build),saved['retainedBuilds'])
+        self.assertEqual(protected,{path:path.read_bytes() for path in protected})
         self.assertFalse((self.workspace/'manual-candidate.json').exists())
 
     def test_shared_lock_returns_retryable_exit_without_overwriting_journal(self):
