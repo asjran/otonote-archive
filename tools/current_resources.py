@@ -5,6 +5,7 @@ import hashlib
 from pathlib import Path
 import re
 import shutil
+import tempfile
 import zipfile
 
 from tools.global_remote_sync import acquire, file_hash, read_json, write_json, remote_path
@@ -124,9 +125,17 @@ class CurrentResources:
         if imported and imported[0].is_file() and imported[0].stat().st_size == loc.expected_size:
             if file_hash(imported[0]) != imported[1]: raise ValueError('import resource digest mismatch')
             path.parent.mkdir(parents=True, exist_ok=True)
-            shutil.copyfile(imported[0], path)
-            row = {'url': url, 'sha256': imported[1], 'byteSize': path.stat().st_size, 'origin': 'verified-local'}
-            write_json(receipt, row)
+            # Never truncate a cache inode that may also belong to sealed inputs.
+            with tempfile.TemporaryDirectory(prefix='.import-', dir=path.parent) as staging:
+                temporary = Path(staging) / 'bundle'
+                shutil.copyfile(imported[0], temporary)
+                if temporary.stat().st_size != loc.expected_size or file_hash(temporary) != imported[1]:
+                    raise ValueError('import resource copy integrity mismatch')
+                row = {'url': url, 'sha256': imported[1], 'byteSize': loc.expected_size, 'origin': 'verified-local'}
+                # As with downloads, a receipt may survive an interrupted rename;
+                # the next lookup validates both bytes and receipt before reuse.
+                write_json(receipt, row)
+                temporary.replace(path)
         else:
             if self.downloaded + loc.expected_size > self.budget:
                 raise ValueError('resource download budget exceeded; cache retained')

@@ -1,4 +1,5 @@
 import hashlib
+import os
 from pathlib import Path
 from types import SimpleNamespace
 import tempfile
@@ -29,6 +30,57 @@ class ResourceCacheTests(unittest.TestCase):
                 acquire.assert_called_once()
                 path.write_bytes(b'evil')
                 with self.assertRaisesRegex(ValueError, 'integrity mismatch'): resource.get(location)
+
+    def import_recovery(self, root):
+        resource = CurrentResources.__new__(CurrentResources)
+        resource.cache = root
+        resource.report = {'observation': {'cdnRoot': 'https://example.invalid'}, 'catalogSha256': 'catalog-a'}
+        resource.downloaded, resource.budget, resource.used = 0, 100, {}
+        name = 'fixture.bundle'
+        path = root / 'bundles' / name
+        path.parent.mkdir()
+        path.write_bytes(b'old!')
+        shared = root / 'sealed-reference.bundle'
+        os.link(path, shared)
+        imported = root / 'import.bundle'
+        imported.write_bytes(b'new!')
+        resource.imports = {name: (imported, file_hash(imported))}
+        location = SimpleNamespace(primary_key=name, expected_size=4,
+                                   internal_id='https://dummy.net/asset/Android/' + name)
+        return resource, location, path, shared
+
+    def test_local_import_recovery_does_not_overwrite_shared_inode(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            resource, location, path, shared = self.import_recovery(Path(tmp))
+            prior_inode = shared.stat().st_ino
+            with patch('tools.current_resources.acquire', side_effect=AssertionError('unexpected network')):
+                self.assertEqual(resource.get(location), path)
+                self.assertEqual(resource.get(location), path)
+            self.assertEqual(path.read_bytes(), b'new!')
+            self.assertEqual(shared.read_bytes(), b'old!')
+            self.assertEqual(shared.stat().st_ino, prior_inode)
+            self.assertNotEqual(path.stat().st_ino, prior_inode)
+            self.assertEqual(resource.used[location.primary_key]['sha256'], file_hash(path))
+            self.assertEqual(sorted(p.name for p in path.parent.iterdir()), ['fixture.bundle', 'fixture.bundle.receipt.json'])
+
+    def test_failed_or_invalid_import_copy_preserves_old_links_and_cleans_stage(self):
+        for failure in ('copy-error', 'wrong-size', 'wrong-digest'):
+            with self.subTest(failure=failure), tempfile.TemporaryDirectory() as tmp:
+                resource, location, path, shared = self.import_recovery(Path(tmp))
+                prior_inode = path.stat().st_ino
+                def copy(source, destination):
+                    Path(destination).write_bytes(b'corrupt' if failure == 'wrong-size' else b'bad!')
+                    if failure == 'copy-error':
+                        raise OSError('synthetic copy failure')
+                with patch('tools.current_resources.shutil.copyfile', side_effect=copy):
+                    with self.assertRaises(OSError if failure == 'copy-error' else ValueError):
+                        resource.get(location)
+                self.assertEqual(path.read_bytes(), b'old!')
+                self.assertEqual(shared.read_bytes(), b'old!')
+                self.assertEqual(path.stat().st_ino, prior_inode)
+                self.assertEqual(shared.stat().st_ino, prior_inode)
+                self.assertEqual(list(path.parent.iterdir()), [path])
+                self.assertEqual(resource.used, {})
 
     def test_raw_cri_key_is_scoped_to_catalog(self):
         with tempfile.TemporaryDirectory() as tmp:
