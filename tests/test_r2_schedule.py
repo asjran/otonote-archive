@@ -78,11 +78,12 @@ class ScheduleTests(unittest.TestCase):
             minute_sets.append(set(slots))
         self.assertFalse(minute_sets[0] & minute_sets[1])
 
-    def select(self, event, cron='', region='', mode='', auto='true'):
+    def select(self, event, cron='', region='', mode='', auto='true', global_workers='', jp_workers=''):
         with tempfile.TemporaryDirectory() as folder:
             env_path, summary = Path(folder) / 'env', Path(folder) / 'summary'
             env = dict(os.environ, EVENT_NAME=event, SCHEDULE=cron, INPUT_REGION=region,
                        INPUT_MODE=mode, AUTO_PROMOTE_GLOBAL=auto, AUTO_PROMOTE_JP=auto,
+                       RESTORE_WORKERS_GLOBAL=global_workers, RESTORE_WORKERS_JP=jp_workers,
                        GITHUB_ENV=str(env_path), GITHUB_STEP_SUMMARY=str(summary), GITHUB_RUN_ID='123')
             result = subprocess.run(['bash', '-c', self.selection], env=env, capture_output=True)
             return result.returncode, env_path.read_text() if env_path.exists() else '', summary.read_text() if summary.exists() else ''
@@ -97,7 +98,7 @@ class ScheduleTests(unittest.TestCase):
                 self.assertIn('15 minutes' if index >= 2 else '240 minutes', summary)
                 self.assertIn('Selection started at (UTC)', summary)
         status, env, _ = self.select('workflow_dispatch', region='jp', mode='shadow')
-        self.assertEqual((status, env), (0, 'REGION=jp\nMODE=shadow\n'))
+        self.assertEqual((status, env), (0, 'REGION=jp\nMODE=shadow\nRESTORE_WORKERS=8\n'))
         self.assertNotEqual(self.select('schedule', cron='unknown')[0], 0)
         self.assertNotEqual(self.select('workflow_dispatch', region='invalid', mode='promote')[0], 0)
 
@@ -107,6 +108,22 @@ class ScheduleTests(unittest.TestCase):
                 status, env, _ = self.select('workflow_dispatch', region=region, mode='auto', auto=auto)
                 self.assertEqual(status, 0)
                 self.assertIn('MODE=' + ('promote' if auto == 'true' else 'shadow'), env)
+
+    def test_restore_concurrency_is_bounded_per_region_before_expensive_work(self):
+        for region in ('global', 'jp'):
+            for workers in ('4', '8', '12'):
+                options = {region + '_workers': workers}
+                status, env, _ = self.select('workflow_dispatch', region=region, mode='shadow', **options)
+                self.assertEqual(status, 0)
+                self.assertIn('RESTORE_WORKERS=' + workers + '\n', env)
+            for bad in ('0', '16', '8\nEXTRA=value', '$(exit 0)', 'invalid'):
+                status, env, _ = self.select('workflow_dispatch', region=region, mode='shadow',
+                                             **{region + '_workers': bad})
+                self.assertNotEqual(status, 0)
+                self.assertEqual(env, '')
+        status, env, _ = self.select('workflow_dispatch', region='jp', mode='shadow', global_workers='12')
+        self.assertEqual(status, 0)
+        self.assertIn('RESTORE_WORKERS=8\n', env)
 
 
 if __name__ == '__main__':

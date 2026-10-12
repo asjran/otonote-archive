@@ -1,12 +1,13 @@
 import {setupQuickOptions} from './tool-quick-options.mjs';
 import {setupAttributeFilter} from './calculator-card-ui.mjs';
+import {matchesFilter,selectedControlValues,restoreFilterControl} from './filter-controls.mjs';
 export function matchesSongMission(missions,filter) {
   if(!filter)return true;
   if(filter==='mixed')return new Set(missions).size>1;
   return filter.endsWith('-only')?missions.every(m=>String(m)===filter.split('-')[0]):missions.some(m=>String(m)===filter);
 }
 export function matchesSongChart(chart,{difficulty='',min='',max=''}={}) {
-  return !chart.disabled&&(!difficulty||chart.difficulty===difficulty)&&(!min||chart.level>=Number(min))&&(!max||chart.level<=Number(max));
+  return !chart.disabled&&matchesFilter(chart.difficulty,difficulty)&&(!min||chart.level>=Number(min))&&(!max||chart.level<=Number(max));
 }
 export function setupCalculatorSongPicker(root,{getSelection,onSelect,allowedTrackIds=()=>null}) {
   const picker=root.querySelector('[data-song-picker]');if(!picker)return null;
@@ -16,13 +17,13 @@ export function setupCalculatorSongPicker(root,{getSelection,onSelect,allowedTra
   const shortcuts=setupQuickOptions(picker);
   function filter() {
     shortcuts.sync();
-    const f=Object.fromEntries(fields.map(key=>[key,q(`[data-song-${key}]`).value]));
+    const f=Object.fromEntries(fields.map(key=>{const field=q(`[data-song-${key}]`);return [key,field.multiple?selectedControlValues(field):field.value];}));
     const words=f.query.trim().toLocaleLowerCase().split(/\s+/).filter(Boolean);
     const allowed=allowedTrackIds();
     visible=rows.filter(row=>{
       const charts=[...row.querySelectorAll('[data-song-choice]')];
       for(const c of charts)c.hidden=!matchesSongChart({difficulty:c.dataset.difficulty,level:Number(c.dataset.level),disabled:c.disabled},f);
-      return (!allowed||allowed.has(row.dataset.songRow))&&(!attributes.values.length||attributes.values.includes(row.dataset.attribute))&&words.every(w=>row.dataset.search.includes(w))&&(!f.band||row.dataset.bands.split(' ').includes(f.band))&&matchesSongMission(row.dataset.missions.split(',').map(Number),f.mission)&&charts.some(c=>!c.hidden);
+      return (!allowed||allowed.has(row.dataset.songRow))&&(!attributes.values.length||attributes.values.includes(row.dataset.attribute))&&words.every(w=>row.dataset.search.includes(w))&&matchesFilter(row.dataset.bands.split(' '),f.band)&&matchesSongMission(row.dataset.missions.split(',').map(Number),f.mission)&&charts.some(c=>!c.hidden);
     });
     if(f.sort==='name')visible.sort((a,b)=>a.dataset.title.localeCompare(b.dataset.title,'zh-CN'));
     if(f.sort==='level'){const level=r=>Math.max(...[...r.querySelectorAll('[data-song-choice]')].filter(c=>!c.hidden).map(c=>Number(c.dataset.level)));visible.sort((a,b)=>level(b)-level(a));}
@@ -31,7 +32,7 @@ export function setupCalculatorSongPicker(root,{getSelection,onSelect,allowedTra
     q('[data-song-empty]').hidden=visible.length>0;q('[data-song-count]').textContent=`${visible.length} 首歌曲 · 属性可多选`;
     q('[data-song-page]').textContent=`${page+1} / ${pages}`;q('[data-song-prev]').disabled=page===0;q('[data-song-next]').disabled=page===pages-1;
   }
-  function reset(){fields.forEach(key=>q(`[data-song-${key}]`).value=key==='sort'?'default':'');attributes.reset();page=0;filter();}
+  function reset(){fields.forEach(key=>restoreFilterControl(q(`[data-song-${key}]`),key==='sort'?'default':''));attributes.reset();page=0;filter();}
   function sync() {
     const {selectedSongId,selectedDifficulty}=picker.pendingSelection??getSelection();let selected;
     for(const button of choices){const active=button.dataset.songChoice===selectedSongId&&button.dataset.difficulty===selectedDifficulty;button.setAttribute('aria-pressed',String(active));if(active)selected=button;}

@@ -1,13 +1,17 @@
 import {estimateAPChart} from './ap-grade.mjs';
 import {scoreGradeProbabilities} from './scoring-rules/score-distribution.mjs';
+import {filterValues} from './filter-controls.mjs';
 
 export function eventSongCandidates({tracks,charts,allowedTrackIds=null,difficulty='expert',maxLevel=40,band='',attribute=''}) {
  const allowed=allowedTrackIds==null?null:new Set(allowedTrackIds);
- const matchingTracks=new Set(tracks.filter(t=>(!band||t.bandIds?.includes(band))&&(!attribute||String(t.musicType)===String(attribute))).map(t=>t.id));
+ const difficulties=difficulty==='all'?null:new Set(Array.isArray(difficulty)?difficulty:[difficulty]);
+ const bands=new Set(filterValues(band)),attributes=new Set(filterValues(attribute).map(String));
+ const filterTracks=bands.size>0||attributes.size>0;
+ const matchingTracks=new Set(tracks.filter(t=>(!bands.size||t.bandIds?.some(id=>bands.has(id)))&&(!attributes.size||attributes.has(String(t.musicType)))).map(t=>t.id));
  const lengths=new Map(tracks.map(t=>[t.id,Number(t.audioDuration)||0]));
  for(const c of charts)lengths.set(c.trackId,Math.max(lengths.get(c.trackId)||0,Number(c.duration)||0));
  const names=new Map(tracks.map(t=>[t.id,t.title]));
- return charts.filter(c=>c.analysisDataUrl&&(!(band||attribute)||matchingTracks.has(c.trackId))&&(!allowed||allowed.has(c.trackId))&&(difficulty==='all'||c.difficulty===difficulty)&&c.level<=maxLevel)
+ return charts.filter(c=>c.analysisDataUrl&&(!filterTracks||matchingTracks.has(c.trackId))&&(!allowed||allowed.has(c.trackId))&&(!difficulties||difficulties.has(c.difficulty))&&c.level<=maxLevel)
   .map(c=>({...c,title:names.get(c.trackId)??c.trackId,seconds:lengths.get(c.trackId)||null}));
 }
 

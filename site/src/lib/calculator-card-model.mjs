@@ -1,3 +1,4 @@
+import {matchesFilter} from './filter-controls.mjs';
 // Shared by the manual picker, inventory and final lineup. Descriptions are
 // resolved at the configured level; browsing an unowned card is marked maximum.
 export function cardSkillRows(card, rules, growth, { maximum = false } = {}) {
@@ -25,9 +26,9 @@ export function filterCalculatorCards(cards, filters = {}, inventory = {}) {
   const owned = c => (inventory[`${c.kind}CardIds`] ?? []).includes(c.id);
   const result = cards.filter(c => (!filters.kind || c.kind === filters.kind)
     && query.every(q => `${c.shortLabel} ${c.displayName} ${c.relationLabel} ${c.id} ${(c.skills ?? []).map(s => s.name).join(' ')}`.toLocaleLowerCase().includes(q))
-    && (!filters.rarity || String(c.rarity) === filters.rarity)
+    && matchesFilter(c.rarity,filters.rarity)
     && (!filters.attributes?.length || filters.attributes.includes(String(c.attributeCode)))
-    && (!filters.band || c.bandIds?.includes(filters.band))
+    && matchesFilter(c.bandIds??[],filters.band)
     && (!filters.character || c.characterIds?.includes(filters.character))
     && (!filters.mission || c.skillFacets?.['gekisou-type']?.includes(filters.mission))
     && (!filters.effect || c.skillFacets?.['gekisou-effect']?.includes(filters.effect))

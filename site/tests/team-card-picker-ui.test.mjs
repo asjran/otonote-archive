@@ -14,6 +14,10 @@ class Element extends EventTarget {
  close(){this.open=false;this.dispatchEvent(new Event('close'));}
  querySelector(){return null;}
  querySelectorAll(){return [];}
+ get options(){return this.children.filter(c=>c.tagName==='option');}
+ get selectedOptions(){return this.options.filter(o=>o.selected);}
+ get value(){return this.tagName==='select'?this.selectedOptions[0]?.value??'':this._value??'';}
+ set value(value){this._value=value;if(this.tagName==='select')for(const option of this.options)option.selected=option.value===value;}
  getBoundingClientRect(){return {left:10,right:110,top:10,bottom:110};}
 }
 function setup(t){

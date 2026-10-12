@@ -42,8 +42,8 @@ const {rarities=[], standalone=false} = Astro.props;
       <label slot="search" class="selection-search">搜索卡片<input type="search" data-inventory-query placeholder="卡名、角色、乐队或 ID" /></label>
     <div slot="quick" class="selection-filter-rows">
       <div data-inventory-attributes><CalculatorAttributeFilter label="筛选卡库属性" /></div>
-      <label class="selection-filter-row"><span>稀有度</span><select data-inventory-rarity data-quick><option value="">全部</option>{rarities.map(r=><option value={r.value} {...optionVisual('rarity', r.value)}>{r.label}</option>)}</select></label>
-      <label class="selection-filter-row"><span>乐队</span><select data-inventory-band data-quick><option value="">全部乐队</option>{catalog.bands.map(b=><option value={b.id} {...optionVisual('band', b.id)}>{b.displayName}</option>)}</select></label>
+      <label class="selection-filter-row"><span>稀有度</span><select data-inventory-rarity multiple data-quick data-quick-all=""><option value="" selected>全部</option>{rarities.map(r=><option value={r.value} {...optionVisual('rarity', r.value)}>{r.label}</option>)}</select></label>
+      <label class="selection-filter-row"><span>乐队</span><select data-inventory-band multiple data-quick data-quick-all=""><option value="" selected>全部乐队</option>{catalog.bands.map(b=><option value={b.id} {...optionVisual('band', b.id)}>{b.displayName}</option>)}</select></label>
     </div>
     <div class="inventory-filters selection-filter-rows">
       <label class="selection-filter-row"><span>角色</span><select data-inventory-character><option value="">全部角色</option>{catalog.characters.map(c=><option value={c.id} data-band={c.bandId}>{c.displayName}</option>)}</select></label>
