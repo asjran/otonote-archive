@@ -59,9 +59,9 @@ export async function optimizeEventYield({rules,eventId,draft,chart,candidate,sc
  if(mode==='challenge')next.modifiers.event={id:eventId,sourceReleaseId:rules.sourceReleaseId};
  if(scope==='owned'){
    if(!inventory)throw Error('请先导入已保存卡库与实际养成');
-   const growth=structuredClone(inventory.growth??{});
-   for(const [id,value] of Object.entries(next.modifiers.growth??{}))growth[id]={...growth[id],...value};
-   next.modifiers.growth=growth;
+   // Owned searches use the current collection. A saved result's growth is a
+   // snapshot, not an explicit override of actual card levels or ranks.
+   next.modifiers.growth=structuredClone(inventory.growth??{});
  }
  const metric=goal==='eventPoints'?'eventPoints':'badges',bonusCache=new Map();
  const cardBonus=(kind,id)=>{

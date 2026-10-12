@@ -24,6 +24,19 @@ test('owned rewards keep their actual growth, even when maximum temporary growth
  const before=structuredClone(inventory),result=withEventRewardCandidates({rules,draft,scope:'owned',inventory,rewardCards,rewardGrowth:'maximum'});
  assert.deepEqual(inventory,before);assert.deepEqual(result.inventory.growth,inventory.growth);assert.deepEqual(result.temporaryCardIds,[]);
 });
+test('owned reward expansion cannot overwrite actual growth with an older saved team',()=>{
+ const manager=createInventoryManager(rules),inventory={memberCardIds:['member-card-6'],supportCardIds:['support-card-70'],growth:{'member-card-6':manager.preset('member-card-6','member','maximum'),'support-card-70':manager.preset('support-card-70','support','maximum')}};
+ const saved=structuredClone(draft);saved.modifiers.growth={'member-card-6':{level:1,rank:1,awake:1,skillLevel:1,gekisouSkillLevel:1},'support-card-70':{level:1,rank:1}};
+ const before=structuredClone(inventory),result=withEventRewardCandidates({rules,draft:saved,scope:'owned',inventory,rewardCards});
+ assert.deepEqual(result.inventory.growth,inventory.growth);
+ assert.deepEqual(result.draft.modifiers.growth,inventory.growth);
+ assert.deepEqual(inventory,before);assert.equal(saved.modifiers.growth['support-card-70'].rank,1);
+});
+test('selected reward expansion preserves explicit selected growth inputs',()=>{
+ const saved=structuredClone(draft);saved.modifiers.growth={'member-card-1':{level:2,rank:2,awake:1,skillLevel:3,gekisouSkillLevel:1},'support-card-1':{level:2,rank:2}};
+ const result=withEventRewardCandidates({rules,draft:saved,scope:'selected',rewardCards});
+ for(const id of ['member-card-1','support-card-1'])assert.deepEqual(result.inventory.growth[id],saved.modifiers.growth[id]);
+});
 test('reward assumptions are validated and get distinct calculation cache partitions',async()=>{
  assert.throws(()=>withEventRewardCandidates({rules,draft,scope:'owned',inventory:{memberCardIds:['member-card-1'],supportCardIds:[],growth:{}},rewardCards}),/等级|养成/);
  assert.throws(()=>withEventRewardCandidates({rules,draft,scope:'selected',rewardCards:[{resourceType:2,resourceId:999999}]}),/Unknown/);
