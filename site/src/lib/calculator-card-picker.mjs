@@ -1,13 +1,14 @@
 import {setupQuickOptions} from './tool-quick-options.mjs';
 import {filterCalculatorCards,cardPlacementConflict} from './calculator-card-model.mjs';
 import {cardElement as el,skillPeek,closeSkillPopover,cardIdentity,setupAttributeFilter} from './calculator-card-ui.mjs';
+import {selectedControlValues,restoreFilterControl,matchesFilter} from './filter-controls.mjs';
 export function setupCalculatorCardPicker(workbench) {
   const root=workbench.querySelector('.team-card-picker');if(!root)return null;
   const q=s=>root.querySelector(s),cards=[...workbench.data.memberCards,...workbench.data.supportCards],pageSize=12;
   let page=0,preview=null,kind='member';
   const attribute=setupAttributeFilter(q('[data-card-attributes]'),()=>{page=0;renderList();});
   const controls={query:'search',band:'band',character:'character',rarity:'rarity',owned:'owned',mission:'mission',effect:'effect',normal:'normal',sort:'sort'};
-  function filters(){return {kind,attributes:attribute.values,...Object.fromEntries(Object.entries(controls).map(([key,suffix])=>[key,q(`[data-card-${suffix}]`).value]))};}
+  function filters(){return {kind,attributes:attribute.values,...Object.fromEntries(Object.entries(controls).map(([key,suffix])=>{const field=q(`[data-card-${suffix}]`);return [key,field.multiple?selectedControlValues(field):field.value];}))};}
   function growth(card){return workbench.draft.modifiers.growth?.[card.id]??workbench.cardInventory?.growth?.[card.id];}
   function previewCard(){
     const container=q('[data-card-preview]');container.replaceChildren();
@@ -44,11 +45,11 @@ export function setupCalculatorCardPicker(workbench) {
   const sync=()=>{kind=workbench.pickerKind;const current=workbench.cardFor(kind,workbench.draft.slots[workbench.activeSlot][`${kind}CardId`]);if(!preview||preview.kind!==kind)preview=current;root.querySelectorAll('[data-picker-kind]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.pickerKind===kind)));q('[data-card-slot]').value=String(workbench.activeSlot);renderList();previewCard();};
   root.querySelectorAll('[data-picker-kind]').forEach(b=>b.addEventListener('click',()=>{workbench.pickerKind=b.dataset.pickerKind;preview=null;page=0;q('[data-card-normal]').value='';sync();}));
   for(const suffix of Object.values(controls))q(`[data-card-${suffix}]`).addEventListener(suffix==='search'?'input':'change',()=>{
-    if(suffix==='band'){q('[data-card-character]').value='';q('[data-card-character]').querySelectorAll('option').forEach(o=>{o.hidden=Boolean(o.value&&q('[data-card-band]').value&&o.dataset.band!==q('[data-card-band]').value);});}
+    if(suffix==='band'){q('[data-card-character]').value='';q('[data-card-character]').querySelectorAll('option').forEach(o=>{o.hidden=Boolean(o.value&&!matchesFilter(o.dataset.band,selectedControlValues(q('[data-card-band]'))));});}
     if(suffix==='mission'){q('[data-card-effect]').value='';q('[data-card-effect]').querySelectorAll('option').forEach(o=>o.hidden=Boolean(o.value&&q('[data-card-mission]').value&&!o.value.startsWith(q('[data-card-mission]').value+':')));}
     page=0;renderList();
   });
-  q('[data-card-reset]').addEventListener('click',()=>{for(const suffix of Object.values(controls))q(`[data-card-${suffix}]`).value=suffix==='sort'?'rarity':'';root.querySelectorAll('option').forEach(o=>o.hidden=false);attribute.reset();page=0;renderList();});
+  q('[data-card-reset]').addEventListener('click',()=>{for(const suffix of Object.values(controls))restoreFilterControl(q(`[data-card-${suffix}]`),suffix==='sort'?'rarity':'');root.querySelectorAll('option').forEach(o=>o.hidden=false);attribute.reset();page=0;renderList();});
   q('[data-card-prev]').addEventListener('click',()=>{page--;renderList();});q('[data-card-next]').addEventListener('click',()=>{page++;renderList();});
   q('[data-card-slot]').addEventListener('change',()=>{workbench.activeSlot=Number(q('[data-card-slot]').value);workbench.renderSlots();workbench.renderPickerState();workbench.productionPower?.settings();});
   q('[data-card-apply]').addEventListener('click',()=>{if(!preview||cardPlacementConflict(preview,workbench.draft,workbench.activeSlot,(...a)=>workbench.cardFor(...a))>=0)return;workbench.draft.slots[workbench.activeSlot][`${kind}CardId`]=preview.id;

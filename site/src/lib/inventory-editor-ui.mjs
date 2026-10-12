@@ -6,6 +6,7 @@ import {createInventoryManager,growthFields} from './inventory-manager.mjs';
 import {setupAccountGrowthImport} from './account-growth-ui.mjs';
 import {setupInventoryCardEdit} from './inventory-card-edit-ui.mjs';
 import {setupQuickOptions} from './tool-quick-options.mjs';
+import {selectedControlValues,restoreFilterControl,matchesFilter} from './filter-controls.mjs';
 
 const el=(tag,text='',cls='')=>{const n=document.createElement(tag);n.textContent=text;n.className=cls;return n;};
 function download(name,text,type) {
@@ -38,7 +39,7 @@ export function setupInventoryEditor(workbench,{onChange,onUse}) {
   const filterKeys=['query','rarity','owned','band','character','mission','effect','normal','sort'];
   for(const option of workbench.data.skillFilterFacets?.find(f=>f.name==='gekisou-effect')?.options??[]){const o=el('option',option.label);o.value=option.value;q('[data-inventory-effect]').append(o);}
   const shortcuts=setupQuickOptions(q('[data-inventory-editor]'));
-  function filtered() { return filterCalculatorCards(cards,{kind:kind(),attributes:attributes.values,...Object.fromEntries(filterKeys.map(k=>[k,q(`[data-inventory-${k}]`).value]))},inventory); }
+  function filtered() { return filterCalculatorCards(cards,{kind:kind(),attributes:attributes.values,...Object.fromEntries(filterKeys.map(k=>{const field=q(`[data-inventory-${k}]`);return [k,field.multiple?selectedControlValues(field):field.value];}))},inventory); }
   function selectionStatus() {
     const visible=new Set(filtered().map(card=>card.id)),outside=[...selected].filter(id=>!visible.has(id)).length;
     q('[data-inventory-selection-count]').textContent=`已选 ${selected.size} 张${kind()==='member'?'成员':'留影'}${outside?`（含 ${outside} 张筛选外卡片）`:''}`;
@@ -128,11 +129,11 @@ export function setupInventoryEditor(workbench,{onChange,onUse}) {
   });
   for(const key of ['kind',...filterKeys])q(`[data-inventory-${key}]`).addEventListener(key==='query'?'input':'change',()=>{
     if(key==='kind'){selected.clear();q('[data-inventory-normal]').value='';selectionChanged();}
-    if(key==='band'){q('[data-inventory-character]').value='';q('[data-inventory-character]').querySelectorAll('option').forEach(o=>o.hidden=Boolean(o.value&&q('[data-inventory-band]').value&&o.dataset.band!==q('[data-inventory-band]').value));}
+    if(key==='band'){q('[data-inventory-character]').value='';q('[data-inventory-character]').querySelectorAll('option').forEach(o=>o.hidden=Boolean(o.value&&!matchesFilter(o.dataset.band,selectedControlValues(q('[data-inventory-band]')))));}
     if(key==='mission'){q('[data-inventory-effect]').value='';q('[data-inventory-effect]').querySelectorAll('option').forEach(o=>o.hidden=Boolean(o.value&&q('[data-inventory-mission]').value&&!o.value.startsWith(q('[data-inventory-mission]').value+':')));}
     page=0;render();
   });
-  q('[data-inventory-reset]').addEventListener('click',()=>{for(const key of filterKeys)q(`[data-inventory-${key}]`).value=key==='sort'?'rarity':'';for(const key of ['character','effect'])q(`[data-inventory-${key}]`).querySelectorAll('option').forEach(o=>o.hidden=false);attributes.reset();page=0;render();});
+  q('[data-inventory-reset]').addEventListener('click',()=>{for(const key of filterKeys)restoreFilterControl(q(`[data-inventory-${key}]`),key==='sort'?'rarity':'');for(const key of ['character','effect'])q(`[data-inventory-${key}]`).querySelectorAll('option').forEach(o=>o.hidden=false);attributes.reset();page=0;render();});
   q('[data-inventory-select-visible]').addEventListener('click',()=>{filtered().forEach(c=>selected.add(c.id));render();selectionChanged();});
   q('[data-inventory-select-page]').addEventListener('click',()=>{filtered().slice(page*pageSize,(page+1)*pageSize).forEach(c=>selected.add(c.id));render();selectionChanged();});
   q('[data-inventory-edit-selected]').addEventListener('click',()=>action(()=>cardEditor.openBatch(cards.filter(card=>selected.has(card.id)))));

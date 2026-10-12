@@ -145,9 +145,9 @@ const attributes = [...new Set([...memberCards, ...supportCards].map((card) => c
       <div slot="quick" class="selection-filter-rows">
       <div data-card-attributes><CalculatorAttributeFilter /></div>
       <div class="selection-quick-grid selection-filter-rows">
-        <label class="selection-filter-row"><span>乐队</span><select data-card-band data-quick><option value="">全部乐队</option>{catalog.bands.map(b=><option value={b.id} {...optionVisual('band', b.id)}>{b.displayName}</option>)}</select></label>
+        <label class="selection-filter-row"><span>乐队</span><select data-card-band multiple data-quick data-quick-all=""><option value="" selected>全部乐队</option>{catalog.bands.map(b=><option value={b.id} {...optionVisual('band', b.id)}>{b.displayName}</option>)}</select></label>
         <label class="selection-filter-row"><span>角色</span><select data-card-character><option value="">全部角色</option>{catalog.characters.map(c=><option value={c.id} data-band={c.bandId}>{c.displayName}</option>)}</select></label>
-        <label class="selection-filter-row"><span>稀有度</span><select data-card-rarity data-quick><option value="">全部稀有度</option>{rarities.map(r=><option value={r} {...optionVisual('rarity', r)}>{getCardRarity(r)?.label??r}</option>)}</select></label>
+        <label class="selection-filter-row"><span>稀有度</span><select data-card-rarity multiple data-quick data-quick-all=""><option value="" selected>全部稀有度</option>{rarities.map(r=><option value={r} {...optionVisual('rarity', r)}>{getCardRarity(r)?.label??r}</option>)}</select></label>
         <label class="selection-filter-row"><span>持有情况</span><select data-card-owned data-quick><option value="">全部卡片</option><option value="owned">已拥有</option><option value="missing">未录入</option></select></label>
 </div></div>
       <div class="selection-filter-grid selection-filter-rows"><label class="selection-filter-row"><span>激奏类型</span><select data-card-mission><option value="">全部类型</option>{['combo','luck','just'].map(m=><option value={m}>{m.toUpperCase()}</option>)}</select></label>
@@ -220,9 +220,9 @@ const attributes = [...new Set([...memberCards, ...supportCards].map((card) => c
       <option value="formation_power">综合能力</option>
     </select></label>    <div data-search-filters><FilterPanel title="限定乐队、属性（可选）"><div class="optimizer-filter-fields selection-filter-rows">
     <label hidden class="selection-filter-row"><span>旧版计算组数</span><input type="number" min="1" max="100000" value="20" data-search-budget disabled /></label>
-    <label class="selection-filter-row"><span>成员乐队</span><select data-search-band data-inline-filter data-filter-kind="band"><option value="">不限</option>{catalog.bands.map(band => <option value={band.masterId}>{band.displayName}</option>)}</select></label>
-    <label class="selection-filter-row"><span>成员属性</span><select data-search-attribute data-inline-filter data-filter-kind="attribute"><option value="">不限</option>{attributes.map(attribute => <option value={attribute}>{getCardAttribute(attribute)?.names[catalog.release.locale] ?? attribute}</option>)}</select></label>
-    <label class="selection-filter-row"><span>留影属性</span><select data-search-support-attribute data-inline-filter data-filter-kind="attribute"><option value="">不限</option>{attributes.map(attribute => <option value={attribute}>{getCardAttribute(attribute)?.names[catalog.release.locale] ?? attribute}</option>)}</select></label>
+    <label class="selection-filter-row"><span>成员乐队</span><select data-search-band multiple data-inline-filter data-filter-kind="band"><option value="">不限</option>{catalog.bands.map(band => <option value={band.masterId}>{band.displayName}</option>)}</select></label>
+    <label class="selection-filter-row"><span>成员属性</span><select data-search-attribute multiple data-inline-filter data-filter-kind="attribute"><option value="">不限</option>{attributes.map(attribute => <option value={attribute}>{getCardAttribute(attribute)?.names[catalog.release.locale] ?? attribute}</option>)}</select></label>
+    <label class="selection-filter-row"><span>留影属性</span><select data-search-support-attribute multiple data-inline-filter data-filter-kind="attribute"><option value="">不限</option>{attributes.map(attribute => <option value={attribute}>{getCardAttribute(attribute)?.names[catalog.release.locale] ?? attribute}</option>)}</select></label>
     </div></FilterPanel></div>
     <label class="selection-filter-row"><span>最多带几张扩窗成员卡</span><select data-planning-window-limit>{[5,0,1,2,3,4].map(n=><option value={n}>{n===5?'不限':`${n} 张`}</option>)}</select></label>
     <label class="selection-filter-row"><span>培养范围比较上限</span><input type="number" data-planning-variant-limit min="1" max="1000" value="24" /></label>

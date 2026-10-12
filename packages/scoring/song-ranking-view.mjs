@@ -18,8 +18,10 @@ export function rankSongRows(rows, { metric = 'expectedScore', query = '', diffi
   if (!(metric in RANKING_METRICS)) throw new Error('未知排名指标');
   const normalize = value => String(value).normalize('NFKC').toLowerCase().replace(/\s/g, '');
   const terms = query.trim().split(/\s+/).filter(Boolean).map(normalize);
-  const sorted = rows.filter(row => (difficulty === 'all' || row.difficulty === difficulty)
-    && (band === 'all' || row.bands?.includes(band)) && row.level <= (maxLevel === 'all' ? Infinity : Number(maxLevel))
+  const values = value => (Array.isArray(value) ? value : [value]).filter(v => v && v !== 'all');
+  const difficulties = values(difficulty), bands = values(band);
+  const sorted = rows.filter(row => (!difficulties.length || difficulties.includes(row.difficulty))
+    && (!bands.length || row.bands?.some(id => bands.includes(id))) && row.level <= (maxLevel === 'all' ? Infinity : Number(maxLevel))
     && terms.every(term => normalize(`${row.title} ${row.bandLabels?.join(' ')} ${row.trackId}`).includes(term)))
     .map(row => rankingMetrics(row, timing))
     .filter(row => maxSeconds === 'all' || maxSeconds === Infinity || row.durationSeconds !== null && row.durationSeconds <= Number(maxSeconds))

@@ -11,7 +11,10 @@ export function filterTeamCards(cards, {query='',attribute='',band='',character=
   const words=query.trim().toLocaleLowerCase().split(/\s+/).filter(Boolean), own=new Set(owned);
   const result=cards.filter(card=>{
     const facets=teamCardFacets(card);
-    if(Object.entries({attribute,band,character,rarity}).some(([key,value])=>value!==''&&value!=null&&!facets[key].includes(identity(value))))return false;
+    if(Object.entries({attribute,band,character,rarity}).some(([key,value])=>{
+      const wanted=(Array.isArray(value)?value:[value]).filter(v=>v!==''&&v!=null&&v!=='all').map(identity);
+      return wanted.length&&!wanted.some(v=>facets[key].includes(v));
+    }))return false;
     if(ownership==='owned'&&!own.has(card.id)||ownership==='unowned'&&own.has(card.id))return false;
     const text=[card.displayName,card.shortLabel,card.subtitle,card.description,card.relationLabel,card.id].filter(Boolean).join(' ').toLocaleLowerCase();
     return words.every(word=>text.includes(word));

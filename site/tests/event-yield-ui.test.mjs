@@ -121,5 +121,30 @@ test('ordinary song filters reach the worker, invalidate results and leave chall
  node('mode').value='challenge';q('songs').value='all';optimizer.sync();optimizer.run();
  assert.equal(q('song-filters').hidden,true);assert.deepEqual(workers.at(-1).data.candidates.map(c=>c.id),['2-e']);
  q('reward-override').checked=true;optimizer.sync();assert.equal(workers.at(-1).stopped,true);optimizer.run();assert.equal(workers.at(-1).data.input.rewardGrowthOverride,true);
+ // Both phase filters select subsets before the worker can load any charts.
+ const multi=(field,values,options=['expert','hard','normal','easy'])=>{
+  field.multiple=true;field.options=options.map(value=>({value,selected:values.includes(value)}));
+  Object.defineProperty(field,'selectedOptions',{configurable:true,get(){return this.options.filter(o=>o.selected);}});
+ };
+ tool.data.charts.push({id:'1-h',trackId:'music-1',difficulty:'hard',level:15,analysisDataUrl:'/1-h'},
+  {id:'2-n',trackId:'music-2',difficulty:'normal',level:10,analysisDataUrl:'/2-n'},
+  {id:'2-easy',trackId:'music-2',difficulty:'easy',level:8,analysisDataUrl:'/2-easy'});
+ node('mode').value='ordinary';q('songs').value='all';q('band').value='';q('attribute').value='';
+ multi(q('difficulty'),['expert','hard']);multi(q('challenge-difficulty'),['hard']);
+ multi(q('band'),['band-1','band-2'],['band-1','band-2']);multi(q('attribute'),['1','2'],['1','2']);optimizer.sync();optimizer.run();
+ assert.deepEqual(workers.at(-1).data.candidates.map(c=>c.id),['1-e','2-e','2-h','1-h']);
+ assert.deepEqual(workers.at(-1).data.challengeCandidates.map(c=>c.id),['2-h']);
+ assert.deepEqual(workers.at(-1).data.input.difficulty,['expert','hard']);
+ assert.deepEqual(workers.at(-1).data.input.band,['band-1','band-2']);assert.deepEqual(workers.at(-1).data.input.attribute,['1','2']);
+ q('results').children=['old subset result'];q('difficulty').options[0].selected=false;
+ node('yield-optimizer').listeners.change({stopPropagation(){}});assert.deepEqual(q('results').children,[]);
+ optimizer.run();assert.deepEqual(workers.at(-1).data.candidates.map(c=>c.id),['2-h','1-h']);
+ assert.deepEqual(workers.at(-1).data.challengeCandidates.map(c=>c.id),['2-h']);
+ multi(q('challenge-difficulty'),[]);optimizer.sync();const beforeEmpty=workers.length;optimizer.run();
+ assert.equal(workers.length,beforeEmpty);assert.match(q('status').textContent,/后续挑战没有/);
+ q('stages').value='direct';optimizer.sync();optimizer.run();assert.equal(workers.length,beforeEmpty+1);
+ multi(q('difficulty'),[]);optimizer.sync();const beforePrimaryEmpty=workers.length;optimizer.run();assert.equal(workers.length,beforePrimaryEmpty);
+ // An explicit chart keeps its chosen difficulty independently of auto filters.
+ q('songs').value='selected';optimizer.sync();optimizer.run();assert.deepEqual(workers.at(-1).data.candidates.map(c=>c.id),['2-h']);
  optimizer.destroy();
 });

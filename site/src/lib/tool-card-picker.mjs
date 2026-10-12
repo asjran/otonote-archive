@@ -3,6 +3,7 @@ import {attachCardSkillHover,closeSkillPopover} from './calculator-card-ui.mjs';
 import {setupQuickOptions} from './tool-quick-options.mjs';
 import {createTeamCardView} from './team-card-view.mjs';
 import {cardSkillRows} from './calculator-card-model.mjs';
+import {selectedControlValues,restoreFilterControl} from './filter-controls.mjs';
 const node=(tag,text)=>{const n=document.createElement(tag);if(text!=null)n.textContent=text;return n;};
 
 export function filterQuickCards(cards,{query='',attribute='',ownedOnly=false,owned=[]}={}) {
@@ -42,7 +43,7 @@ export function createToolCardPicker({root,getCards,getDraft,getOwned=()=>[],get
   pinned.append(searchLine,filterRow,more,options,results);browser.append(pinned,grid);
   const preview=node('aside');preview.className='ux-card-preview';preview.setAttribute('aria-label',say('卡片预览','Card preview'));
   stage.append(positions,browser,preview);dialog.append(header,stage,footer);root.append(dialog);
-  let target,page=0,attribute='',origin,opener,backdropPressed=false,previewId;
+  let target,page=0,attribute=[],origin,opener,backdropPressed=false,previewId;
   const catalogOptions=teamCardFilterOptions([...getCards('member'),...getCards('support')],root.data);
   const option=(value,label)=>{const el=node('option',label);el.value=value;return el;};
   for(const [key,zh,english] of [['band','全部乐队','All bands'],['character','全部角色','All characters'],['rarity','全部稀有度','All rarities']]){
@@ -53,9 +54,9 @@ export function createToolCardPicker({root,getCards,getDraft,getOwned=()=>[],get
   for(const item of [{value:'',label:say('全部属性','All attributes')},...catalogOptions.attribute]){
     const b=node('button');b.type='button';b.dataset.attribute=item.value;b.setAttribute('aria-label',item.label);b.title=item.label;
     if(item.icon){const img=node('img');img.src=item.icon;img.alt='';img.width=26;img.height=26;img.addEventListener('error',()=>{img.remove();b.textContent=item.label;});b.append(img);}else b.textContent=item.label;
-    b.addEventListener('click',()=>{attribute=item.value;page=0;render();});filters.append(b);
+    b.addEventListener('click',()=>{attribute=!item.value?[]:attribute.includes(item.value)?attribute.filter(v=>v!==item.value):[...attribute,item.value];page=0;render();});filters.append(b);
   }
-  for(const [key,field] of Object.entries(selections)){if(key==='band'||key==='rarity')field.dataset.quick='';else field.dataset.quickNative='true';}
+  for(const [key,field] of Object.entries(selections)){if(key==='band'||key==='rarity'){field.multiple=true;field.dataset.quick='';field.dataset.quickAll='';field.options[0].selected=true;}else field.dataset.quickNative='true';}
   const bandLabel=selections.band.closest('label');bandLabel.className='ux-card-band-filter';const rarityLabel=selections.rarity.closest('label');rarityLabel.className='ux-card-rarity-filter';pinned.insertBefore(bandLabel,more);pinned.insertBefore(rarityLabel,more);const shortcuts=setupQuickOptions(dialog);
   function renderPreview(states){
     preview.replaceChildren();const card=getCards(target.kind).find(c=>c.id===previewId),draft=getDraft();
@@ -72,12 +73,12 @@ export function createToolCardPicker({root,getCards,getDraft,getOwned=()=>[],get
     if(!target)return;
     const all=getCards(target.kind),states=new Map(all.map(card=>[card.id,getCardState?.(card,target)??{growth:{},source:'unknown'}]));
     const growth=Object.fromEntries([...states].map(([id,state])=>[id,state.growth]));
-    const cards=filterTeamCards(all.filter(c=>(!selections.mission.value||c.skillFacets?.['gekisou-type']?.includes(selections.mission.value))&&(!selections.normal.value||[...(c.skillFacets?.['live-type']??[]),...(c.skillFacets?.['skill-role']??[])].includes(selections.normal.value))),{query:search.value,attribute,band:selections.band.value,character:selections.character.value,rarity:selections.rarity.value,
+    const cards=filterTeamCards(all.filter(c=>(!selections.mission.value||c.skillFacets?.['gekisou-type']?.includes(selections.mission.value))&&(!selections.normal.value||[...(c.skillFacets?.['live-type']??[]),...(c.skillFacets?.['skill-role']??[])].includes(selections.normal.value))),{query:search.value,attribute,band:selectedControlValues(selections.band),character:selections.character.value,rarity:selectedControlValues(selections.rarity),
       ownership:owned.checked?'owned':'',owned:getOwned(target.kind),sort:selections.sort.value,growth}),draft=getDraft();
     page=Math.max(0,Math.min(page,Math.ceil(cards.length/24)-1));
     title.textContent=`${target.slot===2?say('队长','Leader'):`${say('位置','Slot')} ${target.slot+1}`} · ${target.kind==='member'?say('选择成员','Choose member'):say('选择留影','Choose snap')}`;
     count.textContent=cards.length?say(`${cards.length} 张卡片 · 不可用的卡会标明原因`,`${cards.length} cards · Unavailable cards show a reason`):say('没有匹配卡片，试试清空筛选或取消「只看已拥有」。','No matching cards. Clear filters or turn off Owned cards only.');
-    [...filters.children].forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.attribute===attribute)));
+    [...filters.children].forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.attribute?attribute.includes(b.dataset.attribute):!attribute.length)));
     for(const [kind,b] of kindButtons)b.setAttribute('aria-pressed',String(target.kind===kind));
     positions.replaceChildren(node('h3',say('五组配对','Five pairs')));for(const [slot,pair] of draft.slots.entries()){const b=node('button');b.type='button';b.setAttribute('aria-label',say(`编辑位置 ${slot+1}`,`Edit slot ${slot+1}`));b.setAttribute('aria-pressed',String(slot===target.slot));const m=getCards('member').find(c=>c.id===pair.memberCardId),s=getCards('support').find(c=>c.id===pair.supportCardId);if(m?.imageUrl){const img=node('img');img.src=m.imageUrl;img.alt='';b.append(img);}const copy=node('span');copy.append(node('strong',m?.relationLabel??m?.shortLabel??say('未选成员','No member')),node('small',s?.shortLabel??say('未选留影','No snap')));b.append(copy,node('b',slot===2?say('队长','Leader'):String(slot+1)));b.addEventListener('click',()=>{target.slot=slot;page=0;previewId=getDraft().slots[slot][`${target.kind}CardId`];render();});positions.append(b);}
     renderPreview(states);
@@ -95,7 +96,7 @@ export function createToolCardPicker({root,getCards,getDraft,getOwned=()=>[],get
     if(focusCard){const enabled=[...grid.children].filter(b=>!b.disabled),same=enabled.find(b=>b.dataset.cardId===focusCard);(same??enabled[Math.min(focusIndex,enabled.length-1)]??clear).focus({preventScroll:true});}
   }
   search.addEventListener('input',()=>{page=0;render();});owned.addEventListener('change',()=>{page=0;render();});
-  clear.addEventListener('click',()=>{search.value='';attribute='';owned.checked=false;for(const key of ['band','character','rarity','mission','normal'])selections[key].value='';selections.sort.value='default';page=0;render();});
+  clear.addEventListener('click',()=>{search.value='';attribute=[];owned.checked=false;for(const key of ['band','character','rarity','mission','normal'])restoreFilterControl(selections[key],'');selections.sort.value='default';page=0;render();});
   prev.addEventListener('click',()=>{page--;render();});next.addEventListener('click',()=>{page++;render();});close.addEventListener('click',()=>dialog.close());
   const outside=event=>{const bounds=dialog.getBoundingClientRect();return event.target===dialog&&(event.clientX<bounds.left||event.clientX>bounds.right||event.clientY<bounds.top||event.clientY>bounds.bottom);};
   dialog.addEventListener('pointerdown',event=>{backdropPressed=outside(event);if(backdropPressed)event.stopPropagation();});

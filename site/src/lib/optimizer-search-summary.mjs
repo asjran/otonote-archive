@@ -1,3 +1,4 @@
+import {selectedControlValues} from './filter-controls.mjs';
 // Counts a conservative space before mandatory/locked-pair constraints.
 // Distinct-character selection is counted exactly by the elementary symmetric sum.
 export function summarizeSearchSpace(rules,input) {
@@ -19,7 +20,8 @@ export function readOptimizerConstraints(workbench) {
   const constraints=JSON.parse(workbench.querySelector('[data-search-constraints]').value);
   if(!constraints||typeof constraints!=='object'||Array.isArray(constraints))throw new Error('高级约束需要填写 JSON 对象');
   for(const [selector,name] of [['[data-search-band]','bandId'],['[data-search-attribute]','attribute'],['[data-search-support-attribute]','supportAttribute']]) {
-    const value=workbench.querySelector(selector).value;if(value)constraints[name]=Number(value);
+    const field=workbench.querySelector(selector),values=selectedControlValues(field).map(Number);
+    if(values.length)constraints[name]=field.multiple?values:values[0];
   }
   return constraints;
 }
