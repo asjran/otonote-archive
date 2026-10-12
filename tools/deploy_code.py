@@ -8,6 +8,7 @@ import shlex
 import stat
 import subprocess
 import sys
+import uuid
 from tools.code_publication import verify_code
 
 
@@ -59,7 +60,9 @@ def deploy(source, config, receipt_sha, expected_current, dry_run=False):
     identity,_=verify_code(source,require_verified=True,expected_receipt_sha256=receipt_sha)
     result={'codeId':identity,'verificationSha256':receipt_sha,'status':'prepared' if dry_run else 'published'}
     if dry_run: return result
-    host=config['sshHost']; incoming=config['codeRoot']+'/incoming/'+identity
+    # Each uploader owns its stage, so successful cleanup cannot race a second
+    # upload of the same code ID or delete another client's work.
+    host=config['sshHost']; incoming=config['codeRoot']+'/incoming/'+identity+'-'+uuid.uuid4().hex
     def ssh(arguments): return run(['ssh','--',host,shlex.join(arguments)])
     launcher='import runpy,sys;sys.path.insert(0,sys.argv.pop(1));runpy.run_module("tools.code_publication",run_name="__main__")'
     env=[config['python'],'-I','-B','-c',launcher,config['runtimeRoot']]

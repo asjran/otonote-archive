@@ -5,6 +5,8 @@ set -euo pipefail
 CODE_ROOT=/srv/ournotes-code
 CONTENT_ROOT=/srv/ournotes-r2-prerender-content
 RENDERED_ROOT=/srv/ournotes-rendered
+# Keep this amount free in addition to the full publication working space.
+R2_PRERENDER_RESERVE_BYTES=${R2_PRERENDER_RESERVE_BYTES:-2147483648}
 
 for name in R2_PRERENDER_IMAGE R2_PRERENDER_SOURCE_REVISION \
   R2_PRERENDER_DOCKER_FREE_BYTES R2_PRERENDER_CONTENT_FREE_BYTES \
@@ -25,7 +27,7 @@ fi
 [[ $R2_PRERENDER_SOURCE_REVISION =~ ^[a-f0-9]{40,64}$ ]] || exit 2
 [[ $R2_PUBLIC_BUCKET == otonote-public-content ]] || exit 2
 for value in "$R2_PRERENDER_DOCKER_FREE_BYTES" "$R2_PRERENDER_CONTENT_FREE_BYTES" \
-  "$R2_PRERENDER_RENDERED_FREE_BYTES" "$R2_PRERENDER_UID" "$R2_PRERENDER_GID"; do
+  "$R2_PRERENDER_RENDERED_FREE_BYTES" "$R2_PRERENDER_RESERVE_BYTES" "$R2_PRERENDER_UID" "$R2_PRERENDER_GID"; do
   [[ $value =~ ^[0-9]+$ ]] || exit 2
 done
 for directory in "$CODE_ROOT" "$CONTENT_ROOT" "$RENDERED_ROOT"; do
@@ -59,6 +61,7 @@ check_space() {
     path_for_device[$device]=$path
   done
   for device in "${!required[@]}"; do
+    required[$device]=$(( required[$device] + R2_PRERENDER_RESERVE_BYTES ))
     path=${path_for_device[$device]}
     free=$(df -PB1 "$path" | awk 'NR == 2 { print $4 }')
     [[ $free =~ ^[0-9]+$ ]] || { echo "Cannot measure free space: $path" >&2; return 2; }
@@ -75,7 +78,8 @@ if ! docker image inspect "$R2_PRERENDER_IMAGE" >/dev/null 2>&1; then
   docker_required=$R2_PRERENDER_DOCKER_FREE_BYTES
 fi
 # Download/unpack and first materialization may occur in the same filesystem.
-check_space "$docker_root:$docker_required" "$CONTENT_ROOT:$R2_PRERENDER_CONTENT_FREE_BYTES"
+check_space "$docker_root:$docker_required" "$CONTENT_ROOT:$R2_PRERENDER_CONTENT_FREE_BYTES" \
+  "$RENDERED_ROOT:$R2_PRERENDER_RENDERED_FREE_BYTES"
 
 # Only now may Docker download/unpack the pinned image.
 if [[ $local_image == true ]]; then
@@ -102,7 +106,7 @@ docker run "${common[@]}" --network bridge \
   --env R2_SECRET_ACCESS_KEY --env R2_PUBLIC_BUCKET \
   --mount "type=bind,source=$CONTENT_ROOT,target=/content" \
   "$R2_PRERENDER_IMAGE" python3 -m tools.materialize_r2_content \
-  --store /content --region all
+  --store /content --region all --max-new-bytes "$R2_PRERENDER_CONTENT_FREE_BYTES"
 
 [[ -f $CONTENT_ROOT/current.json && -f $CONTENT_ROOT/jp/current.json ]] || {
   echo 'Both R2 region pointers are required before prerendering' >&2

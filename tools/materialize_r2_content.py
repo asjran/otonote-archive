@@ -295,7 +295,8 @@ def _write_receipt(release: Path, payload: bytes) -> None:
         temporary.unlink(missing_ok=True)
 
 
-def _materialize(reader, store: Path, regions=("global", "jp"), *, allow_missing_jp=True) -> dict:
+def _materialize(reader, store: Path, regions=("global", "jp"), *, allow_missing_jp=True,
+                 max_new_bytes=2 * MAX_RELEASE_BYTES) -> dict:
     store = Path(store).resolve()
     if not regions or any(region not in {"global", "jp"} for region in regions) or len(set(regions)) != len(regions):
         raise ValueError("invalid content regions")
@@ -305,6 +306,9 @@ def _materialize(reader, store: Path, regions=("global", "jp"), *, allow_missing
     releases.mkdir(parents=True, exist_ok=True)
     pending = []
     outcomes = {}
+    if type(max_new_bytes) is not int or max_new_bytes < 0:
+        raise ValueError("invalid materialization disk budget")
+    remaining = max_new_bytes
     for region in regions:
         key = pointer_key(region)
         pointer_raw = reader.control(key)
@@ -377,6 +381,14 @@ def _materialize(reader, store: Path, regions=("global", "jp"), *, allow_missing
                 _write_receipt(release, _receipt_bytes(region, release_id, pointer_raw,
                                                        manifest_raw, names, selected))
         else:
+            # Bound both regions together, including filesystem block rounding
+            # and directory/receipt overhead, before starting each download.
+            allocation = sum(((size + 4095) // 4096) * 4096 for _, size in selected.values())
+            allocation += (len(selected) * 2 + 16) * 4096
+            allocation += len(_receipt_bytes(region, release_id, pointer_raw, manifest_raw, names, selected))
+            if allocation > remaining:
+                raise ValueError("materialization exceeds publication disk budget")
+            remaining -= allocation
             stage = Path(tempfile.mkdtemp(prefix=".materialize-", dir=releases))
             try:
                 downloads = []
@@ -432,22 +444,24 @@ def _materialize(reader, store: Path, regions=("global", "jp"), *, allow_missing
     return outcomes
 
 
-def materialize(reader, store: Path, regions=("global", "jp"), *, allow_missing_jp=True) -> dict:
+def materialize(reader, store: Path, regions=("global", "jp"), *, allow_missing_jp=True,
+                max_new_bytes=2 * MAX_RELEASE_BYTES) -> dict:
     """Fetch and validate all selected releases, then atomically switch pointers."""
     store = Path(store).resolve()
     store.mkdir(parents=True, exist_ok=True)
     with (store / ".r2-materialize.lock").open("a+") as lock:
         fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
-        return _materialize(reader, store, regions, allow_missing_jp=allow_missing_jp)
+        return _materialize(reader, store, regions, allow_missing_jp=allow_missing_jp, max_new_bytes=max_new_bytes)
 
 
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--store", type=Path, required=True, help="Existing local content store")
     parser.add_argument("--region", choices=("all", "global", "jp"), default="all")
+    parser.add_argument("--max-new-bytes", type=int, default=2 * MAX_RELEASE_BYTES)
     args = parser.parse_args(argv)
     regions = ("global", "jp") if args.region == "all" else (args.region,)
-    result = materialize(R2Reader.from_environment(), args.store, regions)
+    result = materialize(R2Reader.from_environment(), args.store, regions, max_new_bytes=args.max_new_bytes)
     print(json.dumps(result, ensure_ascii=False, sort_keys=True))
 
 

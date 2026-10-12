@@ -92,6 +92,20 @@ def share_media(reader, release_id="a" * 24):
     return descriptor
 
 class MaterializeTests(unittest.TestCase):
+    def test_download_budget_rejects_before_writes_and_cached_inputs_need_no_new_budget(self):
+        reader = Reader()
+        add_release(reader)
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            with self.assertRaisesRegex(ValueError, 'disk budget'):
+                materialize(reader, root, ('global',), max_new_bytes=0)
+            self.assertFalse((root/'current.json').exists())
+            self.assertEqual(reader.downloaded, [])
+            materialize(reader, root, ('global',))
+            reader.downloaded.clear()
+            materialize(reader, root, ('global',), max_new_bytes=0)
+            self.assertEqual(reader.downloaded, [])
+
     def test_shared_media_is_materialized_at_unchanged_logical_paths(self):
         reader = Reader()
         files, _ = add_release(reader)

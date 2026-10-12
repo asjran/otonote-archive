@@ -12,6 +12,21 @@ age_days=${RENDER_MAINTENANCE_AGE_DAYS:-7}
   echo 'RENDER_MAINTENANCE_AGE_DAYS must be between 1 and 30' >&2; exit 2;
 }
 run_id=$(date -u +%Y%m%dT%H%M%SZ)-$$
+expiry_plan="$RENDER_MAINTENANCE_REPORTS/$run_id.expiry-plan.json"
+python3 -m tools.render_retention expiry-plan --root "$RENDER_MAINTENANCE_ROOT" \
+  --archive-directory "$RENDER_MAINTENANCE_ARCHIVES" --plan "$expiry_plan"
+python3 -m tools.render_retention expiry-apply --root "$RENDER_MAINTENANCE_ROOT" \
+  --archive-directory "$RENDER_MAINTENANCE_ARCHIVES" --plan "$expiry_plan" \
+  > "$RENDER_MAINTENANCE_REPORTS/$run_id.expiry-result.json"
+# Optional independent cache: this never touches Nginx-served release assets.
+if [[ -n ${RENDER_MAINTENANCE_CONTENT_ROOT:-} ]]; then
+  cache_plan="$RENDER_MAINTENANCE_REPORTS/$run_id.cache-plan.json"
+  python3 -m tools.prerender_cache_retention plan --content "$RENDER_MAINTENANCE_CONTENT_ROOT" \
+    --rendered "$RENDER_MAINTENANCE_ROOT" --plan "$cache_plan"
+  python3 -m tools.prerender_cache_retention apply --content "$RENDER_MAINTENANCE_CONTENT_ROOT" \
+    --rendered "$RENDER_MAINTENANCE_ROOT" --plan "$cache_plan" \
+    > "$RENDER_MAINTENANCE_REPORTS/$run_id.cache-result.json"
+fi
 plan="$RENDER_MAINTENANCE_REPORTS/$run_id.plan.json"
 archive="$RENDER_MAINTENANCE_ARCHIVES/$run_id.html.tar.gz"
 python3 -m tools.render_retention plan --root "$RENDER_MAINTENANCE_ROOT" --plan "$plan" --minimum-age-days "$age_days"
