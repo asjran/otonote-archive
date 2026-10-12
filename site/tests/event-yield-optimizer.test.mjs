@@ -6,6 +6,9 @@ import {eventGradeEstimate,estimateEventSong} from '../src/lib/event-song-rankin
 import {createEventEfficiency,planChallengeSpending,createChallengeSpendingPlanner} from '../src/lib/scoring-rules/event-efficiency.mjs';
 import {createFormalSongCalculator} from '../src/lib/scoring-rules/formal-song-score.mjs';
 import {createTeamDraft} from '../src/lib/team-draft.mjs';
+import {refreshToolTeamGrowth} from '../src/lib/shared-team-context.mjs';
+import {resolveTeamCardGrowth} from '../src/lib/team-card-view.mjs';
+import {createFormationCalculator} from '../src/lib/scoring-rules/formation-power.mjs';
 
 test('AP basis chooses the grade threshold, not a continuous score multiplier',()=>{
  const model={scoreRank:(_,score)=>score>=1000?4:3};
@@ -118,6 +121,45 @@ test('joint search scores full AP candidates with actual growth, grade and separ
  await assert.rejects(optimizeEventYield({...input,liveBoost:0}),/至少/);
 });
 
+test('an owned calculation after a card-library upgrade uses the growth shown on off-team cards',async()=>{
+ const input=fixture(),id='support-card-6';
+ input.inventory.supportCardIds.push(id);input.inventory.growth[id]={level:1,rank:1};
+ input.draft.modifiers.planningScenario={schemaVersion:1,sourceReleaseId:input.rules.sourceReleaseId,scope:'owned',unknownGrowth:'exclude'};
+ const previous=await optimizeEventYield({...input,mode:'challenge',searchMethod:'practical'});
+ const saved=structuredClone(previous.results[0].draft);
+ // Normal team selection, then a real inventory upgrade; no draft growth edits.
+ saved.slots=structuredClone(input.draft.slots);
+ input.inventory.growth[id]={level:3,rank:2};
+ const refreshed=refreshToolTeamGrowth(input.rules,saved,input.inventory).draft;
+ const face=resolveTeamCardGrowth({card:{id,kind:'support'},draft:refreshed,inventory:input.inventory,rules:input.rules});
+ const model=createEventEfficiency({tables:input.rules.tables,sourceReleaseId:input.rules.sourceReleaseId,eventId:1});
+ for(const mode of ['ordinary','challenge'])for(const rewards of [false,true]){
+   const found=await optimizeEventYield({...input,draft:refreshed,mode,includeChallenge:false,searchMethod:'practical',rewardCards:rewards?[{resourceType:3,resourceId:6}]:[]});
+   const calculator=createFormationCalculator(input.rules,{eventAdapters:mode==='challenge'?[model.challengeAdapter(input.rules)]:[]});
+   for(const row of found.results){
+     assert.deepEqual(row.draft.modifiers.growth[id],face.growth);
+     const actual=structuredClone(row.draft);actual.modifiers.growth=structuredClone(input.inventory.growth);
+     assert.equal(row.power,calculator.calculate(actual).total.total);
+     const bonus=model.teamBonus(row.draft.slots.map(s=>({memberId:Number(s.memberCardId.split('-').at(-1)),supportId:Number(s.supportCardId.split('-').at(-1)),memberRank:input.inventory.growth[s.memberCardId].rank,supportRank:input.inventory.growth[s.supportCardId].rank})));
+     assert.equal(row.bonuses.rewardBP,bonus.rewardBP);
+   }
+ }
+ // Even an unrefreshed saved draft must not override actuals at the search boundary.
+ const direct=await optimizeEventYield({...input,draft:saved,mode:'challenge',searchMethod:'practical'});
+ assert.deepEqual(direct.results[0].draft.modifiers.growth[id],input.inventory.growth[id]);
+});
+
+test('selected search preserves explicit growth, while owned search rejects missing actual records',async()=>{
+ const input=fixture();input.draft.modifiers.growth=structuredClone(input.inventory.growth);
+ input.draft.modifiers.growth['support-card-1']={level:3,rank:2};
+ for(const rewards of [false,true]){
+   const found=await optimizeEventYield({...input,scope:'selected',mode:'challenge',searchMethod:'practical',rewardCards:rewards?[{resourceType:3,resourceId:1}]:[]});
+   assert.deepEqual(found.results[0].draft.modifiers.growth['support-card-1'],input.draft.modifiers.growth['support-card-1']);
+ }
+ delete input.inventory.growth['support-card-1'];
+ await assert.rejects(optimizeEventYield({...input,mode:'challenge'}),/实际等级与养成/);
+});
+
 test('job cache preserves full results across same-context charts, and invalidates changed growth',async()=>{
  const input=fixture(),cache=new Map();
  const options={...input,mode:'ordinary',includeChallenge:false};
@@ -125,9 +167,9 @@ test('job cache preserves full results across same-context charts, and invalidat
  const second=await optimizeEventYield({...options,candidateCache:cache});
  assert.equal(first.practical.candidateCacheHit,false);assert.equal(second.practical.candidateCacheHit,true);
  assert.deepEqual(second.results,first.results);
- const changed=structuredClone(input.draft);changed.modifiers??={};changed.modifiers.growth={'member-card-1':{level:2,rank:1,awake:1,skillLevel:1}};
- const warm=await optimizeEventYield({...options,draft:changed,candidateCache:cache});
- const cold=await optimizeEventYield({...options,draft:changed});
+ const inventory=structuredClone(input.inventory);inventory.growth['member-card-1'].level=2;
+ const warm=await optimizeEventYield({...options,inventory,candidateCache:cache});
+ const cold=await optimizeEventYield({...options,inventory});
  assert.equal(warm.practical.candidateCacheHit,false);assert.deepEqual(warm.results,cold.results);
 });
 

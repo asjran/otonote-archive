@@ -24,7 +24,9 @@ export function refreshPlanningPreset(rules, draft, inventory) {
     // Saved owned plans can still be inspected offline from their exact cards.
     ...(settings.scope==='owned' && !inventory ? {scope:'selected',selectedCardIds:{memberCardIds:draft.slots.map(s=>s.memberCardId),supportCardIds:draft.slots.map(s=>s.supportCardId)}} : {})});
   const trainedCardIds=draft.modifiers.planningResult?.selectedTrainingCardIds??draft.modifiers.planningResult?.changedCards?.map(c=>c.id)??[];
-  const prepared=prepareGrowthCandidate(rules,resolved,draft,{trainedCardIds});
+  // Refresh the whole resolved pool, not just the current ten cards. Searches
+  // retain off-team growth snapshots which must not outlive an actual import.
+  const prepared=prepareGrowthCandidate(rules,resolved,resolved.currentDraft,{trainedCardIds});
   prepared.targetDraft.modifiers.planningResult.selectedTrainingCardIds=trainedCardIds;
   const c=prepared.comparison;
   const hypothetical = ['reference','trial'].includes(settings.scope);

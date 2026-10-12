@@ -42,6 +42,21 @@ test('disabled cultivation metadata still preserves selected values, while curre
  const page=adapter();page.context.applyDraft(team(profile.inventory,'owned'));assert.equal(page.draft.modifiers.growth['member-card-1'].skillLevel,1);
  profile.inventory.growth['member-card-1'].skillLevel=2;personal.save(profile);win.dispatchEvent(new CustomEvent('personal-growth:changed',{detail:{key:personal.key}}));assert.equal(page.draft.modifiers.growth['member-card-1'].skillLevel,2);
 });
+test('owned refresh updates saved off-team growth as well as the ten selected cards',t=>{
+ const {profile}=environment(t);
+ for(const kind of ['member','support']){
+   const id=`${kind}-card-6`;
+   profile.inventory[`${kind}CardIds`].push(id);
+   profile.inventory.growth[id]={level:1,rank:1,...kind==='member'?{awake:1,skillLevel:1,gekisouSkillLevel:1}:{}};
+ }
+ const saved=team(profile.inventory,'owned');
+ profile.inventory.growth['member-card-6']={level:3,rank:2,awake:1,skillLevel:2,gekisouSkillLevel:1};
+ profile.inventory.growth['support-card-6']={level:3,rank:2};
+ const before=structuredClone(profile.inventory),refreshed=refreshToolTeamGrowth(rules,saved,profile.inventory).draft;
+ for(const id of ['member-card-6','support-card-6'])assert.deepEqual(refreshed.modifiers.growth[id],profile.inventory.growth[id]);
+ assert.deepEqual(profile.inventory,before);
+ assert.equal(saved.modifiers.growth['support-card-6'].rank,1);
+});
 test('song input state clears obsolete shared-card errors and changes reference notes with the applied formation',t=>{
  const {profile}=environment(t),known={memberCardIds:new Set(profile.inventory.memberCardIds),supportCardIds:new Set(profile.inventory.supportCardIds),musicTrackIds:new Set(['music-1'])};
  const old=parseTeamDraftSearch('?members=member-card-999999&song=music-1',known);assert.ok(old.issues.some(issue=>issue.code==='unknown_member_card'));

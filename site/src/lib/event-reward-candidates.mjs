@@ -13,7 +13,9 @@ export function withEventRewardCandidates({rules,draft,scope,inventory,rewardCar
  if(!pool)throw Error('请先导入实际卡库');
  pool.growth??={};next.modifiers??={};next.modifiers.growth??={};
  for(const kind of ['member','support'])for(const id of pool[`${kind}CardIds`]){
-  const supplied={...pool.growth[id],...next.modifiers.growth[id]};
+  // Preserve explicit current-team inputs only in selected scope. Owned cards
+  // keep their actual growth even when the saved result contains older values.
+  const supplied=scope==='owned'?{...pool.growth[id]}:{...pool.growth[id],...next.modifiers.growth[id]};
   const resolved=calculator.resolveGrowth(calculator.card(id,kind),kind==='member'?'Member':'Support',supplied);
   pool.growth[id]={level:resolved.level,rank:resolved.rank,...(kind==='member'?{awake:resolved.awake,skillLevel:supplied.skillLevel??1,gekisouSkillLevel:supplied.gekisouSkillLevel??1}:{})};
  }
