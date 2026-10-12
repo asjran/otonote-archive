@@ -103,7 +103,8 @@ def dispatch(repository, region, token_file, state_dir, *, now=None, send=None):
                 result.update(status='accepted', lastAcceptedAt=result['attemptAt'])
         except HTTPError as error:
             result.update(status='failed', reason='http_error', httpStatus=error.code)
-            error.close()
+            if error.fp is not None:
+                error.close()
         except (URLError, OSError, TimeoutError):
             result.update(status='unknown', reason='transport_failure')
         save(path, result)

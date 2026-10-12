@@ -1,5 +1,6 @@
 import fcntl
 import json
+import io
 import os
 from pathlib import Path
 import tempfile
@@ -64,10 +65,12 @@ class DispatchTests(unittest.TestCase):
         self.assertEqual(send.call_count, 1)
 
     def test_http_failure_reports_only_status_code(self):
-        send = Mock(side_effect=HTTPError('https://api.github.com', 401, 'secret', {}, None))
-        result = self.run_dispatch(send=send)
-        self.assertEqual((result['status'], result['httpStatus']), ('failed', 401))
-        self.assertNotIn('secret', json.dumps(result))
+        for index, body in enumerate((None, io.BytesIO(b'secret response body'))):
+            send = Mock(side_effect=HTTPError('https://api.github.com', 401, 'secret', {}, body))
+            result = self.run_dispatch(now=1800 + index * 900, send=send)
+            self.assertEqual((result['status'], result['httpStatus']), ('failed', 401))
+            self.assertNotIn('secret', json.dumps(result))
+            if body is not None: self.assertTrue(body.closed)
 
     def test_redirects_are_rejected_before_credentials_can_leave_github(self):
         with self.assertRaises(HTTPError):
