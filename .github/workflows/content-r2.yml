@@ -80,6 +80,8 @@ jobs:
           SCHEDULE: ${{ github.event.schedule }}
           INPUT_REGION: ${{ inputs.region }}
           INPUT_MODE: ${{ inputs.mode }}
+          RESTORE_WORKERS_GLOBAL: ${{ vars.CONTENT_R2_RESTORE_WORKERS_GLOBAL || '8' }}
+          RESTORE_WORKERS_JP: ${{ vars.CONTENT_R2_RESTORE_WORKERS_JP || '8' }}
         run: |
           set -euo pipefail
           if [[ "$EVENT_NAME" == schedule ]]; then
@@ -99,7 +101,9 @@ jobs:
           fi
           [[ "$region" == global || "$region" == jp ]] || exit 1
           [[ "$mode" == shadow || "$mode" == promote ]] || exit 1
-          printf 'REGION=%s\nMODE=%s\n' "$region" "$mode" >> "$GITHUB_ENV"
+          if [[ "$region" == global ]]; then workers="${RESTORE_WORKERS_GLOBAL:-8}"; else workers="${RESTORE_WORKERS_JP:-8}"; fi
+          case "$workers" in 4|8|12) ;; *) echo 'Restore workers must be 4, 8 or 12' >&2; exit 1 ;; esac
+          printf 'REGION=%s\nMODE=%s\nRESTORE_WORKERS=%s\n' "$region" "$mode" "$workers" >> "$GITHUB_ENV"
           printf 'Region: `%s`; mode: `%s`; run: `%s`\n\n' "$region" "$mode" "$GITHUB_RUN_ID" >> "$GITHUB_STEP_SUMMARY"
           printf 'Selection started at (UTC): `%s`.\n\n' "$(date -u +%FT%TZ)" >> "$GITHUB_STEP_SUMMARY"
       - name: Check required external configuration
@@ -276,8 +280,9 @@ jobs:
           if free < required:
               raise SystemExit('Runner disk is too small for the selected private state and production reserve')
           PY
-          python -m tools.r2_state restore --root "$STABLE_ROOT" --region "$REGION" --workers 8 \
-            --verification-cache "$RUNNER_TEMP/r2-state-restore-proof.json" "${args[@]}"
+          python -m tools.r2_state restore --root "$STABLE_ROOT" --region "$REGION" --workers "$RESTORE_WORKERS" \
+            --verification-cache "$RUNNER_TEMP/r2-state-restore-proof.json" "${args[@]}" \
+            | tee "$RUNNER_TEMP/state-restore.json"
       - name: Validate restored input and runner capacity
         if: steps.light_gate.outputs.skip != 'true'
         shell: bash
