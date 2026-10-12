@@ -45,6 +45,33 @@ class FakeClient(GlobalPublicClient):
 
 
 class GlobalRemoteTest(unittest.TestCase):
+    def test_resource_revision_suffix_preserved_in_catalog_and_identity(self):
+        original = FakeClient.rpc
+        version = "1.0.1.500.a3f7b2e9"
+        def rpc(client, root, method):
+            if method.endswith("/Version"):
+                return {}, field(1, "b" * 32) + field(2, version)
+            return original(client, root, method)
+        with patch.object(FakeClient, "rpc", rpc):
+            result = FakeClient().discover()
+        self.assertEqual(result["resourceVersion"], version)
+        self.assertEqual(result["catalogUrl"], CDN + "/asset/Android/catalog_" + version + ".bin")
+        self.assertNotEqual(version_identity(result), version_identity(FakeClient().discover()))
+        with self.assertRaises(ProtocolError):
+            GlobalPublicClient(version)
+
+    def test_resource_revision_rejects_paths_queries_and_unknown_suffixes(self):
+        original = FakeClient.rpc
+        for version in ("1.0.1.500/../../x", "1.0.1.500?x=1", "1.0.1.500.a3f7b2eg",
+                        "1.0.1.500.a3f7b2e", "1.0.1.500.a3f7b2e99", "1.0.1.500.a3f7b2e9\n"):
+            def rpc(client, root, method):
+                if method.endswith("/Version"):
+                    return {}, field(1, "b" * 32) + field(2, version)
+                return original(client, root, method)
+            with self.subTest(version=version), patch.object(FakeClient, "rpc", rpc):
+                with self.assertRaises(ProtocolError):
+                    FakeClient().discover()
+
     def test_real_protocol_shape_selects_hk_without_credentials(self):
         result = FakeClient().discover()
         self.assertEqual(result["authentication"], "not_required")
