@@ -5,6 +5,7 @@ import {currentServerContext, gameServer} from './game-servers.mjs';
 import {bandItemGroups} from '../../../packages/scoring/scoring-rules/band-item-totals.mjs';
 import {createTeamCardView} from './team-card-view.mjs';
 import {filterTeamCards,teamCardFilterOptions} from './team-card-filters.mjs';
+import {selectedControlValues,restoreFilterControl} from './filter-controls.mjs';
 import {setupQuickOptions} from './tool-quick-options.mjs';
 import {attachCardSkillHover,destroySkillPopover} from './calculator-card-ui.mjs';
 import {setupSharedInventoryImports} from './shared-inventory-imports.mjs';
@@ -53,9 +54,9 @@ export function setupSharedInventoryPanel({root,data,onChange=()=>{},getRestrict
   const attribute=select([]),band=select([]),character=select([]),rarity=select([]);
   const sort=select([['default',t('默认顺序','Default order')],['name',t('卡名','Card name')],['rarity-desc',t('稀有度从高到低','Rarity: high to low')],['level-desc',t('等级从高到低','Level: high to low')]]);
   const extraFilters=node('details','','tw-inventory-extra-filters');extraFilters.append(node('summary',t('更多筛选与排序','More filters and sorting')));
-  const commonFilters=node('div','','tw-inventory-common-filters');for(const [control,zh,en] of [[attribute,'属性','Attribute'],[band,'乐队','Band'],[rarity,'稀有度','Rarity']]){control.dataset.quick='';commonFilters.append(field(t(zh,en),control));}
+  const commonFilters=node('div','','tw-inventory-common-filters');for(const [control,zh,en] of [[attribute,'属性','Attribute'],[band,'乐队','Band'],[rarity,'稀有度','Rarity']]){control.multiple=true;control.dataset.quick='';control.dataset.quickAll='';commonFilters.append(field(t(zh,en),control));}
   const extraGrid=node('div','','tw-inventory-filters');for(const [control,zh,en] of [[character,'角色','Character'],[sort,'排序','Sort']]){control.dataset.quickNative='true';extraGrid.append(field(t(zh,en),control));}
-  const clearFilters=button(t('清空筛选','Clear filters'),()=>{search.value='';owned.value='';for(const control of [attribute,band,character,rarity])control.value='';sort.value='default';page=0;renderCards();});
+  const clearFilters=button(t('清空筛选','Clear filters'),()=>{search.value='';owned.value='';for(const control of [attribute,band,character,rarity])restoreFilterControl(control,'');sort.value='default';page=0;renderCards();});
   extraFilters.append(extraGrid,clearFilters);
   const list=node('div','','tw-inventory-list'),editRoot=node('div','','tw-inventory-editor');editRoot.hidden=true;
   const pagination=node('div','','tw-actions'),pageText=node('span');
@@ -100,7 +101,7 @@ export function setupSharedInventoryPanel({root,data,onChange=()=>{},getRestrict
     shortcuts?.destroy();
     const options=teamCardFilterOptions(cards.filter(card=>card.kind===kind.value),data);
     for(const [name,control] of [['attribute',attribute],['band',band],['character',character],['rarity',rarity]]){
-      const previous=control.value;control.replaceChildren();for(const item of [{value:'',label:t('全部','All')},...options[name]]){const option=node('option',item.label);option.value=String(item.value);if(item.icon){option.dataset.icon=item.icon;if(name==='band'){option.dataset.round='true';option.dataset.iconOnly='true';}}control.append(option);}control.value=[...control.options].some(option=>option.value===previous)?previous:'';
+      const previous=selectedControlValues(control);control.replaceChildren();for(const item of [{value:'',label:t('全部','All')},...options[name]]){const option=node('option',item.label);option.value=String(item.value);if(item.icon){option.dataset.icon=item.icon;if(name==='band'){option.dataset.round='true';option.dataset.iconOnly='true';}}control.append(option);}const retained=previous.filter(value=>[...control.options].some(option=>option.value===value));restoreFilterControl(control,control.multiple?retained:retained[0]??'');
     }
     shortcuts=setupQuickOptions(filterHeader);
   }
@@ -138,7 +139,7 @@ export function setupSharedInventoryPanel({root,data,onChange=()=>{},getRestrict
     shortcuts?.sync();
     const inventory=profile?.inventory??manager.empty();
     count.textContent=`${t('成员卡','Member cards')} ${inventory.memberCardIds.length} · ${t('留影','Support cards')} ${inventory.supportCardIds.length}`;
-    const filtered=filterTeamCards(cards.filter(card=>card.kind===kind.value),{query:search.value,attribute:attribute.value,band:band.value,character:character.value,rarity:rarity.value,ownership:owned.value,owned:inventory[`${kind.value}CardIds`],sort:sort.value,growth:inventory.growth});
+    const filtered=filterTeamCards(cards.filter(card=>card.kind===kind.value),{query:search.value,attribute:selectedControlValues(attribute),band:selectedControlValues(band),character:character.value,rarity:selectedControlValues(rarity),ownership:owned.value,owned:inventory[`${kind.value}CardIds`],sort:sort.value,growth:inventory.growth});
     const pages=Math.max(1,Math.ceil(filtered.length/pageSize));page=Math.max(0,Math.min(page,pages-1));
     // Move the same editor node before replacing rows, preserving input, listeners and selection.
     root.insertBefore(editRoot,list);list.replaceChildren();let visibleEditor=false;

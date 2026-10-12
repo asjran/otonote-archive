@@ -4,8 +4,10 @@ import {eventSongCandidates} from './event-song-ranking.mjs';
 import {currentEventDraft,applyEventPlan,eventTeamDetails,eventTeamSaveButton,eventElement as el} from './event-team-view.mjs';
 import {EVENT_YIELD_GOAL_LABELS,orderEventYieldRows,eventYieldGaps} from './event-yield-goals.mjs';
 import {createCalculationProgress} from './calculation-progress.mjs';
+import {selectedControlValues} from './filter-controls.mjs';
 const fmt=n=>Number(n).toLocaleString('zh-CN',{maximumFractionDigits:1}),grades=['D','C','B','A','S','SS'];
 const gapText=n=>n===0?'相同':`${n>0?'少':'多'} ${fmt(Math.abs(n))}`;
+const selectedDifficulties=field=>field.multiple?[...field.selectedOptions].map(o=>o.value).filter(value=>value!=='all'):field.value;
 
 export function setupEventYieldOptimizer(tool){
  const root=tool.q('yield-optimizer'),q=s=>tool.querySelector(`[data-yield-${s}]`);
@@ -14,7 +16,7 @@ export function setupEventYieldOptimizer(tool){
  const stop=()=>{worker?.terminate();worker=null;q('cancel').hidden=true;tool.q('suggest').disabled=false;q('run').disabled=false;root.setAttribute('aria-busy','false');};
  function context(){return {eventId:Number(tool.q('event').value),mode:tool.q('mode').value,scope:tool.q('pool').value,draft:currentEventDraft(tool),
    liveBoost:Number(tool.q('boost').value),challengeCost:Number(tool.q('cost').value),budget:Number(q('budget').value),startingCP:Number(q('starting').value),
-   rewardCards:q('rewards')?.checked?tool.data.eventRewardCards?.[Number(tool.q('event').value)]??[]:[],rewardGrowth:q('reward-growth')?.value??'level',rewardGrowthOverride:q('reward-override')?.checked??false,searchDepth:q('depth').value,eco:q('eco').checked,goal:q('goal').value,basis:q('basis').value,includeChallenge:q('stages').value==='cycle',songs:q('songs').value,band:q('band').value,attribute:q('attribute').value,difficulty:q('difficulty').value,maxLevel:Number(q('level').value),challengeScope:q('challenge-scope').value,challengeBasis:q('challenge-basis').value,challengeDifficulty:q('challenge-difficulty').value,challengeMaxLevel:Number(q('challenge-level').value)};}
+   rewardCards:q('rewards')?.checked?tool.data.eventRewardCards?.[Number(tool.q('event').value)]??[]:[],rewardGrowth:q('reward-growth')?.value??'level',rewardGrowthOverride:q('reward-override')?.checked??false,searchDepth:q('depth').value,eco:q('eco').checked,goal:q('goal').value,basis:q('basis').value,includeChallenge:q('stages').value==='cycle',songs:q('songs').value,band:selectedControlValues(q('band')),attribute:selectedControlValues(q('attribute')),difficulty:selectedDifficulties(q('difficulty')),maxLevel:Number(q('level').value),challengeScope:q('challenge-scope').value,challengeBasis:q('challenge-basis').value,challengeDifficulty:selectedDifficulties(q('challenge-difficulty')),challengeMaxLevel:Number(q('challenge-level').value)};}
  function sync(){
    if(tool.q('mode').value==='challenge'&&q('goal').value==='grade')q('goal').value='badges';
    const c=context(),next=JSON.stringify(c);

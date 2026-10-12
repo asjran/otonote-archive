@@ -4,6 +4,7 @@ import {assertToolTeamCompatible} from './shared-team-context.mjs';
 import {activationRows,playbackDuration} from './skill-activation-model.mjs';
 import {setupQuickOptions} from './tool-quick-options.mjs';
 import {createWorkbenchDialog} from './workbench-dialog.mjs';
+import {selectedControlValues} from './filter-controls.mjs';
 const el=(tag,text,cls)=>{const n=document.createElement(tag);if(text!=null)n.textContent=text;if(cls)n.className=cls;return n;};
 const fmt=n=>Number.isFinite(n)?Math.round(n).toLocaleString('zh-CN'):'—';
 const grade=n=>['D','C','B','A','S','SS'][n-2]??'—';
@@ -16,7 +17,7 @@ export function setupScoreWorkbenchView(host,{main,conditionBody,current,context
  const performance=q('.task-condition-group'),bonus=accountButton.closest('.task-condition-group');
  const team=el('section',null,'task-condition-group');team.append(el('h3','用于计算的队伍'),el('p','使用上方编成与此次养成。','task-input-note'));const edit=el('button','编辑当前配对');edit.type='button';edit.dataset.openTeamWorkspace='editor';team.append(edit,accountButton);conditionBody.prepend(team);bonus.remove();
  const range=el('section',null,'task-condition-group');range.append(el('h3','选曲范围'));
- const difficulty=select('谱面难度',[['expert','EXPERT'],['hard','HARD'],['normal','NORMAL'],['easy','EASY'],['all','全部']]);difficulty.field.dataset.quick='';
+ const difficulty=select('谱面难度（可多选）',[['expert','EXPERT'],['hard','HARD'],['normal','NORMAL'],['easy','EASY'],['all','全部']]);difficulty.field.multiple=true;difficulty.field.dataset.quick='';difficulty.field.dataset.quickAll='all';difficulty.field.dataset.quickRequired='';difficulty.field.options[0].selected=true;
  const level=select('最高等级',[...Array.from({length:32},(_,i)=>[String(i+8),`Lv.${i+8}`]),['40','不限']]);level.field.value='40';
  range.append(difficulty.label,level.label,el('p','固定这支队伍，按全 Perfect、满生命比较；不改变单曲的发挥设置。','task-input-note'));conditionBody.append(range);
  const shortcut=setupQuickOptions(range);
@@ -45,14 +46,14 @@ export function setupScoreWorkbenchView(host,{main,conditionBody,current,context
  }
  function refresh(){
   const draft=structuredClone(host.draft);delete draft.selectedSongId;delete draft.selectedDifficulty;delete draft.modifiers.performanceScenario;delete draft.modifiers.event;
-  const fingerprint=JSON.stringify([draft,difficulty.field.value,level.field.value]);if(key&&key!==fingerprint){stop();rows=null;page=0;status.textContent='队伍、养成或范围已改变，请重新计算。';renderRows();}key=fingerprint;
+  const fingerprint=JSON.stringify([draft,selectedControlValues(difficulty.field),level.field.value]);if(key&&key!==fingerprint){stop();rows=null;page=0;status.textContent='队伍、养成或范围已改变，请重新计算。';renderRows();}key=fingerprint;
   host.dataset.scoreView=view;single.hidden=view!=='single';songs.hidden=view!=='songs';range.hidden=view!=='songs';performance.hidden=view!=='single';context.hidden=view!=='single';run.hidden=view!=='songs';cancel.hidden=!worker||view!=='songs';
   singleTab.setAttribute('aria-pressed',String(view==='single'));songsTab.setAttribute('aria-pressed',String(view==='songs'));title.textContent=view==='single'?'当前条件下的单曲估分':'固定当前队伍，比较歌曲';caption.textContent=view==='single'?'更换队伍、谱面或发挥后，自动重新计算':'按所选难度与等级，逐谱计算 AP 分数和档位';
   const track=host.data.tracks.find(t=>t.id===host.draft.selectedSongId),resultTitle=q('[data-score-result-title]');resultTitle.textContent=track?`${track.title} · ${host.draft.selectedDifficulty?.toUpperCase()??''}`:'选择谱面，查看单曲结果';
  }
  run.addEventListener('click',()=>{if(worker)return;try{
   assertToolTeamCompatible(host.teamWorkspaceContext);if(host.draft.slots.some(s=>!s.memberCardId||!s.supportCardId))throw Error('请先完成五组成员与留影配对。');
-  const candidates=eventSongCandidates({...host.data,difficulty:difficulty.field.value,maxLevel:Number(level.field.value)});if(!candidates.length)throw Error('没有符合条件的可计算谱面。');
+  const candidates=eventSongCandidates({...host.data,difficulty:selectedControlValues(difficulty.field),maxLevel:Number(level.field.value)});if(!candidates.length)throw Error('没有符合条件的可计算谱面。');
   const draft=structuredClone(host.draft);delete draft.modifiers.performanceScenario;delete draft.modifiers.event;
   rows=null;page=0;renderRows();const active=worker=new Worker(new URL('./ap-grade-worker.mjs',import.meta.url),{type:'module'});run.disabled=true;cancel.hidden=false;songs.setAttribute('aria-busy','true');status.textContent=`正在准备 ${candidates.length} 张谱面…`;
   active.addEventListener('message',({data})=>{if(active!==worker)return;if(data.type==='progress'){status.textContent=`正在计算 ${data.done} / ${data.total} 张谱面…`;return;}stop();if(data.type==='result'){rows=data.rows;status.textContent=`已计算 ${rows.length} 张谱面 · AP / 满生命 · 120 种技能顺序${data.failures.length?`；${data.failures.length} 张失败，结果不完整`:''}`;renderRows();}else status.textContent=data.message;});

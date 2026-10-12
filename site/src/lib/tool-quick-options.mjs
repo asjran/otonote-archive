@@ -1,9 +1,17 @@
 /** Visible choices drive the original fields; validation and calculation stay there. */
+export function selectedOptionText(field) {
+  if (!field) return '';
+  const options = [...field.options], all = options.find(o => o.value === field.dataset.quickAll);
+  const choices = options.filter(o => o !== all && !o.disabled && !o.hidden);
+  if (field.multiple && all && (all.selected || choices.length && choices.every(o => o.selected))) return all.textContent.trim();
+  return [...field.selectedOptions].map(o => o.textContent.trim()).join('＋');
+}
+
 export function setupQuickOptions(root) {
   const groups = [];
   const document = root.ownerDocument;
   for (const field of root.querySelectorAll('select, [data-quick]')) {
-    if (field.dataset.quickReady || field.hidden || field.multiple || field.hasAttribute('data-inline-filter') || field.hasAttribute('data-quick-native')) continue;
+    if (field.dataset.quickReady || field.hidden || (field.multiple && !field.hasAttribute('data-quick')) || field.hasAttribute('data-inline-filter') || field.hasAttribute('data-quick-native')) continue;
     const isSelect = field.tagName === 'SELECT';
     const explicit = field.hasAttribute('data-quick');
     if (!explicit && (!isSelect || field.options.length < 2 || field.options.length > 6)) continue;
@@ -44,7 +52,19 @@ export function setupQuickOptions(root) {
       if (difficulty) button.dataset.difficulty = difficulty;
       button.append(text);
       button.addEventListener('click', () => {
-        field.value = value;
+        if (field.multiple) {
+          const choices = options.filter(o => o.value !== field.dataset.quickAll && !o.option.disabled && !o.option.hidden);
+          if (value === field.dataset.quickAll) {
+            for (const choice of choices) choice.option.selected = field.hasAttribute('data-quick-required');
+            option.selected = !field.hasAttribute('data-quick-required');
+          } else {
+            // Keep one playable difficulty selected; "all" is a shortcut only.
+            if (field.hasAttribute('data-quick-required') && option.selected && choices.filter(o => o.option.selected).length <= 1) return;
+            option.selected = !option.selected;
+            const all = options.find(o => o.value === field.dataset.quickAll);
+            if (all) all.option.selected = !choices.some(o => o.option.selected);
+          }
+        } else field.value = value;
         field.dispatchEvent(new Event('input', {bubbles:true}));
         field.dispatchEvent(new Event('change', {bubbles:true}));
         sync();
@@ -60,7 +80,12 @@ export function setupQuickOptions(root) {
   }
   function sync() {
     for (const {field, buttons} of groups) for (const {button, value, option} of buttons) {
-      button.setAttribute('aria-pressed', String(field.value === value));
+      const selected = field.multiple
+        ? value === field.dataset.quickAll
+          ? option.selected || buttons.filter(b => b.value !== field.dataset.quickAll && !b.option.disabled && !b.option.hidden).every(b => b.option.selected)
+          : option.selected
+        : field.value === value;
+      button.setAttribute('aria-pressed', String(selected));
       button.disabled = field.disabled || Boolean(option?.disabled);
       button.hidden = Boolean(option?.hidden);
     }
