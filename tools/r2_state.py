@@ -510,9 +510,15 @@ def restore(bucket, root: Path, region: str, expected_paths: list[str], *, worke
                                         "root": str(root), "region": region, "selections": manifest["selections"],
                                         **reference, "objects": verified_objects})
     finished = monotonic()
+    # Linux Actions and local macOS report ru_maxrss in different units.
+    resource_metrics = {}
+    if sys.platform in {"linux", "darwin"}:
+        import resource
+        resource_metrics["peakResidentBytes"] = int(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss) * (1024 if sys.platform == "linux" else 1)
     return {"status": "restored", "region": region, "files": len(files),
             "manifestSha256": digest(canonical(manifest)),
             "restoreMetrics": {
+                **resource_metrics,
                 "workers": workers, "downloadedObjects": len(download_entries),
                 "downloadedBytes": sum(entry["size"] for entry in download_entries),
                 "logicalBytes": sum(entry["size"] for entry in files),

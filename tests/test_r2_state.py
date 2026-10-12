@@ -120,6 +120,8 @@ class R2StateTest(unittest.TestCase):
         shutil.rmtree(self.root / 'input')
         with patch.object(r2_state, 'monotonic', side_effect=[10, 11, 12, 16, 18, 20]):
             result = r2_state.restore(self.bucket, self.root, 'global', self.paths, workers=2)
+        if r2_state.sys.platform in {'linux', 'darwin'}:
+            self.assertGreater(result['restoreMetrics'].pop('peakResidentBytes'), 0)
         self.assertEqual(result['restoreMetrics'], {
             'workers': 2, 'downloadedObjects': 2, 'downloadedBytes': expected_bytes,
             'logicalBytes': expected_logical, 'hardlinkedFiles': 1, 'copiedFiles': 1,

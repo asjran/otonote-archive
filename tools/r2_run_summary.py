@@ -61,7 +61,7 @@ def summarize(directory: Path, job_status: str) -> str:
             lines.append('Warning: private state manifest has reached 80% of its budget.')
         metrics = value.get('restoreMetrics') if name == 'state-restore.json' else None
         if isinstance(metrics, dict):
-            for key in ('workers', 'downloadedObjects', 'downloadedBytes', 'logicalBytes', 'hardlinkedFiles', 'copiedFiles'):
+            for key in ('workers', 'downloadedObjects', 'downloadedBytes', 'logicalBytes', 'hardlinkedFiles', 'copiedFiles', 'peakResidentBytes'):
                 number = metrics.get(key)
                 if type(number) is int and 0 <= number <= 2**63 - 1:
                     lines.append(f'{key}: `{number}`.')
