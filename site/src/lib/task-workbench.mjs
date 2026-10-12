@@ -6,6 +6,7 @@ import {serializeTeamDraftSearch} from './team-draft.mjs';
 import {destroySkillPopover} from './calculator-card-ui.mjs';
 import {setupScoreWorkbenchView} from './score-workbench-view.mjs';
 import {setupEventWorkbenchView} from './event-workbench-view.mjs';
+import {selectedOptionText} from './tool-quick-options.mjs';
 const el=(tag,text,cls)=>{const n=document.createElement(tag);if(text!=null)n.textContent=text;if(cls)n.className=cls;return n;};
 const move=(parent,...nodes)=>nodes.filter(Boolean).forEach(n=>parent.append(n));
 
@@ -128,7 +129,7 @@ export function setupTaskWorkbench(host,kind) {
       if(field.matches('[data-score-performance-profile]')&&explicitPerformance)continue;
       if(field.closest('[data-planning-card-locks]')&&!field.value)continue;
       const copy=label.cloneNode(true);copy.querySelectorAll('input,select,textarea,button,.tool-options,.tw-card-view').forEach(n=>n.remove());
-      let name=copy.textContent.trim().replace(/\s+/g,' '),value=field.tagName==='SELECT'?field.selectedOptions[0]?.textContent:field.type==='checkbox'?'开启':field.tagName==='TEXTAREA'?field.value.trim()&&field.value.trim()!=='{}'?'自定义':'默认':field.value||'默认';
+      let name=copy.textContent.trim().replace(/\s+/g,' '),value=field.tagName==='SELECT'?selectedOptionText(field):field.type==='checkbox'?'开启':field.tagName==='TEXTAREA'?field.value.trim()&&field.value.trim()!=='{}'?'自定义':'默认':field.value||'默认';
       if(field.matches('[data-score-performance-profile]')){name='发挥';if(field.value==='saved')value=({steady:'参考发挥',practice:'练习中的发挥',ideal:'理想发挥'})[savedPerformance?.profile]??(savedPerformance?'保存的发挥情景':'全 Perfect、满生命参考');}
       if(name){let group=field.matches('[data-gekisou-rank]')?'激奏名次':field.matches('[data-opponent-field],[data-opponent-enabled]')?'对手条件':field.matches('[data-gekisou-batches],[data-gekisou-seed],[data-gekisou-fps]')?'激奏抽样':field.matches('[data-performance-bias],[data-performance-spread],[data-performance-miss],[data-performance-start],[data-performance-end],[data-performance-explicit]')?'精细发挥':field.matches('[data-planning-variant-limit],[data-planning-window-limit]')?'搜索设置':field.closest('[data-planning-card-locks]')?'固定卡片':'';entries.push([name,value,group]);}
     }
@@ -143,7 +144,7 @@ export function setupTaskWorkbench(host,kind) {
         const group=name==='活动'||name==='演出类型'||name==='每次耗火'||name==='每次挑战消耗'?'活动':/加成|稳定|评分/.test(name)?'加成与评分':/预算|已有挑战/.test(name)?'预算':/从哪里选卡|搜索范围|养成/.test(name)?'队伍':/目标|档位估算|计算阶段/.test(name)?'计算目标':/歌曲|乐队|属性|难度|等级/.test(name)?'选曲条件':/TGW|乐器|角色评级|回忆/.test(name)?'账号加成':'搜索设置';
         add(group,name,value);
       }
-      const selected=s=>q(s)?.selectedOptions?.[0]?.textContent;
+      const selected=s=>selectedOptionText(q(s));
       const mode=q('[data-mode]').value;
       const summaries={
         '活动':`${mode==='challenge'?'挑战':'普通'} · ${mode==='challenge'?q('[data-cost]').value+' pt':q('[data-boost]').value+' 火'}`,

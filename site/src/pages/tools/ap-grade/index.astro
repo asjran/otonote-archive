@@ -37,7 +37,7 @@ const events=available?((formalRules.tables.Event??[]) as Array<{_id:number;_eve
   <section class="event-panel ap-settings-panel"><h2><span class="studio-step">2</span>预测歌曲档位</h2>
    <div class="ap-option-groups">
     <div class="event-controls ap-mode-controls"><label>演出<select data-ap-mode data-quick><option value="ordinary">普通</option><option value="challenge" disabled={!events.length}>挑战</option></select></label><label data-ap-event-wrap>挑战活动<select data-ap-event data-quick-native>{events.map(e=><option value={e._id}>{gameModeDatabase.events.records?.find(r=>r.id===e._id)?.name??`活动 ${e._id}`}</option>)}</select></label></div>
-    <label>谱面难度<select data-ap-difficulty data-quick><option value="all">全部</option><option data-difficulty="expert" value="expert" selected>EXPERT</option><option data-difficulty="hard" value="hard">HARD</option><option data-difficulty="normal" value="normal">NORMAL</option><option data-difficulty="easy" value="easy">EASY</option></select></label>
+    <label>谱面难度（可多选）<select data-ap-difficulty multiple data-quick data-quick-all="all" data-quick-required><option value="all">全部</option><option data-difficulty="expert" value="expert" selected>EXPERT</option><option data-difficulty="hard" value="hard">HARD</option><option data-difficulty="normal" value="normal">NORMAL</option><option data-difficulty="easy" value="easy">EASY</option></select></label>
     <label class="ap-level-control">等级上限<input data-ap-level data-quick="20,25,28,30,40" type="number" min="1" max="40" value="40" /></label>
    </div>
    <label class="event-eco"><input type="checkbox" data-ap-eco checked />节能计算（推荐）</label>

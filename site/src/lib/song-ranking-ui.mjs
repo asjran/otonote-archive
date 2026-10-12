@@ -1,5 +1,6 @@
 import {skillActivation} from './skill-activation-view.mjs';
-import {setupQuickOptions} from './tool-quick-options.mjs';
+import {setupQuickOptions,selectedOptionText} from './tool-quick-options.mjs';
+import {selectedControlValues,restoreFilterControl} from './filter-controls.mjs';
 import {rankGradeRows,SCORE_GRADES} from './song-grade-ranking.mjs';
 import { rankSongRows, RANKING_METRICS } from './song-ranking-view.mjs';
 import { withSongSkillProfile, validateSongSkillProfile } from './song-skill-profile.mjs';
@@ -41,7 +42,7 @@ class SongRanking extends HTMLElement {
     listen(this.querySelector('[data-metric]'), 'change', event => { this.metric = event.target.value || 'expectedScore'; this.page = 0; this.render(); });
     listen(this.querySelector('[data-prev]'), 'click', () => { this.page--; this.render(); });
     listen(this.querySelector('[data-next]'), 'click', () => { this.page++; this.render(); });
-    listen(this.querySelector('[data-reset]'), 'click', () => { for (const input of this.querySelectorAll('[data-filter]')) input.value = input.tagName === 'SELECT' ? 'all' : ''; this.page = 0; this.render(); });
+    listen(this.querySelector('[data-reset]'), 'click', () => { for (const input of this.querySelectorAll('[data-filter]')) restoreFilterControl(input,input.tagName === 'SELECT' ? 'all' : ''); this.page = 0; this.render(); });
     this.shortcuts=setupQuickOptions(this);
     this.replays=setupSongRankingReplay(this,()=>{this.page=0;this.render();});
     this.render();
@@ -49,9 +50,9 @@ class SongRanking extends HTMLElement {
   disconnectedCallback() { this.shortcuts?.destroy(); this.replays?.destroy(); this.events?.abort(); this.events = null; }
   render() {
     this.shortcuts?.sync();
-    const filters = Object.fromEntries([...this.querySelectorAll('[data-filter]')].map(e => [e.dataset.filter, e.dataset.filter === 'maxLevel' && e.value === '' ? 'all' : e.value]));
+    const filters = Object.fromEntries([...this.querySelectorAll('[data-filter]')].map(e => [e.dataset.filter, e.multiple ? selectedControlValues(e) : e.dataset.filter === 'maxLevel' && e.value === '' ? 'all' : e.value]));
     const tags=this.querySelector('[data-ranking-filter-tags]');tags.replaceChildren();
-    for(const field of this.querySelectorAll('[data-filter]')){if(field.value===''||field.value==='all')continue;const b=node('button',`${field.tagName==='SELECT'?field.selectedOptions[0].textContent:field.dataset.filter==='maxLevel'?`Lv.≤${field.value}`:field.value} ×`);b.type='button';b.setAttribute('aria-label',`取消筛选：${b.textContent.slice(0,-2)}`);b.addEventListener('click',()=>{field.value=field.tagName==='SELECT'?'all':'';this.page=0;this.render();});tags.append(b);}
+    for(const field of this.querySelectorAll('[data-filter]')){if(field.multiple?!selectedControlValues(field).length:field.value===''||field.value==='all')continue;const b=node('button',`${field.tagName==='SELECT'?selectedOptionText(field):field.dataset.filter==='maxLevel'?`Lv.≤${field.value}`:field.value} ×`);b.type='button';b.setAttribute('aria-label',`取消筛选：${b.textContent.slice(0,-2)}`);b.addEventListener('click',()=>{restoreFilterControl(field,field.tagName==='SELECT'?'all':'');this.page=0;this.render();});tags.append(b);}
     tags.hidden=!tags.children.length;
     const timing = { durationBasis: this.querySelector('[data-duration]').value };
     let rows = this.data.rankings[this.mode].map(row=>({...row,p10Score:row.p10Score??(row.minimumScore===row.maximumScore?row.minimumScore:null)}));

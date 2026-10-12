@@ -19,8 +19,8 @@ const difficulties=[['easy','EASY'],['normal','NORMAL'],['hard','HARD'],['expert
     <div slot="quick" class="selection-filter-rows">
     <div data-song-attributes><CalculatorAttributeFilter label="筛选歌曲属性" /></div>
     <div class="selection-quick-grid selection-filter-rows">
-      <label class="selection-filter-row"><span>演奏乐队</span><select data-song-band data-quick><option value="">全部乐队</option>{catalog.bands.map(b=><option value={b.id} {...optionVisual('band', b.id)}>{b.displayName}</option>)}</select></label>
-      <label class="selection-filter-row"><span>难度</span><select data-song-difficulty data-quick><option value="">全部难度</option>{difficulties.map(([d,l])=><option value={d} data-difficulty={d}>{l}</option>)}</select></label>
+      <label class="selection-filter-row"><span>演奏乐队</span><select data-song-band multiple data-quick data-quick-all=""><option value="" selected>全部乐队</option>{catalog.bands.map(b=><option value={b.id} {...optionVisual('band', b.id)}>{b.displayName}</option>)}</select></label>
+      <label class="selection-filter-row"><span>难度</span><select data-song-difficulty multiple data-quick data-quick-all=""><option value="" selected>全部难度</option>{difficulties.map(([d,l])=><option value={d} data-difficulty={d}>{l}</option>)}</select></label>
     </div></div>
     <div class="selection-filter-grid selection-filter-rows">
       <label class="selection-filter-row"><span>激奏段落</span><select data-song-mission data-quick><option value="">全部组合</option><option value="1">含 COMBO</option><option value="2">含 LUCK</option><option value="3">含 JUST</option><option value="1-only">三段 COMBO</option><option value="2-only">三段 LUCK</option><option value="3-only">三段 JUST</option><option value="mixed">混合类型</option></select></label>

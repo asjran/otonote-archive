@@ -7,6 +7,7 @@ import {preparePresetDraft} from './preset-portfolio.mjs';
 import {eventSongCandidates} from './event-song-ranking.mjs';
 import {applyAPBasis,eventToolSearch,AP_BASES} from './ap-grade.mjs';
 import {toolRoute} from './tool-route.mjs';
+import {selectedControlValues} from './filter-controls.mjs';
 const el=(tag,text)=>{const n=document.createElement(tag);if(text!=null)n.textContent=text;return n;};
 const fmt=n=>Number(n).toLocaleString('zh-CN',{maximumFractionDigits:0}),grade=r=>['D','C','B','A','S','SS'][r-2];
 class APGradeTool extends HTMLElement{
@@ -62,7 +63,7 @@ class APGradeTool extends HTMLElement{
    const mode=this.q('mode').value,eventId=Number(this.q('event').value),level=Number(this.q('level').value);
    if(!Number.isInteger(level)||level<1||level>40)throw Error('最高等级需为 1–40 的整数');
    const allowed=mode==='challenge'?this.data.rules.tables.ChallengeMusic.filter(r=>r._eventId===eventId).map(r=>'music-'+r._liveMusicId):null;
-   const candidates=eventSongCandidates({...this.data,allowedTrackIds:allowed,difficulty:this.q('difficulty').value,maxLevel:level});
+   const candidates=eventSongCandidates({...this.data,allowedTrackIds:allowed,difficulty:this.q('difficulty').multiple?selectedControlValues(this.q('difficulty')):this.q('difficulty').value,maxLevel:level});
    if(!candidates.length)throw Error('没有符合条件的谱面');
    this.rows=null;this.page=0;this.renderRows();this.q('failures').replaceChildren();this.q('run').disabled=true;this.q('cancel').hidden=false;this.setAttribute('aria-busy','true');
    const worker=this.worker=new Worker(new URL('./ap-grade-worker.mjs',import.meta.url),{type:'module'});

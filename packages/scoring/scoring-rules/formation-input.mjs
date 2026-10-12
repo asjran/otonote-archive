@@ -93,15 +93,18 @@ function resolveLegacySearchInput(rules, draft, { scope = "selected", inventory,
   };
   const chars = new Map(rules.tables.Character.map((c) => [c._id, c]));
   for (const key of ["bandId", "attribute", "supportAttribute"]) {
-    if (constraints[key] !== undefined && constraints[key] !== null) normalized[key] = requireInteger(constraints[key], key, 1, 99);
+    if (constraints[key] !== undefined && constraints[key] !== null) normalized[key] = Array.isArray(constraints[key])
+      ? [...new Set(constraints[key].map(value => requireInteger(value, key, 1, 99)))]
+      : requireInteger(constraints[key], key, 1, 99);
   }
+  const matches = (value, actual) => value == null || (Array.isArray(value) ? value.includes(actual) : value === actual);
   for (const kind of ["member", "support"]) {
     pool[`${kind}CardIds`] = pool[`${kind}CardIds`].filter((id) => {
       const row = calculator.card(id, kind);
       return !normalized[kind === "member" ? "excludedMemberIds" : "excludedSupportIds"].includes(id)
-        && (kind === "member" ? (!normalized.bandId || chars.get(row._characterID)._bandID === normalized.bandId)
-          && (!normalized.attribute || row._cardType === normalized.attribute)
-          : !normalized.supportAttribute || row._cardType === normalized.supportAttribute);
+        && (kind === "member" ? matches(normalized.bandId, chars.get(row._characterID)._bandID)
+          && matches(normalized.attribute, row._cardType)
+          : matches(normalized.supportAttribute, row._cardType));
     });
     for (const id of pool[`${kind}CardIds`]) {
       const growth = result.modifiers.growth?.[id];

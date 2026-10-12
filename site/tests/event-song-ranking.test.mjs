@@ -66,3 +66,15 @@ test('song candidates intersect band and song attribute with difficulty and leve
  assert.deepEqual(ids({band:'band-1',attribute:'5'}),[]);
  assert.deepEqual(ids({band:'',attribute:''}),['a-expert','b-expert','c-expert','unknown-expert']);
 });
+
+test('difficulty subsets filter playable charts before search and compose with event and level limits',()=>{
+ const tracks=[{id:'a',bandIds:['band-1'],musicType:1},{id:'b',bandIds:['band-2'],musicType:2}];
+ const charts=tracks.flatMap(t=>['expert','hard','normal','easy'].map(difficulty=>({id:`${t.id}-${difficulty}`,trackId:t.id,difficulty,level:difficulty==='expert'?25:15,analysisDataUrl:'/chart'})));
+ const ids=filters=>eventSongCandidates({tracks,charts,...filters}).map(c=>c.id);
+ assert.deepEqual(ids({difficulty:['hard','expert']}),['a-expert','a-hard','b-expert','b-hard']);
+ assert.deepEqual(ids({difficulty:['hard','expert'],allowedTrackIds:['b'],maxLevel:20}),['b-hard']);
+ assert.deepEqual(ids({difficulty:['expert','hard'],band:'band-1',attribute:'1'}),['a-expert','a-hard']);
+ assert.deepEqual(ids({difficulty:['hard','hard']}),ids({difficulty:'hard'}));
+ assert.deepEqual(ids({difficulty:[]}),[]);
+ assert.equal(ids({difficulty:'all'}).length,8);
+});

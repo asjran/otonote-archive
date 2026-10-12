@@ -1,3 +1,4 @@
+import {selectedControlValues,matchesFilter,restoreFilterControl} from './filter-controls.mjs';
 const fmt=n=>Number(n).toLocaleString('zh-CN',{maximumFractionDigits:2});
 const numeric=id=>Number(id.split('-').at(-1));
 const bonusKey=kind=>kind==='member'?'eventPointBP':'rewardBP';
@@ -10,11 +11,11 @@ export function setupEventCardPicker(tool){
  const inventory=()=>{try{return tool.personalGrowthStore.read()?.inventory;}catch{return null;}};
  function rankFor(kind,card,owned){return q('card-scope').value==='owned'?(owned?.growth?.[card.id]?.rank??1):Number(tool.pairs[target.slot].querySelector(`[data-${kind}-rank]`).value);}
  function choices(){
-  if(!target)return;const {kind,slot}=target,model=tool.model(),owned=inventory(),query=q('card-query').value.trim().toLocaleLowerCase().split(/\s+/).filter(Boolean),attribute=q('card-attribute').value;
+  if(!target)return;const {kind,slot}=target,model=tool.model(),owned=inventory(),query=q('card-query').value.trim().toLocaleLowerCase().split(/\s+/).filter(Boolean),attribute=selectedControlValues(q('card-attribute'));
   const native=tool.data.rules.tables[kind==='member'?'MemberCard':'SupportCard'];const characterFor=cardId=>native.find(c=>c._id===numeric(cardId))?._characterID;
   const current=tool.pairs[slot].querySelector(`[data-${kind}]`).value;
   const used=tool.pairs.filter((_,i)=>i!==slot).map(p=>p.querySelector(`[data-${kind}]`).value).filter(Boolean);
-  let rows=cards(kind).filter(c=>(!attribute||String(c.attributeCode)===attribute)&&query.every(w=>`${c.displayName} ${c.relationLabel}`.toLocaleLowerCase().includes(w))&&(q('card-scope').value!=='owned'||owned?.[`${kind}CardIds`]?.includes(c.id)))
+  let rows=cards(kind).filter(c=>matchesFilter(c.attributeCode,attribute)&&query.every(w=>`${c.displayName} ${c.relationLabel}`.toLocaleLowerCase().includes(w))&&(q('card-scope').value!=='owned'||owned?.[`${kind}CardIds`]?.includes(c.id)))
    .map(card=>({card,rank:rankFor(kind,card,owned),bonus:model.cardBonus(kind,numeric(card.id),rankFor(kind,card,owned))[bonusKey(kind)],duplicate:kind==='member'?used.some(id=>characterFor(id)===characterFor(card.id)):used.includes(card.id)}));
   rows.sort(q('card-sort').value==='name'?(a,b)=>a.card.displayName.localeCompare(b.card.displayName,'zh-CN'):(a,b)=>b.bonus-a.bonus||a.card.displayName.localeCompare(b.card.displayName,'zh-CN'));
   const pages=Math.max(1,Math.ceil(rows.length/18));page=Math.min(page,pages-1);q('card-results').replaceChildren();q('card-count').textContent=`${rows.length} 张${kind==='member'?'成员卡':'留影'} · 先看加成，再考虑能否达到评分`;
@@ -29,7 +30,7 @@ export function setupEventCardPicker(tool){
    button.append(portrait(card),info);button.addEventListener('click',()=>{const pair=tool.pairs[slot];pair.querySelector(`[data-${kind}]`).value=card.id;pair.querySelector(`[data-${kind}-rank]`).value=rank;if(q('card-scope').value==='owned'){tool.draft.modifiers.growth??={};tool.draft.modifiers.growth[card.id]={...inventory()?.growth?.[card.id]};}q('bonus-source').value='team';q('team-status').textContent='卡片已更新，请确认养成与稳定评分。';tool.render();dialog.close();});q('card-results').append(button);
   }
  }
- tool.querySelectorAll('[data-open-card]').forEach(button=>button.addEventListener('click',()=>{target={kind:button.dataset.openCard,slot:Number(button.dataset.slot)};trigger=button;page=0;q('card-query').value='';q('card-attribute').value='';q('card-scope').value=q('pool').value==='owned'&&inventory()?'owned':'all';q('picker-title').textContent=target.kind==='member'?'选择成员卡':'选择留影';q('picker-slot').textContent=`位置 ${target.slot+1}${target.slot===2?' · 队长':''}`;choices();tool.shortcuts?.sync();dialog.showModal();q('card-query').focus();}));
+ tool.querySelectorAll('[data-open-card]').forEach(button=>button.addEventListener('click',()=>{target={kind:button.dataset.openCard,slot:Number(button.dataset.slot)};trigger=button;page=0;q('card-query').value='';restoreFilterControl(q('card-attribute'),'');q('card-scope').value=q('pool').value==='owned'&&inventory()?'owned':'all';q('picker-title').textContent=target.kind==='member'?'选择成员卡':'选择留影';q('picker-slot').textContent=`位置 ${target.slot+1}${target.slot===2?' · 队长':''}`;choices();tool.shortcuts?.sync();dialog.showModal();q('card-query').focus();}));
  q('close-picker').addEventListener('click',()=>dialog.close());dialog.addEventListener('close',()=>trigger?.focus());
  for(const field of ['card-query','card-attribute','card-scope','card-sort'])q(field).addEventListener(field==='card-query'?'input':'change',()=>{page=0;choices();});
  q('card-prev').addEventListener('click',()=>{page--;choices();q('card-results').scrollIntoView({block:'start'});});q('card-next').addEventListener('click',()=>{page++;choices();q('card-results').scrollIntoView({block:'start'});});
