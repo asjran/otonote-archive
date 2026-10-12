@@ -108,6 +108,29 @@ class R2StateTest(unittest.TestCase):
         self.assertEqual(state["inputPlan"], str(self.root / "input/global/plan.json"))
         self.assertTrue(Path(state["inputPlan"]).is_file())
 
+    def test_restore_metrics_count_unique_downloads_separately_from_copies_and_links(self):
+        source = self.root / 'input/global/plan.json'
+        shutil.copyfile(source, self.root / 'input/global/copy.json')
+        os.link(source, self.root / 'input/global/link.json')
+        self._checkpoint()
+        expected_bytes = sum(len(data) for key, data in self.bucket.objects.items()
+                             if key.startswith('state/objects/'))
+        expected_logical = sum(entry['size'] for entry in self._stored_manifest()['files'])
+        shutil.rmtree(self.root / 'output')
+        shutil.rmtree(self.root / 'input')
+        with patch.object(r2_state, 'monotonic', side_effect=[10, 11, 12, 16, 18, 20]):
+            result = r2_state.restore(self.bucket, self.root, 'global', self.paths, workers=2)
+        self.assertEqual(result['restoreMetrics'], {
+            'workers': 2, 'downloadedObjects': 2, 'downloadedBytes': expected_bytes,
+            'logicalBytes': expected_logical, 'hardlinkedFiles': 1, 'copiedFiles': 1,
+            'prepareSeconds': 1, 'stageSeconds': 1, 'downloadVerifySeconds': 4,
+            'materializeSeconds': 2, 'publishProofSeconds': 2, 'totalSeconds': 10,
+        })
+        self.assertEqual(len(self.bucket.download_calls), 2)
+        self.assertEqual(source.read_bytes(), (self.root / 'input/global/copy.json').read_bytes())
+        self.assertEqual(source.stat().st_ino, (self.root / 'input/global/link.json').stat().st_ino)
+        self.assertNotEqual(source.stat().st_ino, (self.root / 'input/global/copy.json').stat().st_ino)
+
     def test_idempotent_checkpoint_and_optimistic_pointer_conflict(self):
         first = self._checkpoint()
         put_count = len(self.bucket.upload_calls)

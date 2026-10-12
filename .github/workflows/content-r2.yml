@@ -277,7 +277,8 @@ jobs:
               raise SystemExit('Runner disk is too small for the selected private state and production reserve')
           PY
           python -m tools.r2_state restore --root "$STABLE_ROOT" --region "$REGION" --workers 8 \
-            --verification-cache "$RUNNER_TEMP/r2-state-restore-proof.json" "${args[@]}"
+            --verification-cache "$RUNNER_TEMP/r2-state-restore-proof.json" "${args[@]}" \
+            > "$RUNNER_TEMP/state-restore.json"
       - name: Validate restored input and runner capacity
         if: steps.light_gate.outputs.skip != 'true'
         shell: bash

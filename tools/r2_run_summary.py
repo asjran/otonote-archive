@@ -1,6 +1,7 @@
 """Summarize bounded public fields even when a failed step left empty JSON."""
 import argparse
 import json
+import math
 from pathlib import Path
 
 
@@ -10,12 +11,13 @@ FILES = (
     ('light-check.json', 'Light unchanged gate'),
     ('gate-probe.json', 'Full source probe'),
     ('gate-check.json', 'Verified unchanged gate'),
+    ('state-restore.json', 'Private state restore'),
     ('state-after.json', 'Private state checkpoint'),
     ('promotion.json', 'Public promotion'),
     ('jp-retention.json', 'JP working set'),
 )
 STATUSES = {'ready', 'needs_full', 'needs_production', 'probed', 'blocked', 'unchanged', 'checkpointed', 'promoted', 'pruned',
-            'failed', 'skipped', 'uploaded', 'verified', 'complete'}
+            'failed', 'skipped', 'uploaded', 'verified', 'complete', 'restored'}
 # Never copy arbitrary upstream reason strings into a public Actions summary.
 REASONS = frozenset({
     'private_state_missing', 'private_pointer_changed', 'producer_state_not_seeded',
@@ -57,6 +59,17 @@ def summarize(directory: Path, job_status: str) -> str:
                 lines.append(f'{key}: `{value[key]}`.')
         if value.get('manifestBudgetWarning') is True:
             lines.append('Warning: private state manifest has reached 80% of its budget.')
+        metrics = value.get('restoreMetrics') if name == 'state-restore.json' else None
+        if isinstance(metrics, dict):
+            for key in ('workers', 'downloadedObjects', 'downloadedBytes', 'logicalBytes', 'hardlinkedFiles', 'copiedFiles'):
+                number = metrics.get(key)
+                if type(number) is int and 0 <= number <= 2**63 - 1:
+                    lines.append(f'{key}: `{number}`.')
+            for key in ('prepareSeconds', 'stageSeconds', 'downloadVerifySeconds', 'materializeSeconds',
+                        'publishProofSeconds', 'totalSeconds'):
+                number = metrics.get(key)
+                if type(number) in (int, float) and 0 <= number <= 604800 and math.isfinite(number):
+                    lines.append(f'{key}: `{number:.3f}`.')
     return '\n\n'.join(lines) + '\n'
 
 

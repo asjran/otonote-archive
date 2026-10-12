@@ -17,6 +17,7 @@ from pathlib import Path, PurePosixPath
 import re
 import stat
 import sys
+from time import monotonic
 from uuid import uuid4
 
 SHA256 = re.compile(r"[a-f0-9]{64}\Z")
@@ -430,6 +431,7 @@ def checkpoint(bucket, root: Path, region: str, paths: list[str], expected_curre
 
 def restore(bucket, root: Path, region: str, expected_paths: list[str], *, workers: int = 1,
             verification_cache: Path | None = None) -> dict:
+    started = monotonic()
     root = stable_root(root)
     worker_count(workers)
     region_name(region)
@@ -450,6 +452,7 @@ def restore(bucket, root: Path, region: str, expected_paths: list[str], *, worke
             raise ValueError("restore requires absent destination files")
     stage = root / f".r2-state-stage-{uuid4().hex}"
     stage.mkdir(mode=0o700)
+    prepared = monotonic()
     try:
         import shutil
         staged_objects: dict[tuple[str, int], Path] = {}
@@ -477,7 +480,9 @@ def restore(bucket, root: Path, region: str, expected_paths: list[str], *, worke
             return None
 
         # All independent remote objects finish and pass local checks first.
+        download_started = monotonic()
         verified_objects = dict(item for item in _run_bounded(download_entries, download, workers) if item is not None)
+        downloaded = monotonic()
         for entry in files:
             target = stage / entry["path"]
             if target.exists():
@@ -488,6 +493,7 @@ def restore(bucket, root: Path, region: str, expected_paths: list[str], *, worke
                 os.link(stage / link_to, target)
             else:
                 shutil.copyfile(staged_objects[(entry["sha256"], entry["size"])], target)
+        materialized = monotonic()
         # All remote bytes are verified before any destination is changed.
         for name in directories:
             _inside(root, name).mkdir(parents=True, exist_ok=True)
@@ -503,8 +509,22 @@ def restore(bucket, root: Path, region: str, expected_paths: list[str], *, worke
         _write_verification_cache(cache, {"schemaVersion": 1, "bucketIdentity": bucket_identity,
                                         "root": str(root), "region": region, "selections": manifest["selections"],
                                         **reference, "objects": verified_objects})
+    finished = monotonic()
     return {"status": "restored", "region": region, "files": len(files),
-            "manifestSha256": digest(canonical(manifest))}
+            "manifestSha256": digest(canonical(manifest)),
+            "restoreMetrics": {
+                "workers": workers, "downloadedObjects": len(download_entries),
+                "downloadedBytes": sum(entry["size"] for entry in download_entries),
+                "logicalBytes": sum(entry["size"] for entry in files),
+                "hardlinkedFiles": sum("hardlinkTo" in entry for entry in files),
+                "copiedFiles": len(files) - len(download_entries) - sum("hardlinkTo" in entry for entry in files),
+                "prepareSeconds": round(prepared - started, 3),
+                "stageSeconds": round(download_started - prepared, 3),
+                "downloadVerifySeconds": round(downloaded - download_started, 3),
+                "materializeSeconds": round(materialized - downloaded, 3),
+                "publishProofSeconds": round(finished - materialized, 3),
+                "totalSeconds": round(finished - started, 3),
+            }}
 
 
 def inspect(bucket, root: Path, region: str, expected_paths: list[str]) -> dict:
