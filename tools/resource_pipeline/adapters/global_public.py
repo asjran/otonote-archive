@@ -26,6 +26,9 @@ APK_USER_AGENT = "Android"
 KV_CONFIG_URL = ("https://kv1.biligames.com/x/kv-frontend/namespace/data"
                  "?appKey=555.187&nscode=24&unlimit=true")
 VERSION = re.compile(r"[0-9]+(?:\.[0-9]+){1,4}")
+# Resource revisions can include an eight-digit content suffix. Client/APK
+# versions retain their separate numeric grammar.
+RESOURCE_VERSION = re.compile(r"[0-9]+(?:\.[0-9]+){1,4}(?:\.[0-9a-f]{8})?")
 HASH = re.compile(r"[0-9a-f]{32}")
 
 
@@ -237,7 +240,7 @@ class GlobalPublicClient:
         headers, payload = self.rpc(api, "app.masterdata.MasterdataService/Version")
         fields = protobuf_fields(payload)
         master_version, resource_version = string_field(fields, 1), string_field(fields, 2)
-        if not HASH.fullmatch(master_version) or not VERSION.fullmatch(resource_version):
+        if not HASH.fullmatch(master_version) or not RESOURCE_VERSION.fullmatch(resource_version):
             raise ProtocolError("unexpected Master/resource version")
         catalog_base = f"{cdn}/asset/Android/catalog_{resource_version}"
         catalog_hash = self.get(catalog_base + ".hash", 256).body.decode("ascii").strip()
