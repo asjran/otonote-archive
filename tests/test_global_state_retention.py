@@ -13,12 +13,14 @@ from tests.test_r2_state import FakePrivateBucket
 
 
 class GlobalWorkingSetTests(unittest.TestCase):
+    resource_version = '1.0.0.400'
+
     def setUp(self):
         self.temp = TemporaryDirectory(); self.addCleanup(self.temp.cleanup)
         self.root = Path(self.temp.name).resolve()
         self.workspace = self.root/'output/global-update-workflow'
         self.sync = self.workspace/'sync-complete'
-        self.current = self.sync/'1.0.0.400-aaaaaaaa-bbbbbbbb-complete-v3-cccccccc-ddddddddddddd'
+        self.current = self.sync/f'{self.resource_version}-aaaaaaaa-bbbbbbbb-complete-v3-cccccccc-ddddddddddddd'
         self.old = self.sync/'1.0.0.300-aaaaaaaa-bbbbbbbb-complete-v3-cccccccc-ddddddddddddd'
         self.plan = self.current/'inputs/release-inputs.json'
         write_json(self.plan, {'schemaVersion': 1, 'environments': [{'region': 'global',
@@ -27,7 +29,7 @@ class GlobalWorkingSetTests(unittest.TestCase):
         write_json(self.current/'snapshot/report.json', {'status': 'verified_snapshot'})
         for i in range(20):
             write_json(self.old/f'inputs/{i}.json', {'old': i})
-        observation = {'clientVersion': '1.2.3', 'resourceVersion': '1.0.0.400',
+        observation = {'clientVersion': '1.2.3', 'resourceVersion': self.resource_version,
                        'masterVersion': 'a'*32, 'catalogHash': 'b'*32, 'cdnRoot': 'https://example.invalid'}
         write_json(self.sync/'state.json', {'inputPlan': str(self.plan), 'snapshot': str(self.current/'snapshot'),
                                           'observation': observation, 'pipelineVersion': 3})
@@ -120,3 +122,20 @@ class GlobalWorkingSetTests(unittest.TestCase):
         (self.old/'linked').symlink_to(self.config)
         with self.assertRaises(ValueError): self.checkpoint()
         self.assertEqual(self.bucket.objects, {})
+
+    def test_invalid_resource_suffix_aborts_before_checkpoint_writes(self):
+        for version in ('1.0.1.500.a3f7b2e', '1.0.1.500.a3f7b2e99',
+                        '1.0.1.500.a3f7b2ez', '1.0.1.500.a3f7b2e9-extra'):
+            with self.subTest(version=version):
+                unknown = self.sync/f'{version}-aaaaaaaa-bbbbbbbb-complete-v3-cccccccc-ddddddddddddd'
+                unknown.mkdir()
+                try:
+                    with self.assertRaisesRegex(ValueError, 'unknown Global sync generation'):
+                        self.checkpoint()
+                    self.assertEqual(self.bucket.objects, {})
+                finally:
+                    unknown.rmdir()
+
+
+class GlobalSuffixedResourceWorkingSetTests(GlobalWorkingSetTests):
+    resource_version = '1.0.1.500.a3f7b2e9'
