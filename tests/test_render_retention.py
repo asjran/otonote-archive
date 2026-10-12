@@ -47,6 +47,31 @@ class RenderRetentionTests(unittest.TestCase):
         self.assertEqual(retention.plan(self.root, self.cutoff)['views'], [])
         retention.verify_archive(self.archive, plan)
 
+    def test_archive_total_budget_preserves_html_on_refusal(self):
+        plan = retention.plan(self.root, self.cutoff)
+        with self.assertRaises(AuditError):
+            retention.archive_html(self.root, plan, self.archive, total_limit=1)
+        self.assertFalse(self.archive.exists())
+        self.assertTrue((self.old/'global/en/index.html').is_file())
+
+    def test_archive_expiry_rechecks_protected_views_and_preserves_payloads(self):
+        plan = retention.plan(self.root, self.cutoff)
+        retention.archive_html(self.root, plan, self.archive)
+        retention.apply(self.root, plan, self.archive)
+        cutoff = int(time.time())-14*86400
+        os.utime(self.archive, (cutoff-1, cutoff-1))
+        expired = retention.expire_archives(self.root, self.base, cutoff=cutoff)
+        self.assertEqual(len(expired['files']), 1)
+        (self.root/'previous-jp').symlink_to(self.old.relative_to(self.root))
+        with self.assertRaisesRegex(AuditError, 'plan_changed'):
+            retention.expire_archives(self.root, self.base, expected=expired)
+        self.assertTrue(self.archive.exists())
+        (self.root/'previous-jp').unlink()
+        retention.expire_archives(self.root, self.base, expected=expired)
+        self.assertFalse(self.archive.exists())
+        self.assertTrue((self.old/'complete.json').exists())
+        self.assertEqual(next((self.old/'payloads').iterdir()).read_text(), 'open-tab payload')
+
     def test_pending_and_young_views_are_protected(self):
         (self.root/'.pending.json').write_text(json.dumps({'serving': str(self.old.relative_to(self.root)),
             'target': str(self.previous.relative_to(self.root))}))

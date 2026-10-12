@@ -32,6 +32,24 @@ class CodePublicationTests(unittest.TestCase):
 
 
 class PublicationGuardTests(unittest.TestCase):
+    def test_success_cleans_only_owned_stage_and_failed_health_preserves_it(self):
+        import shutil
+        from tests.test_release_candidate import candidate
+        with tempfile.TemporaryDirectory() as tmp:
+            root=Path(tmp); store=root/'store'
+            source, sha=candidate(root/'candidate')
+            identity=json.loads((source/'code-release.json').read_text())['codeId']
+            incoming=store/'incoming'/(identity+'-'+'a'*32)
+            shutil.copytree(source, incoming)
+            with self.assertRaisesRegex(ValueError, 'previous pointers restored'):
+                publish_code(incoming,store,health_check=lambda _:False)
+            self.assertTrue(incoming.is_dir())
+            result=publish_code(incoming,store,health_check=lambda _:True)
+            self.assertEqual(result['stageCleanup'],'removed')
+            self.assertFalse(incoming.exists())
+            self.assertTrue(source.is_dir())
+            self.assertTrue((store/'current'/'compiled').is_dir())
+
     def test_stale_pointer_health_rollback_and_lock(self):
         import fcntl
         from tests.test_release_candidate import candidate

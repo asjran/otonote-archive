@@ -150,14 +150,22 @@ def verify_archive(path, expected):
         raise AuditError('incomplete_retention_archive')
 
 
-def archive_html(root, expected, destination):
+def archive_html(root, expected, destination, total_limit=4 * 1024**3):
     root = root_path(root)
     destination = archive_path(root, destination)
     with render_lock(root):
         if expected != make_plan(root, expected['cutoff'], expected['maxViews']):
             raise AuditError('plan_changed_reaudit_required')
         space = os.statvfs(str(destination.parent))
-        limit = min(512 * 1024 * 1024, space.f_bavail * space.f_frsize - 2 * 1024**3)
+        if type(total_limit) is not int or total_limit < 0:
+            raise AuditError('invalid_archive_total_budget')
+        used = 0
+        for path in destination.parent.iterdir():
+            if path.is_symlink():
+                raise AuditError('linked_archive_entry')
+            if path.is_file() and path.name.endswith('.tar.gz'):
+                used += path.stat().st_size
+        limit = min(512 * 1024 * 1024, space.f_bavail * space.f_frsize - 2 * 1024**3, total_limit - used)
         if limit <= 0:
             raise AuditError('insufficient_archive_headroom')
         fd = os.open(str(destination), os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
@@ -180,6 +188,60 @@ def archive_html(root, expected, destination):
             raise
     return {'status': 'archived', 'planId': expected['planId'], 'archiveSha256': digest(destination),
             'archiveBytes': destination.stat().st_size}
+
+
+def archive_expiry_plan(root, directory, cutoff):
+    """Expire verified HTML-only backups after the rollback retention period."""
+    if type(cutoff) is not int or cutoff < 0 or cutoff > time.time() - 7 * 86400:
+        raise AuditError('archive_expiry_requires_seven_days')
+    protected, pointers = protected_views(root)
+    files = []
+    for path in sorted(directory.iterdir()):
+        if not path.name.endswith('.tar.gz'):
+            continue
+        if path.is_symlink() or not path.is_file():
+            raise AuditError('invalid_archive_entry')
+        info = path.stat()
+        if info.st_mtime > cutoff:
+            continue
+        with tarfile.open(str(path), 'r:gz') as stream:
+            member = stream.getmember('.retention-plan.json')
+            if not member.isfile() or member.size > 32 * 1024**2:
+                raise AuditError('invalid_archive_plan')
+            plan = json.load(stream.extractfile(member))
+        if (plan.get('operation') != 'archive-retire-render-html' or not isinstance(plan.get('views'), list)
+                or not plan['views']):
+            raise AuditError('invalid_archive_plan')
+        identities = set()
+        for view in plan['views']:
+            parts = Path(view['path']).parts
+            if len(parts) != 3 or parts[0] != 'releases' or not PAIR.fullmatch(parts[1]) or parts[2] not in ('global', 'jp'):
+                raise AuditError('invalid_archive_view')
+            identities.add(parts[1])
+        if protected & identities:
+            continue
+        verify_archive(path, plan)
+        files.append({'name': path.name, 'sha256': digest(path), 'size': info.st_size,
+                      'inode': info.st_ino, 'mtimeNs': info.st_mtime_ns})
+    value = {'schemaVersion': 1, 'operation': 'expire-render-html-backups', 'cutoff': cutoff,
+             'root': str(root), 'archiveRoot': str(directory), 'pointers': pointers, 'files': files}
+    return dict(value, planId=identity(value))
+
+
+def expire_archives(root, directory, cutoff=None, expected=None):
+    root = root_path(root)
+    directory = archive_path(root, directory)
+    if not directory.is_dir():
+        raise AuditError('invalid_archive_directory')
+    with render_lock(root):
+        plan = archive_expiry_plan(root, directory, expected['cutoff'] if expected is not None else cutoff)
+        if expected is None:
+            return plan
+        if plan != expected:
+            raise AuditError('archive_expiry_plan_changed')
+        for row in plan['files']:
+            (directory / row['name']).unlink()
+        return {'status': 'expired', 'planId': plan['planId'], 'archives': len(plan['files'])}
 
 
 def apply(root, expected, archive):
@@ -206,15 +268,29 @@ def apply(root, expected, archive):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('action', choices=('plan', 'archive', 'apply'))
+    parser.add_argument('action', choices=('plan', 'archive', 'apply', 'expiry-plan', 'expiry-apply'))
     parser.add_argument('--root', type=Path, required=True)
     parser.add_argument('--plan', type=Path, required=True)
     parser.add_argument('--archive', type=Path)
     parser.add_argument('--minimum-age-days', type=int, default=7)
     parser.add_argument('--max-views', type=int, default=8)
+    parser.add_argument('--archive-directory', type=Path)
+    parser.add_argument('--archive-age-days', type=int, default=14)
     args = parser.parse_args()
     try:
-        if args.action == 'plan':
+        if args.action in ('expiry-plan', 'expiry-apply'):
+            if args.archive_directory is None:
+                parser.error('--archive-directory required')
+            if args.action == 'expiry-plan':
+                result = expire_archives(args.root, args.archive_directory,
+                                         cutoff=int(time.time()) - args.archive_age_days * 86400)
+                with args.plan.open('x') as stream:
+                    json.dump(result, stream, sort_keys=True)
+                print(json.dumps({'planId': result['planId'], 'archives': len(result['files'])}))
+            else:
+                print(json.dumps(expire_archives(args.root, args.archive_directory,
+                                               expected=json.loads(args.plan.read_text()))))
+        elif args.action == 'plan':
             if args.minimum_age_days < 1:
                 raise AuditError('retention_requires_at_least_one_day')
             result = plan(args.root, int(time.time()) - args.minimum_age_days * 86400, args.max_views)

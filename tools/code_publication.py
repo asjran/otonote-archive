@@ -101,8 +101,21 @@ def publish_code(source, root, *, expected_current=None, require_verified=False,
             if changed:
                 _switch(root,'current',old); _switch(root,'previous',previous)
             raise ValueError('code health check failed; previous pointers restored') from None
+        # Only the unique stage owned by this invocation may be removed. Legacy
+        # shared incoming/<codeId> stages require a separate reviewed inventory.
+        cleanup = 'not_owned'
+        if (source.parent == root/'incoming' and
+                re.fullmatch(identity + r'-[a-f0-9]{32}', source.name)):
+            try:
+                verify_tree(source, expected)
+                shutil.rmtree(source)
+                cleanup = 'removed'
+            except (OSError, ValueError):
+                # The healthy publication already succeeded. A cleanup error
+                # must not be reported as a failed/rolled-back publication.
+                cleanup = 'failed'
         return {'status':'code_published' if changed else 'unchanged','codeId':identity,'contentSchemaVersion':1,
-                'previousCodeId':current_id,'healthChecked':health_check is not None}
+                'previousCodeId':current_id,'healthChecked':health_check is not None,'stageCleanup':cleanup}
 
 
 def http_health(url_template, expected_text, identity):
