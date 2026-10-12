@@ -282,7 +282,7 @@ jobs:
           PY
           python -m tools.r2_state restore --root "$STABLE_ROOT" --region "$REGION" --workers "$RESTORE_WORKERS" \
             --verification-cache "$RUNNER_TEMP/r2-state-restore-proof.json" "${args[@]}" \
-            > "$RUNNER_TEMP/state-restore.json"
+            | tee "$RUNNER_TEMP/state-restore.json"
       - name: Validate restored input and runner capacity
         if: steps.light_gate.outputs.skip != 'true'
         shell: bash
