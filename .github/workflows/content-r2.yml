@@ -9,11 +9,11 @@ on:
         type: choice
         options: [global, jp]
       mode:
-        description: Shadow uploads immutable files; promote also switches current.json
+        description: Shadow uploads immutable files; promote switches current.json; auto follows the edition auto-promote setting
         required: true
         default: shadow
         type: choice
-        options: [shadow, promote]
+        options: [shadow, promote, auto]
   schedule:
     # UTC; separate runs and concurrency groups for the two editions.
     - cron: '17 0,4,8,12,16,20 * * *' # Global
@@ -100,6 +100,10 @@ jobs:
             mode="$INPUT_MODE"
           fi
           [[ "$region" == global || "$region" == jp ]] || exit 1
+          if [[ "$mode" == auto ]]; then
+            if [[ "$region" == global ]]; then auto="$AUTO_PROMOTE_GLOBAL"; else auto="$AUTO_PROMOTE_JP"; fi
+            if [[ "$auto" == true ]]; then mode=promote; else mode=shadow; fi
+          fi
           [[ "$mode" == shadow || "$mode" == promote ]] || exit 1
           if [[ "$region" == global ]]; then workers="${RESTORE_WORKERS_GLOBAL:-8}"; else workers="${RESTORE_WORKERS_JP:-8}"; fi
           case "$workers" in 4|8|12) ;; *) echo 'Restore workers must be 4, 8 or 12' >&2; exit 1 ;; esac

@@ -1,0 +1,26 @@
+[Unit]
+Description=OurNotes %i lightweight Actions update trigger
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=ournotes-trigger
+Group=ournotes-trigger
+ExecStart=/usr/bin/python3 /opt/ournotes-update-trigger/current/r2_dispatch.py --repository stonesver/otonote --region %i --token-file /etc/ournotes-update-trigger/github-token --state-dir /var/lib/ournotes-update-trigger
+StateDirectory=ournotes-update-trigger
+StateDirectoryMode=0700
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectControlGroups=true
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+CapabilityBoundingSet=
+MemoryMax=64M
+CPUQuota=5%
+TasksMax=8
+TimeoutStartSec=45

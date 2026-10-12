@@ -102,6 +102,13 @@ class ScheduleTests(unittest.TestCase):
         self.assertNotEqual(self.select('schedule', cron='unknown')[0], 0)
         self.assertNotEqual(self.select('workflow_dispatch', region='invalid', mode='promote')[0], 0)
 
+    def test_external_auto_dispatch_uses_current_auto_promote_setting(self):
+        for region in ('global', 'jp'):
+            for auto in ('true', 'false', ''):
+                status, env, _ = self.select('workflow_dispatch', region=region, mode='auto', auto=auto)
+                self.assertEqual(status, 0)
+                self.assertIn('MODE=' + ('promote' if auto == 'true' else 'shadow'), env)
+
     def test_restore_concurrency_is_bounded_per_region_before_expensive_work(self):
         for region in ('global', 'jp'):
             for workers in ('4', '8', '12'):

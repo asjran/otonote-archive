@@ -1,0 +1,12 @@
+[Unit]
+Description=OurNotes JP update dispatch every 15 minutes
+
+[Timer]
+OnCalendar=*-*-* *:12,27,42,57:00 UTC
+AccuracySec=30s
+RandomizedDelaySec=15s
+Persistent=true
+Unit=ournotes-update-trigger@jp.service
+
+[Install]
+WantedBy=timers.target

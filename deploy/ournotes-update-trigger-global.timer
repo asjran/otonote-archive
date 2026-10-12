@@ -1,0 +1,12 @@
+[Unit]
+Description=OurNotes Global update dispatch every 15 minutes
+
+[Timer]
+OnCalendar=*-*-* *:07,22,37,52:00 UTC
+AccuracySec=30s
+RandomizedDelaySec=15s
+Persistent=true
+Unit=ournotes-update-trigger@global.service
+
+[Install]
+WantedBy=timers.target
