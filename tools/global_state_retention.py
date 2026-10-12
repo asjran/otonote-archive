@@ -6,10 +6,10 @@ from pathlib import Path
 import re
 
 from tools.r2_state import _inside, safe_relative
-from tools.resource_pipeline.adapters.global_public import version_identity
+from tools.resource_pipeline.adapters.global_public import RESOURCE_VERSION, version_identity
 
 
-RUN = re.compile(r'[0-9.]+-[a-f0-9]{8}-[a-f0-9]{8}-complete-v[0-9]+-[a-f0-9]{8}(?:-d[a-f0-9]{12})?\Z')
+RUN = re.compile(RESOURCE_VERSION.pattern + r'-[a-f0-9]{8}-[a-f0-9]{8}-complete-v[0-9]+-[a-f0-9]{8}(?:-d[a-f0-9]{12})?\Z')
 
 
 def strings(value):
