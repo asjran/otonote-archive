@@ -5,15 +5,30 @@ from pathlib import Path
 
 
 FILES = (
-    ('light-check.json', 'Light unchanged gate'),
     ('light-prepare.json', 'Light preparation'),
+    ('light-probe.json', 'Light source probe'),
+    ('light-check.json', 'Light unchanged gate'),
+    ('gate-probe.json', 'Full source probe'),
     ('gate-check.json', 'Verified unchanged gate'),
     ('state-after.json', 'Private state checkpoint'),
     ('promotion.json', 'Public promotion'),
     ('jp-retention.json', 'JP working set'),
 )
-STATUSES = {'ready', 'needs_full', 'unchanged', 'checkpointed', 'promoted', 'pruned',
+STATUSES = {'ready', 'needs_full', 'needs_production', 'probed', 'blocked', 'unchanged', 'checkpointed', 'promoted', 'pruned',
             'failed', 'skipped', 'uploaded', 'verified', 'complete'}
+# Never copy arbitrary upstream reason strings into a public Actions summary.
+REASONS = frozenset({
+    'private_state_missing', 'private_pointer_changed', 'producer_state_not_seeded',
+    'receipt_missing_or_legacy', 'image_changed', 'private_inputs_changed',
+    'source_changed', 'configuration_changed', 'package_identity_unavailable',
+    'verified_client_inventory_missing', 'client_version_unknown',
+    'trusted_jp_paths_changed', 'jp_state_unmatched', 'publication_unmatched',
+    'client_update_required', 'package_changed', 'resource_version_changed',
+    'public_pointer_unmatched', 'pointer_changed', 'state_missing', 'state_unknown',
+    'receipt_missing_or_changed', 'input_changed', 'plan_unverified',
+    'state_unfinished', 'publication_changed', 'public_pointer_changed',
+    'probe_failed', 'gate_failed',
+})
 
 
 def summarize(directory: Path, job_status: str) -> str:
@@ -34,6 +49,9 @@ def summarize(directory: Path, job_status: str) -> str:
             continue
         stage_status = value.get('status')
         lines.append(f'{label}: `{stage_status if isinstance(stage_status, str) and stage_status in STATUSES else "unknown"}`.')
+        reason = value.get('reason')
+        if isinstance(reason, str) and reason in REASONS:
+            lines.append(f'Reason: `{reason}`.')
         for key in ('verifiedReuse', 'uploaded', 'manifestBytes', 'manifestLimitBytes', 'excludedGlobalRuns', 'removedRuns'):
             if type(value.get(key)) is int and value[key] >= 0:
                 lines.append(f'{key}: `{value[key]}`.')
