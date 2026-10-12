@@ -714,11 +714,15 @@ def light_check(private_bucket, public_bucket, root: Path, region: str, prepared
         raise GateError("light source observation is invalid")
     code_sha = code_fingerprints(root, private_inputs=(tuple(receipt["inputPaths"].values())
         if region == "global" else ()))[1]
-    if (image_digest(image) != receipt["imageDigest"] or code_sha != receipt["codeSha256"] or
-            observed.get("sourceSha256") != receipt["sourceSha256"] or
-            observed.get("packageSha256") != receipt["packageSha256"] or
+    if image_digest(image) != receipt["imageDigest"]:
+        return _needs_full("image_changed")
+    if code_sha != receipt["codeSha256"]:
+        return _needs_full("source_changed")
+    if (observed.get("packageSha256") != receipt["packageSha256"] or
             region == "global" and observed.get("stablePackageSha256") != proof.get("stablePackageSha256")):
-        return _needs_full("source_or_inputs_changed")
+        return _needs_full("package_changed")
+    if observed.get("sourceSha256") != receipt["sourceSha256"]:
+        return _needs_full("resource_version_changed")
     pointer = receipt["publicPointer"]
     key = public_key(region)
     item = public_bucket.get(key)
@@ -797,6 +801,10 @@ def main(argv=None) -> int:
     except Exception as error:
         # Never echo an upstream exception: it may contain a request URL or
         # credential-bearing response. CI only needs a bounded error category.
+        # Preserve machine-readable failure in the redirected result file too.
+        # A nonzero exit still stops the job before any restore/publication.
+        reason = "probe_failed" if args.action in {"probe", "light-probe"} else "gate_failed"
+        print(json.dumps({"status": "blocked", "skip": False, "reason": reason}))
         print(json.dumps({"status": "blocked", "errorType": type(error).__name__}), file=sys.stderr)
         return 1
 

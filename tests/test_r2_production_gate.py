@@ -69,6 +69,33 @@ class PrivateBucket:
 
 
 class ProductionGateTests(unittest.TestCase):
+    def test_probe_failure_leaves_bounded_result_and_nonzero_exit(self):
+        import io
+        from contextlib import redirect_stdout, redirect_stderr
+        stdout, stderr = io.StringIO(), io.StringIO()
+        with patch.object(gate, 'light_probe', side_effect=RuntimeError('token=private-secret')), \
+                redirect_stdout(stdout), redirect_stderr(stderr):
+            status = gate.main(['light-probe', '--root', str(self.root), '--region', 'global',
+                                '--image', IMAGE, '--prepared', 'fixture.json'])
+        self.assertEqual(status, 1)
+        self.assertEqual(json.loads(stdout.getvalue()), {'status': 'blocked', 'skip': False, 'reason': 'probe_failed'})
+        self.assertNotIn('private-secret', stdout.getvalue() + stderr.getvalue())
+
+    def test_light_gate_distinguishes_resource_and_package_changes(self):
+        private, selections, stage = self.light_fixture()
+        with patch.object(gate, 'stable_root', return_value=self.root):
+            gate.light_prepare(private, self.root, 'global', selections, stage,
+                               image=IMAGE, config='config/production.json', decoder_profile='config/decoder.json')
+            proof = gate.read_json(stage / 'proof.json')
+            observed = {'status': 'probed', 'region': 'global',
+                        'sourceSha256': self.probe['sourceSha256'],
+                        'packageSha256': self.probe['packageSha256'],
+                        'stablePackageSha256': proof['stablePackageSha256']}
+            for field, reason in (('sourceSha256', 'resource_version_changed'), ('packageSha256', 'package_changed')):
+                result = gate.light_check(private, self.bucket, self.root, 'global', stage / 'proof.json',
+                                          dict(observed, **{field: 'f' * 64}), self.public_before, image=IMAGE)
+                self.assertEqual(result, {'status': 'needs_full', 'skip': False, 'reason': reason})
+
     def setUp(self):
         self.temporary = TemporaryDirectory()
         self.addCleanup(self.temporary.cleanup)

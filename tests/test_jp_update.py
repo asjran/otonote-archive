@@ -12,7 +12,7 @@ import unittest
 from unittest.mock import Mock, patch
 
 from tools.jp_remote_sync import snapshot
-from tools.jp_update import FINGERPRINT_FILES, fingerprint, run, main
+from tools.jp_update import FINGERPRINT_FILES, NON_PRODUCTION_FILES, fingerprint, run, main
 from tools.resource_pipeline.adapters.global_public import ProtocolError
 
 
@@ -30,6 +30,52 @@ def observation(version='1.0.4', resource='1.0.0.300/' + 'a' * 32):
 
 
 class JpUpdateSafetyTests(unittest.TestCase):
+    def test_operational_changes_do_not_invalidate_but_unknown_tools_do(self):
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            for name in ('tools/jp_update.py', 'analysis/crypto/decrypt_master.py',
+                         'packages/scoring/scoring-engine.mjs', 'config/site-product.json', *FINGERPRINT_FILES):
+                path = root / name
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_text('original')
+            with patch('tools.jp_update.ROOT', root):
+                baseline = fingerprint()
+                for name in NON_PRODUCTION_FILES:
+                    path = root / name
+                    path.write_text('operational change')
+                    self.assertEqual(fingerprint(), baseline, name)
+                    path.write_text('another operational change')
+                    self.assertEqual(fingerprint(), baseline, name)
+                (root / 'tools/new_converter.py').write_text('new production helper')
+                self.assertNotEqual(fingerprint(), baseline)
+
+    def test_excluded_operations_are_not_dependencies_of_included_python_sources(self):
+        import ast
+        from tools.jp_update import FINGERPRINT_ROOTS
+        root = Path(__file__).resolve().parents[1]
+        modules = {name[:-3].replace('/', '.') for name in NON_PRODUCTION_FILES}
+        for directory in FINGERPRINT_ROOTS:
+            for path in (root / directory).rglob('*.py'):
+                if path.relative_to(root).as_posix() in NON_PRODUCTION_FILES:
+                    continue
+                tree = ast.parse(path.read_text())
+                for node in ast.walk(tree):
+                    imports = set()
+                    if isinstance(node, ast.Import):
+                        imports.update(alias.name for alias in node.names)
+                    elif isinstance(node, ast.ImportFrom):
+                        module = node.module or ''
+                        if node.level:
+                            parts = path.relative_to(root).with_suffix('').parts[:-node.level]
+                            module = '.'.join((*parts, module)).rstrip('.')
+                        imports.add(module)
+                        imports.update(module + '.' + alias.name for alias in node.names)
+                    elif isinstance(node, ast.Call) and not (isinstance(node.func, ast.Name) and node.func.id == 'frozenset'):
+                        # Also cover literal importlib and subprocess invocations.
+                        imports.update(child.value for child in ast.walk(node)
+                                       if isinstance(child, ast.Constant) and isinstance(child.value, str))
+                    self.assertFalse(imports & (modules | NON_PRODUCTION_FILES), str(path))
+
     def test_cli_emits_one_json_receipt_despite_extraction_progress(self):
         stdout, stderr = io.StringIO(), io.StringIO()
         def produce(**_kwargs):
