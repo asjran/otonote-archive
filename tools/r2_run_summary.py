@@ -39,7 +39,8 @@ METRIC_FIELDS = {
         ('prepareSeconds', 'stageSeconds', 'downloadVerifySeconds', 'materializeSeconds', 'publishProofSeconds', 'totalSeconds')),
     'state-after.json': ('checkpointMetrics',
         ('workers', 'uniqueObjects', 'uniqueBytes', 'logicalBytes', 'verifiedReuseObjects',
-         'objectVerifyCalls', 'objectPutCalls', 'uploadedBytes', 'peakResidentBytes'),
+         'objectVerifyCalls', 'objectPutCalls', 'uploadedBytes', 'peakResidentBytes',
+         'inventoryHashCalls', 'inventoryHashBytes', 'sourceVerifyHashCalls', 'sourceVerifyHashBytes'),
         ('prepareSeconds', 'inventorySeconds', 'reuseLookupSeconds', 'transferVerifySeconds',
          'sourceVerifySeconds', 'commitSeconds', 'totalSeconds')),
 }

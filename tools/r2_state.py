@@ -117,11 +117,58 @@ def _inside(root: Path, relative: str) -> Path:
     return path
 
 
-def inventory(root: Path, selections: list[str], *, excluded: tuple[str, ...] = ()) -> tuple[list[str], list[dict]]:
+class _HashPhase:
+    """Hash each physical file once per phase; never persist metadata proofs.
+
+    Each path must still refer to the same regular inode and metadata after all
+    hashes finish. A fresh phase after remote transfers hashes bytes again.
+    """
+    def __init__(self, root):
+        self.root, self.inodes, self.paths = root, {}, {}
+        self.hash_calls, self.hash_bytes = 0, 0
+
+    @staticmethod
+    def signature(path):
+        info = path.lstat()
+        if not stat.S_ISREG(info.st_mode):
+            raise ValueError("checkpoint source changed while hashing")
+        return (info.st_dev, info.st_ino, info.st_size, info.st_mtime_ns,
+                info.st_ctime_ns, info.st_mode, info.st_nlink)
+
+    def read(self, name):
+        path = _inside(self.root, name)
+        before = self.signature(path)
+        if name in self.paths and self.paths[name] != before:
+            raise ValueError("checkpoint source changed while hashing")
+        identity = before[:2]
+        cached = self.inodes.get(identity)
+        if cached is None:
+            value = hash_file(path)
+            self.hash_calls += 1
+            self.hash_bytes += value[1]
+            if self.signature(path) != before or value[1] != before[2]:
+                raise ValueError("checkpoint source changed while hashing")
+            self.inodes[identity] = (before, value)
+        else:
+            if cached[0] != before:
+                raise ValueError("hard-linked checkpoint source changed while hashing")
+            value = cached[1]
+        self.paths[name] = before
+        return value
+
+    def verify_paths(self):
+        for name, expected in self.paths.items():
+            if self.signature(_inside(self.root, name)) != expected:
+                raise ValueError("checkpoint source changed while hashing")
+
+
+def inventory(root: Path, selections: list[str], *, excluded: tuple[str, ...] = (),
+              hash_metrics: dict | None = None) -> tuple[list[str], list[dict]]:
     if not selections:
         raise ValueError("at least one checkpoint path is required")
     directories: set[str] = set()
     files: dict[str, dict] = {}
+    phase = _HashPhase(root)
     for raw in selections:
         name = safe_relative(raw)
         path = _inside(root, name)
@@ -136,7 +183,7 @@ def inventory(root: Path, selections: list[str], *, excluded: tuple[str, ...] = 
             if stat.S_ISDIR(mode):
                 directories.add(relative)
             elif stat.S_ISREG(mode):
-                sha, size = hash_file(candidate)
+                sha, size = phase.read(relative)
                 files[relative] = {"path": relative, "sha256": sha, "size": size}
             else:
                 raise ValueError(f"unsupported checkpoint file type: {relative}")
@@ -157,6 +204,9 @@ def inventory(root: Path, selections: list[str], *, excluded: tuple[str, ...] = 
             if (files[first]["sha256"], files[first]["size"]) != (entry["sha256"], entry["size"]):
                 raise ValueError("hard-linked checkpoint source changed during inventory")
             entry["hardlinkTo"] = first
+    phase.verify_paths()
+    if hash_metrics is not None:
+        hash_metrics.update(inventoryHashCalls=phase.hash_calls, inventoryHashBytes=phase.hash_bytes)
     return sorted(directories), ordered
 
 
@@ -358,7 +408,8 @@ def checkpoint(bucket, root: Path, region: str, paths: list[str], expected_curre
         from tools.global_state_retention import excluded_runs
         excluded = tuple(excluded_runs(root, *global_working_set))
     prepared = monotonic()
-    directories, files = inventory(root, paths, excluded=excluded)
+    hash_metrics = {}
+    directories, files = inventory(root, paths, excluded=excluded, hash_metrics=hash_metrics)
     manifest = {"schemaVersion": 2, "region": region, "root": str(recorded_root),
                 "selections": sorted(set(paths)), "directories": directories, "files": files}
     manifest_bytes = canonical(manifest)
@@ -399,10 +450,11 @@ def checkpoint(bucket, root: Path, region: str, paths: list[str], expected_curre
     uploaded = sum(item[0] for item in transferred)
     reused = len(files) - uploaded
     transfers_finished = monotonic()
-    # A mutable source is checked again only after every remote transfer has joined.
+    # A new hash phase rechecks all bytes after every remote transfer joins.
+    phase = _HashPhase(root)
     for entry in files:
         path = _inside(root, entry["path"])
-        if hash_file(path) != (entry["sha256"], entry["size"]):
+        if phase.read(entry["path"]) != (entry["sha256"], entry["size"]):
             raise ValueError("checkpoint source changed during upload")
         if "hardlinkTo" in entry:
             original = _inside(root, entry["hardlinkTo"])
@@ -410,6 +462,7 @@ def checkpoint(bucket, root: Path, region: str, paths: list[str], expected_curre
             if ((source_stat.st_dev, source_stat.st_ino) !=
                     (original_stat.st_dev, original_stat.st_ino)):
                 raise ValueError("hard-linked checkpoint source changed during upload")
+    phase.verify_paths()
     sources_verified = monotonic()
     manifest_sha = digest(manifest_bytes)
     manifest_key = f"state/manifests/{region}/{manifest_sha}.json"
@@ -439,7 +492,8 @@ def checkpoint(bucket, root: Path, region: str, paths: list[str], expected_curre
               "manifestSha256": manifest_sha, "files": len(files), "uploaded": uploaded,
               "reused": reused, "verifiedReuse": verified_reuse, **budget,
               "checkpointMetrics": {
-                  **resource_metrics,
+                  **resource_metrics, **hash_metrics,
+                  "sourceVerifyHashCalls": phase.hash_calls, "sourceVerifyHashBytes": phase.hash_bytes,
                   "workers": workers, "uniqueObjects": len(unique_objects),
                   "uniqueBytes": sum(size for _, size in unique_objects),
                   "logicalBytes": sum(entry["size"] for entry in files),
