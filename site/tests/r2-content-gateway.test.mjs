@@ -308,3 +308,63 @@ test('lazy entries retain shard identity, schema and entry-count boundaries', as
     assert.ok(!f.calls.some(([key]) => key.startsWith('content/blobs/')));
   }
 });
+
+test('hot verified paths survive large shard churn with bounded lookup reuse', async () => {
+  const f = sharedFixture(), paths = [];
+  for (const prefix of '0123456789abcdef') {
+    let path;
+    for (let n = 0; ; n++) {
+      path = `public/media/hot-${prefix}-${n}.png`;
+      if (hash(path)[0] === prefix) break;
+    }
+    paths.push(path);
+    const bytes = encode({schemaVersion: 1, releaseId: id, files: {[path]: f.entry}, padding: 'x'.repeat(600000)});
+    f.objects.set(`content/storage/${id}/${prefix}.json`, bytes);
+    f.descriptor.shards[prefix] = {bytes: bytes.length, sha256: hash(bytes)};
+  }
+  f.objects.set(f.descriptorKey, encode(f.descriptor));
+  const request = path => gateway.fetch(new Request(`https://example.org/content/releases/${id}/${path}`, {method: 'HEAD'}), f.env);
+  for (const path of paths) assert.equal((await request(path)).status, 200);
+  const controls = () => f.calls.filter(([key]) => key.startsWith('content/storage/') || key.endsWith('/manifest.json')).length;
+  const before = controls();
+  for (let round = 0; round < 4; round++) {
+    const responses = await Promise.all(paths.map(request));
+    assert.ok(responses.every(response => response.status === 200));
+  }
+  assert.equal(controls(), before, 'hot lookup reuse must not reload evicted multi-MB controls');
+  const head = f.env.CONTENT.head;
+  f.env.CONTENT.head = async key => ({...await head(key), httpEtag: '"changed"'});
+  assert.equal((await request(paths[0])).status, 503, 'positive lookup cache cannot bypass blob identity checks');
+  const other = sharedFixture();
+  assert.equal((await gateway.fetch(new Request(`https://example.org/content/releases/${id}/${paths[0]}`), other.env)).status, 404, 'cache must be bucket scoped');
+});
+
+test('operational receipts are inaccessible without any R2 reads', async () => {
+  const f = sharedFixture();
+  for (const region of ['global', 'jp']) {
+    assert.equal((await gateway.fetch(new Request(`https://example.org/content/operations/${region}/latest.json`), f.env)).status, 404);
+  }
+  assert.equal(f.calls.length, 0);
+});
+
+
+test('positive lookup cache evicts old keys instead of growing without bound', async () => {
+  const f = sharedFixture(), paths = [], shards = {};
+  for (let n = 0; n < 4200; n++) {
+    const path = `public/media/budget-${n}.png`, prefix = hash(path)[0];
+    (shards[prefix] ??= {})[path] = f.entry;
+  }
+  for (const prefix of '0123456789abcdef') {
+    const files = shards[prefix];paths.push(...Object.keys(files));
+    const bytes = encode({schemaVersion: 1, releaseId: id, files, padding: 'x'.repeat(600000)});
+    f.objects.set(`content/storage/${id}/${prefix}.json`, bytes);
+    f.descriptor.shards[prefix] = {bytes: bytes.length, sha256: hash(bytes)};
+  }
+  f.objects.set(f.descriptorKey, encode(f.descriptor));
+  const request = path => gateway.fetch(new Request(`https://example.org/content/releases/${id}/${path}`, {method: 'HEAD'}), f.env);
+  for (const path of paths) assert.equal((await request(path)).status, 200);
+  const controls = () => f.calls.filter(([key]) => key.startsWith('content/storage/')).length;
+  const before = controls();
+  assert.equal((await request(paths[0])).status, 200);
+  assert.ok(controls() > before, 'old lookup and its shard must be evicted within the bounds');
+});

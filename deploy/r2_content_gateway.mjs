@@ -22,6 +22,8 @@ const SHA256 = /^[a-f0-9]{64}$/;
 const MAX_CONTROL_BYTES = 4 * 1024 * 1024;
 const MAX_CACHE_BYTES = 8 * 1024 * 1024;
 const bucketCaches = new WeakMap();
+const MAX_LOOKUP_BYTES = 1024 * 1024;
+const MAX_LOOKUPS = 4096;
 const utf8 = new TextEncoder();
 
 async function hash(bytes) {
@@ -30,7 +32,7 @@ async function hash(bytes) {
 }
 
 function cacheFor(bucket) {
-  if (!bucketCaches.has(bucket)) bucketCaches.set(bucket, {entries: new Map(), bytes: 0});
+  if (!bucketCaches.has(bucket)) bucketCaches.set(bucket, {entries: new Map(), bytes: 0, lookups: new Map(), lookupBytes: 0});
   return bucketCaches.get(bucket);
 }
 
@@ -50,6 +52,21 @@ function remember(cache, key, value, bytes) {
   }
   cache.entries.set(key, {value, bytes});
   cache.bytes += bytes;
+  return value;
+}
+
+function rememberLookup(cache, key, value) {
+  const bytes = utf8.encode(key).byteLength + utf8.encode(JSON.stringify(value)).byteLength;
+  if (bytes > MAX_LOOKUP_BYTES) return value;
+  const previous = cache.lookups.get(key);
+  if (previous) { cache.lookupBytes -= previous.bytes; cache.lookups.delete(key); }
+  while (cache.lookups.size >= MAX_LOOKUPS || cache.lookupBytes + bytes > MAX_LOOKUP_BYTES) {
+    const oldest = cache.lookups.keys().next().value;
+    cache.lookupBytes -= cache.lookups.get(oldest).bytes;
+    cache.lookups.delete(oldest);
+  }
+  cache.lookups.set(key, {value, bytes});
+  cache.lookupBytes += bytes;
   return value;
 }
 
@@ -91,6 +108,16 @@ function sharedPath(path) {
 
 async function sharedObject(bucket, id, path) {
   const cache = cacheFor(bucket);
+  // Only positive, authenticated immutable mappings enter this bounded LRU.
+  // Keep hot paths after a large shard is evicted; still HEAD/GET and verify
+  // the blob identity below on every request. Bucket and release are isolated.
+  const lookupKey = `${id}/${path}`;
+  const hit = cache.lookups.get(lookupKey);
+  if (hit) {
+    cache.lookups.delete(lookupKey);
+    cache.lookups.set(lookupKey, hit);
+    return hit.value;
+  }
   const descriptorKey = `content/storage/${id}/descriptor.json`;
   let descriptor = cache.entries.get(descriptorKey)?.value;
   if (!descriptor) {
@@ -138,7 +165,7 @@ async function sharedObject(bucket, id, path) {
       || typeof entry.etag !== 'string' || !/^"[A-Za-z0-9-]{1,128}"$/.test(entry.etag)
       || typeof entry.contentType !== 'string' || !/^[A-Za-z0-9.+-]+\/[A-Za-z0-9.+-]+$/.test(entry.contentType))
     throw Error('Invalid shared media entry');
-  return {...entry, key: `content/blobs/${entry.sha256}`};
+  return rememberLookup(cache, lookupKey, {...entry, key: `content/blobs/${entry.sha256}`});
 }
 
 export default {

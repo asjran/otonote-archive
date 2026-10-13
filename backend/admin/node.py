@@ -15,6 +15,7 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 
 from .config import secret, validate_config
+from .update_health import read_health
 
 
 R2_ACTIONS_URL = 'https://github.com/stonesver/otonote/actions/workflows/content-r2.yml'
@@ -72,6 +73,7 @@ def profile_state(profile):
                        'capabilities': [], 'publication': 'disabled', 'status': 'unavailable'})
         if path is None:
             return result
+        result['health'] = read_health(workspace)
         try:
             if path.is_symlink() or path.stat().st_size > 1024 * 1024:
                 raise ValueError('unsafe delivery status')

@@ -89,6 +89,32 @@ async function refreshLoads(gen=generation){
   if(loadData.some(s=>s.source===previous))$('load-source').value=previous;
   renderLoads();
 }
+function renderUpdateHealth(health){
+  const box=el('section',null,'content-delivery');
+  const labels={receipt_missing:'运行回执缺失',poll_stale:'超过一小时未取得探测结果',run_stuck:'运行超过六小时',run_failed:'生产阶段失败',delivery_unknown:'本机交付状态不可核对',delivery_lag:'网页落后于远端内容',remote_unavailable:'远端版本读取失败',ranking_stale:'榜单采集不新鲜',ranking_paused:'榜单采集已暂停',disk_budget:'剩余空间不足以覆盖发布预算'};
+  const states={healthy:'状态正常',waiting:'观察中',attention:'需要处理',unavailable:'采样不可用'};
+  box.append(el('h4','更新运行与告警'),el('p',states[health?.status]||states.unavailable));
+  if(!health||health.status==='unavailable'){
+    box.append(el('p','尚未采样或已超过六分钟。请检查 update-health 服务。','caption'));return box;
+  }
+  box.append(el('small',`采样：${new Date(health.observedAt*1000).toLocaleString('zh-CN',{hour12:false})} · 告警仅在本页和服务器日志记录`));
+  for(const region of ['global','jp']){
+    const run=health.runs?.[region];if(!run)continue;
+    const link=el('a',`${region.toUpperCase()} #${run.runId} · ${run.status}`,'action-link');
+    link.href=`https://github.com/stonesver/otonote/actions/runs/${run.runId}`;link.target='_blank';link.rel='noopener noreferrer';
+    const line=el('p');line.append(link);box.append(line);
+  }
+  const list=el('ul');
+  for(const row of health.alerts||[]){
+    list.append(el('li',`${row.region.toUpperCase()} · ${labels[row.code]} · ${row.state==='firing'?'告警':'观察中'} · 起于 ${new Date(row.firstSeen*1000).toLocaleString('zh-CN',{hour12:false})}`));
+  }
+  box.append(list);
+  const history=el('details');history.append(el('summary','最近告警与恢复'));
+  history.dataset.disclosure='update-health:history';
+  for(const row of [...(health.history||[])].reverse().slice(0,20))history.append(el('p',`${new Date(row.at*1000).toLocaleString('zh-CN',{hour12:false})} · ${row.region.toUpperCase()} · ${labels[row.code]} · ${row.transition==='recovered'?'已恢复':'告警'}`));
+  box.append(history);return box;
+}
+
 function renderContentDelivery(profile){
   const section=el('section',null,'content-delivery');
   section.append(el('h3','Global / JP 内容发布'));
@@ -114,7 +140,7 @@ function renderContentDelivery(profile){
     '正式更新选择 mode = promote，然后提交。仅验证生产和上传时选择 shadow，它不会更新网站。',
     '在该次 Actions 运行中查看进度和结果；promote 完成后等待服务器同步、生成页面，再回到此页刷新。'])steps.append(el('li',text));
   guide.append(steps,el('p','日常追新由 Actions 定时执行。只修改网站功能时走代码发布流程，无需手动运行游戏资源生产。','caption'));
-  section.append(guide,el('p','Actions 的运行状态与远端 R2 最新版本请在 GitHub 查看。本页读取服务器交付回执，不会将历史成功显示为正在运行或最新生产成功。','caption'));
+  section.append(guide,el('p','本页分别核对运行回执、远端版本和本机交付；详细步骤可打开对应 Actions 运行。','caption'));
   section.append(el('p',profile.updatedAt?`本机采样：${new Date(profile.updatedAt*1000).toLocaleString('zh-CN',{hour12:false})} · 每两分钟采样，超过六分钟失效`:'本机状态尚无采样','caption'));
   const cards=el('div',null,'delivery-regions');
   for(const region of ['global','jp']){
@@ -131,7 +157,7 @@ function renderContentDelivery(profile){
     }else card.append(el('p','交付回执缺失、过期或两服版本尚未对齐。更新中可稍后刷新；若持续如此，请检查服务器预渲染服务。','caption'));
     cards.append(card);
   }
-  section.append(cards);return section;
+  section.append(cards,renderUpdateHealth(profile.health));return section;
 }
 function renderTask(task){
   const row=el('div',null,'task'),name=el('div',task.message);
