@@ -27,6 +27,28 @@ class SummaryTests(unittest.TestCase):
                            'stageSeconds', 'materializeSeconds', 'publishProofSeconds', 'totalSeconds', 'unreviewedField'):
                 self.assertNotIn(hidden, result)
 
+    def test_checkpoint_summary_exposes_only_bounded_numeric_metrics(self):
+        with TemporaryDirectory() as folder:
+            root = Path(folder)
+            (root/'state-after.json').write_text(json.dumps({
+                'status': 'checkpointed', 'checkpointMetrics': {
+                    'workers': 8, 'uniqueObjects': 123, 'verifiedReuseObjects': 120,
+                    'objectVerifyCalls': 6, 'objectPutCalls': 3, 'uploadedBytes': 456,
+                    'inventorySeconds': 4.5, 'reuseLookupSeconds': 6.7,
+                    'sourceVerifySeconds': 8.9, 'totalSeconds': 20,
+                    'uniqueBytes': True, 'logicalBytes': -1, 'peakResidentBytes': 2**100,
+                    'prepareSeconds': float('nan'), 'transferVerifySeconds': float('inf'),
+                    'commitSeconds': 'private-secret', 'privatePath': 'private-secret'}}))
+            result = summarize(root, 'success')
+            for expected in ('uniqueObjects: `123`', 'verifiedReuseObjects: `120`',
+                             'objectVerifyCalls: `6`', 'objectPutCalls: `3`',
+                             'inventorySeconds: `4.500`', 'reuseLookupSeconds: `6.700`',
+                             'sourceVerifySeconds: `8.900`', 'totalSeconds: `20.000`'):
+                self.assertIn(expected, result)
+            for hidden in ('private-', 'uniqueBytes', 'logicalBytes', 'peakResidentBytes',
+                           'prepareSeconds', 'transferVerifySeconds', 'commitSeconds'):
+                self.assertNotIn(hidden, result)
+
     def test_known_gate_reasons_and_failed_probes_are_visible_but_untrusted_reasons_are_hidden(self):
         with TemporaryDirectory() as folder:
             root = Path(folder)

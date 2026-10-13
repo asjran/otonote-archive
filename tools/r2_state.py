@@ -337,6 +337,7 @@ def checkpoint(bucket, root: Path, region: str, paths: list[str], expected_curre
                recorded_root: Path | None = None, *, workers: int = 1,
                verification_cache: Path | None = None,
                global_working_set: tuple[Path, dict] | None = None) -> dict:
+    started = monotonic()
     root = stable_root(root)
     worker_count(workers)
     if recorded_root is None:
@@ -356,6 +357,7 @@ def checkpoint(bucket, root: Path, region: str, paths: list[str], expected_curre
             raise ValueError('Global working set requires the original Global ROOT')
         from tools.global_state_retention import excluded_runs
         excluded = tuple(excluded_runs(root, *global_working_set))
+    prepared = monotonic()
     directories, files = inventory(root, paths, excluded=excluded)
     manifest = {"schemaVersion": 2, "region": region, "root": str(recorded_root),
                 "selections": sorted(set(paths)), "directories": directories, "files": files}
@@ -369,6 +371,7 @@ def checkpoint(bucket, root: Path, region: str, paths: list[str], expected_curre
     for entry in files:
         identity = (entry["sha256"], entry["size"])
         unique_objects.setdefault(identity, entry)
+    inventoried = monotonic()
     verified = _verified_reuse(bucket, root, recorded_root, region, paths, expected_current,
                                verification_cache)
     verified_reuse = 0
@@ -376,23 +379,26 @@ def checkpoint(bucket, root: Path, region: str, paths: list[str], expected_curre
         item = verified.get(object_key(sha))
         if item is not None and (item["sha256"], item["size"]) == (sha, size):
             verified_reuse += 1
+    reuse_checked = monotonic()
 
     def upload_and_verify(entry):
         path = _inside(root, entry["path"])
         key = object_key(entry["sha256"])
         evidence = verified.get(key)
         if evidence is not None and (evidence["sha256"], evidence["size"]) == (entry["sha256"], entry["size"]):
-            return False
+            return False, 0, 0, 0
         if bucket.verify_file(key, entry["sha256"], entry["size"]):
-            return False
+            return False, 1, 0, 0
         created = bucket.put_file_new(key, path, entry["sha256"], entry["size"])
         if not bucket.verify_file(key, entry["sha256"], entry["size"]):
             raise ValueError("private state object missing or damaged")
-        return created
+        return created, 2, 1, entry["size"] if created else 0
 
+    # Aggregate after joining: worker threads never mutate shared counters.
     transferred = _run_bounded(unique_objects.values(), upload_and_verify, workers)
-    uploaded = sum(transferred)
+    uploaded = sum(item[0] for item in transferred)
     reused = len(files) - uploaded
+    transfers_finished = monotonic()
     # A mutable source is checked again only after every remote transfer has joined.
     for entry in files:
         path = _inside(root, entry["path"])
@@ -404,6 +410,7 @@ def checkpoint(bucket, root: Path, region: str, paths: list[str], expected_curre
             if ((source_stat.st_dev, source_stat.st_ino) !=
                     (original_stat.st_dev, original_stat.st_ino)):
                 raise ValueError("hard-linked checkpoint source changed during upload")
+    sources_verified = monotonic()
     manifest_sha = digest(manifest_bytes)
     manifest_key = f"state/manifests/{region}/{manifest_sha}.json"
     existing_manifest = bucket.read_manifest(manifest_key)
@@ -420,13 +427,37 @@ def checkpoint(bucket, root: Path, region: str, paths: list[str], expected_curre
     _, actual, etag = _pointer(bucket, region)
     if actual != expected_current:
         raise ValueError("private state pointer differs from expected baseline")
-    if actual == digest(pointer):
-        return {"status": "unchanged", "region": region, "manifestSha256": manifest_sha,
-                "files": len(files), "uploaded": uploaded, "reused": reused, "verifiedReuse": verified_reuse, **budget}
-    bucket.replace_small(pointer_key(region), pointer, etag)
-    return {"status": "checkpointed", "region": region, "manifestSha256": manifest_sha,
-            "pointerSha256": digest(pointer), "files": len(files), "uploaded": uploaded, "reused": reused,
-            "verifiedReuse": verified_reuse, **budget}
+    unchanged = actual == digest(pointer)
+    if not unchanged:
+        bucket.replace_small(pointer_key(region), pointer, etag)
+    finished = monotonic()
+    resource_metrics = {}
+    if sys.platform in {"linux", "darwin"}:
+        import resource
+        resource_metrics["peakResidentBytes"] = int(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss) * (1024 if sys.platform == "linux" else 1)
+    result = {"status": "unchanged" if unchanged else "checkpointed", "region": region,
+              "manifestSha256": manifest_sha, "files": len(files), "uploaded": uploaded,
+              "reused": reused, "verifiedReuse": verified_reuse, **budget,
+              "checkpointMetrics": {
+                  **resource_metrics,
+                  "workers": workers, "uniqueObjects": len(unique_objects),
+                  "uniqueBytes": sum(size for _, size in unique_objects),
+                  "logicalBytes": sum(entry["size"] for entry in files),
+                  "verifiedReuseObjects": verified_reuse,
+                  "objectVerifyCalls": sum(item[1] for item in transferred),
+                  "objectPutCalls": sum(item[2] for item in transferred),
+                  "uploadedBytes": sum(item[3] for item in transferred),
+                  "prepareSeconds": round(prepared - started, 3),
+                  "inventorySeconds": round(inventoried - prepared, 3),
+                  "reuseLookupSeconds": round(reuse_checked - inventoried, 3),
+                  "transferVerifySeconds": round(transfers_finished - reuse_checked, 3),
+                  "sourceVerifySeconds": round(sources_verified - transfers_finished, 3),
+                  "commitSeconds": round(finished - sources_verified, 3),
+                  "totalSeconds": round(finished - started, 3),
+              }}
+    if not unchanged:
+        result["pointerSha256"] = digest(pointer)
+    return result
 
 
 def restore(bucket, root: Path, region: str, expected_paths: list[str], *, workers: int = 1,
