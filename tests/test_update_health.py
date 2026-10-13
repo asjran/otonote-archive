@@ -82,3 +82,8 @@ class HealthTests(unittest.TestCase):
         source.write_text('')
         export_ranking(source, target)
         self.assertEqual(json.loads(target.read_text()), {'status': 'unavailable'})
+
+    def test_sampling_cannot_wait_for_long_running_publication_units(self):
+        unit = Path(__file__).resolve().parents[1] / 'deploy/admin/ournotes-update-health.service'
+        relationships = [line for line in unit.read_text().splitlines() if line.startswith(('After=', 'Requires=', 'Wants='))]
+        self.assertFalse(any('prerender' in line or 'delivery-state' in line for line in relationships))
