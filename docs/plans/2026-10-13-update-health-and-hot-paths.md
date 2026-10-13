@@ -33,6 +33,6 @@ Actions 使用现有 R2 写入权限保存 `content/operations/{region}/latest.j
 
 ## 安装与回退
 
-先合并并验证 CI。保存线上 Worker 版本、私有管理应用文件和本地服务配置；确认文件摘要与基线一致后再更新。健康采样使用已固定的预渲染 Python 镜像及桶只读凭据，输入挂载只读，仅状态目录可写。安装 `deploy/admin/run-update-health.sh` 和对应 service/timer，先手动采样验证，再启用 timer。应用仅替换 `node.py`、`update_health.py`、`static/admin.mjs` 并重启私有 node/admin，保留数据库、认证、其他服务和公开网站。
+先合并并验证 CI。保存线上 Worker 版本、私有管理应用文件和本地服务配置；确认文件摘要与基线一致后再更新。健康采样使用已固定的预渲染 Python 镜像及桶只读凭据，输入挂载只读，仅状态目录可写。将 `deploy/admin/export_ranking_health.py` 安装到同一 libexec 目录，主机仅导出 status/paused/observedAt，避免降低原榜单 0600 文件权限或扩大容器能力。安装 `deploy/admin/run-update-health.sh` 和对应 service/timer，先手动采样验证，再启用 timer。应用仅替换 `node.py`、`update_health.py`、`static/admin.mjs` 并重启私有 node/admin，保留数据库、认证、其他服务和公开网站。
 
 回退停止健康 timer 并恢复备份应用文件，旧交付采样继续工作。Worker 可恢复保存的版本。回执不参与业务指针，不需要删除；已有不可变内容与回退版本保留。新增功能门禁和工作流变化会改变生产指纹，后续首次双服生产按现有串行队列完整执行，不取消已有运行。
