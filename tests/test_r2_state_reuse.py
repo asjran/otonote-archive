@@ -82,6 +82,46 @@ class StateReuseTests(unittest.TestCase):
         self.assertEqual(len(self.bucket.upload_calls), 1)
         self.assertEqual({call[1] for call in self.bucket.verify_calls}, {r2_state.digest(b'new-content')})
 
+    def test_checkpoint_metrics_distinguish_reuse_from_body_checks_and_puts(self):
+        self.restore()
+        (self.root / 'state/c').write_bytes(b'new-content')
+        self.bucket.verify_calls.clear()
+        self.bucket.upload_calls.clear()
+        with patch.object(r2_state, 'monotonic', side_effect=range(7)):
+            result = self.checkpoint(workers=2)
+        metrics = result['checkpointMetrics']
+        self.assertEqual(metrics['uniqueObjects'], 3)
+        self.assertEqual(metrics['uniqueBytes'], 20)
+        self.assertEqual(metrics['logicalBytes'], 20)
+        self.assertEqual(metrics['verifiedReuseObjects'], 2)
+        self.assertEqual(metrics['uploadedBytes'], 11)
+        self.assertEqual(metrics['objectVerifyCalls'], len(self.bucket.verify_calls))
+        self.assertEqual(metrics['objectPutCalls'], len(self.bucket.upload_calls))
+        self.assertEqual(metrics['workers'], 2)
+        for key in ('prepareSeconds', 'inventorySeconds', 'reuseLookupSeconds',
+                    'transferVerifySeconds', 'sourceVerifySeconds', 'commitSeconds'):
+            self.assertEqual(metrics[key], 1)
+        self.assertEqual(metrics['totalSeconds'], 6)
+        self.assertNotIn(str(self.root), json.dumps(metrics))
+
+    def test_unchanged_checkpoint_metrics_preserve_pointer_and_count_fallback_reads(self):
+        self.restore()
+        before = self.bucket.objects[r2_state.pointer_key('global')]
+        for proof_available in (True, False):
+            if not proof_available:
+                self.cache.unlink()
+            self.bucket.verify_calls.clear()
+            self.bucket.upload_calls.clear()
+            result = self.checkpoint(workers=2)
+            metrics = result['checkpointMetrics']
+            self.assertEqual(result['status'], 'unchanged')
+            self.assertNotIn('pointerSha256', result)
+            self.assertEqual(self.bucket.objects[r2_state.pointer_key('global')], before)
+            self.assertEqual(metrics['verifiedReuseObjects'], 2 if proof_available else 0)
+            self.assertEqual(metrics['objectVerifyCalls'], 0 if proof_available else 2)
+            self.assertEqual(metrics['objectPutCalls'], 0)
+            self.assertEqual(metrics['uploadedBytes'], 0)
+
     def test_missing_cache_or_missing_get_etag_falls_back_to_full_verification(self):
         for missing in ('cache', 'etag'):
             with self.subTest(missing=missing):

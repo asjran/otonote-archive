@@ -33,6 +33,17 @@ REASONS = frozenset({
 })
 
 
+METRIC_FIELDS = {
+    'state-restore.json': ('restoreMetrics',
+        ('workers', 'downloadedObjects', 'downloadedBytes', 'logicalBytes', 'hardlinkedFiles', 'copiedFiles', 'peakResidentBytes'),
+        ('prepareSeconds', 'stageSeconds', 'downloadVerifySeconds', 'materializeSeconds', 'publishProofSeconds', 'totalSeconds')),
+    'state-after.json': ('checkpointMetrics',
+        ('workers', 'uniqueObjects', 'uniqueBytes', 'logicalBytes', 'verifiedReuseObjects',
+         'objectVerifyCalls', 'objectPutCalls', 'uploadedBytes', 'peakResidentBytes'),
+        ('prepareSeconds', 'inventorySeconds', 'reuseLookupSeconds', 'transferVerifySeconds',
+         'sourceVerifySeconds', 'commitSeconds', 'totalSeconds')),
+}
+
 def summarize(directory: Path, job_status: str) -> str:
     status = job_status if job_status in {'success', 'failure', 'cancelled', 'skipped'} else 'unknown'
     lines = [f'Workflow result: `{status}`. The Actions run is the last-attempt record.']
@@ -59,14 +70,14 @@ def summarize(directory: Path, job_status: str) -> str:
                 lines.append(f'{key}: `{value[key]}`.')
         if value.get('manifestBudgetWarning') is True:
             lines.append('Warning: private state manifest has reached 80% of its budget.')
-        metrics = value.get('restoreMetrics') if name == 'state-restore.json' else None
+        metric_name, count_keys, time_keys = METRIC_FIELDS.get(name, ('', (), ()))
+        metrics = value.get(metric_name)
         if isinstance(metrics, dict):
-            for key in ('workers', 'downloadedObjects', 'downloadedBytes', 'logicalBytes', 'hardlinkedFiles', 'copiedFiles', 'peakResidentBytes'):
+            for key in count_keys:
                 number = metrics.get(key)
                 if type(number) is int and 0 <= number <= 2**63 - 1:
                     lines.append(f'{key}: `{number}`.')
-            for key in ('prepareSeconds', 'stageSeconds', 'downloadVerifySeconds', 'materializeSeconds',
-                        'publishProofSeconds', 'totalSeconds'):
+            for key in time_keys:
                 number = metrics.get(key)
                 if type(number) in (int, float) and 0 <= number <= 604800 and math.isfinite(number):
                     lines.append(f'{key}: `{number:.3f}`.')
