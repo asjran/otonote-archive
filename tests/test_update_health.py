@@ -5,6 +5,7 @@ import tempfile
 import unittest
 from unittest.mock import patch
 from tools import update_health as health
+from deploy.admin.export_ranking_health import export as export_ranking
 from tools import r2_run_record as records
 from backend.admin.update_health import read_health
 from tests.test_r2_content import MemoryBucket
@@ -72,3 +73,12 @@ class HealthTests(unittest.TestCase):
         result = health.sample(bucket, self.root / 'absent', self.root / 'absent', self.root, 1, self.now)
         self.assertIn('jp:run_failed', {c['id'] for c in result['conditions']})
         self.assertEqual(result['runs']['jp']['failedStage'], 'restore')
+
+    def test_ranking_export_is_whitelisted_and_replaces_broken_success(self):
+        source = self.root / 'capture.json';target = self.root / 'export.json'
+        source.write_text(json.dumps({'status': 'complete', 'paused': False, 'observedAt': '2026-10-13T07:25:00Z', 'account': 'private'}))
+        export_ranking(source, target)
+        self.assertEqual(set(json.loads(target.read_text())), {'status', 'paused', 'observedAt'})
+        source.write_text('')
+        export_ranking(source, target)
+        self.assertEqual(json.loads(target.read_text()), {'status': 'unavailable'})
