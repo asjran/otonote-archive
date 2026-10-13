@@ -563,7 +563,7 @@ jobs:
         shell: bash
         run: |
           python -m tools.r2_run_summary --directory "$RUNNER_TEMP" --job-status "$JOB_STATUS" \
-            >> "$GITHUB_STEP_SUMMARY"
+            | tee -a "$GITHUB_STEP_SUMMARY"
         env:
           JOB_STATUS: ${{ job.status }}
       - name: Record operation result

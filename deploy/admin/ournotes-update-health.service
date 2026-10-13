@@ -1,7 +1,7 @@
 [Unit]
 Description=OurNotes private update health and recovery log
 Requires=docker.service
-After=network-online.target ournotes-r2-delivery-state.service
+After=network-online.target
 
 [Service]
 Type=oneshot

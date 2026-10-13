@@ -40,3 +40,5 @@
 独立 PR，仅增加测量。已核对 `tools/jp_update.py`：`r2_state.py` 属于生产依赖，因此合并本 PR 会让下一次双服探测进入完整生产。这是现有安全门禁的正常行为，不应为测量而放宽指纹边界。先以草稿 PR 保留，宜与下一批需要完整生产的变更一起安排合并。真实运行后读取 Actions 摘要，对两服分别比较各阶段时间、复用率与峰值内存。没有真实样本前不宣称 checkpoint 已加速，也不额外重复派发完整生产。
 
 回退为还原本 PR；远端格式不变，现有 manifest、复用证据和公共版本不受影响。
+
+运行汇总同时写入 Actions 步骤日志及 Step Summary，便于使用既有 GitHub API 检索固定白名单指标；不输出原始私有结果。GitHub 的 check-run REST summary 不包含 Step Summary，不能把缺少 API 字段当成没有测量。
