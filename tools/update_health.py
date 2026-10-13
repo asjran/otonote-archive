@@ -13,7 +13,7 @@ from tools.r2_content import S3Bucket, baseline
 from tools.r2_run_record import key, validate
 
 REGIONS = ('global', 'jp')
-CODES = {'receipt_missing', 'poll_stale', 'run_stuck', 'run_failed', 'delivery_unknown',
+CODES = {'schedule_stale', 'receipt_missing', 'poll_stale', 'run_stuck', 'run_failed', 'delivery_unknown',
          'delivery_lag', 'remote_unavailable', 'ranking_stale', 'ranking_paused', 'disk_budget'}
 
 
@@ -66,6 +66,13 @@ def sample(bucket, delivery_path, ranking_path, disk_path, budget, now):
                 raise ValueError('invalid operational receipt')
             runs[region] = {name: run[name] for name in
                             ('runId', 'attempt', 'sourceSha', 'status', 'outcome', 'failedStage', 'consecutiveFailures', 'observedAt', 'stages')}
+            runs[region]['event'] = run.get('event', 'unknown')
+            if run['status'] != 'running':
+                scheduled = run.get('lastScheduledAt')
+                if scheduled is None:
+                    condition('schedule_stale', region, 3600)
+                elif not -60 <= now - timestamp(scheduled) <= 3600:
+                    condition('schedule_stale', region, 0)
             if run['status'] == 'running':
                 if age > 6 * 3600:
                     condition('run_stuck', region, 0)

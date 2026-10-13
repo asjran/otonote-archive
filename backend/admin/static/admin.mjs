@@ -91,7 +91,7 @@ async function refreshLoads(gen=generation){
 }
 function renderUpdateHealth(health){
   const box=el('section',null,'content-delivery');
-  const labels={receipt_missing:'运行回执缺失',poll_stale:'超过一小时未取得探测结果',run_stuck:'运行超过六小时',run_failed:'生产阶段失败',delivery_unknown:'本机交付状态不可核对',delivery_lag:'网页落后于远端内容',remote_unavailable:'远端版本读取失败',ranking_stale:'榜单采集不新鲜',ranking_paused:'榜单采集已暂停',disk_budget:'剩余空间不足以覆盖发布预算'};
+  const labels={schedule_stale:'原生定时探测未及时到达',receipt_missing:'运行回执缺失',poll_stale:'超过一小时未取得探测结果',run_stuck:'运行超过六小时',run_failed:'生产阶段失败',delivery_unknown:'本机交付状态不可核对',delivery_lag:'网页落后于远端内容',remote_unavailable:'远端版本读取失败',ranking_stale:'榜单采集不新鲜',ranking_paused:'榜单采集已暂停',disk_budget:'剩余空间不足以覆盖发布预算'};
   const states={healthy:'状态正常',waiting:'观察中',attention:'需要处理',unavailable:'采样不可用'};
   box.append(el('h4','更新运行与告警'),el('p',states[health?.status]||states.unavailable));
   if(!health||health.status==='unavailable'){
@@ -100,7 +100,8 @@ function renderUpdateHealth(health){
   box.append(el('small',`采样：${new Date(health.observedAt*1000).toLocaleString('zh-CN',{hour12:false})} · 告警仅在本页和服务器日志记录`));
   for(const region of ['global','jp']){
     const run=health.runs?.[region];if(!run)continue;
-    const link=el('a',`${region.toUpperCase()} #${run.runId} · ${run.status}`,'action-link');
+    const origin={schedule:'原生定时',workflow_dispatch:'手动派发',unknown:'来源未知'}[run.event]||'来源未知';
+    const link=el('a',`${region.toUpperCase()} #${run.runId} · ${run.status} · ${origin}${run.failedStage?' · 失败阶段 '+run.failedStage:''}`,'action-link');
     link.href=`https://github.com/stonesver/otonote/actions/runs/${run.runId}`;link.target='_blank';link.rel='noopener noreferrer';
     const line=el('p');line.append(link);box.append(line);
   }

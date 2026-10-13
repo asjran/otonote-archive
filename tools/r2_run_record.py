@@ -37,10 +37,16 @@ def validate(value):
     stamp = dt.datetime.fromisoformat(value['observedAt'].replace('Z', '+00:00'))
     if stamp.tzinfo is None:
         raise ValueError('receipt time lacks timezone')
+    if value.get('event', 'unknown') not in ('unknown', 'schedule', 'workflow_dispatch'):
+        raise ValueError('invalid run event')
+    if value.get('lastScheduledAt') is not None:
+        last = dt.datetime.fromisoformat(value['lastScheduledAt'].replace('Z', '+00:00'))
+        if last.tzinfo is None:
+            raise ValueError('scheduled receipt time lacks timezone')
     return value
 
 
-def build(region, run_id, attempt, sha, status, steps, previous=None, now=None):
+def build(region, run_id, attempt, sha, status, steps, previous=None, now=None, event='workflow_dispatch'):
     stages = {name: steps[name]['outcome'] for name in STAGES
               if isinstance(steps.get(name), dict) and steps[name].get('outcome') in RESULTS}
     failed = next((name for name in STAGES if stages.get(name) == 'failure'), None)
@@ -63,11 +69,13 @@ def build(region, run_id, attempt, sha, status, steps, previous=None, now=None):
              'sourceSha': sha, 'status': status, 'outcome': outcome, 'stages': stages,
              'failedStage': failed, 'consecutiveFailures': count,
              'observedAt': (now or dt.datetime.now(dt.timezone.utc)).isoformat()}
+    value['event'] = event
+    value['lastScheduledAt'] = value['observedAt'] if event == 'schedule' else (previous or {}).get('lastScheduledAt')
     value['lastSuccessAt'] = value['observedAt'] if status == 'success' else (previous or {}).get('lastSuccessAt')
     return validate(value)
 
 
-def publish(bucket, region, run_id, attempt, sha, status, steps, now=None):
+def publish(bucket, region, run_id, attempt, sha, status, steps, now=None, event='workflow_dispatch'):
     name = key(region)
     previous = bucket.get(name)
     old = validate(json.loads(previous[0])) if previous else None
@@ -82,7 +90,7 @@ def publish(bucket, region, run_id, attempt, sha, status, steps, now=None):
             return {'status': 'superseded'}
         if prior == identity and status == 'running':
             return {'status': 'unchanged'}
-    value = build(region, run_id, attempt, sha, status, steps, old, now)
+    value = build(region, run_id, attempt, sha, status, steps, old, now, event)
     raw = canonical(value)
     bucket.replace(name, raw, previous[1] if previous else None,
                    content_type='application/json', cache_control='no-store')
@@ -102,7 +110,7 @@ def main():
             raise ValueError('invalid steps')
         result = publish(S3Bucket.from_environment(), os.environ['REGION'],
                          int(os.environ['GITHUB_RUN_ID']), int(os.environ['GITHUB_RUN_ATTEMPT']),
-                         os.environ['GITHUB_SHA'], args.status, steps)
+                         os.environ['GITHUB_SHA'], args.status, steps, event=os.environ['GITHUB_EVENT_NAME'])
         print(json.dumps(result))
     except Exception as error:
         # Never print arbitrary SDK/step strings or credentials.

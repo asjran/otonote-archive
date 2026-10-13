@@ -87,3 +87,14 @@ class HealthTests(unittest.TestCase):
         unit = Path(__file__).resolve().parents[1] / 'deploy/admin/ournotes-update-health.service'
         relationships = [line for line in unit.read_text().splitlines() if line.startswith(('After=', 'Requires=', 'Wants='))]
         self.assertFalse(any('prerender' in line or 'delivery-state' in line for line in relationships))
+
+    def test_recent_manual_success_does_not_mask_a_stale_native_schedule(self):
+        bucket = MemoryBucket()
+        old = dt.datetime.fromtimestamp(self.now-7200, dt.timezone.utc)
+        current = dt.datetime.fromtimestamp(self.now, dt.timezone.utc)
+        records.publish(bucket, 'jp', 1, 1, 'a'*40, 'success', {}, now=old, event='schedule')
+        records.publish(bucket, 'jp', 2, 1, 'a'*40, 'success', {}, now=current, event='workflow_dispatch')
+        result = health.sample(bucket, self.root/'missing', self.root/'missing', self.root, 1, self.now)
+        codes = {item['id'] for item in result['conditions']}
+        self.assertIn('jp:schedule_stale', codes)
+        self.assertNotIn('jp:poll_stale', codes)

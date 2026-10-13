@@ -5,9 +5,12 @@ from pathlib import Path
 import re
 import time
 
-CODES = {'receipt_missing', 'poll_stale', 'run_stuck', 'run_failed', 'delivery_unknown',
+CODES = {'schedule_stale', 'receipt_missing', 'poll_stale', 'run_stuck', 'run_failed', 'delivery_unknown',
          'delivery_lag', 'remote_unavailable', 'ranking_stale', 'ranking_paused', 'disk_budget'}
 
+STAGES = ('configuration', 'prepare', 'baseline', 'image', 'proxy', 'light_prepare',
+          'light_gate', 'restore', 'capacity', 'client', 'production_gate',
+          'produce', 'functional', 'upload', 'receipt', 'retention', 'checkpoint', 'promote')
 
 def read_health(workspace):
     unavailable = {'status': 'unavailable'}
@@ -55,7 +58,10 @@ def read_health(workspace):
                     or row.get('status') not in ('running', 'success', 'failure', 'cancelled', 'skipped')
                     or not isinstance(row.get('sourceSha'), str) or not re.fullmatch('[a-f0-9]{40}', row['sourceSha'])):
                 return unavailable
+            if row.get('failedStage') not in (None,) + STAGES or row.get('event', 'unknown') not in ('unknown', 'schedule', 'workflow_dispatch'):
+                return unavailable
             result['runs'][region] = {key: row[key] for key in ('runId', 'status', 'sourceSha')}
+            result['runs'][region].update(event=row.get('event', 'unknown'), failedStage=row.get('failedStage'))
         expected = 'attention' if any(row['state'] == 'firing' for row in result['alerts']) else ('waiting' if result['alerts'] else 'healthy')
         if result['status'] != expected:
             return unavailable
