@@ -111,6 +111,7 @@ jobs:
           printf 'Region: `%s`; mode: `%s`; run: `%s`\n\n' "$region" "$mode" "$GITHUB_RUN_ID" >> "$GITHUB_STEP_SUMMARY"
           printf 'Selection started at (UTC): `%s`.\n\n' "$(date -u +%FT%TZ)" >> "$GITHUB_STEP_SUMMARY"
       - name: Check required external configuration
+        id: configuration
         shell: bash
         run: |
           set -euo pipefail
@@ -140,6 +141,7 @@ jobs:
             }
           fi
       - name: Install R2 client and prepare stable ROOT
+        id: prepare
         shell: bash
         run: |
           set -euo pipefail
@@ -165,7 +167,11 @@ jobs:
           paths = [safe_relative(path) for path in paths]
           Path(os.environ['RUNNER_TEMP'], 'r2-state-paths').write_text('\n'.join(paths) + '\n')
           PY
+      - name: Record operation start
+        continue-on-error: true
+        run: python -m tools.r2_run_record --status running
       - name: Capture private and public pointer baselines
+        id: baseline
         shell: bash
         run: |
           set -euo pipefail
@@ -178,6 +184,7 @@ jobs:
           PY
           python -m tools.r2_content baseline --region "$REGION" > "$RUNNER_TEMP/public-before.json"
       - name: Pull pinned producer image
+        id: image
         shell: bash
         env:
           GITHUB_TOKEN: ${{ github.token }}
@@ -186,6 +193,7 @@ jobs:
           printf '%s' "$GITHUB_TOKEN" | docker login ghcr.io --username "$GITHUB_ACTOR" --password-stdin
           docker pull "$OURNOTES_UPDATE_IMAGE"
       - name: Prepare pinned regional proxy client when configured
+        id: proxy
         shell: bash
         env:
           JP_NODE_CONFIGURED: ${{ secrets.OURNOTES_JP_PROXY_NODE != '' }}
@@ -265,6 +273,7 @@ jobs:
               output.write('skip=' + str(result['skip']).lower() + '\n')
           PY
       - name: Restore last verified private state
+        id: restore
         if: steps.light_gate.outputs.skip != 'true'
         shell: bash
         run: |
@@ -288,6 +297,7 @@ jobs:
             --verification-cache "$RUNNER_TEMP/r2-state-restore-proof.json" "${args[@]}" \
             | tee "$RUNNER_TEMP/state-restore.json"
       - name: Validate restored input and runner capacity
+        id: capacity
         if: steps.light_gate.outputs.skip != 'true'
         shell: bash
         run: |
@@ -323,6 +333,7 @@ jobs:
             printf '%s' "$STABLE_ROOT/output/r2-jp-content" > "$RUNNER_TEMP/content-store"
           fi
       - name: Refresh reviewed JP client seed when required
+        id: client
         if: steps.light_gate.outputs.skip != 'true' && env.REGION == 'jp'
         shell: bash
         run: |
@@ -408,6 +419,7 @@ jobs:
               output.write('skip=' + str(result['skip']).lower() + '\n')
           PY
       - name: Produce and seal local content
+        id: produce
         if: steps.light_gate.outputs.skip != 'true' && steps.production_gate.outputs.skip != 'true'
         shell: bash
         env:
@@ -458,7 +470,19 @@ jobs:
                 "${producer[@]}" > "$RUNNER_TEMP/production.json"
             fi
           fi
+      - name: Check release-bound functional capabilities
+        id: functional
+        if: steps.light_gate.outputs.skip != 'true' && steps.production_gate.outputs.skip != 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$STABLE_ROOT"
+          store="$(cat "$RUNNER_TEMP/content-store")"
+          python -m tools.r2_functional_check --store "$store" --region "$REGION" > "$RUNNER_TEMP/functional.json"
+          printf '\nFunctional release checks (reference estimates are not gameplay verification):\n\n' >> "$GITHUB_STEP_SUMMARY"
+          cat "$RUNNER_TEMP/functional.json" >> "$GITHUB_STEP_SUMMARY"
       - name: Upload and read back produced immutable content
+        id: upload
         if: steps.light_gate.outputs.skip != 'true' && steps.production_gate.outputs.skip != 'true'
         shell: bash
         run: |
@@ -474,6 +498,7 @@ jobs:
           python -m tools.r2_content upload --region "$REGION" --store "$store" --workers 8 \
             "${layout[@]}" > "$RUNNER_TEMP/upload.json"
       - name: Record verified production receipt
+        id: receipt
         if: steps.light_gate.outputs.skip != 'true' && steps.production_gate.outputs.skip != 'true'
         shell: bash
         run: |
@@ -484,6 +509,7 @@ jobs:
             --probe "$RUNNER_TEMP/gate-probe.json" --production "$RUNNER_TEMP/production.json" \
             --upload "$RUNNER_TEMP/upload.json" --store "$store"
       - name: Retain the successful JP working set
+        id: retention
         if: env.REGION == 'jp' && steps.light_gate.outputs.skip != 'true' && steps.production_gate.outputs.skip != 'true'
         shell: bash
         run: |
@@ -503,6 +529,7 @@ jobs:
             --run-id "$GITHUB_RUN_ID" --attempt "$GITHUB_RUN_ATTEMPT" \
             >> "$GITHUB_STEP_SUMMARY"
       - name: Checkpoint private production state
+        id: checkpoint
         if: steps.light_gate.outputs.skip != 'true' && steps.production_gate.outputs.skip != 'true'
         shell: bash
         run: |
@@ -520,6 +547,7 @@ jobs:
             --workers 8 --expected-current "$expected" \
             --verification-cache "$RUNNER_TEMP/r2-state-restore-proof.json" "${args[@]}" > "$RUNNER_TEMP/state-after.json"
       - name: Promote verified public pointer
+        id: promote
         if: env.MODE == 'promote' && steps.light_gate.outputs.skip != 'true' && steps.production_gate.outputs.skip != 'true'
         shell: bash
         run: |
@@ -538,3 +566,10 @@ jobs:
             >> "$GITHUB_STEP_SUMMARY"
         env:
           JOB_STATUS: ${{ job.status }}
+      - name: Record operation result
+        if: always() && env.REGION != ''
+        continue-on-error: true
+        env:
+          JOB_STATUS: ${{ job.status }}
+          RUN_STEPS: ${{ toJSON(steps) }}
+        run: python -m tools.r2_run_record --status "$JOB_STATUS"

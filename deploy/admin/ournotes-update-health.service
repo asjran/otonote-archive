@@ -1,0 +1,14 @@
+[Unit]
+Description=OurNotes private update health and recovery log
+Requires=docker.service
+After=network-online.target ournotes-r2-delivery-state.service
+
+[Service]
+Type=oneshot
+EnvironmentFile=/etc/ournotes/r2-prerender.env
+EnvironmentFile=/etc/ournotes/r2-content-readonly.env
+ExecStart=/usr/local/libexec/ournotes/run-update-health.sh
+TimeoutStartSec=150
+NoNewPrivileges=true
+PrivateTmp=true
+UMask=0022

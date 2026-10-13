@@ -55,6 +55,8 @@ NON_PRODUCTION_FILES = frozenset({
     'tools/incoming_retention.py',
     'tools/maintenance_reports.py',
     'tools/r2_run_summary.py',
+    'tools/r2_run_record.py',
+    'tools/update_health.py',
     'tools/r2_dispatch.py',
 })
 
