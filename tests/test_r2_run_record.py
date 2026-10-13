@@ -45,3 +45,12 @@ class RunRecordTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'cross-region'):
             self.publish(2, 'running')
         self.assertNotIn('content/operations/jp/latest.json', self.bucket.objects)
+
+    def test_manual_runs_preserve_native_schedule_timestamp(self):
+        record.publish(self.bucket, 'global', 1, 1, 'a'*40, 'success', {}, self.now, event='schedule')
+        scheduled = self.current()['lastScheduledAt']
+        later = self.now + dt.timedelta(hours=2)
+        record.publish(self.bucket, 'global', 2, 1, 'a'*40, 'success', {}, later, event='workflow_dispatch')
+        self.assertEqual(self.current()['lastScheduledAt'], scheduled)
+        self.assertNotEqual(self.current()['observedAt'], scheduled)
+        self.assertEqual(self.current()['event'], 'workflow_dispatch')
