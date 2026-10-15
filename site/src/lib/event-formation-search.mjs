@@ -14,9 +14,11 @@ export async function searchEventFormations({ rules, draft, chart, scope, invent
   objective = 'expected_song_score', boundMetric, seeds = [], bonusFor, upperCandidate, transformScore = r => r,
   compareCandidates = (a,b) => b.value-a.value, rankCandidates = compareCandidates, maxEvaluations = 24, topN = 3,
   signal, yieldControl = async () => {}, onProgress = () => {}, scoreCache,
-  pairCache, pairCacheKey, modelCache, scoreCounters, baselineResult, bonusCeiling }) {
+  pairCache, pairCacheKey, modelCache, scoreCounters, baselineResult, bonusCeiling, scoreBoundOptions = {}, proofCount = topN,
+  shouldPause = () => false, onContinuation }) {
   if (!Number.isInteger(maxEvaluations) || maxEvaluations < 0) throw new Error('Invalid event search budget');
   if (!Number.isInteger(topN) || topN < 1 || topN > 100) throw new Error('Invalid event result limit');
+  if (!Number.isInteger(proofCount) || proofCount < 1 || proofCount > topN) throw new Error('Invalid event proof count');
   if (draft.modifiers?.performanceScenario) return { results: seeds, optimality: 'practical_checked',
     searchStatus: 'player_scenario_bound_unavailable', evaluated: 0, upperBound: null, optimalityGap: null };
   const input = resolveSearchInput(rules, draft, { scope, inventory });
@@ -37,7 +39,7 @@ export async function searchEventFormations({ rules, draft, chart, scope, invent
   }
   const metric = boundMetric ?? { expected_song_score:'expectedScore', maximum_song_score:'maximumScore', minimum_song_score:'minimumScore' }[objective];
   if (!['expectedScore','minimumScore','maximumScore'].includes(metric)) throw new Error('Invalid event score objective');
-  const scoreBound = createOrdinaryScoreBound({ song, pairSkills, legacyFactor: Math.fround((1+2*maxima.sort((a,b)=>b-a).slice(0,5).reduce((a,b)=>a+b,0))*1.0001), input, metric });
+  const scoreBound = createOrdinaryScoreBound({ ...scoreBoundOptions, song, pairSkills, legacyFactor: Math.fround((1+2*maxima.sort((a,b)=>b-a).slice(0,5).reduce((a,b)=>a+b,0))*1.0001), input, metric });
   // Event grade may use minimumScore, but its final tie-break uses expectedScore.
   const tieBound = bonusFor && metric !== 'expectedScore'
     ? createOrdinaryScoreBound({ song, pairSkills, legacyFactor: Math.fround((1+2*maxima.slice(0,5).reduce((a,b)=>a+b,0))*1.0001), input, metric: 'expectedScore' })
@@ -96,19 +98,21 @@ export async function searchEventFormations({ rules, draft, chart, scope, invent
       edges:byLeader.get(state.leader).edges,weight:bonusModel(state.leader)[kind]});
     return {...result,weight:result.edges.reduce((sum,e)=>sum+bonusFor.pair(e)[kind],0)};
   };
-  // Keep the second-round challenge candidate order. A tighter certificate
-  // must not replace its bounded-budget prefix with more expensive/worse
-  // candidates. The separate certificate heap below uses the new bound.
-  const preservePriority = !bonusFor;
+  // Legacy callers retain their expansion order and separate certificate heap.
+  // The joint challenge relaxation uses its tighter bound for both purposes.
+  const preservePriority = !bonusFor && !scoreBoundOptions.jointPowerBound;
   const solve = state => {
     const model = byLeader.get(state.leader), options = { required: state.required, forbidden: state.forbidden, requiredMembers: [state.leader] };
     const hint=!state.required.length&&!state.forbidden.length?rootHints.get(state.leader):null;
     const power = hint?.power??maximumPairing({ ...options, edges: model.edges });
     if (!power) return null;
     if (!bonusFor) {
-      const {upper,priority}=scoreBound.withPriority(state,model,power,()=>draftFromPairing(input,state.leader,power.edges));
-      return { ...state, solution: power, upper: { value:upper,expectedScore:upper },
-        priorityUpper:{value:priority,expectedScore:priority} };
+      const {upper,priority}=scoreBoundOptions.jointPowerBound
+        ? {upper:scoreBound(state,model,power,()=>draftFromPairing(input,state.leader,power.edges))}
+        : scoreBound.withPriority(state,model,power,()=>draftFromPairing(input,state.leader,power.edges));
+      const inherited=Math.min(upper,state.upper?.value??Infinity);
+      return { ...state, solution: power, upper: { value:inherited,expectedScore:inherited },
+        priorityUpper:priority==null?null:{value:priority,expectedScore:priority} };
     }
     const upperScore = hint?.scoreUpper??scoreBound(state, model, power, () => draftFromPairing(input, state.leader, power.edges));
     const root=!state.required.length&&!state.forbidden.length?rootBonuses.get(state.leader):null;
@@ -137,42 +141,59 @@ export async function searchEventFormations({ rules, draft, chart, scope, invent
   const signature = d => d.slots.map(s=>`${s.memberCardId}|${s.supportCardId}`).join(';');
   const results = new Map(seeds.map(r=>[signature(r.draft),r]));
   const best = () => [...results.values()].sort(rankCandidates).slice(0,topN);
-  let evaluated = 0;
-  while (queue.length && !signal?.aborted && (!maxEvaluations || evaluated < maxEvaluations)) {
-    const retained = best(), worst = retained.at(-1);
-    if (retained.length === topN && compareCandidates(remaining(), worst) >= 0) { clear(); break; }
-    const state = queue.pop();
-    active.delete(state);
-    if(retained.length===topN&&compareCandidates(state.upper,worst)>=0)continue;
-    if(state.needsBonusCandidate){state.solution=solveBonus(state,primary);state.needsBonusCandidate=false;}
-    const candidate = draftFromPairing(input, state.leader, state.solution.edges);
-    const key = 'full:' + signature(candidate);
-    let raw = scoreCache?.get(key);
-    if (raw) { if(scoreCounters)scoreCounters.scoreCacheHits++; }
-    else { raw=evaluator.score(candidate);scoreCache?.set(key,raw);if(scoreCounters)scoreCounters.scoreCalculations++; }
-    const transformed = transformScore(raw,candidate);
-    const value = { ...transformed, draft:candidate, id:signature(candidate), origins:['certified-search'],
-      delta:baselineResult ? transformed.value-baselineResult.value : null,
-      comparison:compareScoredFormations(transformed,baselineResult) };
-    if (compareCandidates(state.upper,value)>0) throw new Error('Event bound below evaluated candidate');
-    results.set(signature(candidate),value); evaluated++;
-    const keep = new Set(best().map(r => signature(r.draft)));
-    for (const key of results.keys()) if (!keep.has(key)) results.delete(key);
-    for (const child of partitionPairing(state,state.solution)) { const solved=solve(child);if(solved)push(solved); }
-    onProgress({ phase:'event-exact',completed:evaluated,frontier:queue.length,bestCandidate:best()[0] });
-    await yieldControl();
-  }
-  const retained=best();
-  if (queue.length && retained.length === topN && compareCandidates(remaining(), retained.at(-1)) >= 0) clear();
-  const complete=!queue.length;
-  const upper=remaining();
-  const bestRemaining=upper??retained[0];
-  return { results:retained, evaluated, optimality:complete?(retained.length?'proven_within_model':'infeasible'):'incomplete',
-    searchStatus:complete?(retained.length?'completed':'no_feasible_formation'):signal?.aborted?'cancelled':'budget_exhausted',
-    upperBound:upper?.value??retained[0]?.value??null,
-    optimalityGap:retained.length?Math.max(0,(upper?.value??retained[0].value)-retained[0].value):null,
-    upperCandidate:bestRemaining?{value:bestRemaining.value,expectedScore:bestRemaining.expectedScore,
-      ...(bestRemaining.total?{total:bestRemaining.total,scoreRank:bestRemaining.reward.scoreRank}:{})}:null,
-    bestProven:Boolean(retained.length&&(!upper||compareCandidates(upper,retained[0])>=0)),
-    topNComplete:complete,frontier:queue.length };
+  let evaluated = 0, expanded = 0, candidateBoundPruned = 0;
+  const run = async () => {
+    const startedExpanded=expanded;
+    while (queue.length && !signal?.aborted && !shouldPause() && (!maxEvaluations || expanded-startedExpanded < maxEvaluations)) {
+      const retained = best(), worst = retained[proofCount-1];
+      if (worst && compareCandidates(remaining(), worst) >= 0) { clear(); break; }
+      const state = queue.pop();
+      active.delete(state);
+      if(worst&&compareCandidates(state.upper,worst)>=0)continue;
+      if(state.needsBonusCandidate){state.solution=solveBonus(state,primary);state.needsBonusCandidate=false;}
+      const candidate = draftFromPairing(input, state.leader, state.solution.edges);
+      const key = 'full:' + signature(candidate);
+      // A partition's bound covers many teams; its maximum-power representative
+      // can be much weaker. Bound THIS complete team before paying for 120
+      // native order replays. Still partition the state when it cannot win.
+      const candidateUpper = !bonusFor && scoreBoundOptions.jointPowerBound && worst
+        ? scoreBound({...state,required:state.solution.edges.map(e=>e.key)},{edges:state.solution.edges},state.solution,()=>candidate)
+        : Infinity;
+      if (worst && candidateUpper <= worst.value) candidateBoundPruned++;
+      else {
+        let raw = scoreCache?.get(key);
+        if (raw) { if(scoreCounters)scoreCounters.scoreCacheHits++; }
+        else { raw=evaluator.score(candidate);scoreCache?.set(key,raw);if(scoreCounters)scoreCounters.scoreCalculations++; }
+        const transformed = transformScore(raw,candidate);
+        const value = { ...transformed, draft:candidate, id:signature(candidate), origins:['certified-search'],
+          delta:baselineResult ? transformed.value-baselineResult.value : null,
+          comparison:compareScoredFormations(transformed,baselineResult) };
+        if (compareCandidates(state.upper,value)>0) throw new Error('Event bound below evaluated candidate');
+        results.set(signature(candidate),value); evaluated++;
+        const keep = new Set(best().map(r => signature(r.draft)));
+        for (const key of results.keys()) if (!keep.has(key)) results.delete(key);
+      }
+      expanded++;
+      for (const child of partitionPairing(state,state.solution)) { const solved=solve(child);if(solved)push(solved); }
+      onProgress({ phase:'event-exact',completed:evaluated,expanded,frontier:queue.length,bestCandidate:best()[0] });
+      await yieldControl();
+    }
+    const retained=best();
+    if (queue.length && retained[proofCount-1] && compareCandidates(remaining(), retained[proofCount-1]) >= 0) clear();
+    const complete=!queue.length;
+    const upper=remaining();
+    const bestRemaining=upper??retained[0];
+    return { results:retained, evaluated, expanded, candidateBoundPruned, proofTarget:proofCount===1?'best':'top_n',
+      certifiedCount:complete?Math.min(proofCount,retained.length):0,
+      optimality:complete?(retained.length?'proven_within_model':'infeasible'):'incomplete',
+      searchStatus:complete?(retained.length?'completed':'no_feasible_formation'):signal?.aborted?'cancelled':shouldPause()?'paused':'budget_exhausted',
+      upperBound:retained.length?Math.max(upper?.value??0,retained[0].value):upper?.value??null,
+      optimalityGap:retained.length?Math.max(0,(upper?.value??retained[0].value)-retained[0].value):null,
+      upperCandidate:bestRemaining?{value:bestRemaining.value,expectedScore:bestRemaining.expectedScore,
+        ...(bestRemaining.total?{total:bestRemaining.total,scoreRank:bestRemaining.reward.scoreRank}:{})}:null,
+      bestProven:Boolean(retained.length&&(!upper||compareCandidates(upper,retained[0])>=0)),
+      topNComplete:complete&&proofCount===topN,frontier:queue.length };
+  };
+  onContinuation?.(run);
+  return run();
 }

@@ -241,5 +241,24 @@ export function createFormalSongCalculator(rules, chart, { eventAdapters = [], s
       return combos.get(event.comboFactor);
     });
   }
-  return { calculate, timeline, upperBound, linearUpperBound };
+  /** Coefficients valid for EVERY positive int32 power, not a tangent at one
+   * team's power. The native prefix has eight f32 operations, the int->f32
+   * conversion, and the post-floor conversion. 2^-20 exceeds their combined
+   * relative error (and the binary64 product error). Normal-range guards keep
+   * that relative-error argument away from underflow/overflow. */
+  function powerLinearUpperBound({ eventContext = null } = {}) {
+    checkBoundContext(eventContext);
+    return timeline.events.map(event => {
+      const factors = [f32(setting('note_score_adjustment_factor')), timeline.difficultyFactor,
+        f32(f32(event.weight) / 100), f32(f32(judgement) / 100), event.comboFactor,
+        1 / f32(timeline.convertedNoteCount)];
+      let coefficient = 1;
+      for (const factor of factors) {
+        coefficient *= factor;
+        if (!Number.isFinite(coefficient) || coefficient < 2 ** -60 || coefficient > 2 ** 60) return Infinity;
+      }
+      return coefficient * (1 + 2 ** -20);
+    });
+  }
+  return { calculate, timeline, upperBound, linearUpperBound, powerLinearUpperBound };
 }

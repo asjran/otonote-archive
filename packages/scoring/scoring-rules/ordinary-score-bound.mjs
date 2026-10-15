@@ -1,4 +1,5 @@
 import { createFrameClock, skillEndFrame } from './formal-frame-clock.mjs';
+import { createJointPowerScoreBound } from './joint-power-score-bound.mjs';
 
 const unitRoundoff = 2 ** -24;
 const gamma = n => n * unitRoundoff < 1 ? n * unitRoundoff / (1 - n * unitRoundoff) : Infinity;
@@ -33,7 +34,7 @@ export function ordinaryReplayApplicationLimit(timeline, profiles, frameRate = 6
 
 /** Bound the ideal ordinary replay, including native float32 rewind residue.
  * This is not a bound for dynamic player inputs or Gekisou task rewards. */
-export function createOrdinaryScoreBound({ song, pairSkills, legacyFactor, input, metric, frameRate = 60, localRewinds = true, assignmentBound = true }) {
+export function createOrdinaryScoreBound({ song, pairSkills, legacyFactor, input, metric, frameRate = 60, localRewinds = true, assignmentBound = true, jointPowerBound = false }) {
   // Audit adapters before either the envelope or homogeneous-team shortcut.
   song.upperBound(0, 1, { eventContext: input.draft.modifiers?.event });
   const clock = createFrameClock({ frameRate }), profiles = new Map(), canonical = new Map(), cache = new Map();
@@ -62,6 +63,9 @@ export function createOrdinaryScoreBound({ song, pairSkills, legacyFactor, input
   const spans = new Map(uniqueProfiles.map(p => [p.signature, song.timeline.skillTimes.map(start => p.effects.map(e => ({
     first:indexAt(start),last:indexAt(skillEndFrame(clock,start,e.durationRawMs).timeMs),value:Math.max(0,e.value)
   })))]));
+  const jointBound = jointPowerBound ? createJointPowerScoreBound({
+    coefficients:song.powerLinearUpperBound?.({eventContext:input.draft.modifiers?.event}),spans,profileFor,metric
+  }) : null;
   const linearFor = power => {
     if (!assignmentBound || !song.linearUpperBound || events.length>100000) return null;
     if (!linearCache.has(power)) {
@@ -182,8 +186,9 @@ export function createOrdinaryScoreBound({ song, pairSkills, legacyFactor, input
     const assignment=assignedGain(available,forced,state.leader,solution.weight);
     // The small outward binary64 allowance covers the <=100000 positive sums,
     // five-effect gains and assignment additions, separately from native f32.
-    const upper=assignment && Number.isFinite(assignment.gain) ? Math.min(timed,
+    let upper=assignment && Number.isFinite(assignment.gain) ? Math.min(timed,
       Math.ceil((assignment.total*(1+envelope.error)+assignment.gain)*(1+1e-10))) : timed;
+    if (jointBound) upper=Math.min(upper,jointBound(available,forced,state.leader,solution,envelope.error,!state.forbidden.length));
     return includePriority?{upper,priority:timedBound('legacy:',getEnvelope('legacy:',Infinity))}:upper;
   };
   bound.withPriority=(...args)=>bound(...args,true);
