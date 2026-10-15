@@ -210,7 +210,8 @@ export function setupSharedInventoryPanel({root,data,onChange=()=>{},getRestrict
       if(!group.supported){label.querySelector('input').disabled=true;label.append(node('small',t('此乐队请按单件填写','Use individual items for this band')));}totals.append(label);
     }
     const items=section(t('按单件填写道具等级','Individual item levels'));
-    for(const row of rules.tables.BandItem){const label=data.instruments?.find(item=>Number(item.id)===row._id)?.name??`${data.bands?.find(b=>Number(b.id)===row._bandId)?.name??t('乐队','Band')} · ${row._id}`;const max=Math.max(0,...rules.tables.BandItemSkillEffect.filter(effect=>effect._bandItemId===row._id).map(effect=>effect._level));items.append(numberInput(label,account.bandItems?.[row._id],0,max,{accountKind:'bandItems',accountId:String(row._id)}));}
+    const itemCaps=new Map(groups.flatMap(group=>group.items.map(item=>[item.id,item.maxLevel])));
+    for(const row of rules.tables.BandItem){const label=data.instruments?.find(item=>Number(item.id)===row._id)?.name??`${data.bands?.find(b=>Number(b.id)===row._bandId)?.name??t('乐队','Band')} · ${row._id}`;const max=itemCaps.get(row._id);items.append(numberInput(label,account.bandItems?.[row._id],0,max,{accountKind:'bandItems',accountId:String(row._id)}));}
     const characters=section(t('角色评级','Character ranks')),maxRank=Math.max(...rules.tables.CharacterRank.map(row=>row._rank));
     for(const row of rules.tables.Character){const name=data.characters?.find(character=>Number(character.id)===row._id)?.name??`${t('角色','Character')} ${row._id}`;characters.append(numberInput(name,account.characterRanks?.[row._id],1,maxRank,{accountKind:'characterRanks',accountId:String(row._id)}));}
     accountFields.append(node('p',t('留空表示未记录。同一乐队填写总等级时，以总等级为准；修改单件会清除该乐队的总等级。','Blank values are unrecorded. A band total overrides individual items; editing an item clears that band’s total.')));

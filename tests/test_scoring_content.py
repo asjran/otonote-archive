@@ -34,6 +34,14 @@ class ScoringContentTests(unittest.TestCase):
         self.assertEqual(len(rules['tables']['LiveMusic']),2)
         self.assertEqual(self.base['verificationStatus'],'code_audited')
 
+    def test_reachable_band_item_levels_travel_with_current_scoring_inputs(self):
+        rows = [{'_bandItemId':101, '_level':30, '_playerRank':1}]
+        raw = json.dumps({'_allData':rows}).encode()
+        (self.root/'MasterBandItemLevel.json').write_bytes(raw)
+        rules = bind_scoring_rules(self.root, 'current', self.base)
+        self.assertEqual(rules['tables']['BandItemLevel'], rows)
+        self.assertEqual(rules['masterSha256']['MasterBandItemLevel'], hashlib.sha256(raw).hexdigest())
+
     def test_content_changes_use_current_parameters_without_another_audit(self):
         (self.root/'MasterMemberCard.json').write_text('{"_allData":[{"_id":999}]}')
         (self.root/'MasterParameter.json').write_text('{"_allData":[{"_id":"client_version_required","_value":"new"}]}')

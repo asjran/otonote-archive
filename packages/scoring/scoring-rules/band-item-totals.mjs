@@ -26,7 +26,13 @@ export function bandItemGroups(rules){
   const groups=new Map();
   for(const item of rules.tables.BandItem){
     const effects=rules.tables.BandItemSkillEffect.filter(e=>e._bandItemId===item._id);
-    const maxLevel=Math.max(0,...effects.map(e=>e._level)),units=effects.filter(e=>e._level===1).sort((a,b)=>signature(a).localeCompare(signature(b)));
+    // Effects may contain future levels (31–50 in build 25). Reachability
+    // comes from the upgrade table. Older scoring snapshots omitted that
+    // table; their audited/imported account contract caps instruments at 30.
+    const upgradeLevels=rules.tables.BandItemLevel?.filter(e=>e._bandItemId===item._id);
+    const maxLevel=Math.min(Math.max(0,...effects.map(e=>e._level)),
+      upgradeLevels?Math.max(0,...upgradeLevels.map(e=>e._level)):30);
+    const units=effects.filter(e=>e._level===1).sort((a,b)=>signature(a).localeCompare(signature(b)));
     const unitKey=JSON.stringify(units.map(e=>[signature(e),e._effectValue]));
     const group=groups.get(item._bandId)??{bandId:item._bandId,items:[],maxTotal:0,supported:true,units,unitKey};
     group.supported&&=maxLevel>0&&units.length>0&&group.unitKey===unitKey;
@@ -56,8 +62,8 @@ export function bandItemEffects(rules,modifiers){
     const group=byItem.get(id);
     if(!group)throw Error(`Unknown instrument ${id}`);
     if(Object.hasOwn(totals,group.bandId))continue; // Aggregate replaces this band's detail; never add both.
-    const rows=byLevel.get(Number(id))?.get(level)??[];
-    if(!Number.isSafeInteger(level)||level<0||(level>0&&!rows.length))throw Error(`Unknown instrument/level ${id}/${level}`);
+    const rows=byLevel.get(Number(id))?.get(level)??[],item=group.items.find(item=>String(item.id)===id);
+    if(!Number.isSafeInteger(level)||level<0||level>item.maxLevel||(level>0&&!rows.length))throw Error(`Unknown instrument/level ${id}/${level}`);
     if(level)effects.push(...rows);
   }
   return effects;

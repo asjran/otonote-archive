@@ -2,11 +2,13 @@
 
 日期：2026-10-15。本轮直接读取港澳台正式客户端 1.0.1 (25) 的恢复元数据及 ARM64 代码，对照当前公式；不是仅用网站实现自证，也没有把静态复核写成手机实测。
 
+更正：随后与 Haneoka 对照发现乐器 50 级仅为未来效果定义，实际升级上限为 30。本页原先将 20,721,548 称为全满最高分的结论已撤回；合法满养成分数为 20,150,649（本模型），详见[分差核对与修复](2026-10-15-haneoka-score-comparison.md)。以下客户端评级机制结论仍成立。
+
 ## 结论
 
 评级存在两个独立来源：个人评级只作用于该角色；全角色评级之和查总评级档位，所得固定值作用于每位上阵成员。未上阵角色参与总评级，跨过档位才改变共享加成。两项各自按三个能力维度加入基础值，然后留影、队长、歌曲属性、乐器、TGW 等百分比来源分别基于这个共同基数计算。当前 `formation-power.mjs` 已实现此顺序，本次没有修改公式或搜索实现。
 
-发现的是此前性能样本的输入与“账号全满”不一致：基准使用所有角色评级 25、所有乐器等级 25。截图里的“评级 25 位／乐器 25 件”是记录数量，不能据此推断等级。当前正式数据的评级、乐器上限均为 50。
+此前性能样本使用所有角色评级 25、所有乐器等级 25，并非账号全满。截图里的“评级 25 位／乐器 25 件”是记录数量，不能据此推断等级。当前角色评级上限为 50；乐器升级上限为 30，不能从技能效果表中的 50 级定义推断可达上限。
 
 ## 客户端证据
 
@@ -38,11 +40,12 @@
 |---|---|---:|
 | 全 25 | 全 25 | 19,957,029 |
 | 全 50 | 全 25 | 20,007,841 |
-| 全 50 | 全 50 | 20,721,548 |
+| 全 50 | 全 30（实际升级上限） | 20,150,649 |
+| 全 50 | 全 50（不可达的效果定义，仅用于定位） | 20,721,548 |
 
-全满账号再次完整搜索，第一名仍为同一队伍，最高分 **20,721,548**，`bestProven=true`、`certifiedCount=1`、剩余差距 0。两次引擎耗时为 **32.37 s／28.96 s**，均展开 4594 个分支、精确阶段完整评分 6 支队伍；只证明第一名。结果比截图 20,443,752 高 277,796，但仅当截图的数据版本、回忆和其他条件也一致时，才能直接对比。这一结果不替代其他输入下的证书。
+此前乐器 50 级实验曾得到 **20,721,548**，两次引擎耗时为 **32.37 s／28.96 s**，4594 个分支。该证书仅在不可达的输入下成立，不能作为当前游戏全满结果。修正上限后，合法全满账号第一名仍为同一队伍，最高分 **20,150,649**，`bestProven=true`、`certifiedCount=1`、剩余差距 0；独立串行重跑为 32.80 s、4580 个分支。
 
-两次输入 SHA-256 均为 `25da4afed551229bdeb9154a5ce28f6405f23c77906b5aee7e149059ba557eb5`。原始结果为上述忽略目录中的 `all-max-proof.json`、`all-max-default-proof.json`。
+原乐器 50 级实验的输入 SHA-256 为 `25da4afed551229bdeb9154a5ce28f6405f23c77906b5aee7e149059ba557eb5`；`all-max-proof.json`、`all-max-default-proof.json` 仅保留为历史证据。合法 30 级上限的结果位于 `output/verification/haneoka-20261015/reachable-max-proof-serial.json`。
 
 ## 修正与回归
 
@@ -55,7 +58,7 @@ node tools/benchmark_challenge_search.mjs \
   --data /private/tmp/otonote-current-event-inputs.json \
   --chart /private/tmp/otonote-10011103.json --event 2 \
   --evaluations 0 --time-limit-ms 120000 \
-  --output output/verification/character-rank-20261015/all-max-default-proof.json
+  --output output/verification/haneoka-20261015/reachable-max-proof-serial.json
 
 node --test site/tests/production-power.test.mjs site/tests/challenge-optimizer.test.mjs
 ```

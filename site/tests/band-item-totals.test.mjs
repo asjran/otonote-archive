@@ -8,6 +8,21 @@ import {createTeamDraft,parseTeamDraftSearch,serializeTeamDraftSearch} from '../
 const rules=JSON.parse(readFileSync(new URL('../../packages/scoring/data/formal-scoring-rules.json',import.meta.url)));
 const calculator=createFormationCalculator(rules),groups=bandItemGroups(rules);
 const draft=(modifiers,bandId=1)=>{const ids=rules.tables.Character.filter(c=>c._bandID===bandId).map(c=>c._id);const member=rules.tables.MemberCard.find(c=>ids.includes(c._characterID));return createTeamDraft({slots:[null,null,{memberCardId:`member-card-${member._id}`}],modifiers});};
+test('reachable upgrade levels cap future effect definitions in maxima, totals and direct scoring',()=>{
+ const r=structuredClone(rules);
+ r.tables.BandItemLevel=r.tables.BandItem.flatMap(item=>Array.from({length:3},(_,i)=>({_bandItemId:item._id,_level:i+1})));
+ const g=bandItemGroups(r)[0],id=g.items[0].id;
+ assert.equal(g.items[0].maxLevel,3);
+ assert.equal(g.maxTotal,g.items.length*3);
+ assert.throws(()=>bandItemEffects(r,{bandItems:{[id]:4}}),/Unknown instrument\/level/);
+ assert.throws(()=>validateBandItemTotals(r,{[g.bandId]:g.maxTotal+1}));
+ assert.equal(bandItemEffects(r,{bandItems:{[id]:3}}).length,1);
+ const store=createPersonalGrowthStore({rules:r,context:{region:'global',serverId:'global-hmt'},storage:{}});
+ assert.throws(()=>store.validate({...store.empty(),account:{bandItems:{[id]:4}}}),/乐器/);
+ const legacy=bandItemGroups(rules);
+ assert.ok(legacy.flatMap(group=>group.items).every(item=>item.maxLevel===30),'legacy build-25 profiles must not treat level-50 effects as reachable upgrades');
+ assert.throws(()=>bandItemEffects(rules,{bandItems:{[id]:31}}),/Unknown instrument\/level/);
+});
 test('instrument effects follow mutable levels, preserve all rows, and validate warmed lookups',()=>{
  const r=structuredClone(rules),id=groups[0].items[0].id;
  const rows=level=>r.tables.BandItemSkillEffect.filter(row=>row._bandItemId===id&&row._level===level);

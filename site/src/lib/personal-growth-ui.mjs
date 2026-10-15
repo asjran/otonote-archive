@@ -15,15 +15,15 @@ class PersonalGrowthWorkbench extends HTMLElement {
   const form=q('[data-profile-account-form]');
   for(const row of this.data.vipRanks){const option=document.createElement('option');option.value=row.rank;option.textContent=`Lv.${row.rank}`;q('[data-profile-tgw]').append(option);}
   const instruments=this.data.formalRules.tables.BandItem.map(row=>this.data.instruments.find(i=>i.id===row._id)??{id:row._id,name:`${this.data.bands.find(b=>b.id===row._bandId)?.name??'乐队'} · 道具 ${row._id}`});
+  const bandGroups=bandItemGroups(this.data.formalRules),itemCaps=new Map(bandGroups.flatMap(group=>group.items.map(item=>[item.id,item.maxLevel])));
   for(const [kind,rows] of [['instruments',instruments],['characters',this.data.characters]]) {
    for(const row of rows) {
     const label=document.createElement('label'),input=document.createElement('input');label.textContent=row.name;
     input.type='number';input.step='1';input.min=kind==='instruments'?'0':'1';input.placeholder='未记录';
-    input.max=String(kind==='instruments'?Math.max(0,...this.data.formalRules.tables.BandItemSkillEffect.filter(r=>r._bandItemId===row.id).map(r=>r._level)):Math.max(...this.data.formalRules.tables.CharacterRank.map(r=>r._rank)));
+    input.max=String(kind==='instruments'?itemCaps.get(row.id):Math.max(...this.data.formalRules.tables.CharacterRank.map(r=>r._rank)));
     input.dataset.accountKind=kind;input.dataset.accountId=row.id;label.append(input);q(`[data-profile-${kind}]`).append(label);
    }
   }
-  const bandGroups=bandItemGroups(this.data.formalRules);
   for(const group of bandGroups){
    const label=document.createElement('label'),title=document.createElement('strong'),input=document.createElement('input'),hint=document.createElement('small');
    title.textContent=this.data.bands.find(b=>b.id===group.bandId)?.name??`乐队 ${group.bandId}`;
