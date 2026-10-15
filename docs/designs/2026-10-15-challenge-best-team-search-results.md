@@ -2,6 +2,8 @@
 
 日期：2026-10-15。修改已在本地完成，未部署。目标仅证明第一名，两个备选不证明排名。
 
+补充复核：下文原性能样本使用评级／乐器均为 25 的固定账号，不是账号全满。按当前上限 50／50 重跑 Odd Dice EXPERT，最优分为 **20,721,548**，两次分别用 32.37 s／28.96 s 完成第一名证明。客户端评级机制、输入差异及重算记录见[角色评级专项核对](2026-10-15-character-rank-client-audit.md)。基准现在默认账号全满；复现原样本需显式传 `--account-preset fixed25`。
+
 ## 结果
 
 在相同 2000 次分支预算下，串行 ABBA 对照的平均计算耗时从 **37.19 s 降到 13.13 s**，下降 **64.7%**，约 **2.83 倍**速度。两次旧引擎与两次新引擎均找到 19,957,029 分，均未在这个小预算内完成证明。精确阶段完整评估次数由 2000 降至 2；初始候选阶段仍完整评分 6 支，没有降低最终技能顺序精度。
@@ -69,11 +71,13 @@
 node tools/benchmark_challenge_search.mjs \
   --data /private/tmp/otonote-current-event-inputs.json \
   --chart /private/tmp/otonote-10011103.json --event 2 \
+  --account-preset fixed25 \
   --evaluations 2000 --output output/challenge-best-search-run.json
 
 node tools/benchmark_challenge_search.mjs \
   --data /private/tmp/otonote-current-event-inputs.json \
   --chart /private/tmp/otonote-10011103.json --event 2 \
+  --account-preset fixed25 \
   --evaluations 0 --time-limit-ms 120000 \
   --output output/challenge-best-search-proof.json
 
