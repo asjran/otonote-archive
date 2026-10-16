@@ -17,6 +17,44 @@
 .task-studio.task-studio .task-dialog .activation-body .activation-profile{gap:10px;margin-bottom:10px}
 .task-studio.task-studio .task-dialog .activation-body .activation-stats{margin-bottom:12px;gap:10px}
 .task-studio.task-studio .task-dialog .activation-body .activation-effects li{padding:8px}
+/* One persistent console, with a single time scrubber and compact live readings. */
+.activation-console{position:sticky;top:0;z-index:5;background:var(--activation-paper,#fff);padding:0 0 8px;border-bottom:1px solid var(--activation-line,#e5e0e9)}
+.activation-console-heading{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:4px 12px}
+.activation-console-readout{display:flex;align-items:center;flex-wrap:wrap;gap:5px 18px}
+.activation-console .activation-current-variant,.activation-console .activation-score-progress{display:none}
+.activation-console .activation-score-label{display:block}
+.activation-console .activation-live-metrics>div{display:flex;align-items:baseline;gap:5px;white-space:nowrap}
+.task-studio.task-studio .task-dialog:has(.activation-body)>.task-dialog-body{scroll-padding-top:150px}
+.task-studio.task-studio .task-dialog .activation-body .activation-console{top:-12px;padding-top:4px}
+.task-studio.task-studio .task-dialog .activation-console .activation-heading .activation-title{display:none}
+.task-studio.task-studio .task-dialog .activation-console .activation-heading small{font-size:10px;white-space:nowrap}
+.task-studio.task-studio .task-dialog .activation-console .activation-controls{margin:3px 0}
+.task-studio.task-studio .task-dialog .activation-console .activation-controls button{min-height:26px;padding:3px 9px;font-size:11px}
+.task-studio.task-studio .task-dialog .activation-console .activation-score{margin:0;gap:7px;flex-wrap:wrap}
+.task-studio.task-studio .task-dialog .activation-console .activation-score-label>small{font-size:10px;white-space:nowrap}
+.task-studio.task-studio .task-dialog .activation-console .activation-score>strong{font-size:25px;letter-spacing:-.04em}
+.task-studio.task-studio .task-dialog .activation-console .activation-final-score{font-size:10px;white-space:nowrap}
+.task-studio.task-studio .task-dialog .activation-console .activation-live-metrics{display:flex;flex-wrap:wrap;gap:5px 12px;margin:0;padding:0;border:0}
+.task-studio.task-studio .task-dialog .activation-console .activation-live-metrics dt{font-size:10px}
+.task-studio.task-studio .task-dialog .activation-console .activation-live-metrics dd{margin:0;font:600 11px/1.5 var(--font-mono,ui-monospace,monospace)}
+.task-studio.task-studio .task-dialog .activation-console .task-replay-state{margin:0;font-size:10px}
+.task-studio.task-studio .task-dialog .activation-console .task-replay-controls{gap:7px;margin:5px 0 0;padding:6px 8px}
+.task-studio.task-studio .task-dialog .activation-console .task-replay-controls button{min-height:27px;padding:3px 8px}
+.task-studio.task-studio .task-dialog .activation-console .task-replay-controls select{min-height:27px;height:27px;width:55px;min-width:55px;padding:2px 5px}
+.task-studio.task-studio .task-dialog .activation-body .activation-now{display:flex;align-items:baseline;flex-wrap:wrap;gap:4px 10px;padding:7px 0 0}
+.task-studio.task-studio .task-dialog .activation-body .activation-now-effects{margin:0;gap:6px}
+.task-studio.task-studio .task-dialog .activation-body .activation-now-pair{padding:5px 7px;gap:6px}
+.task-studio.task-studio .task-dialog .activation-body .activation-now-pair>img{width:25px;height:30px}
+.task-studio.task-studio .task-dialog .activation-body .activation-now-pair>div{display:flex;flex-direction:row;flex-wrap:wrap;gap:2px 8px;align-items:baseline}
+.task-studio.task-studio .task-dialog .activation-body .activation-now-pair strong{flex-basis:100%}
+.task-studio.task-studio .task-dialog .activation-body .activation-profile>div:last-child{display:flex;align-items:baseline;flex-wrap:wrap;gap:2px 10px;flex:1}
+.task-studio.task-studio .task-dialog .activation-body .activation-profile h4{font-size:13px;line-height:1.5;margin:0}
+.task-studio.task-studio .task-dialog .activation-body .activation-profile p{font-size:10px;line-height:1.5;margin:0}
+.task-studio.task-studio .task-dialog .activation-body .activation-inspection-time{font-size:10px;line-height:1.5;margin:0}
+.task-studio.task-studio .task-dialog .activation-body .activation-stats>div{display:flex;align-items:baseline;flex-wrap:wrap;gap:3px 7px;padding-left:7px}
+.task-studio.task-studio .task-dialog .activation-body .activation-stats dd{margin:0;font-size:14px}
+.task-studio.task-studio .task-dialog .activation-body .activation-effects li{gap:4px 7px;padding:7px 8px;font-size:11px}
+.task-studio.task-studio .task-dialog .activation-body .activation-effects small{display:inline;flex-basis:auto;font-size:10px}
 @media(max-width:600px){
   .task-studio.task-studio .task-dialog:has(.activation-body){max-height:calc(100dvh - 24px)}
   .task-studio.task-studio .task-dialog:has(.activation-body)>.task-dialog-body{padding:10px 12px}
@@ -28,4 +66,20 @@
   .task-studio.task-studio .task-dialog .activation-body .activation-scale span:nth-child(even){display:none}
   .task-studio.task-studio .task-dialog .activation-body .activation-stats{grid-template-columns:repeat(2,minmax(0,1fr))}
   .task-studio.task-studio .task-dialog .activation-body .activation-effects{grid-template-columns:1fr}
+  .task-studio.task-studio .task-dialog .activation-body .activation-console{top:-10px}
+  .task-studio.task-studio .task-dialog:has(.activation-body)>.task-dialog-body{scroll-padding-top:190px}
+  .task-studio.task-studio .task-dialog .activation-console .activation-heading{gap:0}
+  .task-studio.task-studio .task-dialog .activation-console .task-replay-controls{display:grid;grid-template-columns:auto minmax(0,1fr) auto auto;gap:5px}
+  .task-studio.task-studio .task-dialog .activation-console .task-replay-controls input[type=range]{grid-column:2/4;min-width:0;width:100%}
+  .task-studio.task-studio .task-dialog .activation-console .task-replay-time{grid-column:1/4;grid-row:2;width:auto;flex:auto;font-size:9px;text-align:left}
+  .task-studio.task-studio .task-dialog .activation-console .task-replay-controls select{grid-column:4;grid-row:1;width:43px;min-width:43px;padding:2px}
+  .task-studio.task-studio .task-dialog .activation-console .task-replay-controls button{min-height:27px;font-size:10px;padding:3px 6px}
+  .task-studio.task-studio .task-dialog .activation-console .task-replay-controls button:nth-last-child(3){grid-column:1/3;grid-row:3}
+  .task-studio.task-studio .task-dialog .activation-console .task-replay-controls button:nth-last-child(2){grid-column:3;grid-row:3}
+  .task-studio.task-studio .task-dialog .activation-console .task-replay-controls button:last-child{grid-column:4;grid-row:3}
+  .task-studio.task-studio .task-dialog .activation-console .activation-console-readout{gap:3px 10px}
+  .task-studio.task-studio .task-dialog .activation-console .activation-score>strong{font-size:22px}
+  .task-studio.task-studio .task-dialog .activation-body .activation-pair-art{width:44px;min-width:44px;height:42px}
+  .task-studio.task-studio .task-dialog .activation-body .activation-pair-art>img{width:36px;height:36px;border-radius:7px}
+  .task-studio.task-studio .task-dialog .activation-body .activation-pair-art>.activation-support-art{width:23px;height:23px;border-radius:5px}
 }

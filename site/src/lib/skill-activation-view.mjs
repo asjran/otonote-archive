@@ -38,21 +38,24 @@ export function renderSkillActivation(root,result,data={}){
     for(const skill of result.skills??[]){root.append(el('h4',skillName(data,skill,skill.slotIndex)),effectsList(data,skill));}return;
   }
   const heading=el('div',null,'activation-heading');heading.append(el('div',playback.ranges?say('技能与激奏回放','Skills & Gekisou replay'):say('技能发动时间轴','Skill activation timeline'),'activation-title'));
-  const power=result.power;heading.append(el('small',say(`本次综合力 ${fmt(power)}`,`Power ${fmt(power)}`)));root.append(heading);let selectedSlot=null;const gekisouState={};
-  const controls=el('div',null,'activation-controls');controls.setAttribute('role','group');controls.setAttribute('aria-label',say('回放顺序','Replay order'));root.append(controls);
+  const power=result.power;heading.append(el('small',say(`综合力 ${fmt(power)}`,`Power ${fmt(power)}`)));let selectedSlot=null;const gekisouState={};
+  const controls=el('div',null,'activation-controls');controls.setAttribute('role','group');controls.setAttribute('aria-label',say('回放顺序','Replay order'));
+  const consolePanel=el('section',null,'activation-console'),consoleHeading=el('div',null,'activation-console-heading'),playbackPanel=el('div',null,'activation-console-playback');
+  consolePanel.setAttribute('aria-label',say('回放控制与分数','Replay controls and score'));consoleHeading.append(controls,heading);consolePanel.append(consoleHeading,playbackPanel);root.append(consolePanel);
   const canvas=el('div',null,'activation-canvas');root.append(canvas);
   function draw(index){
     root.stopReplay?.();
-    canvas.replaceChildren();[...controls.children].forEach((b,i)=>b.setAttribute('aria-pressed',String(i===index)));
+    canvas.replaceChildren();playbackPanel.replaceChildren();[...controls.children].forEach((b,i)=>b.setAttribute('aria-pressed',String(i===index)));
     const variant=playback.variants[index],clock=createReplayClock(playback,variant,{stateTrace:result.stateTrace}),{rows,duration}=clock;
     const transport=el('div',null,'task-replay-controls'),play=el('button',say('播放','Play')),seek=el('input'),time=el('span',null,'task-replay-time'),speed=el('select'),liveState=el('p',null,'task-replay-state');
     time.style.setProperty('--replay-time-width',`${liveSeconds(duration).length*2+3}ch`);
     const next=el('button',say('下一次发动','Next activation')),reset=el('button',say('重置','Reset')),follow=el('button',say('跟随播放','Follow playback'));next.type=reset.type=follow.type='button';follow.setAttribute('aria-pressed','true');
     play.type='button';seek.type='range';seek.min=0;seek.max=duration;seek.step=1;seek.value=0;seek.setAttribute('aria-label',say('回放时刻','Replay time'));
-    speed.setAttribute('aria-label',say('播放速度','Playback speed'));for(const value of [1,2,4]){const o=el('option',`${value}×`);o.value=value;speed.append(o);}transport.append(play,seek,time,speed,next,reset,follow);canvas.append(transport,liveState);
+    speed.setAttribute('aria-label',say('播放速度','Playback speed'));for(const value of [1,2,4]){const o=el('option',`${value}×`);o.value=value;speed.append(o);}transport.append(play,seek,time,speed,next,reset,follow);
+    liveState.hidden=!playback.ranges?.length;
     let frame=null,previous=0,current=0,following=true,gekisouView,lastInspection=null;
     const nowPanel=el('section',null,'activation-now');nowPanel.setAttribute('aria-label',say('当前技能与音符','Current skills and notes'));const nowTitle=el('strong'),nowEffects=el('div',null,'activation-now-effects'),gkNow=el('div',null,'activation-now-effects');nowPanel.append(nowTitle,nowEffects,gkNow);canvas.append(nowPanel);
-    const metrics=el('dl',null,'activation-live-metrics'),readings={};for(const [key,zh,en] of [['notes','已判定音符','Notes judged'],['factor','最近音符倍率','Last note score factor'],['life','LIFE','LIFE'],['rewards','已结算名次奖励','Settled rank rewards']]){const cell=el('div');cell.append(el('dt',say(zh,en)),readings[key]=el('dd','—'));metrics.append(cell);}canvas.append(metrics);
+    const metrics=el('dl',null,'activation-live-metrics'),readings={};for(const [key,zh,en] of [['notes','音符','Notes'],['factor','倍率','Factor'],['life','LIFE','LIFE'],['rewards','名次奖励','Rank rewards']]){const cell=el('div');cell.hidden=key==='rewards'&&!playback.ranges?.length;cell.append(el('dt',say(zh,en)),readings[key]=el('dd','—'));metrics.append(cell);}
     function paintTime(){
       seek.value=String(current);time.textContent=`${liveSeconds(current)} / ${liveSeconds(duration)}`;
       const snapshot=clock.at(current),{active,note}=snapshot;
@@ -60,7 +63,7 @@ export function renderSkillActivation(root,result,data={}){
       cumulative.textContent=fmt(snapshot.score);progress.style.width=`${current/duration*100}%`;readings.notes.textContent=`${snapshot.count} / ${variant.notes?.length??0}`;readings.factor.textContent=note?`${fmt(note.scoreUpFactor)}×`:'—';readings.life.textContent=fmt(snapshot.life);readings.rewards.textContent=playback.ranges?.length?`+${fmt(snapshot.rewards)}`:say('不适用','N/A');
       for(const lane of lanes.children){const row=rows[Number(lane.dataset.position)],on=active.includes(row);lane.dataset.playing=String(on);lane.dataset.phase=current<row.startMs?'waiting':on?'active':'ended';lane.querySelector('.task-replay-cursor').style.left=`${current/duration*100}%`;lane.querySelector('.activation-time').textContent=current<row.startMs?say(`等待 ${liveSeconds(row.startMs-current)}`,`In ${liveSeconds(row.startMs-current)}`):on?say(`剩余 ${liveSeconds(row.endMs-current)}`,`${liveSeconds(row.endMs-current)} left`):say('已发动','Triggered');}
       liveState.textContent=snapshot.section?say(`第 ${snapshot.section.index} 段 · ${['','COMBO','LUCK','JUST'][snapshot.section.missionType]}`,`Section ${snapshot.section.index} · ${['','COMBO','LUCK','JUST'][snapshot.section.missionType]}`):say('普通演出区间','Ordinary live section');
-      nowTitle.textContent=active.length||gkActive.length?say('正在生效的成员与留影效果','Active member and snap effects'):say('当前没有持续技能效果','No ongoing skill effects now');
+      nowTitle.textContent=active.length||gkActive.length?say('生效中','Active now'):say('暂无持续效果','No ongoing effects');
       const gkKey=gkActive.map(({effect,window})=>`${effect.source}:${window.startMs}:${window.value??''}`).join(',');if(gkNow.dataset.activeKey!==gkKey){gkNow.dataset.activeKey=gkKey;gkNow.replaceChildren();for(const {effect,window} of gkActive){const cell=el('div',null,'activation-now-pair'),art=portrait(cardFor(data,effect.kind,effect.sourceCardId));if(art)cell.append(art);const copy=el('div');copy.append(el('strong',say(`激奏 · 位置 ${effect.slotIndex+1} · ${effect.kind==='support'?'留影':'成员'}`,`Gekisou · Slot ${effect.slotIndex+1} · ${effect.kind}`)),el('span',`${effectName(effect.type)}${[2000,2001].includes(effect.type)&&window.value!=null?' +'+fmt(window.value*100)+'%':''}`));cell.append(copy);gkNow.append(cell);}}
       const activeKey=active.map(r=>r.slotIndex).join(',');if(nowEffects.dataset.activeKey!==activeKey){nowEffects.dataset.activeKey=activeKey;nowEffects.replaceChildren();for(const row of active){const cell=el('div',null,'activation-now-pair');cell.dataset.slot=row.slotIndex;const art=portrait(cardFor(data,'member',row.skill.memberCardId));if(art)cell.append(art);const copy=el('div');copy.append(el('strong',say(`位置 ${row.slotIndex+1} · ${cardFor(data,'member',row.skill.memberCardId)?.relationLabel??skillName(data,row.skill,row.slotIndex)}`,`Slot ${row.slotIndex+1} · ${skillName(data,row.skill,row.slotIndex)}`)),el('span',null,'activation-now-boost'),el('span',say(`留影延长 ${seconds(row.skill.extensionMs??0)}`,`Snap extension ${seconds(row.skill.extensionMs??0)}`)),el('small',null,'activation-now-coverage'));cell.append(copy);nowEffects.append(cell);}}
       for(const cell of nowEffects.children){const row=rows.find(r=>r.slotIndex===Number(cell.dataset.slot)),covered=row.covered.filter(n=>n.timeMs<=current).length,rates={};for(const window of row.windows.filter(w=>w.startMs<=current&&current<w.endMs))for(const [key,value] of Object.entries(window.rates))rates[key]=(rates[key]??0)+value;cell.querySelector('.activation-now-boost').textContent=Object.entries(rates).map(([key,value])=>`${key==='general'?say('得分','Score'):key.toUpperCase()} +${fmt(value*100)}%`).join(' · ');cell.querySelector('.activation-now-coverage').textContent=say(`已覆盖 ${covered} / ${row.covered.length} 音符 · 剩余 ${liveSeconds(row.endMs-current)}`,`${covered} / ${row.covered.length} notes · ${liveSeconds(row.endMs-current)} left`);}
@@ -72,10 +75,10 @@ export function renderSkillActivation(root,result,data={}){
     root.stopReplay=()=>{if(frame!=null)cancelAnimationFrame(frame);frame=null;play.textContent=say('播放','Play');};
     function tick(now){if(!root.isConnected){root.stopReplay();return;}current=Math.min(duration,current+(now-previous)*Number(speed.value));previous=now;paintTime();if(current>=duration)root.stopReplay();else frame=requestAnimationFrame(tick);}
     play.addEventListener('click',()=>{if(frame!=null){root.stopReplay();return;}if(current>=duration)jump(0);previous=performance.now();play.textContent=say('暂停','Pause');frame=requestAnimationFrame(tick);});seek.addEventListener('input',()=>jump(Number(seek.value)));next.addEventListener('click',()=>jump(clock.next(current)));reset.addEventListener('click',()=>{root.stopReplay();jump(0);});follow.addEventListener('click',()=>{following=!following;follow.setAttribute('aria-pressed',String(following));lastInspection=null;paintTime();});
-    const summary=el('div',null,'activation-score');const scoreLabel=el('div',null,'activation-score-label');scoreLabel.append(el('span',label(variant,playback.randomSampling)),el('small',say('本次回放累计得分','Current replay score')));const cumulative=el('strong','0');cumulative.dataset.replayScore='';summary.append(scoreLabel,cumulative,el('small',say(`本样本最终 ${fmt(variant.score)} 分`,`${fmt(variant.score)} points when finished`)));
+    const summary=el('div',null,'activation-score');const scoreLabel=el('div',null,'activation-score-label');scoreLabel.append(el('span',label(variant,playback.randomSampling),'activation-current-variant'),el('small',say('累计分','Score so far')));const cumulative=el('strong','0');cumulative.dataset.replayScore='';summary.append(scoreLabel,cumulative,el('small',say(`最终 ${fmt(variant.score)}`,`Final ${fmt(variant.score)}`),'activation-final-score'));
     const progressTrack=el('div',null,'activation-score-progress'),progress=el('i');progressTrack.append(progress);summary.append(progressTrack);
-    if(playback.randomSampling&&variant.seed!=null)summary.append(el('small',`Seed ${variant.seed}`));canvas.insertBefore(summary,nowPanel);canvas.insertBefore(metrics,nowPanel);
-    canvas.append(el('p',playback.ranges?.length?say('平均分不对应单次回放。选择段落与技能，查看本次样本的任务、奖励与发动变化。','The mean is not a single replay. Select a section and skill to inspect this sample’s missions, rewards and activations.'):variant.kind==='explicit'?say('按导入的判定与指定顺序回放。点击时间条查看当时的技能条件。','Replayed from the entered judgements and skill order. Select an activation to inspect its conditions.'):say('平均分来自多种顺序，不对应单次发动。点击下方时间条，查看这一次的技能与音符。','The mean combines multiple orders. Select a timeline row to inspect one activation.'),'activation-caption'));
+    if(playback.randomSampling&&variant.seed!=null)summary.append(el('small',`Seed ${variant.seed}`));const readout=el('div',null,'activation-console-readout');readout.append(summary,metrics,liveState);playbackPanel.append(readout,transport);
+    canvas.append(el('p',playback.ranges?.length?say('平均分综合多个样本；下方为本次样本的任务、奖励与发动。','The mean combines samples; missions, rewards and activations below describe this sample.'):variant.kind==='explicit'?say('按导入判定与指定顺序回放。','Replayed with the entered judgements and order.'):say('平均分综合多种顺序；此处为所选顺序的单次回放。','The mean combines orders; this is one replay of the selected order.'),'activation-caption'));
     if(data.ranking)canvas.append(el('p',say('此处按当前技能逐谱精算；快速参考值可能与本次回放分数不同。','This view replays the current skills exactly; quick estimates may differ.'),'activation-caption'));
     let ordinaryRoot=canvas;
     if(playback.ranges?.length){
@@ -96,9 +99,9 @@ export function renderSkillActivation(root,result,data={}){
       if(supportArt){supportArt.className='activation-support-art';art.append(supportArt);}
       const profileText=el('div');profileText.append(el('span',say(`第 ${row.position+1} 次发动 · 位置 ${row.slotIndex+1}`,`Activation ${row.position+1} · Slot ${row.slotIndex+1}`),'activation-eyebrow'),el('h4',skillName(data,row.skill,row.slotIndex)));
       const supportName=cardFor(data,'support',row.skill.supportCardId)?.displayName;
-      if(supportName)profileText.append(el('p',say(`搭配留影 · ${supportName}`,`Snap · ${supportName}`)));
+      if(supportName)profileText.append(el('p',say(`留影 · ${supportName}`,`Snap · ${supportName}`)));
+      profileText.append(el('span',null,'activation-inspection-time'));
       profile.append(art,profileText);inspection.append(profile);
-      inspection.append(el('p',null,'activation-inspection-time'));
       const stats=el('dl',null,'activation-stats');
       for(const [name,value] of [[say('发动时刻','Start'),seconds(row.startMs)],[say('得分效果结束','Score effect ends'),row.windows.length?seconds(row.endMs):'—'],[say('留影延长','Extension'),seconds(row.skill.extensionMs??0)],[say('窗口内音符','Notes in windows'),fmt(row.covered.length)]]){const cell=el('div');cell.append(el('dt',name),el('dd',value));stats.append(cell);}inspection.append(stats,el('p',say('以下为这次发动的条件记录；当前是否仍在生效见上方回放状态。','These conditions were recorded at activation. See the replay state above for effects active now.'),'activation-caption'),effectsList(data,row.skill,row.skillTrace));
       if(!row.windows.length)inspection.append(el('p',say('本次没有生效的得分窗口；其他技能效果见上方。','No active score window for this activation. Other effects are listed above.')));
@@ -123,7 +126,7 @@ export function renderSkillActivation(root,result,data={}){
     paintTime();
 
   }
-  playback.variants.forEach((v,i)=>{const b=el('button',label(v,playback.randomSampling));b.type='button';b.addEventListener('click',()=>draw(i));controls.append(b);});draw(0);
+    playback.variants.forEach((v,i)=>{const text=v.kind==='explicit'?say('指定回放','Entered replay'):v.kind==='best'?(playback.randomSampling?say('最高样本','Highest sample'):say('最高分','Highest')):(playback.randomSampling?say('最低样本','Lowest sample'):say('最低分','Lowest'));const b=el('button',text);b.type='button';b.title=label(v,playback.randomSampling);b.setAttribute('aria-label',b.title);b.addEventListener('click',()=>draw(i));controls.append(b);});draw(0);
 }
 // Shared tool modules also import this file during server-side validation.
 if(typeof HTMLElement!=='undefined'&&typeof customElements!=='undefined'&&!customElements.get('skill-activation')){
@@ -132,6 +135,13 @@ class SkillActivation extends HTMLElement {
     const order=skillOrderSummary(this.data??{},this.payload?.draft,this.summaryResult);if(order)this.append(order);
     const details=el('details',null,'skill-activation');const summary=el('summary'),mark=el('span',null,'activation-mark');mark.setAttribute('aria-hidden','true');for(let i=0;i<5;i++)mark.append(el('i'));
     const summaryText=el('span',null,'activation-summary-text');summaryText.append(el('strong',say('查看技能发动','View skill activations')),el('small',say('发动顺序、技能条件与音符覆盖','Order, conditions and note coverage')));summary.append(mark,summaryText,el('span','⌄','activation-chevron'));details.append(summary);const body=el('div',null,'activation-body');details.append(body);this.append(details);
+    if(order){
+      this.classList.add('activation-with-order');details.classList.add('activation-order-details');summary.hidden=true;
+      const open=el('button',null,'activation-order-open');open.type='button';open.append(el('span',say('回放','Replay')),el('span','↗','activation-order-open-icon'));
+      open.setAttribute('aria-label',say('查看技能发动','View skill activations'));open.setAttribute('aria-expanded','false');
+      body.id=`activation-details-${Math.random().toString(36).slice(2)}`;open.setAttribute('aria-controls',body.id);
+      open.addEventListener('click',()=>summary.click());details.addEventListener('toggle',()=>open.setAttribute('aria-expanded',String(details.open)));order.append(open);
+    }
     details.addEventListener('change',event=>event.stopPropagation());
     details.addEventListener('toggle',()=>{if(!details.open){this.stop();return;}if(this.result){renderSkillActivation(body,this.result,this.data);return;}this.load(body);});
   }
