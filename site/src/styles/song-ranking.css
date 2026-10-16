@@ -292,3 +292,87 @@ tr[data-podium="3"] .ranking-position { color: #ac7c68; }
 @media(pointer:coarse){
  .tool-studio[data-tool-kind="song-ranking"] :is(.ranking-mode,.ranking-board-tabs) button {min-height:34px;}
 }
+
+/* Refined chart comparison: visible ordering, bounded filters and result provenance. */
+.song-ranking .ranking-startup,
+.song-ranking .ranking-error {padding:16px;border:1px solid var(--studio-line);border-radius:8px;margin:0;font-size:13px;}
+.song-ranking .ranking-error {background:#fff2ed;color:#803522;border-color:#c4806c;}
+.song-ranking .ranking-error p {line-height:1.7;}
+.song-ranking .ranking-error button {min-height:40px;padding:8px 12px;margin:4px 8px 0 0;background:#fff;border:1px solid currentColor;border-radius:6px;color:inherit;}
+.tool-studio[data-tool-kind="song-ranking"] .ranking-mode-setup {display:block;padding:16px;}
+.tool-studio[data-tool-kind="song-ranking"] .ranking-mode-setup>.ranking-setup-heading {position:static;float:right;margin:0 0 8px 16px;}
+.tool-studio[data-tool-kind="song-ranking"] .ranking-mode-setup>.ranking-setting-row {grid-template-columns:64px minmax(0,1fr);padding:0;margin:8px 0 0;}
+.tool-studio[data-tool-kind="song-ranking"] .ranking-mode-setup>.ranking-setting-row:first-of-type {margin-top:0;}
+.tool-studio[data-tool-kind="song-ranking"] :is(.ranking-mode,.ranking-board-tabs) {gap:4px;background:none;padding:0;}
+.tool-studio[data-tool-kind="song-ranking"] :is(.ranking-mode,.ranking-board-tabs) button {min-height:36px;padding:7px 12px;background:#f0f3f6;color:#475367;box-shadow:none;border:1px solid transparent;}
+.tool-studio[data-tool-kind="song-ranking"] :is(.ranking-mode,.ranking-board-tabs) button[aria-pressed=true] {background:#e7f0f5;color:#23566f;border-color:#6a95ac;box-shadow:inset 0 -2px #3c728d;}
+.song-ranking .ranking-sortbar {display:grid;grid-template-columns:minmax(170px,1.5fr) minmax(100px,1fr) minmax(180px,1.4fr) minmax(110px,1fr) minmax(100px,1fr);gap:12px;padding:16px;border-bottom:1px solid var(--studio-line);background:#f5f8fb;}
+.song-ranking .ranking-sortbar label {display:grid;gap:6px;min-width:0;font-size:12px;color:var(--studio-muted);}
+.song-ranking .ranking-sortbar :is(input,select) {width:100%;min-width:0;min-height:40px;padding:8px;border:1px solid var(--studio-line);border-radius:5px;background:#fff;color:var(--studio-ink);box-sizing:border-box;}
+.song-ranking .ranking-sortbar p {grid-column:1/-1;font-size:11px;line-height:1.7;color:var(--studio-muted);margin:0;}
+.tool-studio[data-tool-kind="song-ranking"] .ranking-song-setup>.ranking-setup-heading {position:static;margin-bottom:12px;}
+.tool-studio[data-tool-kind="song-ranking"] .ranking-song-setup>.ranking-setup-heading h3 {position:static;clip-path:none;width:auto;height:auto;overflow:visible;font-size:14px;margin:0;}
+.tool-studio[data-tool-kind="song-ranking"] .ranking-clear {min-height:36px;padding:4px 10px;border:1px solid var(--studio-line);border-radius:5px;background:#fff;color:var(--studio-muted);}
+.tool-studio[data-tool-kind="song-ranking"] .ranking-filter-fields {gap:12px 24px;}
+.tool-studio[data-tool-kind="song-ranking"] .ranking-setting-row>:is(input,select) {box-sizing:border-box;min-height:40px;max-width:100%;padding:7px;border:1px solid var(--studio-line);border-radius:5px;background:#fff;color:var(--studio-ink);}
+.song-ranking .ranking-range {margin:0;min-width:0;border:1px solid var(--studio-line);border-radius:6px;padding:9px 12px 12px;display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);align-items:center;gap:8px;}
+.song-ranking .ranking-range legend {font-size:11px;color:var(--studio-muted);padding-inline:4px;max-width:100%;}
+.song-ranking .ranking-range input {width:100%;min-width:0;min-height:40px;box-sizing:border-box;border:1px solid var(--studio-line);border-radius:4px;padding:8px;background:#fff;color:var(--studio-ink);}
+.song-ranking .ranking-range>span {font-size:11px;color:var(--studio-muted);}
+.song-ranking .ranking-advanced {margin-top:14px;font-size:12px;}
+.song-ranking .ranking-advanced summary {cursor:pointer;padding-block:8px;line-height:1.6;color:var(--studio-ink);}
+.song-ranking .ranking-advanced .ranking-filter-fields {margin-top:12px;}
+.song-ranking .ranking-advanced p {font-size:11px;line-height:1.7;color:var(--studio-muted);margin:0;align-self:center;}
+.tool-studio[data-tool-kind="song-ranking"] .ranking-filter-tags {margin:12px 0 0;padding:0;gap:6px;}
+.song-ranking .ranking-filter-tags button {min-height:34px;}
+.song-ranking [aria-invalid=true] {border-color:#a4412d!important;background:#fff3ef!important;}
+.song-ranking .ranking-identity {padding:12px 16px;border-top:1px solid var(--studio-line);background:#f8fafc;}
+.song-ranking .ranking-identity p {font-size:11px;color:var(--studio-muted);line-height:1.75;margin:0;overflow-wrap:anywhere;}
+.song-ranking .ranking-identity [data-identity] {color:var(--studio-ink);margin-bottom:4px;}
+.song-ranking :is(.ranking-result-status,.ranking-metric-help) {padding:0 16px;margin:0 0 10px;font-size:11px;line-height:1.7;color:var(--studio-muted);}
+.song-ranking .ranking-result-status {font-variant-numeric:tabular-nums;color:var(--studio-ink);}
+.song-ranking .ranking-row-identity {font-size:10px;line-height:1.6;color:#53657a;margin-top:5px;}
+.song-ranking .ranking-row-state {display:block;font-size:10px;line-height:1.6;color:#3b6d68;margin-top:3px;}
+.song-ranking .ranking-row-state[data-state=pending] {color:#805e24;}
+.song-ranking .ranking-row-state[data-state=unavailable] {color:#8c4435;}
+.song-ranking .ranking-table th {font-size:11px;}
+.song-ranking .ranking-table th:nth-child(1) {width:34px;padding-left:16px;}
+.song-ranking .ranking-table th:nth-child(6) {width:42px;}
+.song-ranking .ranking-table th:nth-child(5) {width:100px;}
+.song-ranking .ranking-table th button {min-height:36px;line-height:1.5;text-align:left;}
+.song-ranking .ranking-table th[aria-sort=ascending] {color:var(--studio-ink);font-weight:700;}
+.song-ranking .ranking-position {padding-left:16px!important;}
+.song-ranking .ranking-action button {width:38px;height:38px;}
+.song-ranking .ranking-meter strong {overflow-wrap:anywhere;}
+.song-ranking .ranking-meter[data-active] {background:#e8f1f642;}
+.song-ranking .ranking-source-release {overflow-wrap:anywhere;}
+.song-ranking .ranking-song-links a {min-height:40px;display:inline-flex;align-items:center;}
+.song-ranking .ranking-pick-art span {display:none;}
+.song-ranking .ranking-pick-copy>small {font-size:10px;}
+.song-ranking .ranking-pagination button {min-width:40px;min-height:40px;}
+.song-ranking .ranking-empty {border-top:1px solid var(--studio-line);padding:30px 16px;}
+.song-ranking .ranking-empty button {margin:8px 4px 0;min-height:40px;}
+@media(max-width:1000px) {
+ .song-ranking .ranking-sortbar {grid-template-columns:repeat(3,minmax(0,1fr));}
+}
+@media(max-width:700px) {
+ .song-ranking .ranking-sortbar {grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;padding:12px;}
+ .song-ranking .ranking-sortbar>label:first-child {grid-column:1/-1;}
+ .tool-studio[data-tool-kind="song-ranking"] .ranking-mode-setup {padding:12px;}
+ .tool-studio[data-tool-kind="song-ranking"] .ranking-mode-setup>.ranking-setting-row {grid-template-columns:1fr;padding:0;gap:7px;}
+ .tool-studio[data-tool-kind="song-ranking"] .ranking-mode-setup>.ranking-setting-row:first-of-type {padding-right:70px;}
+ .tool-studio[data-tool-kind="song-ranking"] :is(.ranking-mode,.ranking-board-tabs) button {min-height:40px;}
+ .tool-studio[data-tool-kind="song-ranking"] .ranking-filter-fields {gap:12px;grid-template-columns:1fr;}
+ .song-ranking :is(input,select) {font-size:16px;}
+ .song-ranking .ranking-table tbody>tr:not(.ranking-detail) {padding:16px 12px;gap:12px;grid-template-columns:26px minmax(0,1fr) minmax(0,1fr);}
+ .song-ranking .ranking-position {padding-left:0!important;}
+ .song-ranking .ranking-row-identity {font-size:10px;}
+ .song-ranking .ranking-subtitle small {display:inline;}
+ .song-ranking .ranking-meter strong {font-size:15px;}
+ .song-ranking .ranking-meter[data-active] {padding:8px;border-radius:5px;}
+ .song-ranking .ranking-meter:not([data-active]) {align-self:center;}
+ .song-ranking .ranking-action button {width:40px;height:40px;}
+ .song-ranking .ranking-pagination {flex-wrap:wrap;gap:10px;}
+ .song-ranking .ranking-detail dd {overflow-wrap:anywhere;}
+}
+@media(prefers-reduced-motion:reduce) {.song-ranking * {scroll-behavior:auto;transition:none!important;}}

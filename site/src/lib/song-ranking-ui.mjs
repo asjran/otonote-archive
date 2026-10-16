@@ -1,162 +1,248 @@
 import {skillActivation} from './skill-activation-view.mjs';
 import {setupQuickOptions,selectedOptionText} from './tool-quick-options.mjs';
 import {selectedControlValues,restoreFilterControl} from './filter-controls.mjs';
-import {rankGradeRows,SCORE_GRADES} from './song-grade-ranking.mjs';
-import { rankSongRows, RANKING_METRICS } from './song-ranking-view.mjs';
-import { withSongSkillProfile, validateSongSkillProfile } from './song-skill-profile.mjs';
-import { setupSongRankingReplay } from './song-ranking-replay-ui.mjs';
-import { translateUiText } from './ui-text-localizer.ts';
+import {SCORE_GRADES} from './song-grade-ranking.mjs';
+import {RANKING_OPTIONS, defaultRankingDirection, rankRefinedSongRows, scopeRankingRows, rankingRowState, validateRankingOptions, editionName, rankingSongLinks} from './song-ranking-options.mjs';
+import {currentServerContext, gameServer} from './game-servers.mjs';
+import {withSongSkillProfile, validateSongSkillProfile} from './song-skill-profile.mjs';
+import {setupSongRankingReplay} from './song-ranking-replay-ui.mjs';
 const say = (zh, en) => document.documentElement.lang.startsWith('en') ? en : zh;
-const ui = (value = '') => document.documentElement.lang.startsWith('en') ? translateUiText(value) : value;
-const metricLabels = {
-  scoreMultiplier: 'Score multiplier', p10Score: 'P10 reference score', difficultyFactor: 'Difficulty multiplier',
-  comboFactor: 'Weighted combo multiplier', skillMultiplier: 'Ordinary skill gain multiplier',
-  gekisouMultiplier: 'Gekisou / ordinary score multiplier', rankingBonusShare: 'Gekisou placement bonus share'
-};
-const metricLabel = key => metricLabels[key] ? say(RANKING_METRICS[key], metricLabels[key]) : ui(RANKING_METRICS[key]);
+const metricLabel = key => RANKING_OPTIONS[key]?.[document.documentElement.lang.startsWith('en') ? 1 : 0] ?? key;
 const node = (tag, text = '', cls = '') => { const e = document.createElement(tag); e.textContent = text; e.className = cls; return e; };
-const number = (n, digits = 0) => Number.isFinite(n) ? n.toLocaleString('zh-CN', { maximumFractionDigits: digits }) : '—';
-const metricValue = (key, n) => !Number.isFinite(n) ? '—' : key === 'rankingBonusShare' ? `${number(n * 100, 2)}%`
-  : key.endsWith('Factor') || key.endsWith('Multiplier') ? `${number(n, 4)}×` : number(n, 2);
+const number = (n, digits = 0) => Number.isFinite(n) ? n.toLocaleString(document.documentElement.lang, {maximumFractionDigits:digits}) : '—';
+const metricValue = (key, n) => {
+  if (!Number.isFinite(n)) return '—';
+  const type = RANKING_OPTIONS[key]?.[2];
+  return type === 'percent' ? `${number(n * 100, 2)}%` : type === 'ratio' ? `${number(n, 4)}×` : type === 'seconds' ? `${number(n, 2)} s` : type === 'density' ? `${number(n, 2)} / s` : number(n, 2);
+};
+const specialMetrics = ['gekisouMultiplier', 'rankingBonusShare'];
 class SongRanking extends HTMLElement {
   connectedCallback() {
     if (this.events) return;
-    this.data = JSON.parse(this.querySelector('[data-ranking-data]').textContent);
-    this.mode = 'ordinary'; this.metric = new URLSearchParams(location.search).get('view')==='grade'?'requiredPower':'expectedScore'; this.page = 0; this.events = new AbortController(); this.expanded = new Set();
-    const listen = (el, type, fn) => el.addEventListener(type, fn, { signal: this.events.signal });
-    for (const button of this.querySelectorAll('[data-mode]')) listen(button, 'click', () => {
-      this.mode = button.dataset.mode; this.page = 0; this.expanded.clear();
-      if(this.mode==='gekisou'&&this.metric==='requiredPower')this.metric='expectedScore';
-      if(this.mode==='gekisou'&&this.metric==='p10Score'&&!this.data.rankings.gekisou.some(row=>Number.isFinite(row.p10Score)))this.metric='expectedScore';
-      if (this.mode === 'ordinary' && ['gekisouMultiplier','rankingBonusShare'].includes(this.metric)) this.metric = 'expectedScore';
+    this.events = new AbortController(); this.expanded = new Set(); this.page = 0;
+    const listen = (el, type, fn) => el.addEventListener(type, fn, {signal:this.events.signal});
+    listen(this.querySelector('[data-reload]'), 'click', () => location.reload());
+    try {
+      this.data = JSON.parse(this.querySelector('[data-ranking-data]').textContent);
+      if (!Array.isArray(this.data.rankings.ordinary) || !Array.isArray(this.data.rankings.gekisou)) throw Error('Invalid ranking data');
+      this.mode = 'ordinary'; this.metric = new URLSearchParams(location.search).get('view') === 'grade' ? 'requiredPower' : 'expectedScore';
+      this.querySelector('[data-direction]').value = defaultRankingDirection(this.metric);
+      this.defaultGradeEdition = this.querySelector('[data-grade-edition]').value;
+      try { this.server = currentServerContext().serverId; } catch (error) { this.serverError = error.message; }
+      for (const button of this.querySelectorAll('[data-mode]')) listen(button, 'click', () => {
+        this.mode = button.dataset.mode; this.expanded.clear();
+        if (this.mode === 'gekisou' && this.metric === 'requiredPower' || this.mode === 'ordinary' && specialMetrics.includes(this.metric)) this.setMetric('expectedScore');
+        this.page = 0; this.render();
+      });
+      for (const input of this.querySelectorAll('[data-filter], [data-duration], [data-overhead], [data-direction], [data-grouping], [data-grade-target], [data-grade-edition], [data-grade-profile], [data-grade-score], [data-skill-percent], [data-skill-seconds]')) listen(input, 'input', () => { this.page = 0; this.render(); });
+      for (const button of this.querySelectorAll('[data-board], [data-sort]')) listen(button, 'click', () => {
+        const metric = button.dataset.board ?? button.dataset.sort;
+        if (button.hasAttribute('data-sort') && metric === this.metric) this.querySelector('[data-direction]').value = this.querySelector('[data-direction]').value === 'asc' ? 'desc' : 'asc';
+        else this.setMetric(metric);
+        this.page = 0; this.render();
+      });
+      listen(this.querySelector('[data-metric]'), 'change', event => { this.setMetric(event.target.value); this.page = 0; this.render(); });
+      listen(this.querySelector('[data-copy-skills]'), 'click', () => {
+        const slots = [...this.querySelectorAll('[data-skill-slot]')];
+        for (const slot of slots.slice(1)) for (const key of ['percent','seconds']) slot.querySelector(`[data-skill-${key}]`).value = slots[0].querySelector(`[data-skill-${key}]`).value;
+        this.page = 0; this.render();
+      });
+      listen(this.querySelector('[data-prev]'), 'click', () => { this.page--; this.render(); });
+      listen(this.querySelector('[data-next]'), 'click', () => { this.page++; this.render(); });
+      const clearFilters = () => {
+        for (const input of this.querySelectorAll('[data-filter]')) restoreFilterControl(input, input.tagName === 'SELECT' ? 'all' : '');
+        this.page = 0; this.render();
+      };
+      for (const button of this.querySelectorAll('[data-reset], [data-empty-reset]')) listen(button, 'click', clearFilters);
+      listen(this.querySelector('[data-show-all]'), 'click', () => { this.querySelector('[data-replay-method]').value = 'linear'; this.page = 0; this.render(); });
+      listen(this.querySelector('[data-reset-all]'), 'click', () => {
+        this.replays.reset(); this.mode = 'ordinary'; this.setMetric('expectedScore');
+        for (const field of this.querySelectorAll('[data-filter]')) restoreFilterControl(field, field.tagName === 'SELECT' ? 'all' : '');
+        this.querySelector('[data-grade-profile]').value = 'benchmark'; this.querySelector('[data-grade-score]').value = '';
+        this.querySelector('[data-grade-target]').value = '5'; this.querySelector('[data-grade-edition]').value = this.defaultGradeEdition;
+        this.querySelector('[data-overhead]').value = '0'; this.querySelector('[data-duration]').value = 'chart';
+        this.querySelector('[data-grouping]').value = 'charts'; this.querySelector('[data-replay-fps]').value = '60';
+        for (const field of this.querySelectorAll('[data-skill-percent]')) field.value = '100';
+        for (const field of this.querySelectorAll('[data-skill-seconds]')) field.value = '5';
+        this.page = 0; this.render(); this.querySelector('[data-metric]').focus();
+      });
+      this.shortcuts = setupQuickOptions(this);
+      this.replays = setupSongRankingReplay(this, () => { this.page = 0; this.render(); });
+      this.querySelector('[data-startup]').hidden = true;
       this.render();
-    });
-    for (const input of this.querySelectorAll('[data-filter], [data-duration]')) listen(input, 'input', () => { this.page = 0; this.render(); });
-    for (const button of this.querySelectorAll('[data-board], [data-sort]')) listen(button, 'click', () => { this.metric = button.dataset.board ?? button.dataset.sort; if(this.metric==='requiredPower')this.mode='ordinary'; this.page = 0; this.render(); });
-    for(const input of this.querySelectorAll('[data-grade-target],[data-grade-profile],[data-grade-score],[data-skill-percent],[data-skill-seconds]'))listen(input,'input',()=>{this.page=0;this.render();});
-    listen(this.querySelector('[data-copy-skills]'),'click',()=>{
-      const slots=[...this.querySelectorAll('[data-skill-slot]')];
-      for(const slot of slots.slice(1))for(const key of ['percent','seconds'])slot.querySelector(`[data-skill-${key}]`).value=slots[0].querySelector(`[data-skill-${key}]`).value;
-      this.page=0;this.render();
-    });
-    listen(this.querySelector('[data-metric]'), 'change', event => { this.metric = event.target.value || 'expectedScore'; this.page = 0; this.render(); });
-    listen(this.querySelector('[data-prev]'), 'click', () => { this.page--; this.render(); });
-    listen(this.querySelector('[data-next]'), 'click', () => { this.page++; this.render(); });
-    listen(this.querySelector('[data-reset]'), 'click', () => { for (const input of this.querySelectorAll('[data-filter]')) restoreFilterControl(input,input.tagName === 'SELECT' ? 'all' : ''); this.page = 0; this.render(); });
-    this.shortcuts=setupQuickOptions(this);
-    this.replays=setupSongRankingReplay(this,()=>{this.page=0;this.render();});
-    this.render();
+    } catch (error) {
+      this.showError(say('排行榜数据未能初始化，请重新加载页面。', 'Ranking data could not initialize. Reload the page.'));
+      this.querySelector('[data-startup]').hidden = true;
+      this.querySelector('[data-reload]').hidden = false;
+      this.querySelector('[data-reset-all]').hidden = true;
+    }
   }
   disconnectedCallback() { this.shortcuts?.destroy(); this.replays?.destroy(); this.events?.abort(); this.events = null; }
+  setMetric(metric) {
+    this.metric = metric;
+    if (metric === 'requiredPower') this.mode = 'ordinary';
+    this.querySelector('[data-direction]').value = defaultRankingDirection(metric);
+    // A value interval belongs to its metric; keep level/time/other filters.
+    for (const key of ['minValue','maxValue']) this.querySelector(`[data-filter="${key}"]`).value = '';
+  }
+  showError(message) {
+    this.replays?.invalidate();
+    this.querySelector('[data-error]').hidden = false; this.querySelector('[data-error-message]').textContent = message;
+    this.querySelector('[data-results]').hidden = true; this.querySelector('[data-empty]').hidden = true;
+    this.querySelector('[data-picks]').replaceChildren(); this.querySelector('[data-count]').textContent = '—';
+    this.querySelector('[data-context]').textContent = say('请修正条件后继续比较', 'Correct the inputs to continue');
+    this.querySelector('[data-result-status]').textContent = ''; this.querySelector('[data-range]').textContent = '—';
+    this.querySelector('[data-page]').textContent = '—';
+    this.querySelector('[data-prev]').disabled = this.querySelector('[data-next]').disabled = true;
+  }
   render() {
+    try { this.renderResults(); }
+    catch (error) { this.showError(say('结果未能更新。请恢复默认条件后重试。', 'Results could not update. Restore the defaults and try again.')); }
+  }
+  renderResults() {
+    const q = selector => this.querySelector(selector), en = document.documentElement.lang.startsWith('en');
     this.shortcuts?.sync();
-    const filters = Object.fromEntries([...this.querySelectorAll('[data-filter]')].map(e => [e.dataset.filter, e.multiple ? selectedControlValues(e) : e.dataset.filter === 'maxLevel' && e.value === '' ? 'all' : e.value]));
-    const tags=this.querySelector('[data-ranking-filter-tags]');tags.replaceChildren();
-    for(const field of this.querySelectorAll('[data-filter]')){if(field.multiple?!selectedControlValues(field).length:field.value===''||field.value==='all')continue;const b=node('button',`${field.tagName==='SELECT'?selectedOptionText(field):field.dataset.filter==='maxLevel'?`Lv.≤${field.value}`:field.value} ×`);b.type='button';b.setAttribute('aria-label',`取消筛选：${b.textContent.slice(0,-2)}`);b.addEventListener('click',()=>{restoreFilterControl(field,field.tagName==='SELECT'?'all':'');this.page=0;this.render();});tags.append(b);}
-    tags.hidden=!tags.children.length;
-    const timing = { durationBasis: this.querySelector('[data-duration]').value };
-    let rows = this.data.rankings[this.mode].map(row=>({...row,p10Score:row.p10Score??(row.minimumScore===row.maximumScore?row.minimumScore:null)}));
-    const options = { ...filters, ...timing, metric: this.metric };
-    const gradeView=this.metric==='requiredPower',rawScore=this.querySelector('[data-grade-score]').value;
-    if (gradeView && this.previousMetric !== 'requiredPower') this.querySelector('[data-calculation-controls]').open = true;
+    const gradeView = this.metric === 'requiredPower';
+    const profile = this.mode === 'gekisou' ? 'benchmark' : q('[data-grade-profile]').value, custom = profile === 'custom';
+    q('[data-profile-controls]').hidden = this.mode === 'gekisou'; q('[data-custom-skills]').hidden = !custom; q('[data-grade-controls]').hidden = !gradeView;
+    if (gradeView && this.previousMetric !== 'requiredPower') q('[data-calculation-controls]').open = true;
     this.previousMetric = this.metric;
-    const score=rawScore===''?null:Number(rawScore),invalidScore=score!==null&&(!Number.isSafeInteger(score)||score<0);
-    const skills=[...this.querySelectorAll('[data-skill-slot]')].map(slot=>({percent:slot.querySelector('[data-skill-percent]').value===''?NaN:Number(slot.querySelector('[data-skill-percent]').value),seconds:Number(slot.querySelector('[data-skill-seconds]').value)}));
-    let invalidSkill=false;try{validateSongSkillProfile(skills);}catch{invalidSkill=true;}
-    const profile=this.mode==='gekisou'?'benchmark':this.querySelector('[data-grade-profile]').value,custom=profile==='custom';
-    this.querySelector('[data-calculation-profile]').textContent = this.mode === 'gekisou' ? say('激奏固定基准', 'Fixed Gekisou benchmark') : custom ? say('我的五个技能', 'My five skills') : profile === 'none' ? say('无加分技能', 'No score skills') : say('基准五技能', 'Five benchmark skills');
-    this.querySelector('[data-profile-controls]').hidden=this.mode==='gekisou';
-    this.querySelector('[data-custom-skills]').hidden=!custom;
-    this.querySelector('[data-skill-summary]').textContent=custom?(invalidSkill?say('请为五个技能填写 0–1000% 加分和 0–20 秒时长。','Enter a 0–1000% bonus and a duration of 0–20 seconds for each skill.'):say('先按技能窗口快速估算；逐谱精算会遍历 120 种发动顺序并逐音符重新计算。','Skill windows provide quick estimates; chart replay recalculates every note across all 120 skill orders.')):profile==='none'?say('无技能基础分已逐音符计算，直接比较谱面本身的转分能力。','No-skill scores were calculated note by note and are ready for chart comparison.'):say('100,000 综合力 · 五次 +100% / 5 秒技能 · 60 FPS。基准已预先逐音符计算，可直接比较。','100,000 power · five +100% / 5-second skills · 60 FPS. The benchmark is already calculated note by note and ready to compare.');
-    const gradeOptions={...options,skills,targetRank:Number(this.querySelector('[data-grade-target]').value),profile,score:invalidScore?null:score};
-    this.querySelector('[data-grade-controls]').hidden=!gradeView;
-    if(custom&&invalidSkill)rows=[];
-    const activeSkills=profile==='custom'?skills:Array.from({length:5},()=>({percent:profile==='none'?0:100,seconds:profile==='none'?0:5}));
-    if(profile!=='benchmark')rows=rows.map(row=>withSongSkillProfile(row,activeSkills));
-    const quickRanked=gradeView?rankGradeRows(rows,gradeOptions):rankSongRows(rows,options);
-    const replayView=this.replays.sync({skills:activeSkills,rows:quickRanked,mode:this.mode,profile});
-    if(replayView)rows=this.replays.rows(rows);
-    this.replayView=replayView;
-    const scoreLabel=replayView?say('逐谱平均分','Replay mean score'):custom?say('快速参考分','Quick estimate'):profile==='none'?say('无技能参考分','No-skill score'):say('基准得分','Benchmark score');
-    const ranked = gradeView?rankGradeRows(rows,gradeOptions):rankSongRows(rows, options);
-    const byScore = rankSongRows(rows, { ...options, metric: 'expectedScore' });
-    const byEfficiency = rankSongRows(rows, { ...options, metric: 'efficiency' }).filter(row => row.rank !== null);
-    const maxScore = byScore[0]?.expectedScore || 1, maxEfficiency = byEfficiency[0]?.efficiency || 1;
-    const size = 25, pages = Math.max(1, Math.ceil(ranked.length / size));
-    this.page = Math.max(0, Math.min(this.page, pages - 1));
     for (const button of this.querySelectorAll('[data-mode]')) button.setAttribute('aria-pressed', String(button.dataset.mode === this.mode));
     for (const button of this.querySelectorAll('[data-board]')) button.setAttribute('aria-pressed', String(button.dataset.board === this.metric));
-    const metricSelect = this.querySelector('[data-metric]');
-    for (const option of metricSelect.options) option.disabled = (this.mode === 'ordinary' && ['gekisouMultiplier','rankingBonusShare'].includes(option.value)) || (option.value==='p10Score'&&!rows.some(row=>Number.isFinite(row.p10Score)));
-    metricSelect.value = ['expectedScore','efficiency','requiredPower'].includes(this.metric) ? '' : this.metric;
-    for (const button of this.querySelectorAll('[data-sort]')) {
+    for (const option of q('[data-metric]').options) option.disabled = this.mode === 'ordinary' && specialMetrics.includes(option.value);
+    q('[data-metric]').value = this.metric;
+    const filters = Object.fromEntries([...this.querySelectorAll('[data-filter]')].map(e => [e.dataset.filter, e.multiple ? selectedControlValues(e) : e.value]));
+    const skills = [...this.querySelectorAll('[data-skill-slot]')].map(slot => ({percent:slot.querySelector('[data-skill-percent]').value === '' ? NaN : Number(slot.querySelector('[data-skill-percent]').value), seconds:Number(slot.querySelector('[data-skill-seconds]').value)}));
+    const rawScore = q('[data-grade-score]').value, score = rawScore === '' ? null : Number(rawScore);
+    const activeInputs = [...this.querySelectorAll('[data-filter][type=number], [data-overhead]'), ...(custom ? this.querySelectorAll('[data-skill-percent]') : []), ...(gradeView ? [q('[data-grade-score]')] : [])];
+    for (const field of activeInputs) field.setAttribute('aria-invalid', String(!field.validity.valid));
+    const invalid = activeInputs.find(field => !field.validity.valid);
+    let options;
+    try {
+      if (invalid) throw Error(say(`${invalid.getAttribute('aria-label') ?? '数值'}超出允许范围，请填写有效数值。`, `${invalid.getAttribute('aria-label') ?? 'Value'} is outside the allowed range. Enter a valid number.`));
+      if (custom) validateSongSkillProfile(skills);
+      if (gradeView && score !== null && (!Number.isSafeInteger(score) || score < 0)) throw Error(say('分数需为非负安全整数。', 'Score must be a non-negative safe integer.'));
+      options = validateRankingOptions({...filters, metric:this.metric, direction:q('[data-direction]').value, grouping:q('[data-grouping]').value,
+        durationBasis:q('[data-duration]').value, overhead:q('[data-overhead]').value, gradeEdition:q('[data-grade-edition]').value,
+        targetRank:Number(q('[data-grade-target]').value), profile, score, skills}, en);
+    } catch (error) { this.showError(error.message); return; }
+    this.options = options;
+    q('[data-error]').hidden = true; q('[data-results]').hidden = false;
+    const tags = q('[data-ranking-filter-tags]'); tags.replaceChildren();
+    for (const field of this.querySelectorAll('[data-filter]')) {
+      if (field.multiple ? !selectedControlValues(field).length : field.value === '' || field.value === 'all') continue;
+      const label = field.tagName === 'SELECT' ? selectedOptionText(field) : `${field.getAttribute('aria-label')} ${field.value}`;
+      const button = node('button', `${label} ×`); button.type = 'button'; button.setAttribute('aria-label', say(`取消筛选：${label}`, `Remove filter: ${label}`));
+      button.addEventListener('click', () => { restoreFilterControl(field, field.tagName === 'SELECT' ? 'all' : ''); this.page = 0; this.render(); (tags.querySelector('button') ?? q('[data-reset]')).focus(); }); tags.append(button);
+    }
+    tags.hidden = !tags.children.length;
+    const profileLabel = this.mode === 'gekisou' ? say('激奏固定基准', 'Fixed Gekisou benchmark') : custom ? say('手填五技能', 'Five entered skills') : profile === 'none' ? say('无加分技能', 'No score skills') : say('基准五技能', 'Five benchmark skills');
+    q('[data-calculation-profile]').textContent = profileLabel;
+    q('[data-skill-summary]').textContent = custom ? say('先按技能窗口快速估算；逐谱精算遍历 120 种发动顺序并逐音符计算。', 'Skill windows provide quick estimates; replay computes every note across all 120 skill orders.') : profile === 'none' ? say('无技能基础分已逐音符计算。', 'No-skill baseline scores were calculated note by note.') : say('五次 +100% / 5 秒技能，60 FPS 基准已预先逐音符计算。', 'Five +100% / 5-second skills; the 60 FPS benchmark was computed note by note.');
+    const activeSkills = custom ? skills : Array.from({length:5}, () => ({percent:profile === 'none' ? 0 : 100, seconds:profile === 'none' ? 0 : 5}));
+    let rows = scopeRankingRows(this.data.rankings[this.mode], filters.edition).map(row => ({...row, p10Score:row.p10Score ?? (row.minimumScore === row.maximumScore ? row.minimumScore : null)}));
+    if (profile !== 'benchmark') rows = rows.map(row => withSongSkillProfile(row, activeSkills));
+    const quickRanked = rankRefinedSongRows(rows, options);
+    const replayView = this.replays.sync({skills:activeSkills, rows:quickRanked, mode:this.mode, profile});
+    if (replayView) rows = this.replays.rows(rows);
+    this.replayView = replayView;
+    const ranked = rankRefinedSongRows(rows, options);
+    const valid = ranked.filter(row => row.rank !== null), byEfficiency = ranked.filter(row => Number.isFinite(row.efficiency)).sort((a,b) => b.efficiency-a.efficiency || a.id.localeCompare(b.id));
+    const maxEfficiency = byEfficiency[0]?.efficiency || 1, primaryMetric = this.metric === 'efficiency' ? 'expectedScore' : this.metric;
+    const maxPrimary = Math.max(1, ...ranked.map(row => Number.isFinite(row[primaryMetric]) ? row[primaryMetric] : 0));
+    const scoreLabel = replayView ? say('逐谱平均分', 'Replay mean') : custom ? say('快速平均参考分', 'Quick estimated mean') : profile === 'none' ? say('无技能参考分', 'No-skill score') : say('基准平均分', 'Benchmark mean');
+    const primaryLabel = primaryMetric === 'expectedScore' ? scoreLabel : metricLabel(primaryMetric);
+    const sortButtons = [...this.querySelectorAll('[data-sort]')];
+    sortButtons[0].dataset.sort = primaryMetric;
+    for (const button of sortButtons) {
       const active = button.dataset.sort === this.metric;
-      button.disabled=gradeView;
-      if(gradeView){button.textContent=button.dataset.sort==='expectedScore'?'参考综合力（约） ↑':'目标分数线';button.closest('th').setAttribute('aria-sort',button.dataset.sort==='expectedScore'?'ascending':'none');continue;}
-      button.textContent = `${button.dataset.sort === 'expectedScore' ? scoreLabel : ui('每秒得分')}${active ? ' ↓' : ''}`;
-      button.closest('th').setAttribute('aria-sort', active ? 'descending' : 'none');
+      button.disabled = gradeView && button.dataset.sort === 'efficiency';
+      button.textContent = `${button === sortButtons[0] ? primaryLabel : gradeView ? say('目标分数线','Target threshold') : metricLabel('efficiency')}${active ? options.direction === 'asc' ? ' ↑' : ' ↓' : ''}`;
+      button.closest('th').setAttribute('aria-sort', active ? options.direction === 'asc' ? 'ascending' : 'descending' : 'none');
     }
-    this.querySelector('[data-count]').textContent = say(`${ranked.length} 张谱面`, `${ranked.length} charts`);
-    this.querySelector('[data-context]').textContent = `${this.mode === 'ordinary' ? say('普通演出','Ordinary live') : say('激奏演出','Gekisou live')} · ${timing.durationBasis === 'chart' ? say('谱面时长','Chart duration') : say('音频时长','Audio duration')} · ${this.metric==='expectedScore'?scoreLabel:metricLabel(this.metric)}${say('排序',' order')}`;
-    if(gradeView)this.querySelector('[data-context]').textContent=invalidScore?say('分数需为非负整数','Score must be a non-negative integer'):custom&&invalidSkill?say('加分比例需为 0–1000%','Skill bonus must be 0–1000%'):say(`统一曲库 · ${SCORE_GRADES[gradeOptions.targetRank-2]} 档 · ${profile==='none'?'无加分技能':custom?'自定义技能':'榜单技能基准'} · 参考综合力从低到高`, `Shared library · Grade ${SCORE_GRADES[gradeOptions.targetRank-2]} · ${profile==='none'?'No score skills':custom?'Custom skills':'Benchmark skills'} · Required power, lowest first`);
-    if(replayView)this.querySelector('[data-context]').textContent+=say(` · 已算谱面内排名（${ranked.length} 张）`, ` · Ranks among ${ranked.length} completed charts`);
-    this.querySelector('[data-page]').textContent = `${this.page + 1} / ${pages}`;
-    this.querySelector('[data-range]').textContent = ranked.length ? `第 ${this.page * size + 1}–${Math.min(ranked.length, (this.page + 1) * size)} 项，共 ${ranked.length} 项` : '没有匹配结果';
-    this.querySelector('[data-prev]').disabled = this.page === 0;
-    this.querySelector('[data-next]').disabled = this.page === pages - 1;
-    this.querySelector('[data-empty]').hidden = ranked.length > 0;
-    this.querySelector('[data-empty] strong').textContent=replayView?say('当前筛选还没有完成逐谱精算','No chart replay is complete for this selection'):ui('这次没有找到匹配的谱面');
-    this.querySelector('[data-empty] p').textContent=replayView?say('点击“开始逐谱精算”，或切回“全部筛选结果”继续比较。','Start chart replay, or switch to all filtered results to continue comparing.'):say('换个关键词，或放宽难度、等级和时长筛选。','Try another search or relax the difficulty, level or duration filters.');
-    const picks = this.querySelector('[data-picks]'); picks.replaceChildren();
-    if(gradeView){
-      const valid=ranked.filter(r=>r.requiredPower!=null),best=valid[0],short=[...valid].filter(r=>Number.isFinite(r.durationSeconds)).sort((a,b)=>a.durationSeconds-b.durationSeconds||a.requiredPower-b.requiredPower)[0];
-      if(best)picks.append(this.pick(best,'score',say('参考综合力最低','Lowest estimated power'),say(`约 ${number(best.displayPower)}`,`Approx. ${number(best.displayPower)}`),say(`达到 ${SCORE_GRADES[best.targetRank-2]} 档需 ${number(best.targetScore)} 分`,`${number(best.targetScore)} points to reach grade ${SCORE_GRADES[best.targetRank-2]}`)));
-      if(short)picks.append(this.pick(short,'efficiency',say('短歌参考','Short-song reference'),say(`${number(short.durationSeconds,2)} 秒`,`${number(short.durationSeconds,2)} sec`),say(`同一技能口径，达档综合力约 ${number(short.displayPower)}`,`Same skills; estimated power ${number(short.displayPower)}`)));
-    }else if (ranked.some(row => Number.isFinite(row.expectedScore))) {
-      picks.append(this.pick(byScore[0], 'score', replayView?say('本次精算平均分最高','Highest replay mean'):custom?say('平均参考分最高','Highest estimated mean'):say('单局高分','Highest score per play'), say(`${number(maxScore)} 分`, `${number(maxScore)} points`), say(`当前条件下，平均出分最高${byScore[1]?.expectedScore === maxScore ? '（并列）' : ''}`, `Highest mean score for these conditions${byScore[1]?.expectedScore === maxScore ? ' (tied)' : ''}`)));
-      if (byEfficiency.length) picks.append(this.pick(byEfficiency[0], 'efficiency', say('单位时间更快', 'Higher score per second'), say(`${number(maxEfficiency)} 分 / 秒`, `${number(maxEfficiency)} points / sec`), byEfficiency[0].id === byScore[0].id ? say('这张谱面同时领跑出分与效率', 'This chart leads both score and efficiency') : say(`按${timing.durationBasis === 'chart' ? '谱面' : '音频'}时长，得分更紧凑${byEfficiency[1]?.efficiency === maxEfficiency ? '（并列）' : ''}`, `Higher score per ${timing.durationBasis === 'chart' ? 'chart' : 'audio'} second${byEfficiency[1]?.efficiency === maxEfficiency ? ' (tied)' : ''}`)));
-      else picks.append(node('div', say('当前筛选缺少有效时长，无法比较效率。', 'No valid duration is available for efficiency comparison.'), 'ranking-pick ranking-pick--empty'));
-    }
-    const factorKey = ['expectedScore','efficiency'].includes(this.metric) ? 'scoreMultiplier' : this.metric;
-    this.querySelector('[data-factor-heading]').textContent = gradeView?'输入分数对应档位':metricLabel(factorKey);
-    const body = this.querySelector('[data-rows]'); body.replaceChildren();
-    for (const row of ranked.slice(this.page * size, (this.page + 1) * size)) {
+    const size = 25, pages = Math.max(1, Math.ceil(ranked.length / size));
+    this.page = Math.max(0, Math.min(this.page, pages - 1));
+    q('[data-count]').textContent = say(`${ranked.length} 张谱面`, `${ranked.length} charts`);
+    q('[data-context]').textContent = [this.mode === 'ordinary' ? say('普通演出', 'Ordinary live') : say('激奏演出', 'Gekisou live'), profileLabel,
+      metricLabel(this.metric), options.direction === 'asc' ? say('从低到高', 'Ascending') : say('从高到低', 'Descending'),
+      options.grouping === 'songs' ? say('每首歌首张', 'First chart per song') : say('全部谱面', 'All charts'),
+      replayView ? say('仅已完成精算结果内排名', 'Ranks within completed replays only') : say('全部筛选结果内排名', 'Ranks within filtered results')].join(' · ');
+    const calculated = ranked.filter(row => rankingRowState(row) === 'calculated').length, pending = ranked.filter(row => row.pending).length;
+    q('[data-result-status]').textContent = say(`可排名 ${valid.length} 张 · 当前条件有分数 ${calculated} 张 · 基准待计算 ${pending} 张 · 当前技能条件不可计算 ${ranked.length-calculated-pending} 张。缺少排序数值显示“—”，不授予名次。`, `${valid.length} rankable · ${calculated} with scores · ${pending} pending · ${ranked.length-calculated-pending} unavailable for these skills. Missing metric values have no rank.`);
+    const releases = Object.entries(this.data.rankings.releases ?? {}).map(([edition, release]) => `${editionName(edition,en)} ${release}`).join(' / ');
+    q('[data-identity]').textContent = [say('结果范围：', 'Result scope: ') + (filters.edition === 'all' ? say('全部版本', 'All editions') : editionName(filters.edition,en)),
+      this.server ? say('当前区服：', 'Selected server: ') + gameServer(this.server)?.[en ? 'englishLabel' : 'label'] : say('当前区服未选择', 'No server selected'), releases,
+      gradeView ? say('达档分数线：', 'Grade thresholds: ') + editionName(options.gradeEdition,en) : '', this.serverError ?? ''].filter(Boolean).join(' · ');
+    q('[data-metric-help]').textContent = this.mode === 'gekisou' && ['minimumScore','maximumScore','p10Score','scoreSpread','p10Efficiency'].includes(this.metric)
+      ? say('激奏数值来自固定 LUCK 样本，最低／最高为样本范围，不是理论极值或实战保底。', 'Gekisou uses fixed LUCK samples. Minimum and maximum are sample extrema, not theoretical bounds or live guarantees.')
+      : ['minimumScore','maximumScore','p10Score','scoreSpread','p10Efficiency'].includes(this.metric)
+        ? say('普通演出参考值按当前技能条件比较；自定义技能遍历 120 种等可能顺序。P10 为由低到高第 12 项，不是实战保底。基准相同技能的范围可能相等。', 'Ordinary reference values follow the chosen skills; custom skills compare 120 equally likely orders. P10 is the 12th lowest, not a live guarantee. Identical benchmark skills can have equal extrema.')
+        : ['averageDensity','peakDensity','eventCount','bpmMax','level'].includes(this.metric)
+          ? say('结构指标描述计分判定（包含滑条自动计数），不等于游玩难度；无分数也可按已有结构数值比较。', 'Structure metrics describe scoring events, including generated slide ticks. They do not measure playing difficulty; known structure values can rank without scores.')
+          : gradeView ? say('按未舍入的参考综合力排名；展示向上取到千位，数值不是实战保底。分数线版本未验证时不反推综合力。', 'Power ranks use unrounded estimates; displayed values round up to 1,000 and are not guarantees. Unverified edition scores cannot supply power estimates.')
+            : say(`效率分母：${options.durationBasis === 'chart' ? '谱面' : '音频'}时长 + ${number(options.overhead,2)} 秒；缺少所选时长时不计算效率。`, `Efficiency denominator: ${options.durationBasis} duration + ${number(options.overhead,2)} seconds. Missing duration has no efficiency.`);
+    q('[data-value-unit]').textContent = RANKING_OPTIONS[this.metric][2] === 'percent' ? say('（比例原值，0.2 = 20%）', '(raw ratio: 0.2 = 20%)') : `(${metricLabel(this.metric)})`;
+    q('[data-page]').textContent = `${this.page+1} / ${pages}`;
+    q('[data-range]').textContent = ranked.length ? say(`第 ${this.page*size+1}–${Math.min(ranked.length,(this.page+1)*size)} 项，共 ${ranked.length} 项`, `${this.page*size+1}–${Math.min(ranked.length,(this.page+1)*size)} of ${ranked.length}`) : say('没有匹配结果', 'No matching results');
+    q('[data-prev]').disabled = this.page === 0; q('[data-next]').disabled = this.page === pages-1;
+    q('[data-empty]').hidden = ranked.length > 0;
+    q('[data-empty] strong').textContent = replayView ? say('当前筛选没有完成精算的谱面', 'No completed replay matches these filters') : say('没有符合这些条件的谱面', 'No charts match these filters');
+    q('[data-empty] p').textContent = replayView ? say('开始逐谱精算，或切回全部筛选结果。若刚按每首歌选谱或数值范围比较，可放宽条件查看其他已算结果。', 'Run chart replay or return to all filtered results. Relax grouping or value filters to see other completed results.') : say('清空筛选，或放宽版本、计算状态、难度与数值区间。', 'Clear filters or relax edition, calculation state, difficulty and numeric ranges.');
+    q('[data-show-all]').hidden = !replayView;
+    const picks = q('[data-picks]'); picks.replaceChildren();
+    const best = valid[0];
+    if (best) picks.append(this.pick(best, 'score', say('当前排序首位', 'First in current order'), gradeView ? say(`约 ${number(best.displayPower)}`, `Approx. ${number(best.displayPower)}`) : metricValue(this.metric,best[this.metric]), `${metricLabel(this.metric)} · ${options.direction === 'asc' ? say('低 → 高', 'low → high') : say('高 → 低', 'high → low')}${valid[1]?.[this.metric] === best[this.metric] ? say(' · 并列', ' · tied') : ''}`));
+    if (byEfficiency[0] && this.metric !== 'efficiency') picks.append(this.pick(byEfficiency[0], 'efficiency', say('本次结果效率最高', 'Highest efficiency in these results'), `${number(maxEfficiency,2)} / s`, say('按当前时长与额外耗时比较', 'Using the selected duration and overhead')));
+    const factorKey = ['expectedScore','efficiency'].includes(this.metric) ? 'scoreMultiplier' : 'expectedScore';
+    q('[data-factor-heading]').textContent = gradeView ? say('输入分数判档','Grade for entered score') : factorKey === 'expectedScore' ? scoreLabel : metricLabel(factorKey);
+    const body = q('[data-rows]'); body.replaceChildren();
+    for (const row of ranked.slice(this.page*size,(this.page+1)*size)) {
       const tr = node('tr'); if (row.rank > 0 && row.rank <= 3) tr.dataset.podium = String(row.rank);
-      tr.append(node('td', row.rank === null ? '—' : String(row.rank).padStart(2, '0'), 'ranking-position'));
-      const song = node('td', '', 'ranking-song'), face = node('div', '', 'ranking-track');
+      tr.append(node('td', row.rank === null ? '—' : String(row.rank).padStart(2,'0'), 'ranking-position'));
+      const song = node('td','','ranking-song'), face = node('div','','ranking-track');
       const jacket = this.data.artwork[row.trackId];
-      if (jacket) { const img = node('img'); img.src = jacket; img.alt = ''; img.width = img.height = 48; img.loading = 'lazy'; face.append(img); }
-      const title = node('div'); title.append(node('strong', row.title));
-      const subtitle = node('div', '', 'ranking-subtitle'), badge = node('span', row.difficulty.toUpperCase(), 'ranking-difficulty'); badge.dataset.difficulty = row.difficulty;
-      subtitle.append(badge, node('span', `Lv.${row.level}`), node('small', row.bandLabels.join(' / '))); title.append(subtitle); face.append(title); song.append(face); tr.append(song);
-      if(gradeView){
-        const power=node('td','','ranking-meter ranking-meter--score');power.append(node('small','参考综合力'),node('strong',row.displayPower==null?'暂不可估算':`约 ${number(row.displayPower)}`));tr.append(power);
-        const threshold=node('td','','ranking-meter ranking-meter--efficiency');threshold.append(node('small',`${SCORE_GRADES[row.targetRank-2]} 档分数线`),node('strong',number(row.targetScore)));tr.append(threshold);
-        const actual=node('td','','ranking-factor');actual.append(node('small','输入分数判档'),node('strong',row.enteredRank==null?'未填分数':`${SCORE_GRADES[row.enteredRank-2]} 档`));tr.append(actual);
-      }else{
-      tr.append(this.meter(row.expectedScore, maxScore, 'score', scoreLabel, this.metric === 'expectedScore'));
-      tr.append(this.meter(row.efficiency, maxEfficiency, 'efficiency', '每秒得分', this.metric === 'efficiency'));
-      const factor = node('td', '', 'ranking-factor'); factor.append(node('small', metricLabel(factorKey)), node('strong', metricValue(factorKey, row[factorKey]))); tr.append(factor);
+      if (jacket) { const img = node('img'); img.src = jacket; img.alt = ''; img.width = img.height = 48; img.loading = 'lazy'; img.addEventListener('error', () => img.remove(), {once:true}); face.append(img); }
+      const title = node('div'); title.append(node('strong',row.title));
+      const subtitle = node('div','','ranking-subtitle'), badge = node('span',row.difficulty.toUpperCase(),'ranking-difficulty'); badge.dataset.difficulty = row.difficulty;
+      subtitle.append(badge,node('span',`Lv.${row.level}`),node('span',metricValue('durationSeconds',row.durationSeconds)),node('small',row.bandLabels.join(' / '))); title.append(subtitle);
+      const sources = node('div',this.rowIdentity(row),'ranking-row-identity'); title.append(sources);
+      const state = rankingRowState(row), stateLabel = state === 'pending' ? say('基准待计算','Benchmark pending') : state === 'unavailable' ? say('当前技能条件不可计算','Unavailable for these skills') : replayView ? say('已完成精算','Replay complete') : custom ? say('快速估算','Quick estimate') : say('基准已计算','Benchmark ready');
+      const stateNode = node('small', `${stateLabel}${row.rank === null ? say(' · 无当前指标名次',' · no rank for this metric') : ''}`, 'ranking-row-state'); stateNode.dataset.state = state; title.append(stateNode);
+      face.append(title); song.append(face); tr.append(song);
+      if (gradeView) {
+        const power = node('td','','ranking-meter ranking-meter--score'); power.append(node('small',metricLabel('requiredPower')),node('strong',row.displayPower == null ? say('暂不可估算','Unavailable') : say(`约 ${number(row.displayPower)}`,`Approx. ${number(row.displayPower)}`))); tr.append(power);
+        const threshold = node('td','','ranking-meter ranking-meter--efficiency'); threshold.append(node('small',`${SCORE_GRADES[row.targetRank-2]} ${say('档分数线','threshold')}`),node('strong',number(row.targetScore))); tr.append(threshold);
+      const actual = node('td','','ranking-factor'); actual.append(node('small',say('输入分数判档','Entered score grade')),node('strong',row.enteredScore == null ? say('未填分数','No score entered') : row.enteredRank == null ? say('缺少本版分数线','Edition thresholds unavailable') : `${SCORE_GRADES[row.enteredRank-2]}`)); tr.append(actual);
+      } else {
+        tr.append(this.meter(row[primaryMetric],maxPrimary,'score',primaryLabel,this.metric === primaryMetric,primaryMetric));
+        tr.append(this.meter(row.efficiency,maxEfficiency,'efficiency',metricLabel('efficiency'),this.metric === 'efficiency','efficiency'));
+        const factor = node('td','','ranking-factor'); factor.append(node('small',factorKey === 'expectedScore' ? scoreLabel : metricLabel(factorKey)),node('strong',metricValue(factorKey,row[factorKey]))); tr.append(factor);
       }
-      const action = node('td', '', 'ranking-action'), button = node('button', this.expanded.has(row.id) ? '−' : '+'); button.type = 'button';
-      button.setAttribute('aria-label', `查看 ${row.title} ${row.difficulty} 的${gradeView?'分档':'倍率'}明细`); button.setAttribute('aria-expanded', String(this.expanded.has(row.id)));
-      const detail = node('tr', '', 'ranking-detail'); detail.hidden = !this.expanded.has(row.id); detail.id = `detail-${row.id}`; button.setAttribute('aria-controls', detail.id);
-      const content = node('td'); content.colSpan = 6; this.detail(content, row); detail.append(content);
-      button.addEventListener('click', () => { detail.hidden = !detail.hidden; detail.hidden ? this.expanded.delete(row.id) : this.expanded.add(row.id); button.textContent = detail.hidden ? '+' : '−'; button.setAttribute('aria-expanded', String(!detail.hidden)); });
-      action.append(button); tr.append(action); body.append(tr, detail);
+      const action = node('td','','ranking-action'), button = node('button',this.expanded.has(row.id) ? '−' : '+'); button.type = 'button';
+      button.setAttribute('aria-label',say(`查看 ${row.title} ${row.difficulty} 明细`,`Details for ${row.title} ${row.difficulty}`)); button.setAttribute('aria-expanded',String(this.expanded.has(row.id)));
+      const detail = node('tr','','ranking-detail'); detail.hidden = !this.expanded.has(row.id); detail.id = `detail-${row.id}`; button.setAttribute('aria-controls',detail.id);
+      const content = node('td'); content.colSpan = 6; detail.append(content);
+      if (!detail.hidden) this.detail(content,row);
+      button.addEventListener('click', () => { detail.hidden = !detail.hidden; if (!detail.hidden && !content.children.length) this.detail(content,row); detail.hidden ? this.expanded.delete(row.id) : this.expanded.add(row.id); button.textContent = detail.hidden ? '+' : '−'; button.setAttribute('aria-expanded',String(!detail.hidden)); });
+      action.append(button); tr.append(action); body.append(tr,detail);
     }
-    // Profile/FPS changes can reset the replay select during rendering.
     this.shortcuts?.sync();
   }
-  meter(value, max, type, label, active) {
-    const td = node('td', '', `ranking-meter ranking-meter--${type}`); if (active) td.dataset.active = '';
-    td.append(node('small', label), node('strong', number(value, 2)));
-    const track = node('div', '', 'ranking-meter-track'), bar = node('span'); bar.style.width = `${Number.isFinite(value) ? Math.max(0, Math.min(100, value / max * 100)) : 0}%`; track.setAttribute('aria-hidden', 'true'); track.append(bar); td.append(track); return td;
+  rowIdentity(row) {
+    const en = document.documentElement.lang.startsWith('en');
+    return [row.applicableEditions?.length ? say('分数适用：','Scores valid for: ') + row.applicableEditions.map(edition => editionName(edition,en)).join(' / ') : '',
+      row.pendingEditions?.length ? say('待计算：','Pending: ') + row.pendingEditions.map(edition => editionName(edition,en)).join(' / ') : ''].filter(Boolean).join(' · ');
+  }
+  meter(value, max, type, label, active, metric) {
+    const td = node('td','',`ranking-meter ranking-meter--${type}`); if (active) td.dataset.active = '';
+    td.append(node('small',label),node('strong',metricValue(metric,value)));
+    const track = node('div','','ranking-meter-track'), bar = node('span'); bar.style.width = `${Number.isFinite(value) ? Math.max(0,Math.min(100,value/max*100)) : 0}%`; track.setAttribute('aria-hidden','true'); track.append(bar); td.append(track); return td;
   }
   pick(row, type, label, value, note) {
     const card = node('article', '', `ranking-pick ranking-pick--${type}`), art = node('div', '', 'ranking-pick-art');
-    if (this.data.artwork[row.trackId]) { const img = node('img'); img.src = this.data.artwork[row.trackId]; img.alt = ''; art.append(img); }
-    art.append(node('span', type === 'score' ? 'SCORE' : 'TEMPO')); card.append(art);
+    if (this.data.artwork[row.trackId]) { const img = node('img'); img.src = this.data.artwork[row.trackId]; img.alt = ''; img.loading = 'lazy'; img.addEventListener('error', () => { art.hidden = true; }, {once:true}); art.append(img); }
+    else art.hidden = true;
+    art.append(node('span', type === 'score' ? 'RANK' : 'TEMPO')); card.append(art);
     const text = node('div', '', 'ranking-pick-copy'); text.append(node('span', label, 'ranking-pick-label'), node('h3', row.title), node('small', `${row.difficulty.toUpperCase()} · Lv.${row.level}`), node('strong', value));
     text.append(node('p', note)); card.append(text); return card;
   }
@@ -173,16 +259,6 @@ class SongRanking extends HTMLElement {
       if(row.skillReference)root.append(node('p',`五次发动位置：${row.skillReference.startsSeconds.map(t=>number(t,2)+' 秒').join(' / ')}。按理想发动时机估算。`));
       this.distributionDetail(root,row);
     this.activationDetail(root,row);
-      const currentEdition=location.pathname.startsWith('/jp/')?'jp':'global';
-      const linkReference=row.gradeReferences?.[currentEdition]??row.gradeReference;
-      const edition=linkReference?.edition,locale=document.documentElement.lang||'zh-CN';
-      if(linkReference?.trackId){
-        const params=new URLSearchParams({song:linkReference.trackId,difficulty:row.difficulty});
-        const server=new URLSearchParams(location.search).get('server');if(server&&(edition==='jp'?server==='jp':server.startsWith('global-')))params.set('server',server);
-        const verify=node('a','用我的队伍估分 →');verify.href=`/${edition}/${locale}/tools/ap-grade/?${params}`;root.append(verify);
-        if(row.enteredRank!=null&&JSON.stringify(linkReference.thresholds)===JSON.stringify(row.gradeReference.thresholds))params.set('scoreRank',String(row.enteredRank));
-        params.set('eventMode','ordinary');const event=node('a','带歌曲到活动收益 →');event.href=`/${edition}/${locale}/tools/event-efficiency/?${params}`;root.append(node('span',' · '),event);
-      }
       return;
     }
     root.append(node('p', `${row.title} · ${row.difficulty.toUpperCase()} / 得分拆解`, 'ranking-detail-title'));
@@ -231,16 +307,17 @@ class SongRanking extends HTMLElement {
       root.append(node('p','贡献按五个技能轮流落在各发动位求平均；线性参考不含真实卡牌条件与逐音符重新取整。'));
     }
   }
-  songLinks(root,row){
-    const locale=document.documentElement.lang==='en'?'en':'zh-CN',edition=row.sourceEdition;
-    const trackId=row.trackId.replace(/^(global|jp)--/,'');
-    const params=new URLSearchParams({song:trackId,difficulty:row.difficulty});
-    const server=new URLSearchParams(location.search).get('server');
-    if(server&&(edition==='jp'?server==='jp':server.startsWith('global-')))params.set('server',server);
-    const links=node('nav','','ranking-song-links');links.setAttribute('aria-label',`${row.title} 相关工具`);
-    const calculator=node('a','用我的队伍计算');calculator.href=`/${edition}/${locale}/tools/song-calculator/?${params}`;
-    const preview=node('a','查看这张谱面');preview.href=`/${edition}/${locale}/music/${trackId}/?${new URLSearchParams({view:'analysis',difficulty:row.difficulty})}`;
-    links.append(calculator,preview);root.append(links);
+  songLinks(root,row) {
+    const edition = this.metric === 'requiredPower' ? this.options.gradeEdition : this.options.edition === 'all' ? row.sourceEdition : this.options.edition;
+    const urls = rankingSongLinks(row, {edition, locale:document.documentElement.lang, server:this.server, mode:this.mode});
+    const links = node('nav','','ranking-song-links'); links.setAttribute('aria-label',say(`${row.title} 相关工具`, `Tools for ${row.title}`));
+    const actions = [[urls.calculator,say('用我的队伍计算','Calculate with my team')],[urls.chart,say('查看这张谱面','View this chart')]];
+    if (this.metric === 'requiredPower') actions.push([urls.grade,say('用我的队伍估分','Estimate my team score')],[urls.event,say('带歌曲到活动收益','Compare event rewards')]);
+    for (const [href,label] of actions) { const link=node('a',label); link.href=href; links.append(link); }
+    root.append(links,node('p',say('跳转保留歌曲、难度和兼容区服；手填五技能不替代目标工具中的账号编成与养成。','Links preserve the song, difficulty and compatible server. Entered skills do not replace the destination tool’s account team or growth settings.')));
+    root.append(node('p',this.rowIdentity(row)));
+    const versions = Object.entries(row.editionChartReferences ?? row.gradeReferences ?? {}).map(([edition,ref]) => `${editionName(edition,document.documentElement.lang.startsWith('en'))}: ${ref.sourceReleaseId}`);
+    root.append(node('p',versions.join(' / '),'ranking-source-release'));
   }
 }
 if (!customElements.get('song-ranking')) customElements.define('song-ranking', SongRanking);

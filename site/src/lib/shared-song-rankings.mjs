@@ -48,7 +48,7 @@ export function combineSongRankings(sources, {region = "global", locale = 'zh-CN
         expectedScore:row?.expectedScore ?? null, audioSeconds:row?.audioSeconds ?? track?.audioDuration ?? null,
         chartSeconds:row?.chartSeconds ?? chart.duration ?? null, pending:!row, sourceEdition:edition,
         libraryPresence:{status:counterpart && songIdentity?'known':'unknown',editions:otherSongs.has(songIdentity)?['global','jp']:[edition]},
-        chartIdentity,resultIdentity,benchmark:data?.benchmark,gradeReference:{edition,trackId:chart.trackId,sourceReleaseId:catalog.release.id,thresholds:validGradeThresholds(track?.soloRewards?.scoreRanks)}};
+        songIdentity,chartIdentity,resultIdentity,attribute:row?.attribute ?? track?.musicTypeLabel ?? null,benchmark:data?.benchmark,gradeReference:{edition,trackId:chart.trackId,sourceReleaseId:catalog.release.id,thresholds:validGradeThresholds(track?.soloRewards?.scoreRanks)}};
     });
   };
   for (const mode of ['ordinary','gekisou']) {
@@ -81,11 +81,18 @@ export function combineSongRankings(sources, {region = "global", locale = 'zh-CN
     result[mode]=result[mode].filter(row=>!folded.has(row));
     for(const row of result[mode]){
       row.gradeReferences={};
+      row.editionChartReferences={};
       for(const candidate of sourceRows){
         const own=candidate.sourceEdition===row.sourceEdition&&candidate.id===row.sourceId;
         const sameChart=row.chartIdentity&&candidate.chartIdentity===row.chartIdentity;
         const sameResult=row.resultIdentity&&candidate.resultIdentity===row.resultIdentity;
         const counterpart=(sameChart||sameResult)&&row.editionPresence.editions.includes(candidate.sourceEdition);
+        if(own||counterpart){
+          row.editionChartReferences[candidate.sourceEdition]={sourceReleaseId:candidate.gradeReference.sourceReleaseId,
+            trackId:candidate.gradeReference.trackId,title:candidate.title,level:candidate.level,
+            chartSeconds:candidate.chartSeconds,audioSeconds:candidate.audioSeconds,
+            bands:candidate.bands,bandLabels:candidate.bandLabels,attribute:candidate.attribute};
+        }
         if((own||counterpart)&&candidate.gradeReference.thresholds){
           row.gradeReferences[candidate.sourceEdition]={...candidate.gradeReference,
             verified:!candidate.pending&&row.applicableEditions.includes(candidate.sourceEdition)&&candidate.resultIdentity===row.resultIdentity};
