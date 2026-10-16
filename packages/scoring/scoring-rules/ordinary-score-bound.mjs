@@ -138,7 +138,7 @@ export function createOrdinaryScoreBound({ song, pairSkills, legacyFactor, input
     // power; the maximum-power feasible team therefore supplies an exact bound.
     if (types.size === 1 && [...types.values()][0].effects.every(e => e.value >= 0)) {
       const key = `exact:${[...types.keys()][0]}:${solution.weight}`;
-      const value=remember(key, () => song.calculate(draftForSolution())[metric]);
+      const value=remember(key, () => { bound.stats.fullScoreCalculations++; return song.calculate(draftForSolution())[metric]; });
       return includePriority?{upper:value,priority:value}:value;
     }
     const maxima = new Map();
@@ -191,6 +191,7 @@ export function createOrdinaryScoreBound({ song, pairSkills, legacyFactor, input
     if (jointBound) upper=Math.min(upper,jointBound(available,forced,state.leader,solution,envelope.error,!state.forbidden.length));
     return includePriority?{upper,priority:timedBound('legacy:',getEnvelope('legacy:',Infinity))}:upper;
   };
+  bound.stats={fullScoreCalculations:0};
   bound.withPriority=(...args)=>bound(...args,true);
   return bound;
 }

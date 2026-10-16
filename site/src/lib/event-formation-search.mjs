@@ -141,7 +141,7 @@ export async function searchEventFormations({ rules, draft, chart, scope, invent
   const signature = d => d.slots.map(s=>`${s.memberCardId}|${s.supportCardId}`).join(';');
   const results = new Map(seeds.map(r=>[signature(r.draft),r]));
   const best = () => [...results.values()].sort(rankCandidates).slice(0,topN);
-  let evaluated = 0, expanded = 0, candidateBoundPruned = 0;
+  let evaluated = 0, expanded = 0, candidateBoundPruned = 0, fullScoreCalculations = 0, scoreCacheHits = 0;
   const run = async () => {
     const startedExpanded=expanded;
     while (queue.length && !signal?.aborted && !shouldPause() && (!maxEvaluations || expanded-startedExpanded < maxEvaluations)) {
@@ -162,8 +162,8 @@ export async function searchEventFormations({ rules, draft, chart, scope, invent
       if (worst && candidateUpper <= worst.value) candidateBoundPruned++;
       else {
         let raw = scoreCache?.get(key);
-        if (raw) { if(scoreCounters)scoreCounters.scoreCacheHits++; }
-        else { raw=evaluator.score(candidate);scoreCache?.set(key,raw);if(scoreCounters)scoreCounters.scoreCalculations++; }
+        if (raw) { scoreCacheHits++; if(scoreCounters)scoreCounters.scoreCacheHits++; }
+        else { fullScoreCalculations++; raw=evaluator.score(candidate);scoreCache?.set(key,raw);if(scoreCounters)scoreCounters.scoreCalculations++; }
         const transformed = transformScore(raw,candidate);
         const value = { ...transformed, draft:candidate, id:signature(candidate), origins:['certified-search'],
           delta:baselineResult ? transformed.value-baselineResult.value : null,
@@ -183,7 +183,8 @@ export async function searchEventFormations({ rules, draft, chart, scope, invent
     const complete=!queue.length;
     const upper=remaining();
     const bestRemaining=upper??retained[0];
-    return { results:retained, evaluated, expanded, candidateBoundPruned, proofTarget:proofCount===1?'best':'top_n',
+    return { results:retained, evaluated, expanded, candidateBoundPruned, fullScoreCalculations, scoreCacheHits,
+      boundScoreCalculations:scoreBound.stats.fullScoreCalculations+(tieBound===scoreBound?0:tieBound.stats.fullScoreCalculations), proofTarget:proofCount===1?'best':'top_n',
       certifiedCount:complete?Math.min(proofCount,retained.length):0,
       optimality:complete?(retained.length?'proven_within_model':'infeasible'):'incomplete',
       searchStatus:complete?(retained.length?'completed':'no_feasible_formation'):signal?.aborted?'cancelled':shouldPause()?'paused':'budget_exhausted',
