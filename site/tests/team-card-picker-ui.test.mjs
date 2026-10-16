@@ -46,3 +46,32 @@ test('pointer backdrop dismissal closes the picker and stops the click before a 
  const event=type=>{const e=new Event(type,{cancelable:true});Object.defineProperties(e,{clientX:{value:1},clientY:{value:1}});return e;};
  dialog.dispatchEvent(event('pointerdown'));const click=event('click');dialog.dispatchEvent(click);assert.equal(dialog.open,false);assert.equal(click.defaultPrevented,true);assert.equal(click.cancelBubble,true);
 });
+
+
+test('a stale replace action cannot write into the next slot or a different target',t=>{
+ const {picker,nodes,draft}=setup(t);picker.open('member',0);
+ nodes().find(n=>n.dataset.cardId==='member-card-1').dispatchEvent(new Event('click'));
+ const replace=nodes().find(n=>n.className==='ux-card-replace');
+ replace.dispatchEvent(new Event('click'));replace.dispatchEvent(new Event('click'));
+ assert.equal(draft.slots[0].memberCardId,'member-card-1');
+ assert.equal(draft.slots[1].memberCardId,null);
+ picker.open('member',4);replace.dispatchEvent(new Event('click'));
+ assert.equal(draft.slots[4].memberCardId,null);
+});
+
+test('slot navigation retains keyboard focus on the active slot after rerender',t=>{
+ const {picker,nodes,document}=setup(t);picker.open('member',0);
+ const slot=nodes().find(n=>n.attributes['aria-label']==='Edit slot 3');slot.focus();slot.dispatchEvent(new Event('click'));
+ const active=nodes().find(n=>n.attributes['aria-label']==='Edit slot 3');
+ assert.equal(document.activeElement,active);
+ assert.equal(active.attributes['aria-pressed'],'true');
+});
+
+test('a new search resets result scroll while preview selection preserves it',t=>{
+ const {picker,nodes}=setup(t);picker.open('member',0);
+ const grid=nodes().find(n=>n.className==='ux-card-grid');grid.scrollTop=250;
+ nodes().find(n=>n.dataset.cardId==='member-card-1').dispatchEvent(new Event('click'));
+ assert.equal(grid.scrollTop,250);
+ const search=nodes().find(n=>n.type==='search');search.value='Stage';search.dispatchEvent(new Event('input'));
+ assert.equal(grid.scrollTop,0);
+});
