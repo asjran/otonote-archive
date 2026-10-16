@@ -1,8 +1,8 @@
-import {rankingTableColumns, formatRankingCell} from './song-ranking-table.mjs';
-import {RANKING_OPTIONS, GRADE_RANKING_METRICS} from './song-ranking-options.mjs';
-import {SCORE_GRADES} from './song-grade-ranking.mjs';
+import {rankingTableColumns, formatRankingCell, rankingStatusTags} from './song-ranking-table.mjs';
+import {RANKING_OPTIONS} from './song-ranking-options.mjs';
+import {rankingSongCover} from './ranking-song-cover.mjs';
 
-export function renderRankingTable(root, {rows, page, size, mode, metric, direction, locale, artwork, expanded, detail, reveal, scoreLabel, targetRank, durationBasis}) {
+export function renderRankingTable(root, {rows, page, size, mode, metric, direction, locale, artwork, expanded, detail, reveal, scoreLabel}) {
   const document = root.ownerDocument, en = locale.startsWith('en');
   const make = (tag, text = '', className = '') => { const element = document.createElement(tag); element.textContent = text; element.className = className; return element; };
   const columns = rankingTableColumns(mode,metric), table = root.querySelector('[data-ranking-table]');
@@ -25,9 +25,8 @@ export function renderRankingTable(root, {rows, page, size, mode, metric, direct
     const button = head.querySelector(`[data-sort="${column.key}"]`), active = column.key === metric;
     let label = column.labels[en ? 1 : 0];
     if (column.key === 'expectedScore') label = scoreLabel;
+    if (column.key === 'title') label = en ? 'Song & status' : '歌曲与状态';
     if (column.key === 'durationSeconds') label = en ? 'Selected duration' : '所选时长';
-    if (column.key === 'requiredPower') label = `${SCORE_GRADES[targetRank-2]} ${en ? 'estimated power' : '档参考综合力'}`;
-    if (column.key === 'targetScore') label = `${SCORE_GRADES[targetRank-2]} ${en ? 'threshold' : '档分数线'}`;
     if (mode === 'gekisou' && ['minimumScore','maximumScore'].includes(column.key)) label = en ? column.key === 'minimumScore' ? 'Sample minimum' : 'Sample maximum' : column.key === 'minimumScore' ? '样本最低分' : '样本最高分';
     button.firstChild.textContent = label; button.lastChild.textContent = active ? direction === 'asc' ? '↑' : '↓' : '↕';
     button.title = `${label} · ${en ? 'Click to change sort order' : '点击排序，再次点击切换方向'}`;
@@ -45,8 +44,16 @@ export function renderRankingTable(root, {rows, page, size, mode, metric, direct
       if (column.key === metric) td.dataset.active = '';
       if (column.key === 'title') {
         const track = make('div','','ranking-track');
-        if (artwork[row.trackId]) { const img = make('img'); img.src = artwork[row.trackId]; img.alt = ''; img.width = img.height = 28; img.loading = 'lazy'; img.addEventListener('error',()=>img.remove(),{once:true}); track.append(img); }
-        const name = make('div'); name.append(make('strong',row.title),make('small',`${row.difficulty.toUpperCase()} · Lv.${row.level}`)); track.append(name);
+        track.append(rankingSongCover(document,artwork[row.trackId]));
+        const name = make('div'),subtitle=make('div','','ranking-subtitle'),difficulty=make('span',row.difficulty.toUpperCase(),'ranking-difficulty');difficulty.dataset.difficulty=row.difficulty;subtitle.append(difficulty,make('small',`Lv.${row.level}`));name.append(make('strong',row.title),subtitle);
+        const tags = make('div','','ranking-track-tags');
+        for(const tag of rankingStatusTags(row,locale)) {
+          const badge=make('span',tag.label,`ranking-tag ranking-tag--${tag.kind}`);badge.title=`${tag.title}：${tag.description??tag.label}`;badge.dataset.label=badge.title;badge.setAttribute('aria-label',badge.title);badge.tabIndex=0;if(tag.state)badge.dataset.state=tag.state;
+          if(tag.icons?.length){badge.textContent='';badge.classList.add('ranking-tag--icon');for(const url of tag.icons){const img=make('img');img.src=url;img.alt='';img.width=tag.kind==='band'?44:18;img.height=18;img.loading='lazy';img.addEventListener('error',()=>{img.remove();if(!badge.querySelector('img')){badge.textContent=tag.label;badge.classList.remove('ranking-tag--icon');}},{once:true});badge.append(img);}}
+          else if(tag.editions?.length){badge.textContent='';for(const edition of tag.editions){const symbol=make('span','','ranking-edition-symbol');symbol.dataset.edition=edition;symbol.setAttribute('aria-hidden','true');badge.append(symbol);}}
+          tags.append(badge);
+        }
+        track.append(name);
         const button = make('button',expandedRow.hidden ? '⋯' : '−','ranking-detail-toggle'); button.type = 'button';
         button.setAttribute('aria-label',en ? `Details for ${row.title} ${row.difficulty}` : `查看 ${row.title} ${row.difficulty} 明细`);
         button.setAttribute('aria-expanded',String(!expandedRow.hidden)); button.setAttribute('aria-controls',expandedRow.id);
@@ -56,7 +63,7 @@ export function renderRankingTable(root, {rows, page, size, mode, metric, direct
           expandedRow.hidden ? expanded.delete(row.id) : expanded.add(row.id);
           button.textContent = expandedRow.hidden ? '⋯' : '−'; button.setAttribute('aria-expanded',String(!expandedRow.hidden));
         });
-        track.append(button); td.append(track);
+        track.append(button); td.append(track,tags);
       } else {
         const value = formatRankingCell(column.key,row,locale);
         if (column.key === 'difficulty') { const badge = make('span',value,'ranking-difficulty'); badge.dataset.difficulty = row.difficulty; td.append(badge); }
@@ -72,6 +79,7 @@ export function renderRankingTable(root, {rows, page, size, mode, metric, direct
   if (reveal) {
     const wrap = root.querySelector('[data-results]'), th = head.querySelector(`[data-column="${metric}"]`);
     const fixedWidth = head.querySelector('.ranking-position').offsetWidth + head.querySelector('.ranking-song').offsetWidth;
-    wrap.scrollLeft = metric === 'title' ? 0 : Math.max(0,th.offsetLeft-fixedWidth);
+    const columnLeft=th.getBoundingClientRect().left-table.getBoundingClientRect().left;
+    wrap.scrollLeft = metric === 'title' ? 0 : Math.max(0,columnLeft-fixedWidth);
   }
 }

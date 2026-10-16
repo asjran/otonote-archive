@@ -7,8 +7,8 @@ export const RANKING_OPTIONS = Object.freeze({
   efficiency: ['每秒得分', 'Score per second', 'efficiency'],
   minimumScore: ['最低参考分', 'Minimum reference score', 'score'],
   maximumScore: ['最高参考分', 'Maximum reference score', 'score'],
-  p10Score: ['P10 参考分', 'P10 reference score', 'score'],
-  p10Efficiency: ['P10 每秒得分', 'P10 score per second', 'efficiency'],
+  p10Score: ['偏低参考分（P10）', 'Lower reference score (P10)', 'score'],
+  p10Efficiency: ['偏低每秒得分（P10）', 'Lower score per second (P10)', 'efficiency'],
   requiredPower: ['达档参考综合力', 'Estimated power for grade', 'power', 'asc'],
   targetScore: ['目标分数线', 'Target score threshold', 'score', 'asc'],
   enteredRank: ['输入分数档位', 'Grade for entered score', 'grade'],
@@ -44,6 +44,8 @@ export const RANKING_OPTIONS = Object.freeze({
   calculationState: ['计算状态', 'Calculation state', 'text', 'asc']
 });
 export const GRADE_RANKING_METRICS = ['requiredPower', 'targetScore', 'enteredRank'];
+// Keep existing calculation helpers compatible; the browsing UI exposes only these metrics.
+export const RANKING_SORT_OPTIONS = Object.freeze(Object.fromEntries(Object.entries(RANKING_OPTIONS).filter(([key]) => ![...GRADE_RANKING_METRICS,'bandLabel','attribute','editionLabel','calculationState'].includes(key))));
 export const defaultRankingDirection = metric => RANKING_OPTIONS[metric]?.[3] ?? 'desc';
 export const editionName = (edition, en = false) => edition === 'jp' ? (en ? 'JP' : '日服') : (en ? 'Global' : '国际版');
 

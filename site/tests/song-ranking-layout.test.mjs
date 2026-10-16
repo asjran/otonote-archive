@@ -48,3 +48,16 @@ test('advanced conditions are native closed disclosures and the data region is k
   assert.equal(attr(region,'tabindex'),'0');assert.equal(attr(region,'role'),'region');assert.match(attr(region,'aria-label'),/横向/);
   assert.doesNotMatch(html,/ranking-picks|data-picks/);
 });
+
+test('metadata stays in frozen song labels, removed grade controls stay absent and replay is advanced',async()=>{
+  const {html}=await render(),nodes=walk(parse(html));
+  const options=nodes.find(n=>attr(n,'data-metric')!==undefined).childNodes.filter(n=>n.tagName==='option').map(n=>attr(n,'value'));
+  for(const key of ['bandLabel','attribute','editionLabel','calculationState','requiredPower','targetScore','enteredRank'])assert.ok(!options.includes(key));
+  assert.equal(nodes.filter(n=>n.attrs?.some(a=>['data-grade-target','data-grade-edition','data-grade-score'].includes(a.name))).length,0);
+  assert.equal(nodes.filter(n=>attr(n,'class')?.split(' ').includes('ranking-tag')).length,4);
+  const advanced=nodes.find(n=>attr(n,'class')==='ranking-advanced-replay');
+  assert.equal(advanced.tagName,'details');assert.equal(attr(advanced,'open'),undefined);
+  assert.deepEqual(nodes.filter(n=>attr(n,'data-edition-choice')!==undefined).map(n=>attr(n,'data-edition-choice')),['all','global','jp']);
+  assert.equal(attr(nodes.find(n=>attr(n,'data-filter')==='edition'),'hidden'),'');
+  assert.match(html,/每首歌仅显示一张/);assert.match(html,/排名最靠前的难度/);
+});

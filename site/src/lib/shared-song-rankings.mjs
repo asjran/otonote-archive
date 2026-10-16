@@ -28,12 +28,21 @@ export function combineSongRankings(sources, {region = "global", locale = 'zh-CN
     const otherSongs=new Set(counterpart?.catalog.musicTracks.map(track=>catalogIdentity('musicTracks',track,counterpart.catalog))??[]);
     result.releases[edition] = catalog.release.id;
     const tracks = new Map(catalog.musicTracks.map(t=>[t.id,t]));
+    const assets = new Map(catalog.assets.map(asset=>[asset.id,asset]));
+    const bandLogos = new Map((catalog.bands??[]).map(band=>{const asset=assets.get(band.logoAssetId);return [band.id,asset?.thumbnailUrl??asset?.previewUrl??null];}));
     const ready = data && !data.unavailable && data.sourceReleaseId === catalog.release.id
       && data.benchmark?.modelVersion === SCORE_MODEL_VERSION;
     const computed = new Map((ready ? data[mode] : []).map(row=>[row.id,row]));
     return catalog.musicCharts.map(chart=>{
       const track=tracks.get(chart.trackId), row=computed.get(chart.id);
-      const asset=catalog.assets.find(a=>a.id===track?.jacketAssetId);
+      const asset=assets.get(track?.jacketAssetId);
+      // musicTypeLabel in older projections came from MusicTag (band names).
+      // Resolve the numeric type against the actual attribute taxonomy instead.
+      const attributeCode=Number.isInteger(track?.musicType)?track.musicType:null;
+      const definition=catalog.cardTaxonomy?.attributes?.find(attribute=>attribute.code===attributeCode);
+      const attributeAsset=assets.get(definition?.iconAssetId);
+      const attribute=definition?.names?.[locale]??definition?.names?.[catalog.release.locale]??definition?.names?.en
+        ??(attributeCode!==null?`${locale.startsWith('en')?'Type':'属性'} ${attributeCode}`:row?.attribute??track?.musicTypeLabel??null);
       result.artwork[`${edition}--${chart.trackId}`]=asset?.thumbnailUrl ?? asset?.previewUrl;
       const songIdentity=track && catalogIdentity('musicTracks',track,catalog);
       const chartIdentity=songIdentity && chart.contentIdentity ? stableContent([songIdentity,chart.difficulty,chart.contentIdentity]) : null;
@@ -48,7 +57,9 @@ export function combineSongRankings(sources, {region = "global", locale = 'zh-CN
         expectedScore:row?.expectedScore ?? null, audioSeconds:row?.audioSeconds ?? track?.audioDuration ?? null,
         chartSeconds:row?.chartSeconds ?? chart.duration ?? null, pending:!row, sourceEdition:edition,
         libraryPresence:{status:counterpart && songIdentity?'known':'unknown',editions:otherSongs.has(songIdentity)?['global','jp']:[edition]},
-        songIdentity,chartIdentity,resultIdentity,attribute:row?.attribute ?? track?.musicTypeLabel ?? null,benchmark:data?.benchmark,gradeReference:{edition,trackId:chart.trackId,sourceReleaseId:catalog.release.id,thresholds:validGradeThresholds(track?.soloRewards?.scoreRanks)}};
+        songIdentity,chartIdentity,resultIdentity,attribute,attributeCode,attributeColor:definition?.color??null,
+        attributeIcon:attributeAsset?.thumbnailUrl??attributeAsset?.previewUrl??null,bandIcons:(track?.bandIds??[]).map(id=>bandLogos.get(id)??null),
+        benchmark:data?.benchmark,gradeReference:{edition,trackId:chart.trackId,sourceReleaseId:catalog.release.id,thresholds:validGradeThresholds(track?.soloRewards?.scoreRanks)}};
     });
   };
   for (const mode of ['ordinary','gekisou']) {
@@ -91,7 +102,8 @@ export function combineSongRankings(sources, {region = "global", locale = 'zh-CN
           row.editionChartReferences[candidate.sourceEdition]={sourceReleaseId:candidate.gradeReference.sourceReleaseId,
             trackId:candidate.gradeReference.trackId,title:candidate.title,level:candidate.level,
             chartSeconds:candidate.chartSeconds,audioSeconds:candidate.audioSeconds,
-            bands:candidate.bands,bandLabels:candidate.bandLabels,attribute:candidate.attribute};
+            bands:candidate.bands,bandLabels:candidate.bandLabels,bandIcons:candidate.bandIcons,attribute:candidate.attribute,
+            attributeCode:candidate.attributeCode,attributeColor:candidate.attributeColor,attributeIcon:candidate.attributeIcon};
         }
         if((own||counterpart)&&candidate.gradeReference.thresholds){
           row.gradeReferences[candidate.sourceEdition]={...candidate.gradeReference,

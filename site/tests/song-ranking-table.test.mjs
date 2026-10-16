@@ -1,20 +1,20 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {rankingTableColumns,formatRankingCell} from '../src/lib/song-ranking-table.mjs';
-import {rankRefinedSongRows as rank,RANKING_OPTIONS,GRADE_RANKING_METRICS} from '../src/lib/song-ranking-options.mjs';
+import {rankingTableColumns,formatRankingCell,rankingStatusTags,rankingMetricExplanation} from '../src/lib/song-ranking-table.mjs';
+import {rankRefinedSongRows as rank,RANKING_OPTIONS,RANKING_SORT_OPTIONS,GRADE_RANKING_METRICS} from '../src/lib/song-ranking-options.mjs';
 
 const row=(id,patch={})=>({id,title:id,trackId:`global--${id}`,sourceEdition:'global',level:25,difficulty:'expert',bands:['band-1'],bandLabels:['MyGO!!!!!'],attribute:'MyGO!!!!!',
   expectedScore:1000,baseScore:700,skillScoreGain:300,minimumScore:800,maximumScore:1200,p10Score:900,chartSeconds:100,audioSeconds:110,
   applicableEditions:['global'],pendingEditions:[],meta:{averageDensity:4,peakDensity:12,bpmMin:120,bpmMax:180},...patch});
 test('every sortable metric has a visible column in its applicable table, without duplicate columns',()=>{
   const ordinary=rankingTableColumns(),gekisou=rankingTableColumns('gekisou'),grade=rankingTableColumns('ordinary','requiredPower');
-  assert.equal(ordinary.length,31);assert.equal(gekisou.length,36);assert.equal(grade.length,34);
+  assert.equal(ordinary.length,27);assert.equal(gekisou.length,32);assert.equal(grade.length,27);
   for(const columns of [ordinary,gekisou,grade]) {
     assert.equal(columns[0].key,'title');assert.equal(new Set(columns.map(c=>c.key)).size,columns.length);
     assert.ok(columns.every(c=>c.width>0&&c.labels===RANKING_OPTIONS[c.key]));
   }
-  assert.deepEqual([...new Set([...ordinary,...gekisou,...grade].map(c=>c.key))].sort(),Object.keys(RANKING_OPTIONS).sort());
-  for(const key of GRADE_RANKING_METRICS)assert.ok(grade.some(c=>c.key===key));
+  assert.deepEqual([...new Set([...ordinary,...gekisou,...grade].map(c=>c.key))].sort(),Object.keys(RANKING_SORT_OPTIONS).sort());
+  for(const key of [...GRADE_RANKING_METRICS,'bandLabel','attribute','editionLabel','calculationState'])assert.ok(!grade.some(c=>c.key===key));
 });
 test('title and metadata columns sort in both directions, with missing data last',()=>{
   const rows=[row('b',{title:'Song 10',bandLabels:['Z'],attribute:null}),row('a',{title:'Song 2',bandLabels:['A'],attribute:'M'}),row('missing',{title:'',bandLabels:[],attribute:null})];
@@ -54,4 +54,18 @@ test('both grade columns recompute the selected reference before sorting, rather
   const grades=rank([a,b],{metric:'enteredRank',gradeEdition:'global',profile:'benchmark',score:350});
   assert.deepEqual(grades.map(r=>r.enteredRank),[5,3]);
   assert.equal(formatRankingCell('enteredRank',grades[0]),'A');
+});
+
+test('identity tags distinguish song attributes, score editions and calculation provenance',()=>{
+  const tags=rankingStatusTags(row('a',{attribute:'Ave Mujica',applicableEditions:['jp'],pendingEditions:['global']}));
+  assert.equal(tags.find(t=>t.kind==='band').label,'MyGO!!!!!');
+  assert.equal(tags.find(t=>t.kind==='attribute').label,'Ave Mujica');
+  assert.equal(tags.find(t=>t.kind==='edition').label,'日服 · 待算：国际版');
+  assert.equal(rankingStatusTags(row('a',{pending:true})).find(t=>t.kind==='state').state,'pending');
+  assert.equal(rankingStatusTags(row('a',{calculation:'replay'})).find(t=>t.kind==='state').label,'精算');
+});
+test('P10 explanations distinguish skill orders from LUCK sampling',()=>{
+  assert.match(rankingMetricExplanation('p10Score'),/120.*12/);
+  assert.match(rankingMetricExplanation('p10Efficiency','gekisou'),/LUCK.*10%/);
+  assert.equal(rankingMetricExplanation('expectedScore'),'');
 });
