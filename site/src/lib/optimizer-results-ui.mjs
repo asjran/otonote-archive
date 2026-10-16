@@ -42,7 +42,7 @@ export function renderOptimizerResults(workbench,results,{mode,objective,live=fa
     const score=el('div',null,'recommendation-score');
     score.append(el('strong',number(result.value)),el('span',objective==='formation_power'?'综合力':objective==='expected_song_score'?'参考平均分':objective==='minimum_song_score'?'本次比较中的低分':'本次比较中的高分'));
     if(result.delta!=null&&!result.planning?.missingActual)score.append(el('em',`${result.delta>=0?'+':''}${number(result.delta)} 较当前养成方案`,result.delta>=0?'is-positive':'is-negative'));
-    resultHeading.append(score);row.append(teamLineup(workbench,result.draft));
+    resultHeading.append(score);row.append(teamLineup(workbench,result.draft),skillActivation(workbench,result.draft,{mode,scenario:result.scenario,conditionsOnly:objective==='formation_power',summary:result}));
     if(direction?.reason)row.append(el('p',direction.reason,'recommendation-reason'));
     if(direction?.tradeoff)row.append(el('p',direction.tradeoff,'recommendation-tradeoff'));
     const planning=result.planning;
@@ -71,7 +71,6 @@ export function renderOptimizerResults(workbench,results,{mode,objective,live=fa
       if(result.sections?.length)detail.append(scoreComposition(result.sections,result.expectedScore));
       if(objective!=='formation_power')detail.append(el('p',`综合力 ${number(result.power)} · 本次比较范围 ${number(result.minimumScore)} – ${number(result.maximumScore)} 分`,'recommendation-caption'));
       if(result.scoreDistribution)detail.append(el('p',`较低一成位置的分数 ${number(result.scoreDistribution.p10)} · 共 ${result.scoreDistribution.count} 次比较；不是实战保底。`,'recommendation-caption'));
-      detail.append(skillActivation(workbench,result.draft,{mode,scenario:result.scenario,conditionsOnly:objective==='formation_power'}));
       if(result.comparison&&!planning?.missingActual){const c=result.comparison;detail.append(el('p',`相对当前养成方案：综合力 ${number(c.powerChangePercent)}%，目标分数 ${number(c.scoreChangePercent)}%。这是整队替换后的变化。`));}
       if(result.sections){
         detail.append(el('p',`名次奖励占总分 ${number(result.rankingBonusShare*100)}% · ${result.sampleCount} 次模拟 · 抽样标准误 ${number(result.standardError)}（不含模型误差）`));

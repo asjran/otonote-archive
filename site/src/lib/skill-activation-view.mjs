@@ -1,4 +1,5 @@
 import {renderGekisouPlayback} from './gekisou-playback-view.mjs';
+import {skillOrderSummary} from './skill-order-summary.mjs';
 import {createReplayClock, noteDensity,partitionActivationEffects} from './skill-activation-model.mjs';
 const say = (zh,en) => document.documentElement.lang.startsWith('en') ? en : zh;
 const el = (tag,text,cls) => {const n=document.createElement(tag);if(text!=null)n.textContent=text;if(cls)n.className=cls;return n;};
@@ -127,7 +128,9 @@ export function renderSkillActivation(root,result,data={}){
 // Shared tool modules also import this file during server-side validation.
 if(typeof HTMLElement!=='undefined'&&typeof customElements!=='undefined'&&!customElements.get('skill-activation')){
 class SkillActivation extends HTMLElement {
-  connectedCallback(){if(this.initialized)return;this.initialized=true;const details=el('details',null,'skill-activation');const summary=el('summary'),mark=el('span',null,'activation-mark');mark.setAttribute('aria-hidden','true');for(let i=0;i<5;i++)mark.append(el('i'));
+  connectedCallback(){if(this.initialized)return;this.initialized=true;
+    const order=skillOrderSummary(this.data??{},this.payload?.draft,this.summaryResult);if(order)this.append(order);
+    const details=el('details',null,'skill-activation');const summary=el('summary'),mark=el('span',null,'activation-mark');mark.setAttribute('aria-hidden','true');for(let i=0;i<5;i++)mark.append(el('i'));
     const summaryText=el('span',null,'activation-summary-text');summaryText.append(el('strong',say('查看技能发动','View skill activations')),el('small',say('发动顺序、技能条件与音符覆盖','Order, conditions and note coverage')));summary.append(mark,summaryText,el('span','⌄','activation-chevron'));details.append(summary);const body=el('div',null,'activation-body');details.append(body);this.append(details);
     details.addEventListener('change',event=>event.stopPropagation());
     details.addEventListener('toggle',()=>{if(!details.open){this.stop();return;}if(this.result){renderSkillActivation(body,this.result,this.data);return;}this.load(body);});
@@ -150,5 +153,5 @@ export function skillActivation(tool,draft,options={}){
   const copy=draft?structuredClone(draft):null;
   const chart=options.chart??data.charts?.find(c=>c.trackId===copy?.selectedSongId&&c.difficulty===copy?.selectedDifficulty);
   view.payload={rules:data.formalRules??data.rules,draft:copy,chart:options.conditionsOnly?null:chart,mode:options.mode??'ordinary',scenario:options.scenario,eventId:options.eventId,ranking:options.ranking,conditionsOnly:options.conditionsOnly};
-  view.result=options.result;return view;
+  view.result=options.result;view.summaryResult=options.summary;return view;
 }

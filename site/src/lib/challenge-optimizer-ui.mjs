@@ -39,7 +39,7 @@ export function setupChallengeOptimizer(tool){
       card.append(el('p',`最高 ${fmt(row.maximumScore)} · 平均 ${fmt(row.expectedScore)} · 最低 ${fmt(row.minimumScore)}`,'event-hint'));
       if(index>0)card.append(el('p','备选仅供参考，未证明其排名。','event-hint'));
       card.append(el('p',`活动内综合力 ${fmt(row.power)}${reference?' · 满养成参考，不代表实际持有':row.delta==null?' · 当前队伍不完整或不在所选卡库，未作对比':` · 比当前队伍${row.delta>=0?'提高':'降低'} ${fmt(Math.abs(row.delta))} 分`}`));
-      card.append(createWorkbenchTeamView(tool,row.draft),skillActivation(tool,row.draft,{mode:'challenge',eventId:Number(tool.q('event').value)}));
+      card.append(createWorkbenchTeamView(tool,row.draft),skillActivation(tool,row.draft,{mode:'challenge',eventId:Number(tool.q('event').value),summary:row}));
       const apply=el('button','应用这支挑战队伍');apply.type='button';apply.addEventListener('click',()=>{
         tool.teamWorkspaceContext.applyDraft(row.draft);
         tool.q('bonus-source').value='team';
