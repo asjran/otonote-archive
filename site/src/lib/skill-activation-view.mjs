@@ -60,6 +60,7 @@ export function renderSkillActivation(root,result,data={}){
       seek.value=String(current);time.textContent=`${liveSeconds(current)} / ${liveSeconds(duration)}`;
       const snapshot=clock.at(current),{active,note}=snapshot;
       const gkActive=gekisouView?.seek(current,{follow:following})?.activeEffects??[];
+      nowPanel.hidden=!active.length&&!gkActive.length;
       cumulative.textContent=fmt(snapshot.score);progress.style.width=`${current/duration*100}%`;readings.notes.textContent=`${snapshot.count} / ${variant.notes?.length??0}`;readings.factor.textContent=note?`${fmt(note.scoreUpFactor)}×`:'—';readings.life.textContent=fmt(snapshot.life);readings.rewards.textContent=playback.ranges?.length?`+${fmt(snapshot.rewards)}`:say('不适用','N/A');
       for(const lane of lanes.children){const row=rows[Number(lane.dataset.position)],on=active.includes(row);lane.dataset.playing=String(on);lane.dataset.phase=current<row.startMs?'waiting':on?'active':'ended';lane.querySelector('.task-replay-cursor').style.left=`${current/duration*100}%`;lane.querySelector('.activation-time').textContent=current<row.startMs?say(`等待 ${liveSeconds(row.startMs-current)}`,`In ${liveSeconds(row.startMs-current)}`):on?say(`剩余 ${liveSeconds(row.endMs-current)}`,`${liveSeconds(row.endMs-current)} left`):say('已发动','Triggered');}
       liveState.textContent=snapshot.section?say(`第 ${snapshot.section.index} 段 · ${['','COMBO','LUCK','JUST'][snapshot.section.missionType]}`,`Section ${snapshot.section.index} · ${['','COMBO','LUCK','JUST'][snapshot.section.missionType]}`):say('普通演出区间','Ordinary live section');
@@ -78,17 +79,17 @@ export function renderSkillActivation(root,result,data={}){
     const summary=el('div',null,'activation-score');const scoreLabel=el('div',null,'activation-score-label');scoreLabel.append(el('span',label(variant,playback.randomSampling),'activation-current-variant'),el('small',say('累计分','Score so far')));const cumulative=el('strong','0');cumulative.dataset.replayScore='';summary.append(scoreLabel,cumulative,el('small',say(`最终 ${fmt(variant.score)}`,`Final ${fmt(variant.score)}`),'activation-final-score'));
     const progressTrack=el('div',null,'activation-score-progress'),progress=el('i');progressTrack.append(progress);summary.append(progressTrack);
     if(playback.randomSampling&&variant.seed!=null)summary.append(el('small',`Seed ${variant.seed}`));const readout=el('div',null,'activation-console-readout');readout.append(summary,metrics,liveState);playbackPanel.append(readout,transport);
-    canvas.append(el('p',playback.ranges?.length?say('平均分综合多个样本；下方为本次样本的任务、奖励与发动。','The mean combines samples; missions, rewards and activations below describe this sample.'):variant.kind==='explicit'?say('按导入判定与指定顺序回放。','Replayed with the entered judgements and order.'):say('平均分综合多种顺序；此处为所选顺序的单次回放。','The mean combines orders; this is one replay of the selected order.'),'activation-caption'));
     if(data.ranking)canvas.append(el('p',say('此处按当前技能逐谱精算；快速参考值可能与本次回放分数不同。','This view replays the current skills exactly; quick estimates may differ.'),'activation-caption'));
     let ordinaryRoot=canvas;
     if(playback.ranges?.length){
       gekisouView=renderGekisouPlayback(canvas,result,variant,data,{el,say,fmt,seconds,cardFor,portrait,effectName,onSeek:jump},gekisouState);
       ordinaryRoot=el('details',null,'gk-ordinary');ordinaryRoot.append(el('summary',say('普通演出技能 · 五人发动与覆盖','Ordinary live skills · Activations and coverage')));canvas.append(ordinaryRoot);
     }
-    const stage=el('section',null,'activation-stage');stage.setAttribute('aria-label',say('技能发动时间谱','Skill activation tracks'));const stageHeader=el('div',null,'activation-stage-heading');stageHeader.append(el('strong',say('发动时间谱','Activation tracks')),el('span',say('点击音轨跳到发动时刻；详情跟随播放','Select a track to seek; details follow playback')));stage.append(stageHeader);ordinaryRoot.append(stage);const scale=el('div',null,'activation-scale');for(let i=0;i<=4;i++)scale.append(el('span',seconds(duration*i/4)));stage.append(scale);
+    const workspace=el('div',null,'activation-workspace');ordinaryRoot.append(workspace);
+    const stage=el('section',null,'activation-stage');stage.setAttribute('aria-label',say('技能发动时间谱','Skill activation tracks'));const stageHeader=el('div',null,'activation-stage-heading');stageHeader.append(el('strong',say('发动时间谱','Activation tracks')),el('span',say('点选音轨查看详情','Select a track for details')));stage.append(stageHeader);workspace.append(stage);const scale=el('div',null,'activation-scale');for(let i=0;i<=4;i++)scale.append(el('span',seconds(duration*i/4)));stage.append(scale);
     const density=el('div',null,'activation-density');density.setAttribute('aria-label',say('音符密度','Note density'));
     const bins=noteDensity(variant.notes,duration),max=Math.max(1,...bins);for(const n of bins){const bar=el('i');bar.style.height=`${Math.max(2,n/max*100)}%`;density.append(bar);}stage.append(density);
-    const lanes=el('div',null,'activation-lanes'),inspection=el('div',null,'activation-inspection');stage.append(lanes);const legend=el('div',null,'activation-legend');legend.append(el('span',say('竖线 · 发动','Line · Start')),el('span',say('色块 · 得分窗口','Band · Score window')),el('span',say('上方柱形 · 音符密度','Bars above · Note density')));stage.append(legend);ordinaryRoot.append(inspection);
+    const lanes=el('div',null,'activation-lanes'),inspection=el('div',null,'activation-inspection');stage.append(lanes);const legend=el('div',null,'activation-legend');legend.append(el('span',say('发动','Start')),el('span',say('得分窗口','Score window')),el('span',say('音符密度','Note density')));stage.append(legend);workspace.append(inspection);
     function select(row){
       selectedSlot=row.slotIndex;
       for(const button of lanes.children)button.setAttribute('aria-pressed',String(Number(button.dataset.position)===row.position));
@@ -103,7 +104,7 @@ export function renderSkillActivation(root,result,data={}){
       profileText.append(el('span',null,'activation-inspection-time'));
       profile.append(art,profileText);inspection.append(profile);
       const stats=el('dl',null,'activation-stats');
-      for(const [name,value] of [[say('发动时刻','Start'),seconds(row.startMs)],[say('得分效果结束','Score effect ends'),row.windows.length?seconds(row.endMs):'—'],[say('留影延长','Extension'),seconds(row.skill.extensionMs??0)],[say('窗口内音符','Notes in windows'),fmt(row.covered.length)]]){const cell=el('div');cell.append(el('dt',name),el('dd',value));stats.append(cell);}inspection.append(stats,el('p',say('以下为这次发动的条件记录；当前是否仍在生效见上方回放状态。','These conditions were recorded at activation. See the replay state above for effects active now.'),'activation-caption'),effectsList(data,row.skill,row.skillTrace));
+      for(const [name,value] of [[say('发动时刻','Start'),seconds(row.startMs)],[say('得分结束','Score ends'),row.windows.length?seconds(row.endMs):'—'],[say('留影延长','Extension'),seconds(row.skill.extensionMs??0)],[say('覆盖音符','Covered notes'),fmt(row.covered.length)]]){const cell=el('div');cell.append(el('dt',name),el('dd',value));stats.append(cell);}const effects=effectsList(data,row.skill,row.skillTrace);effects.setAttribute('role','group');effects.setAttribute('aria-label',say('这次发动的条件效果记录','Effects recorded at this activation'));inspection.append(stats,effects);
       if(!row.windows.length)inspection.append(el('p',say('本次没有生效的得分窗口；其他技能效果见上方。','No active score window for this activation. Other effects are listed above.')));
       const detail=el('details',null,'activation-notes');detail.append(el('summary',say(`查看覆盖音符 · ${row.covered.length} 个`,`Inspect covered notes · ${row.covered.length}`)));
       detail.append(el('p',say('按技能生效时间段统计，结束时刻不计入。音符分数包含当时所有效果，不是这张卡独立贡献；重叠窗口不能相加。','Coverage uses active time windows, excluding the end timestamp. Note scores include all effects, not an additive contribution from this card.')));
@@ -137,7 +138,7 @@ class SkillActivation extends HTMLElement {
     const summaryText=el('span',null,'activation-summary-text');summaryText.append(el('strong',say('查看技能发动','View skill activations')),el('small',say('发动顺序、技能条件与音符覆盖','Order, conditions and note coverage')));summary.append(mark,summaryText,el('span','⌄','activation-chevron'));details.append(summary);const body=el('div',null,'activation-body');details.append(body);this.append(details);
     if(order){
       this.classList.add('activation-with-order');details.classList.add('activation-order-details');summary.hidden=true;
-      const open=el('button',null,'activation-order-open');open.type='button';open.append(el('span',say('回放','Replay')),el('span','↗','activation-order-open-icon'));
+      const open=el('button',null,'activation-order-open'),replayIcon=el('span',null,'activation-order-open-icon');replayIcon.setAttribute('aria-hidden','true');for(let i=0;i<4;i++)replayIcon.append(el('i'));open.type='button';open.append(replayIcon,el('span',say('回放','Replay')));
       open.setAttribute('aria-label',say('查看技能发动','View skill activations'));open.setAttribute('aria-expanded','false');
       body.id=`activation-details-${Math.random().toString(36).slice(2)}`;open.setAttribute('aria-controls',body.id);
       open.addEventListener('click',()=>summary.click());details.addEventListener('toggle',()=>open.setAttribute('aria-expanded',String(details.open)));order.append(open);

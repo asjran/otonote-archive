@@ -1,5 +1,5 @@
 /* Scope to skill playback, including content moved into a workbench dialog. */
-.task-studio.task-studio .task-dialog:has(.activation-body){width:min(900px,calc(100vw - 24px));max-height:min(660px,calc(100dvh - 48px))}
+.task-studio.task-studio .task-dialog:has(.activation-body){width:min(900px,calc(100vw - 24px));max-height:min(620px,calc(100dvh - 48px))}
 .task-studio.task-studio .task-dialog:has(.activation-body)>header{padding:10px 16px}
 .task-studio.task-studio .task-dialog:has(.activation-body)>.task-dialog-body{padding:12px 16px}
 .task-studio.task-studio .task-dialog .activation-body .activation-title{font-size:15px}
@@ -55,13 +55,41 @@
 .task-studio.task-studio .task-dialog .activation-body .activation-stats dd{margin:0;font-size:14px}
 .task-studio.task-studio .task-dialog .activation-body .activation-effects li{gap:4px 7px;padding:7px 8px;font-size:11px}
 .task-studio.task-studio .task-dialog .activation-body .activation-effects small{display:inline;flex-basis:auto;font-size:10px}
+.task-studio.task-studio .task-dialog .activation-body .activation-now[hidden]{display:none!important}
+.activation-workspace{display:grid;min-width:0;gap:10px;margin-top:10px;align-items:start}
+.task-studio.task-studio .task-dialog .activation-workspace :is(.activation-stage,.activation-inspection){margin-top:0}
+.task-studio.task-studio .task-dialog .activation-body .activation-stage-heading{margin-bottom:8px}
+.task-studio.task-studio .task-dialog .activation-body .activation-density{height:18px;margin-bottom:8px}
+.task-studio.task-studio .task-dialog .activation-body .activation-legend{margin-top:8px;font-size:9px}
+.task-studio.task-studio .task-dialog .activation-body .activation-profile{gap:8px;margin-bottom:8px}
+.task-studio.task-studio .task-dialog .activation-body .activation-pair-art{width:46px;min-width:46px;height:44px}
+.task-studio.task-studio .task-dialog .activation-body .activation-pair-art>img{width:38px;height:38px;border-radius:7px}
+.task-studio.task-studio .task-dialog .activation-body .activation-pair-art>.activation-support-art{width:24px;height:24px;border-radius:5px}
+.task-studio.task-studio .task-dialog .activation-body .activation-stats{margin-bottom:8px;gap:8px}
+.task-studio.task-studio .task-dialog .activation-body .activation-effects{margin-top:8px;gap:6px}
+.task-studio.task-studio .task-dialog .activation-body .activation-notes{margin-top:8px}
+@media(min-width:1000px){
+  .activation-workspace{grid-template-columns:minmax(0,1.35fr) minmax(0,1fr)}
+  .task-studio.task-studio .task-dialog .activation-body .activation-stage{--track-label:104px;--track-time:70px;--track-gap:7px;padding:10px}
+  .task-studio.task-studio .task-dialog .activation-body .activation-lane{min-height:43px;padding:5px;grid-template-columns:var(--track-label) minmax(0,1fr) var(--track-time)}
+  .task-studio.task-studio .task-dialog .activation-body .activation-identity{gap:5px;font-size:10px}
+  .task-studio.task-studio .task-dialog .activation-body .activation-identity img{width:26px;height:26px}
+  .task-studio.task-studio .task-dialog .activation-body .activation-time{font-size:9px}
+  .task-studio.task-studio .task-dialog .activation-body .activation-inspection{padding:10px}
+  .task-studio.task-studio .task-dialog .activation-body .activation-stats{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .task-studio.task-studio .task-dialog .activation-body .activation-effects{grid-template-columns:1fr}
+}
 @media(max-width:600px){
   .task-studio.task-studio .task-dialog:has(.activation-body){max-height:calc(100dvh - 24px)}
   .task-studio.task-studio .task-dialog:has(.activation-body)>.task-dialog-body{padding:10px 12px}
   .task-studio.task-studio .task-dialog .activation-body .activation-stage{padding:8px}
-  .task-studio.task-studio .task-dialog .activation-body .activation-lane{grid-template-columns:minmax(0,1fr) auto;gap:4px 8px}
-  .task-studio.task-studio .task-dialog .activation-body .activation-track{grid-column:1/-1;grid-row:2}
-  .task-studio.task-studio .task-dialog .activation-body .activation-time{grid-column:2;grid-row:1}
+  .task-studio.task-studio .task-dialog .activation-body .activation-lane{grid-template-columns:minmax(0,1fr) auto;gap:3px 7px}
+  .task-studio.task-studio .task-dialog .activation-body .activation-identity{gap:5px;font-size:10px}
+  .task-studio.task-studio .task-dialog .activation-body .activation-identity img{width:24px;height:24px}
+  .task-studio.task-studio .task-dialog .activation-body .activation-track{grid-column:1/-1;grid-row:2;height:16px}
+  .task-studio.task-studio .task-dialog .activation-body .activation-window{top:4px;height:8px}
+  .task-studio.task-studio .task-dialog .activation-body .activation-pin{top:0;height:16px}
+  .task-studio.task-studio .task-dialog .activation-body .activation-time{grid-column:2;grid-row:1;font-size:9px}
   .task-studio.task-studio .task-dialog .activation-body :is(.activation-scale,.activation-density){margin-left:6px;margin-right:6px}
   .task-studio.task-studio .task-dialog .activation-body .activation-scale span:nth-child(even){display:none}
   .task-studio.task-studio .task-dialog .activation-body .activation-stats{grid-template-columns:repeat(2,minmax(0,1fr))}

@@ -38,13 +38,9 @@ export function skillOrderSummary(data, draft, result) {
       const img = node('img'); img.src = card.imageUrl; img.alt = name; img.loading = 'lazy';
       img.addEventListener('error', () => img.remove(), { once: true }); art.append(img);
     } else art.setAttribute('aria-label', name);
-    const index = node('b', String(position + 1)); index.setAttribute('aria-hidden', 'true');
+    const index = node('b', String(position + 1).padStart(2, '0')); index.setAttribute('aria-hidden', 'true');
     item.setAttribute('aria-label', item.title); item.append(art, index); list.append(item);
   }
-  root.append(list, node('small', model.kind === 'explicit'
-    ? say('按指定顺序回放一次。', 'One replay with the entered order.')
-    : model.kind === 'sample' ? say('本次样本中的有利顺序；随机结果不保证重现，平均分综合多个样本。', 'Favourable order in this sample; random results may vary. The mean combines samples.')
-    : model.kind === 'screen' ? say('仅比较粗筛顺序，尚未完成全部顺序计算。', 'Screening orders only; the full comparison is incomplete.')
-    : say('随机发动，不能手动指定；平均分综合多种顺序。', 'Activations are random, not manually selected. The mean combines orders.'), 'activation-order-note'));
+  root.append(list);
   return root;
 }

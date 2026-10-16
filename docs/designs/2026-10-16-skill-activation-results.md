@@ -96,3 +96,28 @@ node --test site/tests/skill-activation.test.mjs site/tests/challenge-optimizer-
 本轮只调整 `skill-activation-view.mjs`、`skill-order.css`、`skill-replay-compact.css` 及文档，不改评分器或共享弹窗逻辑。上述界面状态在普通配队中做了真实浏览器验收；激奏评分回归沿用 Node 检查，没有新增原生客户端或激奏实战验收声明。
 
 日志：`/private/tmp/otonote-skill-console-targeted.log`、`/private/tmp/otonote-skill-console-full-node.log`、`/private/tmp/otonote-skill-console-astro.log`。截图在 `output/playwright/skill-activation-console/`，包括 `order-current.jpg`、`order-mobile.jpg`、`console-desktop.jpg`、`console-desktop-sticky.jpg`、`console-mobile-sticky.jpg`。
+
+
+## 第三轮验收：进一步压缩与头像轨道
+
+基于 `9d74a2e` 追加改动。用户要求取消箭头及随机/平均分常驻说明，并重新美化顺序区；本轮采用无大外框的圆形头像轨道、下方次序编号、紧随头像链的音轨图标回放胶囊。外显仍只有头像与次序，完整卡名保留在悬浮提示和无障碍名称中。
+
+回放宽屏左右并排时间谱与技能详情，顶部播放台保持不动；手机保留上下布局。空闲效果块隐藏，发动时出现；删除重复解释，压缩统计标题与正文留白。条件效果、留影来源、覆盖音符及分页均保留，评分器、平均分、顺序范围不变。
+
+| 检查 | 本轮结果 |
+| --- | --- |
+| 1280 × 720 默认普通回放 | 对话框 900 × 558.34px，上一轮为 900 × 660px；高度减少约 15.4% |
+| 默认正文 | 507px，无需纵向滚动；宽屏两栏约 492px / 364px |
+| 发动时实时状态 | 显示当前加分、留影延长、已覆盖音符与剩余时间；样例对话框高度约 612px |
+| 320px 音轨 | 每行 82px → 57px，五条合计节约 125px；页面和弹窗无横向溢出 |
+| 320px 外显顺序 | 234px 宽、107px 高；五个头像次序完整，无说明文案 |
+| 粘性控制台 | 手机与桌面滚动后顶边均与弹窗标题底边一致；桌面展开音符翻页时 scrollTop=682px |
+| 回放操作 | Enter 打开、Esc 关闭、展开状态恢复、下一次发动、最高/最低切换、条件和音符展开通过 |
+| 最终时间 | 109.55s，747/747 音符，累计分 1,286,988 与最终分一致 |
+| 定向 Node | 36/36 通过；本轮未重跑全量，上一轮仍为 1159/1165，6 项既有失败见上文 |
+| Astro | 14 条，与发布诊断逐项比较新增 0、消失 0 |
+| 最终独立构建 | `6195a03ecd718d71412d66bd`，54 路由 / 58 脚本 / 337 文件 |
+
+本轮代码范围为 `skill-activation-view.mjs`、`skill-order-summary.mjs`、`skill-order.css`、`skill-replay-compact.css`，以及这两份设计/验证文档。浏览器验收仍使用普通演出与既有本地内容快照，未新增原生客户端或激奏实战验收。其余遗留边界沿用上文。
+
+日志：`/private/tmp/otonote-skill-portrait-targeted.log`、`/private/tmp/otonote-skill-portrait-astro.log`、`/private/tmp/otonote-skill-portrait-verified-build.log`。截图在 `output/playwright/skill-activation-portrait/`。本地验收服务器为 `http://127.0.0.1:4403`，构建位于 `output/skill-activation-portrait-verified-code`。未推送、未创建 PR、未部署。

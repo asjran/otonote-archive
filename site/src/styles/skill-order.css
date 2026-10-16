@@ -1,32 +1,34 @@
-/* A compact cue strip: numbers describe activation order, never team slots. */
-.activation-order{--cue-accent:var(--studio-accent,#794560);display:grid;grid-template-columns:max-content minmax(0,1fr) max-content;align-items:center;gap:7px 14px;min-width:0;padding:10px 12px;border:1px solid var(--activation-line,#e5e0e9);border-radius:10px;background:var(--activation-paper,#faf8fc);text-align:left;color:var(--activation-ink,#273446)}
-.activation-order-title{grid-column:1;grid-row:1;font-size:11px;font-weight:650;line-height:1.5;letter-spacing:.02em}
-.activation-order .activation-order-chain{grid-column:2;grid-row:1;display:flex;gap:10px;list-style:none;margin:0;padding:3px 0 0;min-width:0}
-.activation-order-chain>li{position:relative;flex:0 0 40px;width:40px;margin:0;padding:0}
-.activation-order-chain>li+li:before{content:'›';position:absolute;left:-8px;top:13px;color:var(--activation-muted,#9b8b9b);font:13px/1 system-ui}
-.activation-order-art{display:grid;place-items:center;position:relative;width:40px;height:40px;overflow:hidden;border:2px solid var(--activation-paper,#fff);border-radius:9px;background:#eee9f1;box-shadow:0 0 0 1px var(--activation-line,#e5e0e9);box-sizing:border-box;font-size:10px}
-.activation-order-art>img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:50% 22%;transform:scale(1.12);transform-origin:50% 20%}
-.activation-order-chain>li>b{position:absolute;top:-5px;left:-5px;display:grid;place-items:center;min-width:15px;height:15px;border:2px solid var(--activation-paper,#fff);border-radius:6px;background:var(--cue-accent);color:#fff;font:650 9px/1 var(--font-mono,ui-monospace,monospace)}
-.activation-order-note{grid-column:1/-1;grid-row:2;font-size:10px;line-height:1.6;color:var(--activation-muted,#677486)}
-.activation-order .activation-order-open,.task-studio.task-studio skill-activation .activation-order .activation-order-open{grid-column:3;grid-row:1;display:inline-flex;align-items:center;justify-content:center;gap:5px;min-height:28px;padding:4px 9px;margin:0;border:1px solid var(--activation-line,#ded4df);border-radius:7px;background:var(--activation-paper,#fff);color:var(--cue-accent);font:500 11px/1.4 var(--font-body,system-ui);white-space:nowrap;cursor:pointer;box-shadow:none}
-.activation-order .activation-order-open:hover{border-color:var(--cue-accent);background:#f4eef5}
+/* Portraits and position numbers form one quiet, connected score cue. */
+.activation-order{--cue-accent:var(--studio-accent,#794560);display:grid;grid-template-columns:max-content max-content max-content;align-items:center;gap:12px 20px;min-width:0;padding:12px 0;text-align:left;color:var(--activation-ink,#273446)}
+.activation-order-title{font-size:11px;font-weight:600;line-height:1.5;letter-spacing:.03em}
+.activation-order .activation-order-chain{display:flex;align-items:center;gap:18px;list-style:none;margin:0;padding:0;min-width:0}
+.activation-order-chain>li{position:relative;flex:0 0 44px;width:44px;margin:0;padding:0;text-align:center}
+.activation-order-chain>li+li:before{content:'';position:absolute;right:calc(100% + 4px);top:22px;width:10px;height:1px;background:color-mix(in srgb,var(--cue-accent) 25%,transparent)}
+.activation-order-art{display:grid;place-items:center;position:relative;width:44px;height:44px;overflow:hidden;border:2px solid #fff;border-radius:50%;background:#eee9f1;box-shadow:0 0 0 1px color-mix(in srgb,var(--cue-accent) 18%,transparent);box-sizing:border-box;font-size:10px}
+.activation-order-art>img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:50% 25%;transform:scale(1.9);transform-origin:50% 30%}
+.activation-order-chain>li>b{display:block;margin-top:4px;color:var(--activation-muted,#7c7381);font:500 9px/1 var(--font-mono,ui-monospace,monospace);letter-spacing:.08em}
+.activation-order .activation-order-open,.task-studio.task-studio skill-activation .activation-order .activation-order-open{display:inline-flex;align-items:center;justify-content:center;gap:7px;min-height:32px;padding:6px 12px;margin:0;border:1px solid transparent;border-radius:99px;background:color-mix(in srgb,var(--cue-accent) 8%,white);color:var(--cue-accent);font:600 11px/1.4 var(--font-body,system-ui);white-space:nowrap;cursor:pointer;box-shadow:none;transition:background .15s,border-color .15s}
+.activation-order .activation-order-open:hover{border-color:color-mix(in srgb,var(--cue-accent) 25%,white);background:color-mix(in srgb,var(--cue-accent) 14%,white)}
 .activation-order .activation-order-open:focus-visible{outline:2px solid var(--cue-accent);outline-offset:3px}
-.activation-order-open-icon{font-size:13px;line-height:1}
-skill-activation.activation-with-order{margin-block:12px}
+.activation-order-open-icon{display:flex;align-items:center;gap:2px;height:14px}
+.activation-order-open-icon>i{display:block;width:2px;height:6px;border-radius:2px;background:currentColor}
+.activation-order-open-icon>i:nth-child(2){height:12px}
+.activation-order-open-icon>i:nth-child(3){height:9px}
+.activation-order-open-icon>i:nth-child(4){height:5px}
+skill-activation.activation-with-order{margin-block:10px}
 skill-activation.activation-with-order>.activation-order{margin-bottom:0}
 skill-activation.activation-with-order>.skill-activation.activation-order-details{border:0;border-radius:0;box-shadow:none;background:transparent;margin:0}
 skill-activation .activation-order-details>summary[hidden]{display:none!important}
 .task-studio.task-studio :is(.task-event-result-team,.task-challenge-result) skill-activation.activation-with-order{width:auto;container-type:inline-size}
-@container(max-width:540px){
-  .activation-order{grid-template-columns:minmax(0,1fr) auto;gap:8px 12px;padding:9px 10px}
+@container(max-width:580px){
+  .activation-order{grid-template-columns:minmax(0,1fr) auto;gap:10px 12px;padding:10px 0}
   .activation-order-title{grid-column:1;grid-row:1}
-  .activation-order .activation-order-chain{grid-column:1/-1;grid-row:2}
-  .activation-order .activation-order-open,.task-studio.task-studio skill-activation .activation-order .activation-order-open{grid-column:2;grid-row:1;min-height:25px;padding:3px 8px}
-  .activation-order-note{grid-row:3}
+  .activation-order .activation-order-chain{grid-column:1/-1;grid-row:2;justify-content:space-between;gap:8px;max-width:310px}
+  .activation-order .activation-order-open,.task-studio.task-studio skill-activation .activation-order .activation-order-open{grid-column:2;grid-row:1;min-height:28px;padding:4px 10px}
+  .activation-order-chain>li+li:before{right:calc(100% + 5px);width:10px}
 }
 @container(max-width:350px){
-  .activation-order .activation-order-chain{gap:8px}
-  .activation-order-chain>li{flex-basis:34px;width:34px}
-  .activation-order-art{width:34px;height:34px;border-radius:7px}
-  .activation-order-chain>li+li:before{left:-7px;top:10px;font-size:11px}
+  .activation-order-chain>li{flex-basis:36px;width:36px}
+  .activation-order-art{width:36px;height:36px}
+  .activation-order-chain>li+li:before{top:18px}
 }
