@@ -12,7 +12,7 @@ const chapters = [
   <button type="button" class="strategy-cover" data-strategy-open aria-haspopup="dialog" aria-expanded="false" aria-controls="strategy-dialog">
     <span class="strategy-bookmark" aria-hidden="true">配队攻略</span>
     <span><strong>手里的卡，怎么配才能多拿分？</strong><small>普通与激奏配队 · 留影取舍 · 冲分选歌</small></span>
-    <span class="strategy-expand" aria-hidden="true">打开图文攻略 ↗</span>
+    <span class="strategy-expand" aria-hidden="true">打开图文攻略</span>
   </button>
   <dialog class="strategy-dialog" id="strategy-dialog" aria-labelledby="strategy-dialog-title">
     <header class="strategy-dialog-header"><div><span>OURNOTES · 配队攻略</span><h2 id="strategy-dialog-title">把手里的卡配好，再去冲分。</h2></div><button type="button" data-strategy-close autofocus aria-label="关闭配队攻略">关闭 <span aria-hidden="true">×</span></button></header>
@@ -36,7 +36,7 @@ const chapters = [
       <p>养成按自己账号填：成员要看等级、突破、觉醒，以及演出和激奏两种技能等级；留影填等级、突破，技能等级会随突破计算。卡库里新加的卡默认都是 1，导入完记得批量改一下。</p>
       <p>乐器、角色评级、回忆和 TGW 也别漏。同样一套卡，别人已经练满乐器，你还没练，抄过来的队伍就可能不是最适合你的。选“全部卡库满养成”只能看卡片练满后的配法，账号加成仍要自己填。</p>
       <p>第一次配队，选<strong>“已拥有卡库”</strong>，乐队和属性先都留“不限”。等有了一套推荐，再拿你想组的同队、同属性队伍去比，比较容易看出差在哪。</p>
-      <p class="strategy-note">录入卡库 → 填好养成 → 点“用我的卡库配队” → 选歌和难度 → 开始搜索。“当前编成”只会重配已经选好的五张成员和五张留影，不会帮你从 Box 换人。</p>
+      <p class="strategy-note">录入卡库、填好养成、点“用我的卡库配队”、选歌和难度、开始搜索。“当前编成”只会重配已经选好的五张成员和五张留影，不会帮你从 Box 换人。</p>
     </section>
 
     <section class="strategy-chapter" id="strategy-chapter-2" data-strategy-panel hidden={true} aria-labelledby="strategy-heading-2">
@@ -124,7 +124,7 @@ const chapters = [
     </section>
       </div>
     </div>
-    <footer class="strategy-dialog-footer"><button type="button" data-strategy-previous disabled>← 上一节</button><span data-strategy-page aria-live="polite">1 / 6</span><button type="button" data-strategy-next>下一节 →</button></footer>
+    <footer class="strategy-dialog-footer"><button type="button" data-strategy-previous disabled>上一节</button><span data-strategy-page aria-live="polite">1 / 6</span><button type="button" data-strategy-next>下一节</button></footer>
   </dialog>
 </calculator-strategy-guide>
 <script>

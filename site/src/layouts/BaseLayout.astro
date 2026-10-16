@@ -23,6 +23,7 @@ import "../styles/page-title.css";
 import "../styles/filter-panel.css";
 import "../styles/interaction-motion.css";
 import "../styles/page-transitions.css";
+import "../styles/tool-colors.css";
 import { filterVisualOptions } from "../lib/filter-visuals";
 
 interface Props {
@@ -73,7 +74,7 @@ const htmlLanguage = activeReleaseContext.locale;
 ---
 
 <!doctype html>
-<html lang={htmlLanguage} data-tone={tone} data-shell="sidebar" data-motion="on" data-page-transition="stage">
+<html lang={htmlLanguage} data-tone={tone} data-tool-theme={/^\/(tools|my-growth)(\/|$)/.test(pathname) ? "site" : undefined} data-shell="sidebar" data-motion="on" data-page-transition="stage">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />

@@ -92,8 +92,8 @@ class SongRanking extends HTMLElement {
     for (const button of this.querySelectorAll('[data-sort]')) {
       const active = button.dataset.sort === this.metric;
       button.disabled=gradeView;
-      if(gradeView){button.textContent=button.dataset.sort==='expectedScore'?'参考综合力（约） ↑':'目标分数线';button.closest('th').setAttribute('aria-sort',button.dataset.sort==='expectedScore'?'ascending':'none');continue;}
-      button.textContent = `${button.dataset.sort === 'expectedScore' ? scoreLabel : ui('每秒得分')}${active ? ' ↓' : ''}`;
+      if(gradeView){button.textContent=button.dataset.sort==='expectedScore'?'参考综合力（约，升序）':'目标分数线';button.closest('th').setAttribute('aria-sort',button.dataset.sort==='expectedScore'?'ascending':'none');continue;}
+      button.textContent = `${button.dataset.sort === 'expectedScore' ? scoreLabel : ui('每秒得分')}${active ? ui('（降序）') : ''}`;
       button.closest('th').setAttribute('aria-sort', active ? 'descending' : 'none');
     }
     this.querySelector('[data-count]').textContent = say(`${ranked.length} 张谱面`, `${ranked.length} charts`);
@@ -179,9 +179,9 @@ class SongRanking extends HTMLElement {
       if(linkReference?.trackId){
         const params=new URLSearchParams({song:linkReference.trackId,difficulty:row.difficulty});
         const server=new URLSearchParams(location.search).get('server');if(server&&(edition==='jp'?server==='jp':server.startsWith('global-')))params.set('server',server);
-        const verify=node('a','用我的队伍估分 →');verify.href=`/${edition}/${locale}/tools/ap-grade/?${params}`;root.append(verify);
+        const verify=node('a','用我的队伍估分');verify.href=`/${edition}/${locale}/tools/ap-grade/?${params}`;root.append(verify);
         if(row.enteredRank!=null&&JSON.stringify(linkReference.thresholds)===JSON.stringify(row.gradeReference.thresholds))params.set('scoreRank',String(row.enteredRank));
-        params.set('eventMode','ordinary');const event=node('a','带歌曲到活动收益 →');event.href=`/${edition}/${locale}/tools/event-efficiency/?${params}`;root.append(node('span',' · '),event);
+        params.set('eventMode','ordinary');const event=node('a','带歌曲到活动收益');event.href=`/${edition}/${locale}/tools/event-efficiency/?${params}`;root.append(node('span',' · '),event);
       }
       return;
     }
@@ -220,7 +220,7 @@ class SongRanking extends HTMLElement {
     root.append(node('p',say(`${row.skillReplay?'逐谱精算':'技能顺序参考'} · P10 ${number(d.p10)} 分 · 范围 ${number(d.minimum)}–${number(d.maximum)} 分 · ${d.count} 种顺序`, `${row.skillReplay?'Chart replay':'Skill-order reference'} · P10 ${number(d.p10)} · Range ${number(d.minimum)}–${number(d.maximum)} · ${d.count} orders`)));
     if(row.skillReplay){
       const replay=row.skillReplay;
-      root.append(node('p',`最高顺序：${replay.bestOrder.map(slot=>slot+1).join(' → ')}；最低顺序：${replay.worstOrder.map(slot=>slot+1).join(' → ')}（数字对应上方技能编号）。`));
+      root.append(node('p',`最高顺序：${replay.bestOrder.map(slot=>slot+1).join('、')}；最低顺序：${replay.worstOrder.map(slot=>slot+1).join('、')}（数字对应上方技能编号）。`));
       if(Number.isFinite(row.linearScore))root.append(node('p',say(`${row.comparisonLabel ?? '原列表'} ${number(row.linearScore,2)} 分；逐谱精算 ${number(d.mean,2)} 分，相差 ${number(d.mean-row.linearScore,2)} 分。`, `${row.comparisonLabel ?? 'Original list'}: ${number(row.linearScore,2)}; chart replay: ${number(d.mean,2)}; difference: ${number(d.mean-row.linearScore,2)} points.`)));
       root.append(node('p',`${replay.frameRate} FPS 理想帧时钟 · AP · 满生命 · 综合力 ${number(replay.power)}。已计算倍率浮点历史、逐音符取整和记分桶回滚；真实卡牌条件、活动与激奏加成需使用队伍计算器。精算是模型内的完整计算，范围不是实战保底。`));
     }
