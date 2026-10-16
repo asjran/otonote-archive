@@ -3,6 +3,7 @@ import {createPersonalGrowthStore} from './personal-growth-store.mjs';
 import {createInventoryManager, growthFields} from './inventory-manager.mjs';
 import {currentServerContext, gameServer} from './game-servers.mjs';
 import {bandItemGroups} from '../../../packages/scoring/scoring-rules/band-item-totals.mjs';
+import {bandItemMaxLevel} from '../../../packages/scoring/scoring-rules/band-item-levels.mjs';
 import {createTeamCardView} from './team-card-view.mjs';
 import {filterTeamCards,teamCardFilterOptions} from './team-card-filters.mjs';
 import {selectedControlValues,restoreFilterControl} from './filter-controls.mjs';
@@ -199,7 +200,7 @@ export function setupSharedInventoryPanel({root,data,onChange=()=>{},getRestrict
   }
   function renderAccount(){
     if(accountDirty)return;
-    const account=profile?.account??{};accountBaseline=structuredClone(account);accountFields.replaceChildren();accountStatus.textContent='';
+    const account=profile?.account??{};accountBaseline=structuredClone(account);accountFields.replaceChildren();accountStatus.textContent=store?.migrationNotice??'';
     const tgw=select([['',t('未记录','Not recorded')],...(data.vipRanks??[]).map(row=>[row.rank,`Lv.${row.rank}`])]);tgw.name='tgwCardRank';tgw.value=String(account.tgwCardRank??'');accountFields.append(field(t('TGW 等级','TGW rank'),tgw));
     const groups=bandItemGroups(rules);
     function numberInput(labelText,value,min,max,dataset){const input=node('input');input.type='number';input.step='1';input.min=String(min);input.max=String(max);input.inputMode='numeric';input.placeholder=t('未记录','Not recorded');input.value=value===undefined?'':String(value);Object.assign(input.dataset,dataset);return field(labelText,input);}
@@ -210,8 +211,7 @@ export function setupSharedInventoryPanel({root,data,onChange=()=>{},getRestrict
       if(!group.supported){label.querySelector('input').disabled=true;label.append(node('small',t('此乐队请按单件填写','Use individual items for this band')));}totals.append(label);
     }
     const items=section(t('按单件填写道具等级','Individual item levels'));
-    const itemCaps=new Map(groups.flatMap(group=>group.items.map(item=>[item.id,item.maxLevel])));
-    for(const row of rules.tables.BandItem){const label=data.instruments?.find(item=>Number(item.id)===row._id)?.name??`${data.bands?.find(b=>Number(b.id)===row._bandId)?.name??t('乐队','Band')} · ${row._id}`;const max=itemCaps.get(row._id);items.append(numberInput(label,account.bandItems?.[row._id],0,max,{accountKind:'bandItems',accountId:String(row._id)}));}
+    for(const row of rules.tables.BandItem){const label=data.instruments?.find(item=>Number(item.id)===row._id)?.name??`${data.bands?.find(b=>Number(b.id)===row._bandId)?.name??t('乐队','Band')} · ${row._id}`;items.append(numberInput(label,account.bandItems?.[row._id],0,bandItemMaxLevel(rules,row._id),{accountKind:'bandItems',accountId:String(row._id)}));}
     const characters=section(t('角色评级','Character ranks')),maxRank=Math.max(...rules.tables.CharacterRank.map(row=>row._rank));
     for(const row of rules.tables.Character){const name=data.characters?.find(character=>Number(character.id)===row._id)?.name??`${t('角色','Character')} ${row._id}`;characters.append(numberInput(name,account.characterRanks?.[row._id],1,maxRank,{accountKind:'characterRanks',accountId:String(row._id)}));}
     accountFields.append(node('p',t('留空表示未记录。同一乐队填写总等级时，以总等级为准；修改单件会清除该乐队的总等级。','Blank values are unrecorded. A band total overrides individual items; editing an item clears that band’s total.')));

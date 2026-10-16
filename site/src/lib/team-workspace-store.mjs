@@ -3,6 +3,8 @@ import {createTeamDraft} from './team-draft.mjs';
 import {createFormationCalculator} from './scoring-rules/formation-power.mjs';
 import {resolveGrowthScenario} from '../../../packages/scoring/scoring-rules/growth-scenarios.mjs';
 import {checkTeamCompatibility} from './team-workspace-compatibility.mjs';
+import {clampStoredBandItems} from '../../../packages/scoring/scoring-rules/band-item-totals.mjs';
+import {readBandItemRecord} from './band-item-storage-migration.mjs';
 
 export const TEAM_WORKSPACE_FORMAT = 'otonote-team-workspace';
 const object = value => value !== null && typeof value === 'object' && !Array.isArray(value);
@@ -16,6 +18,7 @@ export function createTeamWorkspaceStore({rules, context = currentServerContext(
   const key = `ournotes:team-workspace:${context.region}:${context.serverId ?? 'unselected'}`;
   const calculator = createFormationCalculator(rules);
   let observedRevision;
+  let migrationNotice='';
   const checkServer = () => assertAccountServer(context.serverId, context);
   const empty = () => ({format:TEAM_WORKSPACE_FORMAT, schemaVersion:1, ...context, sourceReleaseId:rules.sourceReleaseId, revision:0, teams:[], recentDraft:null});
   function validateDraft(value, partial = false) {
@@ -74,17 +77,31 @@ export function createTeamWorkspaceStore({rules, context = currentServerContext(
     });
     return {...empty(), revision:value.revision, teams, recentDraft:value.recentDraft == null ? null : validateDraft(value.recentDraft, true)};
   }
-  function load() { checkServer(); const raw = storage.getItem(key); return raw === null ? empty() : validate(JSON.parse(raw)); }
+  function repairStored(value) {
+    if(!object(value)||!Array.isArray(value.teams))return {value,changes:[]};
+    const next=clone(value),changes=[];
+    for(const draft of [...(next?.teams??[]).map(team=>team.draft),next?.recentDraft])if(draft?.modifiers) {
+      const fixed=clampStoredBandItems(rules,draft.modifiers);draft.modifiers=fixed.value;changes.push(...fixed.changes);
+    }
+    if(changes.length)next.revision++;
+    return {value:next,changes};
+  }
+  function load() {
+    checkServer();
+    const stored=readBandItemRecord({storage,key,repair:repairStored,validate});
+    if(stored.notice)migrationNotice=stored.notice;
+    return stored.value??empty();
+  }
   function read() { const state = load(); observedRevision = state.revision; return state; }
   function emit(revision) {
     if (typeof globalThis.dispatchEvent === 'function' && typeof globalThis.CustomEvent === 'function') globalThis.dispatchEvent(new CustomEvent('team-workspace:changed', {detail:{key, revision}}));
   }
   function mutate(change, {expectedRevision = observedRevision} = {}, replacement = false) {
     checkServer();
-    const before = storage.getItem(key);
     let previous;
-    try { previous = before === null ? empty() : validate(JSON.parse(before)); }
+    try { previous = load(); }
     catch (error) { if (!replacement) throw error; previous = empty(); }
+    const before = storage.getItem(key);
 
     if (expectedRevision !== undefined && expectedRevision !== previous.revision) throw conflict();
     const next = validate({...change(clone(previous)), revision:previous.revision + 1});
@@ -122,11 +139,12 @@ export function createTeamWorkspaceStore({rules, context = currentServerContext(
     if (value.schemaVersion !== 1 || !Array.isArray(value.candidates) || value.candidates.length > 100 || (value.region && value.region !== context.region)) throw Error('旧队伍备份格式无效');
     return mutate(state => {
       const now = new Date().toISOString();
-      state.teams.push(...value.candidates.map(team => ({id:globalThis.crypto.randomUUID(), name:team.name, draft:team.draft, createdAt:now, updatedAt:now})));
+      state.teams.push(...value.candidates.map(team => ({id:globalThis.crypto.randomUUID(), name:team.name,
+        draft:{...team.draft,modifiers:clampStoredBandItems(rules,team.draft?.modifiers).value},createdAt:now,updatedAt:now})));
       return state;
     }, options);
   }
-  return {key, empty, read, validate, validateDraft, saveTeam, listLegacy, migrateLegacy,
+  return {key, empty, read, validate, validateDraft, saveTeam, listLegacy, migrateLegacy, get migrationNotice(){return migrationNotice;},
     removeTeam(id, options) { return mutate(state => { if (!state.teams.some(team => team.id === id)) throw Error('这套队伍已不存在'); state.teams = state.teams.filter(team => team.id !== id); return state; }, options); },
     setRecentDraft(draft, options) { return mutate(state => ({...state, recentDraft:draft}), options); },
     checkpoint() { checkServer(); return storage.getItem(key); },

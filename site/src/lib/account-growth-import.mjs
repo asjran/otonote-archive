@@ -1,5 +1,5 @@
 import {createInventoryManager} from './inventory-manager.mjs';
-import {bandItemGroups} from '../../../packages/scoring/scoring-rules/band-item-totals.mjs';
+import {validateBandItemLevel} from '../../../packages/scoring/scoring-rules/band-item-levels.mjs';
 
 const groups=['memberCards','supportCards','bandItems','characterRanks','tgw'];
 const object=v=>v!==null&&typeof v==='object'&&!Array.isArray(v);
@@ -39,7 +39,6 @@ export function convertGrowthSnapshot(snapshot,rules,vipRanks=[]) {
   if(!object(snapshot.growth)||!object(snapshot.coverage))throw new Error('养成文件缺少覆盖信息');
   const normalized={},summary={},modifiers={},inventory={schemaVersion:1,sourceReleaseId:rules.sourceReleaseId,
     memberCardIds:[],supportCardIds:[],growth:{}};
-  const itemCaps=new Map(bandItemGroups(rules).flatMap(group=>group.items.map(item=>[item.id,item.maxLevel])));
   for(const group of groups) {
     if(snapshot.coverage[group]!=='observed'||snapshot.growth[group]===null) {
       if(group==='memberCards'||group==='supportCards')throw new Error('成员卡或留影未完整读取，暂不能替换卡库');
@@ -75,7 +74,7 @@ export function convertGrowthSnapshot(snapshot,rules,vipRanks=[]) {
         inventory[`${kind}CardIds`].push(cardId);inventory.growth[cardId]=g;normalized[group].push(safe);
       } else if(group==='bandItems') {
         if(!rules.tables.BandItem.some(r=>r._id===id))throw new Error(`网站资料中没有乐器 ${id}`);
-        const level=integer(row.level,'乐器等级',0,itemCaps.get(id));
+        const level=validateBandItemLevel(rules,id,row.level);
         if(level>0&&!rules.tables.BandItemSkillEffect.some(r=>r._bandItemId===id&&r._level===level))
           throw new Error(`网站资料中没有乐器 ${id} 的等级 ${level}`);
         (modifiers.bandItems??={})[id]=level;normalized[group].push({masterId:id,level});

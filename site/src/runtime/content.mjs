@@ -1,3 +1,4 @@
+import {withBandItemLevels} from '../../../packages/scoring/scoring-rules/band-item-levels.mjs';
 /** One immutable content snapshot per document, shared by independently loaded modules. */
 const stateKey = Symbol.for('ournotes.content.snapshot.v1');
 function state() {
@@ -54,7 +55,10 @@ export async function artifact(name, {optional = false} = {}) {
   const manifest = await snapshot();
   const record = manifest.locales[pageContext().locale].files[name];
   if (optional && !record) return null;
-  return readRecord(record);
+  const value=await readRecord(record);
+  if(name==='supplemental/formal-scoring-rules.json'&&value?.tables&&!value.tables.BandItemLevel)
+    return withBandItemLevels(value,await artifact('projection/band-items.json'));
+  return value;
 }
 export async function artifactGlob(pattern, options = {}) {
   const manifest = await snapshot();
@@ -103,7 +107,10 @@ export async function editionArtifact(region, name, {optional = false} = {}) {
   const manifest = await editionSnapshot(region);
   const record = manifest.locales[pageContext().locale].files[name];
   if (!record && optional) return null;
-  return editionRecord(manifest, record);
+  const value=await editionRecord(manifest, record);
+  if(name==='supplemental/formal-scoring-rules.json'&&value?.tables&&!value.tables.BandItemLevel)
+    return withBandItemLevels(value,await editionArtifact(region,'projection/band-items.json'));
+  return value;
 }
 async function editionRecord(manifest, record) {
   if (!record || typeof record.path !== 'string' || record.path.startsWith('/') || record.path.split('/').some(p => !p || p === '..')

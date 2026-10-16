@@ -171,6 +171,7 @@ export function registerToolTeamContext(host, spec) {
     savedDraft = teamFingerprint(context.getDraft());
   } catch (error) { feedback(error); }
   context.renderSummary();
+  if(store.migrationNotice&&!context.error){const status=host.querySelector('[data-team-workspace-status]');if(status)status.textContent=store.migrationNotice;}
   emit('context', {context});
   return () => {
     abort.abort();

@@ -18,7 +18,7 @@ test('reachable upgrade levels cap future effect definitions in maxima, totals a
  assert.throws(()=>validateBandItemTotals(r,{[g.bandId]:g.maxTotal+1}));
  assert.equal(bandItemEffects(r,{bandItems:{[id]:3}}).length,1);
  const store=createPersonalGrowthStore({rules:r,context:{region:'global',serverId:'global-hmt'},storage:{}});
- assert.throws(()=>store.validate({...store.empty(),account:{bandItems:{[id]:4}}}),/乐器/);
+ assert.throws(()=>store.validate({...store.empty(),account:{bandItems:{[id]:4}}}),/Unknown instrument\/level/);
  const legacy=bandItemGroups(rules);
  assert.ok(legacy.flatMap(group=>group.items).every(item=>item.maxLevel===30),'legacy build-25 profiles must not treat level-50 effects as reachable upgrades');
  assert.throws(()=>bandItemEffects(rules,{bandItems:{[id]:31}}),/Unknown instrument\/level/);
@@ -59,7 +59,7 @@ test('aggregate override applies only to its band; another bands detail survives
  assert.deepEqual(c.calculate(draft({bandItems:{...base,[first.items[1].id]:30},bandItemTotals:{[first.bandId]:total}})),c.calculate(draft({bandItems:all})));
 });
 test('nonlinear or unequal items cannot use totals and invalid totals fail closed',()=>{
- for(const value of [-1,1.5,251,NaN])assert.throws(()=>validateBandItemTotals(rules,{1:value}));
+ for(const value of [-1,1.5,151,250,251,NaN])assert.throws(()=>validateBandItemTotals(rules,{1:value}));
  assert.throws(()=>validateBandItemTotals(rules,{999:10}));
  const r=structuredClone(rules);r.tables.BandItemSkillEffect.find(e=>e._bandItemId===101&&e._level===2)._effectValue++;
  assert.equal(bandItemGroups(r).find(g=>g.bandId===1).supported,false);

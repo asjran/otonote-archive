@@ -3,6 +3,7 @@ import {createTeamDraft} from './team-draft.mjs';
 import {gameServer, currentServerContext} from './game-servers.mjs';
 
 import {bandItemGroups} from '../../../packages/scoring/scoring-rules/band-item-totals.mjs';
+import {bandItemMaxLevel} from '../../../packages/scoring/scoring-rules/band-item-levels.mjs';
 
 class PersonalGrowthWorkbench extends HTMLElement {
  connectedCallback() {
@@ -15,12 +16,12 @@ class PersonalGrowthWorkbench extends HTMLElement {
   const form=q('[data-profile-account-form]');
   for(const row of this.data.vipRanks){const option=document.createElement('option');option.value=row.rank;option.textContent=`Lv.${row.rank}`;q('[data-profile-tgw]').append(option);}
   const instruments=this.data.formalRules.tables.BandItem.map(row=>this.data.instruments.find(i=>i.id===row._id)??{id:row._id,name:`${this.data.bands.find(b=>b.id===row._bandId)?.name??'乐队'} · 道具 ${row._id}`});
-  const bandGroups=bandItemGroups(this.data.formalRules),itemCaps=new Map(bandGroups.flatMap(group=>group.items.map(item=>[item.id,item.maxLevel])));
+  const bandGroups=bandItemGroups(this.data.formalRules);
   for(const [kind,rows] of [['instruments',instruments],['characters',this.data.characters]]) {
    for(const row of rows) {
     const label=document.createElement('label'),input=document.createElement('input');label.textContent=row.name;
     input.type='number';input.step='1';input.min=kind==='instruments'?'0':'1';input.placeholder='未记录';
-    input.max=String(kind==='instruments'?itemCaps.get(row.id):Math.max(...this.data.formalRules.tables.CharacterRank.map(r=>r._rank)));
+    input.max=String(kind==='instruments'?bandItemMaxLevel(this.data.formalRules,row.id):Math.max(...this.data.formalRules.tables.CharacterRank.map(r=>r._rank)));
     input.dataset.accountKind=kind;input.dataset.accountId=row.id;label.append(input);q(`[data-profile-${kind}]`).append(label);
    }
   }
@@ -48,7 +49,7 @@ class PersonalGrowthWorkbench extends HTMLElement {
     q('[data-profile-tgw]').value=account.tgwCardRank??'';
     for(const input of form.querySelectorAll('[data-account-kind]'))input.value=account[input.dataset.accountKind==='instruments'?'bandItems':'characterRanks']?.[input.dataset.accountId]??'';
     for(const input of totalInputs())input.value=account.bandItemTotals?.[input.dataset.bandTotal]??'';
-    updateHints();q('[data-profile-account-status]').textContent='';
+    updateHints();q('[data-profile-account-status]').textContent=this.personalGrowthStore.migrationNotice??'';
    }catch(error){q('[data-profile-account-status]').textContent=error.message;}
   };
   form.addEventListener('submit',event=>{
@@ -73,6 +74,7 @@ class PersonalGrowthWorkbench extends HTMLElement {
    if(!profile){output.textContent='尚未保存养成。可导入 JSON、登录读取，或手动录入卡库。';return;}
    const {inventory,account}=profile;
    output.textContent=`成员卡 ${inventory.memberCardIds.length} 张 · 留影 ${inventory.supportCardIds.length} 张 · 乐器 ${account.bandItemTotals&&Object.keys(account.bandItemTotals).length?`${Object.keys(account.bandItemTotals).length} 个乐队`:account.bandItems?`${Object.keys(account.bandItems).length} 件`:'未记录'} · 角色评级 ${account.characterRanks?`${Object.keys(account.characterRanks).length} 名`:'未记录'} · TGW ${account.tgwCardRank??'未记录'}`;
+   if(this.personalGrowthStore.migrationNotice)output.textContent+=`。${this.personalGrowthStore.migrationNotice}`;
   }catch(error){output.textContent=`养成未载入：${error.message}。原记录未修改。`;}
  }
  commit(){this.summary();}

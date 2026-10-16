@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
-import {checkedJson,validatePointer,snapshot,artifact,pageContext,otherEditionArtifact} from '../src/runtime/content.mjs';
+import {checkedJson,validatePointer,snapshot,artifact,pageContext,otherEditionArtifact,editionArtifact} from '../src/runtime/content.mjs';
 
 test('an unavailable pinned counterpart stays unavailable without reading a moving pointer',async()=>{
   const key=Symbol.for('ournotes.content.snapshot.v1');
@@ -76,4 +76,25 @@ test('JP reads its own pointer and rejects a Global manifest',async()=>{
     globalThis.fetch=originalFetch;globalThis.location=originalLocation;delete globalThis[key];
     if(originalRoot===undefined)delete globalThis[rootKey];else globalThis[rootKey]=originalRoot;
   }
+});
+
+test('sealed snapshots without upgrade tables use their own version-bound band-item projection',async()=>{
+  const key=Symbol.for('ournotes.content.snapshot.v1'),previous=globalThis[key],location=globalThis.location;
+  const root='/content/releases/'+'c'.repeat(24)+'/',otherRoot='/content/releases/'+'d'.repeat(24)+'/';
+  const record=path=>({path,sha256:'0'.repeat(64)});
+  const make=(root,region)=>({root,region,locales:{'zh-CN':{files:{
+    'supplemental/formal-scoring-rules.json':record('rules.json'),
+    'projection/band-items.json':record('items.json')
+  }}}});
+  const state={documents:new Map(),promise:Promise.resolve(make(root,'global')),editions:new Map([['jp',Promise.resolve(make(otherRoot,'jp'))]])};
+  for(const [prefix,release,level] of [[root,'global-test',30],[otherRoot,'jp-test',20]]){
+    state.documents.set(prefix+'rules.json',Promise.resolve({sourceReleaseId:release,tables:{BandItem:[{_id:101,_bandId:1}]}}));
+    state.documents.set(prefix+'items.json',Promise.resolve({sourceReleaseId:release,items:[{masterId:101,levels:[{level,playerRank:1}]}]}));
+  }
+  globalThis[key]=state;globalThis.location={pathname:'/global/zh-CN/'};
+  try {
+    assert.equal((await artifact('supplemental/formal-scoring-rules.json')).tables.BandItemLevel[0]._level,30);
+    assert.equal((await editionArtifact('jp','supplemental/formal-scoring-rules.json')).tables.BandItemLevel[0]._level,20);
+    assert.equal((await state.documents.get(root+'rules.json')).tables.BandItemLevel,undefined);
+  } finally {if(previous)globalThis[key]=previous;else delete globalThis[key];globalThis.location=location;}
 });

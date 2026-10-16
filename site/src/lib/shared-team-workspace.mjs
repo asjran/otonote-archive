@@ -120,6 +120,7 @@ export async function setupSharedTeamWorkspace(shell) {
     inventoryPanel?.destroy();inventory.replaceChildren();
     inventoryPanel=setupSharedInventoryPanel({root:inventory,data,onChange:next=>{loadedProfile=next;renderCurrent();renderList();updateSaveState();},onFeedback:feedback,getRestrictions:()=>({...restrictions(),cardReason:card=>{const draft=createTeamDraft();draft.slots[0][`${card.kind}CardId`]=card.id;return checkTeamCompatibility(draft,{...restrictions(),requireOwned:false,requireComplete:false}).issues.find(i=>i.kind===card.kind)?.message??'';}})});
     renderServer();renderCurrent();renderList();renderLegacy();
+    if(store.migrationNotice)feedback(store.migrationNotice);
   }
   function renderServer(){
     const {region,serverId}=currentServerContext(),label=element('label',say('账号区服','Account server')),select=element('select');

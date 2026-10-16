@@ -30,6 +30,7 @@ export function createSharedTeamRules() {
       Parameter:['type_link_base_bonus_rate','music_type_base_bonus_rate','music_tag_base_bonus_rate'].map(_id => ({_id, _value:0})),
       VipRankBonus:sequence(2, rank => ({_vipRank:rank, _vipBonusType:7, _value:rank - 1})),
       BandItem:[101,102].map(_id => ({_id, _bandId:1})),
+      BandItemLevel:[101,102].flatMap(_bandItemId=>sequence(30,_level=>({_bandItemId,_level,_playerRank:1}))),
       BandItemSkillEffect:[101,102].flatMap(id => sequence(30, level => ({_bandItemId:id, _level:level,
         _skillEffectType:1000, _skillTargetIDs:[], _effectValue:level}))),
       LiveMusic:[1,2].map(_id => ({_id, _musicType:1, _bestMusicTagIDs:[]})), Event:[]

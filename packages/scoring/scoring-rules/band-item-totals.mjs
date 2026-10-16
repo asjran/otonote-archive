@@ -1,3 +1,4 @@
+import {bandItemLevels,bandItemMaxLevel,validateBandItemLevel} from './band-item-levels.mjs';
 /** Aggregate inputs are allowed only when every item in a band has identical linear effects. */
 const cache=new WeakMap();
 // Rule tables are immutable within a release. Index rows, not mutable account
@@ -25,17 +26,12 @@ export function bandItemGroups(rules){
   if(cache.has(rules))return cache.get(rules);
   const groups=new Map();
   for(const item of rules.tables.BandItem){
-    const effects=rules.tables.BandItemSkillEffect.filter(e=>e._bandItemId===item._id);
-    // Effects may contain future levels (31–50 in build 25). Reachability
-    // comes from the upgrade table. Older scoring snapshots omitted that
-    // table; their audited/imported account contract caps instruments at 30.
-    const upgradeLevels=rules.tables.BandItemLevel?.filter(e=>e._bandItemId===item._id);
-    const maxLevel=Math.min(Math.max(0,...effects.map(e=>e._level)),
-      upgradeLevels?Math.max(0,...upgradeLevels.map(e=>e._level)):30);
-    const units=effects.filter(e=>e._level===1).sort((a,b)=>signature(a).localeCompare(signature(b)));
+    const levels=bandItemLevels(rules,item._id);
+    const effects=rules.tables.BandItemSkillEffect.filter(e=>e._bandItemId===item._id&&levels.has(e._level));
+    const maxLevel=bandItemMaxLevel(rules,item._id),units=effects.filter(e=>e._level===1).sort((a,b)=>signature(a).localeCompare(signature(b)));
     const unitKey=JSON.stringify(units.map(e=>[signature(e),e._effectValue]));
     const group=groups.get(item._bandId)??{bandId:item._bandId,items:[],maxTotal:0,supported:true,units,unitKey};
-    group.supported&&=maxLevel>0&&units.length>0&&group.unitKey===unitKey;
+    group.supported&&=levels.size===maxLevel&&units.length>0&&group.unitKey===unitKey;
     for(let level=1;level<=maxLevel;level++){
       const rows=effects.filter(e=>e._level===level).sort((a,b)=>signature(a).localeCompare(signature(b)));
       group.supported&&=rows.length===units.length&&rows.every((e,i)=>signature(e)===signature(units[i])&&Number.isFinite(e._effectValue)&&e._effectValue===units[i]._effectValue*level&&!e._skillConditionGroup&&!e._skillCumulativeConditionID);
@@ -62,9 +58,27 @@ export function bandItemEffects(rules,modifiers){
     const group=byItem.get(id);
     if(!group)throw Error(`Unknown instrument ${id}`);
     if(Object.hasOwn(totals,group.bandId))continue; // Aggregate replaces this band's detail; never add both.
-    const rows=byLevel.get(Number(id))?.get(level)??[],item=group.items.find(item=>String(item.id)===id);
-    if(!Number.isSafeInteger(level)||level<0||level>item.maxLevel||(level>0&&!rows.length))throw Error(`Unknown instrument/level ${id}/${level}`);
+    validateBandItemLevel(rules,id,level);
+    const rows=byLevel.get(Number(id))?.get(level)??[];
+    if(!Number.isSafeInteger(level)||level<0||(level>0&&!rows.length))throw Error(`Unknown instrument/level ${id}/${level}`);
     if(level)effects.push(...rows);
   }
   return effects;
+}
+
+/** Repair only over-cap integers already stored by older clients, never malformed input. */
+export function clampStoredBandItems(rules,value) {
+  if(!value||typeof value!=='object'||Array.isArray(value))return {value,changes:[]};
+  const changes=[],next={...value};
+  const {byBand}=bandItemLookup(rules);
+  for(const [field,caps] of [
+    ['bandItems',new Map([...byBand.values()].flatMap(group=>group.items.map(item=>[String(item.id),item.maxLevel])))],
+    ['bandItemTotals',new Map([...byBand.values()].filter(group=>group.supported).map(group=>[String(group.bandId),group.maxTotal]))]
+  ]) {
+    if(!value?.[field]||typeof value[field]!=='object'||Array.isArray(value[field]))continue;
+    for(const [id,level] of Object.entries(value[field]))if(caps.has(id)&&Number.isSafeInteger(level)&&level>caps.get(id)) {
+      next[field]={...next[field],[id]:caps.get(id)};changes.push({field,id,from:level,to:caps.get(id)});
+    }
+  }
+  return {value:next,changes};
 }
