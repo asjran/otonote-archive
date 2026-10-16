@@ -118,6 +118,10 @@ test('joint power/skill bounds dominate independent exhaustive teams in every te
           if(!solved)continue;
           const exact=Math.max(...rows.filter(r=>state.required.every(k=>r.keys.includes(k))&&state.forbidden.every(k=>!r.keys.includes(k))).map(r=>r.scores[metric]));
           assert.ok(bound(state,model,solved,()=>draftFromPairing(input,model.leader,solved.edges))>=exact,`${seed} ${model.leader} ${metric}`);
+          for(const cutoff of [exact-1,exact,Infinity]){
+            const upper=bound.withCutoff(state,model,solved,()=>draftFromPairing(input,model.leader,solved.edges),cutoff);
+            assert.ok(upper>=exact,`cutoff ${cutoff}: ${seed} ${model.leader} ${metric}`);
+          }
         }
       }
     }
@@ -125,5 +129,33 @@ test('joint power/skill bounds dominate independent exhaustive teams in every te
       const r=await optimizeChallenge({...f,objective,maxEvaluations:0});
       assert.equal(r.results[0].value,maxima[metric]);assert.equal(r.certifiedSearch.bestProven,true);
     }
+  }
+});
+
+
+test('safe joint cutoff avoids native per-note bounds and remains valid with all pairs locked',async()=>{
+  const f=fixture(2),event=createEventEfficiency({tables:f.rules.tables,sourceReleaseId:f.rules.sourceReleaseId,eventId:1});
+  f.draft.modifiers.event={id:1,sourceReleaseId:f.rules.sourceReleaseId};
+  const eventAdapters=[event.challengeAdapter(f.rules)],input=resolveSearchInput(f.rules,f.draft,{scope:'owned',inventory:f.inventory});
+  const original=createFormalSongCalculator(f.rules,f.chart,{eventAdapters});
+  let nativeBounds=0;
+  const song={...original,upperBound(...args){nativeBounds++;return original.upperBound(...args);}};
+  const resolver=createFormalSkillResolver(f.rules),pairSkills=new Map();
+  for(const m of input.inventory.memberCardIds)for(const s of input.inventory.supportCardIds)
+    pairSkills.set(`${m}|${s}`,resolver({slots:[{memberCardId:m,supportCardId:s}],modifiers:input.draft.modifiers})[0]);
+  const [model]=await compilePairingModels(f.rules,input,{eventAdapters});
+  const solution=maximumPairing({edges:model.edges,requiredMembers:[model.leader]});
+  const draft=()=>draftFromPairing(input,model.leader,solution.edges);
+  for(const metric of ['maximumScore','expectedScore','minimumScore']){
+    const bound=createOrdinaryScoreBound({song,pairSkills,legacyFactor:10,input,metric,jointPowerBound:true});
+    const state={leader:model.leader,required:solution.edges.map(e=>e.key),forbidden:[]};
+    const before=nativeBounds,early=bound.withCutoff(state,model,solution,draft,Infinity);
+    assert.ok(Number.isFinite(early));
+    assert.equal(nativeBounds,before,'joint proof does not need native per-note bounds');
+    const full=bound(state,model,solution,draft);
+    assert.ok(nativeBounds>before);
+    assert.ok(early>=full);
+    assert.ok(full>=song.calculate(draft())[metric]);
+    assert.equal(bound.withCutoff(state,model,solution,draft,-Infinity),full);
   }
 });

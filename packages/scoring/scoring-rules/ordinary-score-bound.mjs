@@ -125,7 +125,7 @@ export function createOrdinaryScoreBound({ song, pairSkills, legacyFactor, input
     if (!cache.has(key)) { if (cache.size >= 8192) cache.delete(cache.keys().next().value); cache.set(key, calculate()); }
     return cache.get(key);
   };
-  const bound = function(state, model, solution, draftForSolution, includePriority = false) {
+  const bound = function(state, model, solution, draftForSolution, includePriority = false, cutoff = -Infinity) {
     const fixed = new Set(state.required), banned = new Set(state.forbidden);
     const forced = solution.edges.filter(e => fixed.has(e.key));
     const used = field => new Set(forced.map(e => e[field]));
@@ -155,7 +155,7 @@ export function createOrdinaryScoreBound({ song, pairSkills, legacyFactor, input
     const factor = Math.min(legacyFactor, upward((1 + 2 * absolute) * 1.0001));
     const signatures = [...types.keys()].sort(), envelopeKey = JSON.stringify([absolute, signatures]);
     const options = [...types.values()], commands = 10 * Math.max(0, ...options.map(p => p.effects.length));
-    const active = remember(`active:${JSON.stringify(signatures)}`, () => {
+    const active = () => remember(`active:${JSON.stringify(signatures)}`, () => {
       const intervals = song.timeline.skillTimes.map(start => options.map(p => p.effects.map(e => ({
         start, end: skillEndFrame(clock, start, e.durationRawMs).timeMs, value: e.value
       }))));
@@ -176,21 +176,28 @@ export function createOrdinaryScoreBound({ song, pairSkills, legacyFactor, input
       // The old 1+2*A bound is safe only while its extra A also dominates
       // accumulated rewind error. Huge future charts must keep the wider bound.
       const safeFactor = error <= absolute ? factor : Infinity;
-      const factors = active.map(value=>Math.min(safeFactor,upward(1+value+error)));
-      return {factors,error};
+      // The joint relaxation only needs error. Delay the per-note envelope
+      // until a cheaper safe bound has failed to prune this partition.
+      let factors;
+      return {get factors(){return factors??=active().map(value=>Math.min(safeFactor,upward(1+value+error)));},error};
     });
     const envelope=getEnvelope('',applicationLimit);
-    const timedBound=(prefix,envelope)=>envelope===null?Infinity:remember(`${prefix}score:${envelopeKey}:${solution.weight}`, () => song.upperBound(solution.weight, (_, index) => envelope.factors[index], { eventContext: input.draft.modifiers?.event }));
+    const timedBound=(prefix,envelope)=>envelope===null?Infinity:remember(`${prefix}score:${envelopeKey}:${solution.weight}`, () => { const factors=envelope.factors; return song.upperBound(solution.weight, (_, index) => factors[index], { eventContext: input.draft.modifiers?.event }); });
     if(envelope===null)return includePriority?{upper:Infinity,priority:Infinity}:Infinity;
+    const joint=jointBound ? jointBound(available,forced,state.leader,solution,envelope.error,!state.forbidden.length,cutoff) : Infinity;
+    if (!includePriority && joint <= cutoff) return joint;
     const timed=timedBound('',envelope);
     const assignment=assignedGain(available,forced,state.leader,solution.weight);
     // The small outward binary64 allowance covers the <=100000 positive sums,
     // five-effect gains and assignment additions, separately from native f32.
     let upper=assignment && Number.isFinite(assignment.gain) ? Math.min(timed,
       Math.ceil((assignment.total*(1+envelope.error)+assignment.gain)*(1+1e-10))) : timed;
-    if (jointBound) upper=Math.min(upper,jointBound(available,forced,state.leader,solution,envelope.error,!state.forbidden.length));
+    upper=Math.min(upper,joint);
     return includePriority?{upper,priority:timedBound('legacy:',getEnvelope('legacy:',Infinity))}:upper;
   };
+  // A cutoff only skips additional SAFE bounds after one already proves
+  // this partition cannot improve the incumbent. It never changes the domain.
+  bound.withCutoff=(state,model,solution,draftForSolution,cutoff)=>bound(state,model,solution,draftForSolution,false,cutoff);
   bound.stats={fullScoreCalculations:0};
   bound.withPriority=(...args)=>bound(...args,true);
   return bound;

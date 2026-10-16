@@ -101,14 +101,14 @@ export async function searchEventFormations({ rules, draft, chart, scope, invent
   // Legacy callers retain their expansion order and separate certificate heap.
   // The joint challenge relaxation uses its tighter bound for both purposes.
   const preservePriority = !bonusFor && !scoreBoundOptions.jointPowerBound;
-  const solve = state => {
+  const solve = (state, cutoff = -Infinity) => {
     const model = byLeader.get(state.leader), options = { required: state.required, forbidden: state.forbidden, requiredMembers: [state.leader] };
     const hint=!state.required.length&&!state.forbidden.length?rootHints.get(state.leader):null;
     const power = hint?.power??maximumPairing({ ...options, edges: model.edges });
     if (!power) return null;
     if (!bonusFor) {
       const {upper,priority}=scoreBoundOptions.jointPowerBound
-        ? {upper:scoreBound(state,model,power,()=>draftFromPairing(input,state.leader,power.edges))}
+        ? {upper:scoreBound.withCutoff(state,model,power,()=>draftFromPairing(input,state.leader,power.edges),cutoff)}
         : scoreBound.withPriority(state,model,power,()=>draftFromPairing(input,state.leader,power.edges));
       const inherited=Math.min(upper,state.upper?.value??Infinity);
       return { ...state, solution: power, upper: { value:inherited,expectedScore:inherited },
@@ -157,7 +157,7 @@ export async function searchEventFormations({ rules, draft, chart, scope, invent
       // can be much weaker. Bound THIS complete team before paying for 120
       // native order replays. Still partition the state when it cannot win.
       const candidateUpper = !bonusFor && scoreBoundOptions.jointPowerBound && worst
-        ? scoreBound({...state,required:state.solution.edges.map(e=>e.key)},{edges:state.solution.edges},state.solution,()=>candidate)
+        ? scoreBound.withCutoff({...state,required:state.solution.edges.map(e=>e.key)},{edges:state.solution.edges},state.solution,()=>candidate,worst.value)
         : Infinity;
       if (worst && candidateUpper <= worst.value) candidateBoundPruned++;
       else {
@@ -174,7 +174,13 @@ export async function searchEventFormations({ rules, draft, chart, scope, invent
         for (const key of results.keys()) if (!keep.has(key)) results.delete(key);
       }
       expanded++;
-      for (const child of partitionPairing(state,state.solution)) { const solved=solve(child);if(solved)push(solved); }
+      const cutoff=!bonusFor && scoreBoundOptions.jointPowerBound ? best()[proofCount-1]?.value??-Infinity : -Infinity;
+      for (const child of partitionPairing(state,state.solution)) {
+        const solved=solve(child,cutoff);
+        // The incumbent cannot decrease. Discard a certified losing partition
+        // now instead of retaining its edges and solution in the frontier.
+        if(solved && (cutoff===-Infinity || solved.upper.value>cutoff))push(solved);
+      }
       onProgress({ phase:'event-exact',completed:evaluated,expanded,frontier:queue.length,bestCandidate:best()[0] });
       await yieldControl();
     }

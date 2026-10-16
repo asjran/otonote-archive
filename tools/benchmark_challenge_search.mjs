@@ -40,13 +40,13 @@ const inputHash=hash(JSON.stringify(input));
 const sources={};
 for(const directory of ['packages/scoring','site/src/lib']){
   for(const entry of readdirSync(resolve(values.root,directory),{recursive:true,withFileTypes:true})){
-    if(!entry.isFile()||!entry.name.endsWith('.mjs'))continue;
+    if(!entry.isFile()||!(entry.name.endsWith('.mjs')||directory==='packages/scoring'&&entry.name.endsWith('.json')))continue;
     const path=resolve(entry.parentPath??entry.path,entry.name),relative=path.slice(resolve(values.root).length+1);
     sources[relative]=hash(readFileSync(path));
   }
 }
 const sorted=Object.fromEntries(Object.entries(sources).sort(([a],[b])=>a.localeCompare(b)));
-const scoringSources=Object.fromEntries(Object.entries(sorted).filter(([p])=>p.startsWith('packages/scoring/')&&!/bound|maximum-pairing|search-queue/.test(p)));
+const scoringSources=Object.fromEntries(Object.entries(sorted).filter(([p])=>p.startsWith('packages/scoring/')&&!/bound|maximum-pairing|search-queue/.test(p)||p==='site/src/lib/formation-candidate-evaluator.mjs'||p.startsWith('site/src/lib/scoring-rules/')));
 const sourceHash=hash(JSON.stringify(sorted)),scoringModelHash=hash(JSON.stringify(scoringSources));
 const controller=new AbortController(),start=performance.now(),cpu=process.cpuUsage(),phases={};
 let stage='',stageAt=start,best=-Infinity,finalBestAtMs=null;
@@ -57,6 +57,9 @@ const result=await optimizeChallenge({...input,signal:controller.signal,yieldCon
   if(Number(values['time-limit-ms'])&&performance.now()-start>=Number(values['time-limit-ms']))controller.abort();
 }});
 phases[stage]=(phases[stage]??0)+performance.now()-stageAt;
+const exactCounters=result.certifiedSearch;
+const scoreCounterCoverage=Number.isSafeInteger(result.practical?.fullScoreCalculations)&&(!exactCounters||
+  Number.isSafeInteger(exactCounters.fullScoreCalculations)&&Number.isSafeInteger(exactCounters.boundScoreCalculations))?'complete':'incomplete';
 const usage=process.cpuUsage(cpu),row={root:resolve(values.root),node:process.version,inputHash,sourceHash,scoringModelHash,sourceManifest:sorted,
   environment:{platform:platform(),arch:arch(),osRelease:release(),cpu:cpus()[0]?.model,cpuCount:cpus().length,v8:process.versions.v8},
   inputFiles:Object.fromEntries(['data','band-items','chart','input'].filter(k=>values[k]).map(k=>[k,{path:resolve(values[k]),sha256:hash(readFileSync(values[k]))}])),
@@ -68,7 +71,8 @@ const usage=process.cpuUsage(cpu),row={root:resolve(values.root),node:process.ve
   budget:Number(values.evaluations),timeLimitMs:Number(values['time-limit-ms']),wallMs:performance.now()-start,
   cpuMs:(usage.user+usage.system)/1000,rssBytes:process.resourceUsage().maxRSS*1024,
   finalBestAtMs,score:result.results[0]?.value,status:result.status,optimality:result.optimality,
-  fullScoreCalculations:(result.practical.fullScoreCalculations??0)+(result.certifiedSearch?.fullScoreCalculations??0)+(result.certifiedSearch?.boundScoreCalculations??0),
+  scoreCounterCoverage,
+  fullScoreCalculations:scoreCounterCoverage==='complete'?result.practical.fullScoreCalculations+(exactCounters?.fullScoreCalculations??0)+(exactCounters?.boundScoreCalculations??0):null,
   evaluated:result.evaluated,practical:result.practical,certificate:result.certifiedSearch,phases,
   ...(globalThis.__searchProfile?{profile:globalThis.__searchProfile}:{}),
   bestTeam:result.results[0]?.draft.slots};

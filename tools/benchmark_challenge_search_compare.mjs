@@ -27,7 +27,10 @@ for(let pair=0;pair<pairs;pair++)for(const label of pair%2?['candidate','baselin
   samples.push({label,file:output,...JSON.parse(readFileSync(output))});
 }
 const unique=key=>[...new Set(samples.map(row=>JSON.stringify(row[key])))];
-const comparable=['inputHash','scoringModelHash','environment','node','budget','timeLimitMs'].every(key=>unique(key).length===1);
+const sourceStable=['baseline','candidate'].every(label=>new Set(samples.filter(r=>r.label===label).map(r=>r.sourceHash)).size===1);
+const countersComplete=samples.every(r=>r.scoreCounterCoverage==='complete');
+const allProven=samples.every(r=>r.certificate?.bestProven);
+const comparable=sourceStable&&countersComplete&&['inputHash','scoringModelHash','environment','node','budget','timeLimitMs'].every(key=>unique(key).length===1);
 const proven=samples.filter(row=>row.certificate?.bestProven),provenScores=[...new Set(proven.map(row=>row.score))];
 const summarize=label=>{
   const rows=samples.filter(row=>row.label===label),mean=get=>rows.reduce((n,r)=>n+get(r),0)/rows.length;
@@ -36,8 +39,8 @@ const summarize=label=>{
     proven:rows.every(r=>r.certificate?.bestProven),scores:[...new Set(rows.map(r=>r.score))]};
 };
 const baseline=summarize('baseline'),candidate=summarize('candidate');
-const summary={comparable,provenScoresAgree:provenScores.length<=1,baseline,candidate,
-  speedup:baseline.wallMs/candidate.wallMs,wallReduction:1-candidate.wallMs/baseline.wallMs,
+const summary={comparable,sourceStable,countersComplete,allProven,comparisonKind:allProven?'completed_proof':'limited_budget',provenScoresAgree:provenScores.length<=1,baseline,candidate,
+  speedup:allProven&&comparable?baseline.wallMs/candidate.wallMs:null,wallReduction:allProven&&comparable?1-candidate.wallMs/baseline.wallMs:null,
   samples:samples.map(({sourceManifest,...row})=>row)};
 writeFileSync(resolve(directory,'summary.json'),JSON.stringify(summary,null,2)+'\n');
 console.log(JSON.stringify({summary:resolve(directory,'summary.json'),comparable,baseline,candidate,speedup:summary.speedup}));
