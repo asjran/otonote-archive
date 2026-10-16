@@ -70,7 +70,7 @@ OtoNote 是 BanG Dream! Our Notes 的非官方玩家资料站，提供角色与�
 
 ## 反馈问题
 
-可通过 [GitHub Issues](https://github.com/stonesver/otonote/issues)、[联系邮箱](mailto:lhystone@qq.com) 或 QQ 3230342553（小号）联系维护者。
+可通过 [GitHub Issues](https://github.com/stonesver/otonote/issues)、[联系邮箱](mailto:lhystone@qq.com) 联系维护者。
 
 资料纠错请提供页面链接、条目名称或 ID、区服、游戏版本、站点资料版本及可公开核对的依据。页面故障请补充浏览器、设备、操作步骤、预期结果与实际结果。截图请遮去账号资料。
 
