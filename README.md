@@ -5,7 +5,6 @@ BanG Dream! Our Notes 的非官方资料站源码，包含角色与卡牌资料�
 - 在线站点：https://ournotes.stonebg.cn
 - 源码仓库：https://github.com/stonesver/otonote
 - 联系邮箱：lhystone@qq.com
-- QQ：3230342553（小号）
 
 ## 了解与使用
 

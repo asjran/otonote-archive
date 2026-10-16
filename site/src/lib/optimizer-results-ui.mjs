@@ -42,7 +42,7 @@ export function renderOptimizerResults(workbench,results,{mode,objective,live=fa
     const score=el('div',null,'recommendation-score');
     score.append(el('strong',number(result.value)),el('span',objective==='formation_power'?'综合力':objective==='expected_song_score'?'参考平均分':objective==='minimum_song_score'?'本次比较中的低分':'本次比较中的高分'));
     if(result.delta!=null&&!result.planning?.missingActual)score.append(el('em',`${result.delta>=0?'+':''}${number(result.delta)} 较当前养成方案`,result.delta>=0?'is-positive':'is-negative'));
-    resultHeading.append(score);row.append(teamLineup(workbench,result.draft));
+    resultHeading.append(score);row.append(teamLineup(workbench,result.draft),skillActivation(workbench,result.draft,{mode,scenario:result.scenario,conditionsOnly:objective==='formation_power',summary:result}));
     if(direction?.reason)row.append(el('p',direction.reason,'recommendation-reason'));
     if(direction?.tradeoff)row.append(el('p',direction.tradeoff,'recommendation-tradeoff'));
     const planning=result.planning;
@@ -61,7 +61,7 @@ export function renderOptimizerResults(workbench,results,{mode,objective,live=fa
     save.addEventListener('click',()=>requestTeamSave(result.draft,`${recommendationScenarioLabel(result)} · ${direction?.label??`${mode==='gekisou'?'激奏':'普通'}方案 ${i+1}`}`));actions.append(save);
     if(planning?.trainingChanges?.length){const adjust=el('button','修改培养目标');adjust.type='button';adjust.addEventListener('click',()=>{workbench.querySelector('[data-planning-training]')?.scrollIntoView({block:'center',behavior:'auto'});workbench.querySelector('[data-planning-count]')?.focus();});actions.append(adjust);}
     if(objective!=='formation_power'){
-      const link=el('a','查看分数明细 →');link.href=toolRoute(`/tools/song-calculator/${scoringScenarioSearch(result.draft,mode,result.scenario)}`,window.location.pathname);actions.append(link);
+      const link=el('a','查看分数明细');link.href=toolRoute(`/tools/song-calculator/${scoringScenarioSearch(result.draft,mode,result.scenario)}`,window.location.pathname);actions.append(link);
     }
     row.append(actions);
     const detail=el('details',null,'recommendation-details');detail.append(el('summary','查看配对、分段得分与计算条件'));
@@ -71,7 +71,6 @@ export function renderOptimizerResults(workbench,results,{mode,objective,live=fa
       if(result.sections?.length)detail.append(scoreComposition(result.sections,result.expectedScore));
       if(objective!=='formation_power')detail.append(el('p',`综合力 ${number(result.power)} · 本次比较范围 ${number(result.minimumScore)} – ${number(result.maximumScore)} 分`,'recommendation-caption'));
       if(result.scoreDistribution)detail.append(el('p',`较低一成位置的分数 ${number(result.scoreDistribution.p10)} · 共 ${result.scoreDistribution.count} 次比较；不是实战保底。`,'recommendation-caption'));
-      detail.append(skillActivation(workbench,result.draft,{mode,scenario:result.scenario,conditionsOnly:objective==='formation_power'}));
       if(result.comparison&&!planning?.missingActual){const c=result.comparison;detail.append(el('p',`相对当前养成方案：综合力 ${number(c.powerChangePercent)}%，目标分数 ${number(c.scoreChangePercent)}%。这是整队替换后的变化。`));}
       if(result.sections){
         detail.append(el('p',`名次奖励占总分 ${number(result.rankingBonusShare*100)}% · ${result.sampleCount} 次模拟 · 抽样标准误 ${number(result.standardError)}（不含模型误差）`));

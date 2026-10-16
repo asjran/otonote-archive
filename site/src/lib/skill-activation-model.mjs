@@ -3,7 +3,9 @@ const fields = ['general', 'perfect', 'just', 'great', 'good'];
 export function partitionActivationEffects(skill,events=[]) {
  const active=[],inactive=[];
  for(const [kind,effects] of [['member',skill.liveEffects??[]],['support',skill.supportEffects??[]]])for(const effect of effects){
-  const traced=events.find(e=>e.effectId===effect.id);
+  // IDs are local to the member/support tables. Their audited effect types
+  // are disjoint; a member score trace must not override a support condition.
+  const traced=events.find(e=>e.effectId===effect.id&&e.type===effect.type);
   ((traced?.active??effect.active)?active:inactive).push({kind,effect,traced});
  }
  return {active,inactive};

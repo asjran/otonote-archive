@@ -1,0 +1,18 @@
+---
+import ScoreWorkbench from './ScoreWorkbench.astro';
+import '../styles/music-layout.css';
+import '../styles/song-ranking-chart-dialog.css';
+---
+<template data-ranking-chart-template><ScoreWorkbench trackTitle="" charts={[]} /></template>
+<dialog class="song-module-dialog ranking-chart-dialog" data-ranking-chart-dialog aria-labelledby="ranking-chart-title">
+  <header class="song-dialog-heading">
+    <div><span data-ranking-chart-song></span><h2 id="ranking-chart-title">谱面分析</h2></div>
+    <label class="song-dialog-difficulty">难度<select data-ranking-chart-difficulty aria-label="弹窗谱面难度"></select></label>
+    <button type="button" data-ranking-chart-retry hidden>重试</button>
+    <button type="button" class="song-dialog-close" data-ranking-chart-close aria-label="关闭谱面分析">×</button>
+  </header>
+  <div class="song-dialog-body">
+    <p class="ranking-chart-status" data-ranking-chart-status role="status" aria-live="polite"></p>
+    <div data-ranking-chart-mount></div>
+  </div>
+</dialog>

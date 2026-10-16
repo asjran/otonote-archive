@@ -45,7 +45,9 @@ function skillPopover(workbench) {
     const layer=target.closest('dialog[open]')??document.body;if(panel.parentElement!==layer)layer.append(panel);
     trigger?.setAttribute('aria-expanded','false');anchor=target;trigger=button;pinned=pin;panel.replaceChildren();
     const header=cardElement('div',null,'skill-popover-heading'),close=cardElement('button','×','skill-popover-close');close.type='button';close.setAttribute('aria-label','关闭技能详情');close.addEventListener('click',()=>{hide();button.focus({preventScroll:true});});
-    header.append(cardElement('strong',card.shortLabel),close);panel.append(header,cardElement('p',options.maximum?'满级技能预览 · 不代表实际养成':'当前养成 · 未记录项按规则默认值','card-growth-note'),skillBlock(workbench,card,{...options,showNames:false}));
+    const identity=cardElement('div',null,'skill-popover-identity');
+    identity.append(cardElement('strong',card.shortLabel),cardElement('small',options.maximum?'满级技能预览 · 不代表实际养成':'当前养成 · 未记录项按规则默认值','card-growth-note'));
+    header.append(identity,close);panel.append(header,skillBlock(workbench,card,{...options,showNames:false}));
     panel.hidden=false;button.setAttribute('aria-expanded','true');panel.style.visibility='hidden';panel.style.maxHeight='';
     const boundary=layer===document.body?{left:0,top:0,right:window.innerWidth,bottom:window.innerHeight}:layer.getBoundingClientRect();
     const bounds={left:Math.max(12,boundary.left+10),right:Math.min(window.innerWidth-12,boundary.right-10),top:Math.max(12,boundary.top+10),bottom:Math.min(window.innerHeight-12,boundary.bottom-10)};

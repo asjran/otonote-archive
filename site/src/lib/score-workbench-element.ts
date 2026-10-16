@@ -137,6 +137,7 @@ export function registerScoreWorkbenchElement(): void {
       if (difficulty) this.difficultyCoordinator?.selectFromSummary(difficulty);
     };
     handleDifficultyPopState = () => {
+      if (this.dataset.embedded === 'true') return;
       const requestedStart = Number(
         new URLSearchParams(location.search).get("t") || 0
       );
@@ -159,7 +160,7 @@ export function registerScoreWorkbenchElement(): void {
       );
       if (!labelsNode) return;
       this.labels = JSON.parse(labelsNode.textContent ?? "{}");
-      const params = new URLSearchParams(location.search);
+      const params = new URLSearchParams(this.dataset.embedded === 'true' ? '' : location.search);
       const requestedStart = Number(params.get("t") || 0);
       if (Number.isFinite(requestedStart) && requestedStart >= 0) {
         this.start = requestedStart;
@@ -173,8 +174,10 @@ export function registerScoreWorkbenchElement(): void {
         difficulties: difficultyButtons
           .map((button) => button.dataset.difficulty)
           .filter((difficulty): difficulty is string => Boolean(difficulty)),
-        readSearch: () => location.search,
+        readSearch: () => this.dataset.embedded === 'true'
+          ? new URLSearchParams({difficulty:this.dataset.initialDifficulty ?? 'expert'}).toString() : location.search,
         replaceDifficulty: (difficulty) => {
+          if (this.dataset.embedded === 'true') { this.dataset.initialDifficulty=difficulty; return; }
           const url = new URL(location.href);
           url.searchParams.set("difficulty", difficulty);
           history.replaceState(null, "", url);
@@ -545,7 +548,7 @@ export function registerScoreWorkbenchElement(): void {
         card.className = "score-segment";
         card.dataset.segment = String(segment.index);
         card.setAttribute("role", "listitem");
-        card.innerHTML = `<header><span class="score-segment-number">${number}</span><strong>${range}</strong><button type="button" data-segment-focus aria-label="${this.labels.atlas.focusSegment.replace("{index}", String(segment.index + 1))}">${this.labels.atlas.expand} ↗</button></header><canvas role="img"></canvas><footer><span>↑ ${this.labels.atlas.fromHere}</span><button type="button" data-segment-analyze>${this.labels.atlas.analyze} →</button></footer>`;
+        card.innerHTML = `<header><span class="score-segment-number">${number}</span><strong>${range}</strong><button type="button" data-segment-focus aria-label="${this.labels.atlas.focusSegment.replace("{index}", String(segment.index + 1))}">${this.labels.atlas.expand}</button></header><canvas role="img"></canvas><footer><span>${this.labels.atlas.fromHere}</span><button type="button" data-segment-analyze>${this.labels.atlas.analyze}</button></footer>`;
         const canvas = card.querySelector("canvas")!;
         canvas.setAttribute("aria-label", `${this.dataset.trackTitle} ${this.chart!.difficulty.toUpperCase()} ${this.labels.atlas.segment.replace("{index}", String(segment.index + 1))} ${range}`);
         paintScoreCard(canvas, this.chart!, segment, this.enabled);
@@ -732,6 +735,7 @@ export function registerScoreWorkbenchElement(): void {
     }
 
     updateUrl() {
+      if (this.dataset?.embedded === 'true') return;
       // Hidden analysis rendering must not overwrite the playback cursor.
       const panel = this.closest<HTMLElement>('[data-song-panel]');
       const dialog = this.closest<HTMLDialogElement>('dialog');

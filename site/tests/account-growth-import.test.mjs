@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import {convertGrowthSnapshot,growthModifiersForDraft} from '../src/lib/account-growth-import.mjs';
 import {createTeamDraft,serializeTeamDraftSearch} from '../src/lib/team-draft.mjs';
-const rules=JSON.parse(fs.readFileSync(new URL('../src/data/formal-scoring-rules.json',import.meta.url)));
+const rules=JSON.parse(fs.readFileSync(new URL('../../packages/scoring/data/formal-scoring-rules.json',import.meta.url)));
 const vip=[{rank:1,requiredPoints:0},{rank:2,requiredPoints:2000}];
 const fixture=()=>({format:'ournotes-growth-snapshot',schemaVersion:1,source:{region:'TW/HK/MO'},
   coverage:{memberCards:'observed',supportCards:'observed',bandItems:'observed',characterRanks:'observed',tgw:'observed'},
@@ -49,4 +49,12 @@ test('rejects incompatible, unknown, repeated and invalid data atomically',()=>{
     s=>s.growth.tgw.point=true,s=>s.coverage.supportCards='not_observed']) {
     const input=fixture();change(input);assert.throws(()=>convertGrowthSnapshot(input,rules,vip));
   }
+});
+
+test('instrument import follows upgrade rows when the cap changes, rejecting future-only effects',()=>{
+  const current=structuredClone(rules),input=fixture();input.growth.bandItems=[{masterId:101,level:30}];
+  assert.equal(convertGrowthSnapshot(input,current,vip).modifiers.bandItems[101],30);
+  input.growth.bandItems[0].level=31;assert.throws(()=>convertGrowthSnapshot(input,current,vip));
+  const raised=structuredClone(rules);raised.tables.BandItemLevel.push({_bandItemId:101,_level:31,_playerRank:1});
+  assert.equal(convertGrowthSnapshot(input,raised,vip).modifiers.bandItems[101],31);
 });

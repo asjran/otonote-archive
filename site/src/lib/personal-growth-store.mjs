@@ -2,7 +2,9 @@ import {currentServerContext, assertAccountServer} from './game-servers.mjs';
 import {createInventoryManager} from './inventory-manager.mjs';
 import {convertGrowthSnapshot, growthModifiersForDraft} from './account-growth-import.mjs';
 
-import {validateBandItemTotals} from '../../../packages/scoring/scoring-rules/band-item-totals.mjs';
+import {validateBandItemTotals,clampStoredBandItems} from '../../../packages/scoring/scoring-rules/band-item-totals.mjs';
+import {validateBandItemLevel} from '../../../packages/scoring/scoring-rules/band-item-levels.mjs';
+import {readBandItemRecord} from './band-item-storage-migration.mjs';
 
 export const PERSONAL_GROWTH_FORMAT = 'otonote-personal-growth';
 const object = v => v !== null && typeof v === 'object' && !Array.isArray(v);
@@ -16,6 +18,7 @@ export function createPersonalGrowthStore({rules, vipRanks = [], context = curre
   };
   const manager = createInventoryManager(rules);
   const key = `ournotes:personal-growth:${context.region}:${context.serverId ?? 'unselected'}`;
+  let migrationNotice='';
   const notify = profile => {
     // Storage events only reach other documents. Tools in this document need the same invalidation signal.
     try {
@@ -46,7 +49,7 @@ export function createPersonalGrowthStore({rules, vipRanks = [], context = curre
       for (const [id, level] of Object.entries(value[field])) {
         if (!/^[1-9]\d*$/.test(id) || !Number.isSafeInteger(Number(id)) || !Number.isSafeInteger(level)) throw Error('养成 ID 或等级无效');
         if (field === 'bandItems') {
-          if (!rules.tables.BandItem.some(r => r._id === Number(id)) || level < 0 || (level > 0 && !rules.tables.BandItemSkillEffect.some(r => r._bandItemId === Number(id) && r._level === level))) throw Error(`乐器 ${id} 等级无效`);
+          validateBandItemLevel(rules,id,level);
         } else if (!rules.tables.Character.some(r => r._id === Number(id)) || !rules.tables.CharacterRank.some(r => r._rank === level)) throw Error(`角色 ${id} 评级无效`);
         result[field][id] = level;
       }
@@ -72,8 +75,13 @@ export function createPersonalGrowthStore({rules, vipRanks = [], context = curre
   }
   function read() {
     checkServer();
-    const raw = storage.getItem(key);
-    if (raw !== null) return validate(JSON.parse(raw));
+    const stored=readBandItemRecord({storage,key,validate,repair:value=>{
+      if(!object(value)||!object(value.account))return {value,changes:[]};
+      const fixed=clampStoredBandItems(rules,value?.account);
+      return {value:{...value,account:fixed.value},changes:fixed.changes};
+    }});
+    if(stored.notice)migrationNotice=stored.notice;
+    if(stored.value!==null)return stored.value;
     const oldInventory = legacy('inventory'), oldGrowth = legacy('account-growth');
     const converted = oldGrowth ? convertGrowthSnapshot(oldGrowth, rules, vipRanks) : null;
     if(converted)assertAccountServer(converted.safeSnapshot.source.serverId,context);
@@ -100,7 +108,7 @@ export function createPersonalGrowthStore({rules, vipRanks = [], context = curre
     assertAccountServer(value?.serverId, context);
     return {...empty(), inventory:inventory(value), account:read()?.account ?? {}};
   }
-  return {key, empty, read, save, validate, fromImport,
+  return {key, empty, read, save, validate, fromImport, get migrationNotice(){return migrationNotice;},
     checkpoint() { return storage.getItem(key); },
     restore(checkpoint) {
       checkServer(); if(checkpoint===null)storage.removeItem(key);else storage.setItem(key,checkpoint);

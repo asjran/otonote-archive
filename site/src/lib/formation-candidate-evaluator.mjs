@@ -16,6 +16,7 @@ export function createCandidateEvaluator({rules,chart,mode='ordinary',objective=
     return {power:power.total.total,value:result ? result[metrics[objective]] : power.total.total,breakdown:power.breakdown,
       ...(result ? {scorePrecision:result.scorePrecision,orderCount:result.orderCount,expectedScore:result.expectedScore,minimumScore:result.minimumScore,maximumScore:result.maximumScore,
         scoreDistribution:result.scoreDistribution,inputHash:result.inputHash,performanceScenario:result.performanceScenario??performanceScenario,
+        bestOrder:result.bestOrder,worstOrder:result.worstOrder,randomSampling:result.randomSampling,randomSources:result.randomSources,
         performanceSummary:result.performanceSummary,warnings:result.warnings,scenario:result.scenario,
         ...(mode==='gekisou' ? {sections:result.sections?.map(section=>({...section,taskEventCount:song.timeline?.events?.filter(event=>event.timeMs>=section.startMs&&event.timeMs<=section.endMs).length})),rankingBonus:result.rankingBonus,rankingBonusShare:result.rankingBonusShare,
           standardError:result.standardError,sampleCount:result.sampleCount,randomSampling:result.randomSampling,

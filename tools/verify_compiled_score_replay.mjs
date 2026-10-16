@@ -5,6 +5,7 @@ import {readFileSync,readdirSync,writeFileSync,mkdirSync} from 'node:fs';
 import {resolve,dirname} from 'node:path';
 import {pathToFileURL} from 'node:url';
 import {parseArgs} from 'node:util';
+import {bandItemGroups} from '../packages/scoring/scoring-rules/band-item-totals.mjs';
 const {values}=parseArgs({options:{baseline:{type:'string'},datasets:{type:'string'},output:{type:'string'}}});
 if(!values.baseline||!values.datasets||!values.output)throw Error('--baseline, --datasets and --output are required');
 const root=resolve(import.meta.dirname,'..'),load=(dir,file)=>import(pathToFileURL(resolve(dir,file)));
@@ -22,8 +23,9 @@ for(const dataset of JSON.parse(readFileSync(values.datasets))){
   growth[`${kind}-card-${card._id}`]={rank,level:power[0].resolveGrowth(card,kind==='member'?'Member':'Support',{rank,awake}).level,
    ...(kind==='member'?{awake,skillLevel:card._id%5+1,gekisouSkillLevel:card._id%5+1}:{})};
  }
+ const itemCaps=new Map(bandItemGroups(rules).flatMap(group=>group.items.map(item=>[item.id,item.maxLevel])));
  const bandItems=Object.fromEntries(t.BandItem.map(item=>{
-  const max=Math.max(...t.BandItemSkillEffect.filter(r=>r._bandItemId===item._id).map(r=>r._level));
+  const max=itemCaps.get(item._id);
   return [item._id,1+item._id%max];
  }));
  const modifiers={growth,bandItems,characterRanks:Object.fromEntries(t.Character.map(c=>[c._id,1+c._id%50])),tgwCardRank:12};

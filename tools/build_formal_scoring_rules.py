@@ -17,7 +17,7 @@ TABLES = (
     "SupportCardLevel", "SupportCardRank", "CharacterRank", "CharacterTotalRank",
     "LeaderSkillEffect", "LiveSkill", "LiveSkillEffect", "SupportSkillEffect",
     "SkillTarget", "SkillCondition", "SkillConditionSet", "BandItem",
-    "BandItemSkillEffect", "VipRankBonus", "LiveMusic", "LiveMusicScore",
+    "BandItemLevel", "BandItemSkillEffect", "VipRankBonus", "LiveMusic", "LiveMusicScore",
     "LiveSettings", "LiveNoteParameter", "LiveJudgementParameter", "LiveJudgementTiming",
     "LiveComboScoreBonus", "Parameter",
     "GekisouSkill", "GekisouSkillEffect", "GekisouSupportSkill", "GekisouSupportSkillEffect",

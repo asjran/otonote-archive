@@ -75,6 +75,7 @@ test('hidden or closed analysis never overwrites the chart playback position', (
     globalThis.location.search = '?view=analysis&t=10.71';
     elementType.prototype.updateUrl.call(view);
     assert.equal(written.length, 1);
+    view.dataset={embedded:'true'};view.start=30;elementType.prototype.updateUrl.call(view);assert.equal(written.length,1,'embedded workbench must not change ranking history');
     assert.equal(new URL(written[0], 'https://test.invalid').searchParams.get('t'), '0.0');
   } finally {
     for (const name of names) {

@@ -4,6 +4,7 @@ import {readFileSync} from 'node:fs';
 import {optimizeChallenge} from '../src/lib/challenge-optimizer.mjs';
 import {createEventEfficiency} from '../src/lib/scoring-rules/event-efficiency.mjs';
 import {createFormalSongCalculator} from '../src/lib/scoring-rules/formal-song-score.mjs';
+import {createFormationCalculator} from '../src/lib/scoring-rules/formation-power.mjs';
 import {createTeamDraft} from '../src/lib/team-draft.mjs';
 
 function fixture(){
@@ -46,6 +47,33 @@ test('reward bonuses cannot change the challenge high-score recommendation',asyn
     ...Object.fromEntries([1,2,3,4,5].map(rank=>[`_rank${rank}EffectValue`,99900]))})));
   const second=await optimizeChallenge(input);
   assert.deepEqual(second.results.map(r=>[r.id,r.value]),first.results.map(r=>[r.id,r.value]));
+});
+test('challenge scoring and certified search use the event song colour instead of its ordinary colour',async()=>{
+  const input=fixture(),song=input.rules.tables.LiveMusic.find(r=>r._id===100038);
+  song._musicType=5;
+  const model=createEventEfficiency({tables:input.rules.tables,sourceReleaseId:input.rules.sourceReleaseId,eventId:1});
+  const formation=createFormationCalculator(input.rules,{eventAdapters:[model.challengeAdapter(input.rules)]});
+  for(const objective of ['maximum_song_score','expected_song_score']){
+    const recoloured=await optimizeChallenge({...input,objective,maxEvaluations:0});
+    assert.equal(recoloured.certifiedSearch.bestProven,true);
+    for(const row of recoloured.results){
+      const power=formation.calculate(row.draft);
+      assert.equal(row.power,power.total.total);
+      for(const slot of power.slots){
+        const member=formation.card(slot.memberCardId,'member');
+        assert.equal(slot.ratesBP.musicType[0]>0,member._cardType===2,
+          'song matching bonuses must follow ChallengeMusic._musicType=2');
+      }
+    }
+    assert.equal(song._musicType,5,'event resolution must not mutate the ordinary song');
+    // Canonicalising the ordinary colour to the event colour must change
+    // neither candidate scores nor the certified optimum / search weights.
+    song._musicType=2;
+    const canonical=await optimizeChallenge({...input,objective,maxEvaluations:0});
+    assert.equal(canonical.certifiedSearch.bestProven,true);
+    assert.deepEqual(recoloured.results.map(r=>[r.id,r.value,r.power]),canonical.results.map(r=>[r.id,r.value,r.power]));
+    song._musicType=5;
+  }
 });
 test('challenge search rejects other songs, chart releases and missing actual growth',async()=>{
   const input=fixture();

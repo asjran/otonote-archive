@@ -25,7 +25,7 @@ const events=available?((formalRules.tables.Event??[]) as Array<{_id:number;_eve
 <div class="tool-studio" data-tool-kind="ap-grade">
  <ToolPageHeader kind="ap-grade" title="队伍 AP 估分" description="选一支队伍，找出更容易打到高档位的歌曲。AP 指所有音符均为 Perfect。" meta="队伍估分 · 分档线 · 选歌" />
  <section class="catalog-section"><div class="content-shell">
- <p class="event-links"><a href={href('/tools/song-ranking/')+(href('/tools/song-ranking/').includes('?')?'&':'?')+'view=grade'}>无需选卡：查看各首歌的达档综合力与分数线 →</a></p>
+ <p class="event-links"><a href={href('/tools/song-ranking/')+(href('/tools/song-ranking/').includes('?')?'&':'?')+'view=grade'}>无需选卡：查看各首歌的达档综合力与分数线</a></p>
  {available?<ap-grade-tool class="event-workbench ap-workbench">
   <script is:inline type="application/json" data-ap-inputs set:html={data}></script>
   <section class="event-panel ap-lineup-panel"><h2><span class="studio-step">1</span>确认当前队伍</h2><p>在“卡库与队伍”选择或编辑编成，自动读取本区服已保存养成。</p>

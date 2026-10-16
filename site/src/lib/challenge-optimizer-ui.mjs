@@ -10,8 +10,8 @@ const el=(tag,text,className)=>{const node=document.createElement(tag);if(text!=
 export function setupChallengeOptimizer(tool){
   const root=tool.q('challenge-optimizer'),q=s=>tool.querySelector(`[data-challenge-opt-${s}]`);
   const feedback=createCalculationProgress(q('status'),'challenge');
-  let worker=null,key='',results=null;
-  const stop=()=>{worker?.terminate();worker=null;q('cancel').hidden=true;q('run').disabled=false;root.setAttribute('aria-busy','false');};
+  let worker=null,key='',results=null,paused=false;
+  const stop=()=>{worker?.terminate();worker=null;paused=false;q('cancel').hidden=true;q('run').disabled=false;q('run').textContent='推荐挑战出分队伍';root.setAttribute('aria-busy','false');};
   const currentDraft=()=>currentEventDraft(tool);
   const fingerprint=()=>JSON.stringify({mode:tool.q('mode').value,event:tool.q('event').value,draft:currentDraft(),scope:q('scope').value,objective:q('objective').value,rewards:q('rewards')?.checked??false,rewardGrowth:q('reward-growth')?.value??'level',rewardGrowthOverride:q('reward-override')?.checked??false});
   function sync(){
@@ -22,7 +22,7 @@ export function setupChallengeOptimizer(tool){
     }
     const track=tool.data.tracks.find(t=>t.id===tool.draft.selectedSongId);
     q('song').textContent=track?`${track.title} · ${(tool.draft.selectedDifficulty??'expert').toUpperCase()}`:'尚未选择挑战歌曲';
-    q('run').disabled=!!worker||root.hidden||!track;
+    q('run').disabled=!!worker&&!paused||root.hidden||!track;
   }
   function render(){
     q('results').replaceChildren();
@@ -33,12 +33,13 @@ export function setupChallengeOptimizer(tool){
     if(reference)q('results').prepend(el('p','全卡库参考 · 卡片按满等级、满突破、满觉醒与满技能比较；账号加成沿用当前设置。','event-hint'));
     for(const [index,row] of results.results.entries()){
       const card=el('article',null,'challenge-opt-result');
-      const label=reference?(index===0?'最佳配对':`备选 ${index}`):`候选 ${index+1}`;
+      const label=index===0?(results.certifiedSearch?.bestProven?'最佳配队':'当前最佳候选'):`备选 ${index}`;
       card.hidden=index!==0;const tab=el('button',label);tab.type='button';tab.setAttribute('aria-pressed',String(index===0));tab.addEventListener('click',()=>{for(const n of q('results').querySelectorAll('.challenge-opt-result'))n.hidden=n!==card;for(const b of tabs.children)b.setAttribute('aria-pressed',String(b===tab));});tabs.append(tab);
       card.append(el('h4',`${label} · ${maximum?'最高':'平均'}估计分 ${fmt(row.value)}`));
       card.append(el('p',`最高 ${fmt(row.maximumScore)} · 平均 ${fmt(row.expectedScore)} · 最低 ${fmt(row.minimumScore)}`,'event-hint'));
+      if(index>0)card.append(el('p','备选仅供参考，未证明其排名。','event-hint'));
       card.append(el('p',`活动内综合力 ${fmt(row.power)}${reference?' · 满养成参考，不代表实际持有':row.delta==null?' · 当前队伍不完整或不在所选卡库，未作对比':` · 比当前队伍${row.delta>=0?'提高':'降低'} ${fmt(Math.abs(row.delta))} 分`}`));
-      card.append(createWorkbenchTeamView(tool,row.draft),skillActivation(tool,row.draft,{mode:'challenge',eventId:Number(tool.q('event').value)}));
+      card.append(createWorkbenchTeamView(tool,row.draft),skillActivation(tool,row.draft,{mode:'challenge',eventId:Number(tool.q('event').value),summary:row}));
       const apply=el('button','应用这支挑战队伍');apply.type='button';apply.addEventListener('click',()=>{
         tool.teamWorkspaceContext.applyDraft(row.draft);
         tool.q('bonus-source').value='team';
@@ -49,6 +50,7 @@ export function setupChallengeOptimizer(tool){
     }
   }
   q('run').addEventListener('click',()=>{
+    if(worker&&paused){paused=false;q('run').disabled=true;q('cancel').hidden=false;root.setAttribute('aria-busy','true');worker.postMessage({type:'resume'});return;}
     if(worker)return;
     try{
       const draft=currentDraft();
@@ -68,23 +70,28 @@ export function setupChallengeOptimizer(tool){
       worker.addEventListener('message',({data})=>{
         if(worker!==active)return;
         if(data.type==='progress'){feedback.update({label:data.stage,completed:data.completed,total:data.total,detail:'当前阶段进度 · 按所选范围比较出分'});q('status').textContent=`${data.stage} · ${data.completed} / ${data.total??'…'}`;return;}
-        stop();if(data.type==='result'){
+        if(data.type==='result'||data.type==='snapshot'){
+          const ongoing=data.type==='snapshot';
+          if(!ongoing&&['paused','budget_exhausted'].includes(data.result.status)){
+            paused=true;q('cancel').hidden=true;q('run').disabled=false;q('run').textContent='继续搜索最佳配队';root.setAttribute('aria-busy','false');
+          }else if(!ongoing)stop();
           results=data.result;render();
           const certificate=results.certifiedSearch;
-          const counts=`候选阶段完整复算 ${results.practical?.finalists??0} 支队伍${certificate?`，上界搜索阶段另完成 ${certificate.evaluated} 次队伍复算`:''}；每次比较 120 种技能顺序。`;
-          const proof=certificate?.topNComplete?'已证明所选范围、当前模型内的前三名。':certificate?.bestProven?'已证明所选范围、当前模型内的最佳出分；前三名尚未全部证明。':'尚未证明所选范围、当前模型内的最优。';
-          const label=results.status==='budget_exhausted'?'已达本轮搜索预算':['cancelled','aborted'].includes(results.status)?'搜索已停止':'冲榜配队比较结束';
+          const counts=`候选阶段完整复算 ${results.practical?.finalists??0} 支队伍${certificate?`，上界搜索已展开 ${certificate.expanded??certificate.evaluated} 个分支、完整评估 ${certificate.evaluated} 次；${certificate.candidateBoundPruned??0} 个候选经上界排除`:''}。完整评分比较全部 120 种技能顺序。`;
+          const proof=certificate?.bestProven?'已证明所选范围、当前模型内的最佳出分。备选仅供参考，未证明排名。':'尚未证明所选范围、当前模型内的最优。';
+          const label=ongoing?'正在搜索最佳配队':results.status==='budget_exhausted'?'已达本轮搜索预算，可继续搜索':results.status==='paused'?'搜索已暂停，可继续搜索':['cancelled','aborted'].includes(results.status)?'搜索已停止':'冲榜配队比较结束';
           const bound=!certificate?.bestProven&&Number.isFinite(certificate?.upperBound)&&Number.isFinite(certificate?.optimalityGap)?`未排除的分数上界 ${fmt(certificate.upperBound)}，与当前最佳相差至多 ${fmt(certificate.optimalityGap)} 分。`:'';
           const detail=`${counts}${proof}${bound}`;
-          feedback.finish(label,detail,certificate?.topNComplete?'complete':'stopped');
+          if(ongoing)feedback.update({label,detail});
+          else feedback.finish(label,detail,certificate?.bestProven?'complete':'stopped');
           q('status').textContent=`${label}。${detail}`;
-        }else {q('status').textContent=`计算失败：${data.message}`;feedback.finish('计算失败',data.message,'error');}
+        }else {stop();q('status').textContent=`计算失败：${data.message}`;feedback.finish('计算失败',data.message,'error');}
       });
       worker.addEventListener('error',()=>{if(worker!==active)return;stop();q('status').textContent='计算服务加载失败，请重试。';feedback.finish('计算服务加载失败','请重试','error');});
       worker.postMessage({rules:tool.data.rules,eventId:Number(tool.q('event').value),draft,scope,inventory:profile?.inventory,objective:q('objective').value,analysisDataUrl:chart.analysisDataUrl,rewardCards:q('rewards')?.checked&&scope!=='reference'?tool.data.eventRewardCards?.[Number(tool.q('event').value)]??[]:[],rewardGrowth:q('reward-growth')?.value??'level',rewardGrowthOverride:q('reward-override')?.checked??false});
     }catch(error){stop();feedback.finish('无法开始计算',error.message,'error');q('status').textContent=error.message;}
   });
-  q('cancel').addEventListener('click',()=>{stop();feedback.finish('已停止','可调整条件后重新计算','stopped');q('status').textContent='已停止。可调整条件后重新计算。';});
+  q('cancel').addEventListener('click',()=>{if(!worker||paused)return;worker.postMessage({type:'pause'});q('cancel').hidden=true;q('status').textContent='正在暂停，保留当前搜索进度…';});
   root.addEventListener('change',event=>{event.stopPropagation();sync();});
   return {sync,invalidate:()=>{key='';stop();sync();},destroy:stop};
 }

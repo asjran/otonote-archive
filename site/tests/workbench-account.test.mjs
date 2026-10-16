@@ -15,6 +15,12 @@ test('max all derives caps, replaces aggregates, preserves memories and never mu
  for(const character of rules.tables.Character)assert.equal(next.characterRanks[character._id],Math.max(...rules.tables.CharacterRank.map(r=>r._rank)));
  assert.ok(bandItemEffects(rules,next).length);assert.deepEqual(maximizeAccount(input,rules,[],'tgw'),input);
 });
+test('account maximum uses reachable upgrades rather than future effect rows',()=>{
+ const rules=createSharedTeamRules();
+ rules.tables.BandItemLevel=rules.tables.BandItem.flatMap(item=>[1,2,3].map(level=>({_bandItemId:item._id,_level:level})));
+ const maximum=maximizeAccount({},rules);
+ assert.ok(Object.values(maximum.bandItems).every(level=>level===3));
+});
 test('pair identity badges intersect canonical band/attribute IDs and do not imply a numeric bonus',()=>{
  const member={attributeCode:1,bandIds:['band-2']},support={attributeCode:1,bandIds:['band-1','band-2']};
  assert.deepEqual(pairingRelations(member,support).map(r=>r.kind),['attribute','band']);assert.deepEqual(pairingRelations(member,{attributeCode:2,bandIds:['band-3']}),[]);assert.deepEqual(pairingRelations(null,support),[]);

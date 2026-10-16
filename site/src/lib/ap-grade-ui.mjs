@@ -93,7 +93,7 @@ class APGradeTool extends HTMLElement{
      card.append(el('small','假定 120 种技能顺序等可能，均按 AP、满生命估算；比例不代表实战成功率。'));
    }
    const draft={...this.draft,selectedSongId:r.trackId,selectedDifficulty:r.difficulty};
-   const links=el('div');links.className='ap-result-actions';const use=el('a','带入活动收益 →');use.href=toolRoute('/tools/event-efficiency/',location.pathname)+eventToolSearch(draft,{mode:r.mode,eventId:r.eventId||undefined,scoreRank:r.scoreRank,basis,...this.eventContext});links.append(use);
+   const links=el('div');links.className='ap-result-actions';const use=el('a','带入活动收益');use.href=toolRoute('/tools/event-efficiency/',location.pathname)+eventToolSearch(draft,{mode:r.mode,eventId:r.eventId||undefined,scoreRank:r.scoreRank,basis,...this.eventContext});links.append(use);
    if(r.mode==='ordinary'){const detail=el('a','查看分数明细');detail.href=toolRoute('/tools/song-calculator/',location.pathname)+serializeTeamDraftSearch(draft);links.append(detail);}
    card.append(links,skillActivation(this,draft,{mode:r.mode,eventId:r.eventId}));root.append(card);
   }

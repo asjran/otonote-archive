@@ -15,8 +15,8 @@ export async function neutralRankingRulesFingerprint(rules, releaseId) {
 /** Result identity includes the verified rule digest and chart digest, not scores or IDs. */
 export function combineSongRankings(sources, {region = "global", locale = 'zh-CN'} = {}) {
   const order = [region, region === 'jp' ? 'global' : 'jp'];
-  /** @type {{ordinary:any[],gekisou:any[],artwork:Record<string,string>,releases:Record<string,string>}} */
-  const result = {ordinary:[],gekisou:[],artwork:{},releases:{}};
+  /** @type {{ordinary:any[],gekisou:any[],artwork:Record<string,string>,releases:Record<string,string>,chartSources:Record<string,{releaseId:string,charts:any[]}>}} */
+  const result = {ordinary:[],gekisou:[],artwork:{},releases:{},chartSources:{}};
   const rowsFor = (source, mode) => {
     if (!source) return null;
     const {catalog,data,edition} = source;
@@ -27,13 +27,23 @@ export function combineSongRankings(sources, {region = "global", locale = 'zh-CN
     const counterpart=sources.find(s=>s?.edition!==edition);
     const otherSongs=new Set(counterpart?.catalog.musicTracks.map(track=>catalogIdentity('musicTracks',track,counterpart.catalog))??[]);
     result.releases[edition] = catalog.release.id;
+    result.chartSources[edition]={releaseId:catalog.release.id,charts:catalog.musicCharts.filter(chart=>chart.analysisDataUrl).map(chart=>({id:chart.id,trackId:chart.trackId,difficulty:chart.difficulty,level:chart.displayLevel??chart.level,url:chart.analysisDataUrl}))};
     const tracks = new Map(catalog.musicTracks.map(t=>[t.id,t]));
+    const assets = new Map(catalog.assets.map(asset=>[asset.id,asset]));
+    const bandLogos = new Map((catalog.bands??[]).map(band=>{const asset=assets.get(band.logoAssetId);return [band.id,asset?.thumbnailUrl??asset?.previewUrl??null];}));
     const ready = data && !data.unavailable && data.sourceReleaseId === catalog.release.id
       && data.benchmark?.modelVersion === SCORE_MODEL_VERSION;
     const computed = new Map((ready ? data[mode] : []).map(row=>[row.id,row]));
     return catalog.musicCharts.map(chart=>{
       const track=tracks.get(chart.trackId), row=computed.get(chart.id);
-      const asset=catalog.assets.find(a=>a.id===track?.jacketAssetId);
+      const asset=assets.get(track?.jacketAssetId);
+      // musicTypeLabel in older projections came from MusicTag (band names).
+      // Resolve the numeric type against the actual attribute taxonomy instead.
+      const attributeCode=Number.isInteger(track?.musicType)?track.musicType:null;
+      const definition=catalog.cardTaxonomy?.attributes?.find(attribute=>attribute.code===attributeCode);
+      const attributeAsset=assets.get(definition?.iconAssetId);
+      const attribute=definition?.names?.[locale]??definition?.names?.[catalog.release.locale]??definition?.names?.en
+        ??(attributeCode!==null?`${locale.startsWith('en')?'Type':'属性'} ${attributeCode}`:row?.attribute??track?.musicTypeLabel??null);
       result.artwork[`${edition}--${chart.trackId}`]=asset?.thumbnailUrl ?? asset?.previewUrl;
       const songIdentity=track && catalogIdentity('musicTracks',track,catalog);
       const chartIdentity=songIdentity && chart.contentIdentity ? stableContent([songIdentity,chart.difficulty,chart.contentIdentity]) : null;
@@ -48,7 +58,9 @@ export function combineSongRankings(sources, {region = "global", locale = 'zh-CN
         expectedScore:row?.expectedScore ?? null, audioSeconds:row?.audioSeconds ?? track?.audioDuration ?? null,
         chartSeconds:row?.chartSeconds ?? chart.duration ?? null, pending:!row, sourceEdition:edition,
         libraryPresence:{status:counterpart && songIdentity?'known':'unknown',editions:otherSongs.has(songIdentity)?['global','jp']:[edition]},
-        chartIdentity,resultIdentity,benchmark:data?.benchmark,gradeReference:{edition,trackId:chart.trackId,sourceReleaseId:catalog.release.id,thresholds:validGradeThresholds(track?.soloRewards?.scoreRanks)}};
+        songIdentity,chartIdentity,resultIdentity,attribute,attributeCode,attributeColor:definition?.color??null,
+        attributeIcon:attributeAsset?.thumbnailUrl??attributeAsset?.previewUrl??null,bandIcons:(track?.bandIds??[]).map(id=>bandLogos.get(id)??null),
+        benchmark:data?.benchmark,gradeReference:{edition,trackId:chart.trackId,sourceReleaseId:catalog.release.id,thresholds:validGradeThresholds(track?.soloRewards?.scoreRanks)}};
     });
   };
   for (const mode of ['ordinary','gekisou']) {
@@ -81,11 +93,19 @@ export function combineSongRankings(sources, {region = "global", locale = 'zh-CN
     result[mode]=result[mode].filter(row=>!folded.has(row));
     for(const row of result[mode]){
       row.gradeReferences={};
+      row.editionChartReferences={};
       for(const candidate of sourceRows){
         const own=candidate.sourceEdition===row.sourceEdition&&candidate.id===row.sourceId;
         const sameChart=row.chartIdentity&&candidate.chartIdentity===row.chartIdentity;
         const sameResult=row.resultIdentity&&candidate.resultIdentity===row.resultIdentity;
         const counterpart=(sameChart||sameResult)&&row.editionPresence.editions.includes(candidate.sourceEdition);
+        if(own||counterpart){
+          row.editionChartReferences[candidate.sourceEdition]={sourceReleaseId:candidate.gradeReference.sourceReleaseId,
+            trackId:candidate.gradeReference.trackId,title:candidate.title,level:candidate.level,
+            chartSeconds:candidate.chartSeconds,audioSeconds:candidate.audioSeconds,
+            bands:candidate.bands,bandLabels:candidate.bandLabels,bandIcons:candidate.bandIcons,attribute:candidate.attribute,
+            attributeCode:candidate.attributeCode,attributeColor:candidate.attributeColor,attributeIcon:candidate.attributeIcon};
+        }
         if((own||counterpart)&&candidate.gradeReference.thresholds){
           row.gradeReferences[candidate.sourceEdition]={...candidate.gradeReference,
             verified:!candidate.pending&&row.applicableEditions.includes(candidate.sourceEdition)&&candidate.resultIdentity===row.resultIdentity};

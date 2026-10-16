@@ -19,8 +19,6 @@
 .archive-footer__feedback { margin: 10px 0 0; font-size: 12px; line-height: 1.8; color: var(--silver-dark); }
 .archive-footer__contact { display: flex; flex-direction: column; align-items: flex-start; margin-top: 4px; font-size: 12px; font-style: normal; line-height: 1.6; }
 .archive-footer__contact > * { display: inline-flex; align-items: center; min-height: 36px; }
-.archive-footer__contact small { margin-left: 3px; font-size: 11px; color: var(--silver-dark); }
-.archive-footer__qq { margin-left: 5px; user-select: all; font-variant-numeric: tabular-nums; }
 .archive-footer__section h2 { margin: 0 0 4px; font-size: 13px; color: var(--lacquer); line-height: 1.5; }
 .archive-footer__section ul { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 16px; }
 .archive-footer__section a { display: flex; align-items: center; min-height: 44px; padding-block: 8px; font-size: 13px; line-height: 1.5; }

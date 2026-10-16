@@ -71,6 +71,39 @@ test("music type follows member attribute, not the character band", () => {
   assert.equal(result.leaderSlotIndex, 2);
 });
 
+test("individual ranks affect their character while off-team ranks cross shared total-rank thresholds", () => {
+  const r=structuredClone(rules),t=r.tables;
+  t.CharacterRank.find(row=>row._rank===1)._bonus=0;
+  t.CharacterRank.find(row=>row._rank===2)._bonus=5;
+  const total=t.Character.length;
+  t.CharacterTotalRank=[{_totalRank:total,_bonus:0},{_totalRank:total+1,_bonus:7},{_totalRank:total+2,_bonus:11}];
+  const d=draft(),c=createFormationCalculator(r);
+  d.modifiers.characterRanks=Object.fromEntries(t.Character.map(character=>[character._id,1]));
+  const teamCharacters=d.slots.map(slot=>c.card(slot.memberCardId,'member')._characterID);
+  const offTeam=t.Character.find(character=>!teamCharacters.includes(character._id))._id;
+  const baseline=c.calculate(d);
+  d.modifiers.characterRanks[offTeam]=2;
+  const shared=c.calculate(d);
+  for(const [index,slot] of shared.slots.entries()){
+    assert.equal(slot.breakdown.characterRank.total,0,'an off-team rank must not become individual power');
+    assert.deepEqual(slot.breakdown.characterTotalRank,{performance:7,technic:7,visual:7,total:21});
+    assert.equal(slot.bonusBase.total,baseline.slots[index].bonusBase.total+21);
+  }
+  assert.ok(shared.total.total>baseline.total.total);
+  // Same account total, but the individual bonus now belongs to an on-team character.
+  d.modifiers.characterRanks[offTeam]=1;
+  d.modifiers.characterRanks[teamCharacters[0]]=2;
+  const individual=c.calculate(d);
+  for(const [index,slot] of individual.slots.entries()){
+    assert.deepEqual(slot.breakdown.characterTotalRank,shared.slots[index].breakdown.characterTotalRank);
+    assert.equal(slot.breakdown.characterRank.total,index===0?15:0);
+    assert.equal(slot.bonusBase.total,shared.slots[index].bonusBase.total+(index===0?15:0));
+  }
+  d.modifiers.characterRanks[offTeam]=2;
+  const nextThreshold=c.calculate(d);
+  assert.ok(nextThreshold.slots.every(slot=>slot.breakdown.characterTotalRank.total===33));
+});
+
 test("invalid releases, levels, duplicates and unsupported effects fail closed", () => {
   assert.throws(() => calculator.calculate(draft(), { sourceReleaseId: "other" }), /release_mismatch/);
   const bad = draft(); bad.slots[1].memberCardId = bad.slots[0].memberCardId;

@@ -43,6 +43,7 @@ def bind_reviewed_reference(master, release, base, profile):
 EVENT_TABLES = ('LiveScoreRank', 'LiveChallengePoint', 'ChallengeMusic',
                 'LiveMusicBoostBonus', 'ChallengeMusicBoostBonus', 'LiveEventPoint',
                 'LiveEventReward', 'ChallengeLiveEventPoint', 'ChallengeLiveEventReward')
+CONTENT_TABLES = (*EVENT_TABLES, 'BandItemLevel')
 
 
 def bind_scoring_rules(master: Path, release: str, baseline=None):
@@ -65,8 +66,8 @@ def bind_scoring_rules(master: Path, release: str, baseline=None):
         if hashes != base['masterSha256']:
             return {**unavailable, 'reason': 'audit_input_mismatch'}
         return deepcopy(base)
-    # Event inputs travel in the same immutable artifact as cards and songs.
-    for name in EVENT_TABLES:
+    # Event and reachable instrument levels travel with cards and songs.
+    for name in CONTENT_TABLES:
         path = master/f'Master{name}.json'
         if path.is_file():
             raw = path.read_bytes()

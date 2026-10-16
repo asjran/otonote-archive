@@ -1,14 +1,42 @@
-import {optimizeChallenge} from './challenge-optimizer.mjs';
+import {createChallengeSearchSession} from './challenge-optimizer.mjs';
+let session=null,running=false,paused=false;
+const yieldControl=()=>new Promise(resolve=>setTimeout(resolve,0));
+async function run(){
+ if(running||!session)return;
+ running=true;
+ try{
+  let lastPublished=0,lastBest=null;
+  while(true){
+   const result=await session.run();
+   if(paused||result.status!=='budget_exhausted'){
+    self.postMessage({type:'result',result});break;
+   }
+   const best=result.results[0]?.value;
+   if(best!==lastBest||performance.now()-lastPublished>500){
+    self.postMessage({type:'snapshot',result});lastBest=best;lastPublished=performance.now();
+   }
+   await yieldControl();
+  }
+ }catch(error){self.postMessage({type:'error',message:error.message});}
+ finally{running=false;}
+}
 self.addEventListener('message',async({data})=>{
-  try{
-    const {analysisDataUrl,...input}=data;
-    const response=await fetch(analysisDataUrl,{signal:AbortSignal.timeout(30000)});
-    if(!response.ok)throw Error(`谱面加载失败（${response.status}）`);
-    const chart=await response.json();
-    const result=await optimizeChallenge({...input,chart,onProgress:p=>{
-      if(p.phase==='event-exact')self.postMessage({type:'progress',stage:'验证配对与分数上界',completed:p.completed});
-      if(p.phase==='practical')self.postMessage({type:'progress',stage:p.stage,completed:p.completed,total:p.total});
-    }});
-    self.postMessage({type:'result',result});
-  }catch(error){self.postMessage({type:'error',message:error.message});}
+ if(data.type==='pause'){paused=true;return;}
+ if(data.type==='resume'){paused=false;await run();return;}
+ if(running)return;
+ paused=false;
+ try{
+  const {analysisDataUrl,...input}=data;
+  const response=await fetch(analysisDataUrl,{signal:AbortSignal.timeout(30000)});
+  if(!response.ok)throw Error(`谱面加载失败（${response.status}）`);
+  const chart=await response.json();
+  let lastProgress=0,lastStage='';
+  session=createChallengeSearchSession({...input,chart,yieldControl,shouldPause:()=>paused,onProgress:p=>{
+   const stage=p.phase==='event-exact'?'搜索并验证最佳配队':p.stage;
+   if(!stage||stage===lastStage&&performance.now()-lastProgress<100)return;
+   lastStage=stage;lastProgress=performance.now();
+   self.postMessage({type:'progress',stage,completed:p.expanded??p.completed,total:p.total});
+  }});
+  await run();
+ }catch(error){self.postMessage({type:'error',message:error.message});}
 });

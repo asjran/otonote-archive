@@ -140,3 +140,20 @@ test('shared benchmark retains distinct edition thresholds for grade-power looku
   assert.equal(rows[0].gradeReferences.global.trackId,'song');
  }
 });
+
+test('song attribute codes use attribute taxonomy instead of legacy band labels',()=>{
+  const value=source('global');
+  value.catalog.release.locale='zh-CN';
+  Object.assign(value.catalog.musicTracks[0],{musicType:2,musicTypeLabel:'MyGO!!!!!',bandIds:['band-1'],bandLabels:['MyGO!!!!!']});
+  value.data.ordinary[0].attribute='MyGO!!!!!';
+  value.catalog.cardTaxonomy={attributes:[{code:2,names:{'zh-CN':'绀碧',en:'Azure'},color:'#5C91DC',iconAssetId:'attribute'}]};
+  value.catalog.bands=[{id:'band-1',logoAssetId:'band'}];
+  value.catalog.assets=[{id:'attribute',thumbnailUrl:'/attribute.webp'},{id:'band',thumbnailUrl:'/band.webp'}];
+  const row=combineSongRankings([value]).ordinary[0];
+  assert.equal(row.attribute,'绀碧');assert.equal(row.attributeCode,2);assert.equal(row.attributeIcon,'/attribute.webp');
+  assert.deepEqual(row.bandLabels,['MyGO!!!!!']);assert.deepEqual(row.bandIcons,['/band.webp']);
+  assert.equal(row.editionChartReferences.global.attribute,'绀碧');
+  assert.equal(combineSongRankings([value],{locale:'en'}).ordinary[0].attribute,'Azure');
+  delete value.catalog.cardTaxonomy;
+  assert.equal(combineSongRankings([value]).ordinary[0].attribute,'属性 2');
+});
