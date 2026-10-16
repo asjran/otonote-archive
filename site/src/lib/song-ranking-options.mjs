@@ -44,6 +44,9 @@ export const RANKING_OPTIONS = Object.freeze({
   calculationState: ['计算状态', 'Calculation state', 'text', 'asc']
 });
 export const GRADE_RANKING_METRICS = ['requiredPower', 'targetScore', 'enteredRank'];
+export function rankingWebsiteEdition(pathname='',siteEdition='global') {
+  return pathname.match(/^\/(global|jp)\//)?.[1] ?? (siteEdition==='jp'?'jp':'global');
+}
 // Keep existing calculation helpers compatible; the browsing UI exposes only these metrics.
 export const RANKING_SORT_OPTIONS = Object.freeze(Object.fromEntries(Object.entries(RANKING_OPTIONS).filter(([key]) => ![...GRADE_RANKING_METRICS,'bandLabel','attribute','editionLabel','calculationState'].includes(key))));
 export const defaultRankingDirection = metric => RANKING_OPTIONS[metric]?.[3] ?? 'desc';

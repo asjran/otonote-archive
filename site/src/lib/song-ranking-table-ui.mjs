@@ -51,6 +51,7 @@ export function renderRankingTable(root, {rows, page, size, mode, metric, direct
           const badge=make('span',tag.label,`ranking-tag ranking-tag--${tag.kind}`);badge.title=`${tag.title}：${tag.description??tag.label}`;badge.dataset.label=badge.title;badge.setAttribute('aria-label',badge.title);badge.tabIndex=0;if(tag.state)badge.dataset.state=tag.state;
           if(tag.icons?.length){badge.textContent='';badge.classList.add('ranking-tag--icon');for(const url of tag.icons){const img=make('img');img.src=url;img.alt='';img.width=tag.kind==='band'?44:18;img.height=18;img.loading='lazy';img.addEventListener('error',()=>{img.remove();if(!badge.querySelector('img')){badge.textContent=tag.label;badge.classList.remove('ranking-tag--icon');}},{once:true});badge.append(img);}}
           else if(tag.editions?.length){badge.textContent='';for(const edition of tag.editions){const symbol=make('span','','ranking-edition-symbol');symbol.dataset.edition=edition;symbol.setAttribute('aria-hidden','true');badge.append(symbol);}}
+          else if(tag.kind==='state'){badge.textContent='';const symbol=make('span','','ranking-state-symbol');symbol.dataset.symbol=tag.symbol;symbol.setAttribute('aria-hidden','true');badge.append(symbol);}
           tags.append(badge);
         }
         track.append(name);

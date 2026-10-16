@@ -12,6 +12,9 @@ const runtime=moduleUrl(`export * from ${JSON.stringify(import.meta.resolve('ast
 const fixture=moduleUrl(`
   export const catalog={release:{id:'fixture',region:'global',locale:'zh-CN'},musicCharts:[],bands:[]};
   export const filterVisual=()=>({});
+  export const activeReleaseContext={locale:'zh-CN'};
+  export const getRuntimeUiLabels=()=>({scoreWorkbench:{}});
+  export const LOGICAL_LANE_COUNT=12;
   export const sharedSongRankings={releases:{global:'fixture'},artwork:{},ordinary:[{id:'chart-a',trackId:'global--song-a',title:'Fixture Song',difficulty:'expert',level:25,bands:[],bandLabels:[],expectedScore:123456,chartSeconds:100,audioSeconds:110,applicableEditions:['global'],pendingEditions:[]}],gekisou:[]};
 `);
 async function compile(source,children={}) {
@@ -24,10 +27,13 @@ async function compile(source,children={}) {
 }
 const attr=(node,name)=>node.attrs?.find(a=>a.name===name)?.value;
 const walk=node=>[node,...(node.childNodes??[]).flatMap(walk)];
-async function render(){
+async function render(region="global"){
+  (await import(fixture)).catalog.release.region=region;
   const fallback=await compile('<div><slot /></div>');
   const icon=await compile(await readFile(new URL('../src/components/RankingIcon.astro',import.meta.url),'utf8'));
-  const {default:Page}=await import(await compile(await readFile(new URL('../src/pages/tools/song-ranking/index.astro',import.meta.url),'utf8'),{fallback,'RankingIcon.astro':icon}));
+  const workbench=await compile(await readFile(new URL('../src/components/ScoreWorkbench.astro',import.meta.url),'utf8'));
+  const chartDialog=await compile(await readFile(new URL('../src/components/RankingChartDialog.astro',import.meta.url),'utf8'),{fallback,'ScoreWorkbench.astro':workbench});
+  const {default:Page}=await import(await compile(await readFile(new URL('../src/pages/tools/song-ranking/index.astro',import.meta.url),'utf8'),{fallback,'RankingIcon.astro':icon,'RankingChartDialog.astro':chartDialog}));
   return {html:await (await experimental_AstroContainer.create()).renderToString(Page)};
 }
 test('the complete sortable table is already rendered before scripts, with exactly one owner for every filter',async()=>{
@@ -57,7 +63,29 @@ test('metadata stays in frozen song labels, removed grade controls stay absent a
   assert.equal(nodes.filter(n=>attr(n,'class')?.split(' ').includes('ranking-tag')).length,4);
   const advanced=nodes.find(n=>attr(n,'class')==='ranking-advanced-replay');
   assert.equal(advanced.tagName,'details');assert.equal(attr(advanced,'open'),undefined);
-  assert.deepEqual(nodes.filter(n=>attr(n,'data-edition-choice')!==undefined).map(n=>attr(n,'data-edition-choice')),['all','global','jp']);
+  assert.deepEqual(nodes.filter(n=>attr(n,'data-edition-choice')!==undefined).map(n=>attr(n,'data-edition-choice')),['global','jp']);
   assert.equal(attr(nodes.find(n=>attr(n,'data-filter')==='edition'),'hidden'),'');
   assert.match(html,/每首歌仅显示一张/);assert.match(html,/排名最靠前的难度/);
+});
+
+test('website editions select their own initial scope, with no all-editions option',async()=>{
+  for(const region of ['global','jp']){
+    const {html}=await render(region),nodes=walk(parse(html));
+    const field=nodes.find(n=>attr(n,'data-filter')==='edition');
+    const options=field.childNodes.filter(n=>n.tagName==='option');
+    assert.deepEqual(options.map(n=>attr(n,'value')),['global','jp']);
+    assert.equal(attr(options.find(n=>attr(n,'selected')!==undefined),'value'),region);
+    assert.equal(nodes.filter(n=>attr(n,'data-edition-choice')===region).map(n=>attr(n,'aria-pressed'))[0],'true');
+    assert.equal(attr(nodes.find(n=>n.tagName==='song-ranking'),'data-site-edition'),region);
+  }
+});
+test('chart dialog reuses the inert music analysis workbench and state is icon-only',async()=>{
+  const {html}=await render(),nodes=walk(parse(html));
+  const dialog=nodes.find(n=>attr(n,'data-ranking-chart-dialog')!==undefined);
+  assert.equal(dialog.tagName,'dialog');assert.equal(attr(dialog,'open'),undefined);
+  const template=nodes.find(n=>attr(n,'data-ranking-chart-template')!==undefined);
+  assert.equal(walk(template.content).filter(n=>n.tagName==='score-workbench').length,1);
+  const state=nodes.find(n=>attr(n,'class')?.split(' ').includes('ranking-tag--state'));
+  assert.ok(state.childNodes.some(n=>attr(n,'class')==='ranking-state-symbol'));
+  assert.ok(state.childNodes.every(n=>n.nodeName!=='#text'||!n.value.trim()));
 });

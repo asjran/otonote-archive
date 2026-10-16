@@ -3,7 +3,7 @@ import {rankingSongLinks,editionName} from './song-ranking-options.mjs';
 import {rankingSongCover} from './ranking-song-cover.mjs';
 
 // Compact ranking details. Scoring, replay and account state remain owned by their tools.
-export function renderRankingDetail(root,row,{mode='ordinary',locale='zh-CN',server,edition,artwork}={}) {
+export function renderRankingDetail(root,row,{mode='ordinary',locale='zh-CN',server,edition,artwork,openChart}={}) {
   const doc=root.ownerDocument,en=locale.startsWith('en'),say=(zh,english)=>en?english:zh;
   const make=(tag,text='',cls='')=>{const el=doc.createElement(tag);el.textContent=text;el.className=cls;return el;};
   const number=(n,digits=0)=>Number.isFinite(n)?n.toLocaleString(locale,{maximumFractionDigits:digits}):'—';
@@ -12,7 +12,8 @@ export function renderRankingDetail(root,row,{mode='ordinary',locale='zh-CN',ser
   identity.append(make('span',say('谱面明细','Chart details'),'ranking-detail-eyebrow'),make('strong',`${row.title} · ${row.difficulty.toUpperCase()}`));
   const links=make('nav','','ranking-song-links');links.setAttribute('aria-label',say('此谱面的相关工具','Tools for this chart'));
   const urls=rankingSongLinks(row,{edition,locale,server,mode});
-  for(const [href,label] of [[urls.calculator,say('队伍计算 ↗','Team calculator ↗')],[urls.chart,say('查看谱面 ↗','View chart ↗')]]){const link=make('a',label);link.href=href;links.append(link);}
+  const calculator=make('a',say('队伍计算','Team calculator'));calculator.href=urls.calculator;links.append(calculator);
+  const chart=make('button',say('查看谱面','View chart'));chart.type='button';if(row.id)chart.dataset.rankingChartOpen=row.id;chart.setAttribute('aria-haspopup','dialog');chart.addEventListener('click',()=>openChart?.(row,edition));links.append(chart);
   const song=make('div','','ranking-detail-song');song.append(rankingSongCover(doc,artwork,48),identity);heading.append(song,links);root.append(heading);
   const metrics=make('dl','','ranking-detail-metrics');
   const summary=[['expectedScore',say(mode==='gekisou'?'样本平均分':'平均参考分',mode==='gekisou'?'Sample mean':'Mean score')],['minimumScore',say(mode==='gekisou'?'样本最低分':'最低参考分','Minimum score')],['maximumScore',say(mode==='gekisou'?'样本最高分':'最高参考分','Maximum score')],['p10Score',say('偏低参考分 · P10','Lower score · P10')],['baseScore',say('无技能基础分','No-skill score')],['skillScoreGain',say('普通技能净增分','Ordinary skill gain')]];
@@ -51,7 +52,7 @@ export function renderRankingDetail(root,row,{mode='ordinary',locale='zh-CN',ser
   if(row.scoreDistribution){const d=row.scoreDistribution;provenance.append(make('p',say(`${d.count} 种技能顺序 · 范围 ${number(d.minimum)}–${number(d.maximum)} 分。位置收益按技能轮换求平均。`,`${d.count} skill orders · ${number(d.minimum)}–${number(d.maximum)} points. Position contributions average over skill orders.`)));}
   if(row.skillProfile&&!row.scoreDistribution)provenance.append(make('p',say('此谱面缺少五技能窗口数据，暂不能计算当前条件。','This chart lacks skill-window data for the current conditions.')));
   provenance.append(make('p',rankingMetricExplanation('p10Score',mode,en)));
-  if(row.skillReplay){const replay=row.skillReplay;provenance.append(make('p',say(`最高顺序 ${replay.bestOrder.map(slot=>slot+1).join(' → ')} · 最低顺序 ${replay.worstOrder.map(slot=>slot+1).join(' → ')} · ${replay.frameRate} FPS`,`Best order ${replay.bestOrder.map(slot=>slot+1).join(' → ')} · Worst order ${replay.worstOrder.map(slot=>slot+1).join(' → ')} · ${replay.frameRate} FPS`)));
+  if(row.skillReplay){const replay=row.skillReplay;provenance.append(make('p',say(`最高顺序 ${replay.bestOrder.map(slot=>slot+1).join('、')} · 最低顺序 ${replay.worstOrder.map(slot=>slot+1).join('、')} · ${replay.frameRate} FPS`,`Best order ${replay.bestOrder.map(slot=>slot+1).join(', ')} · Worst order ${replay.worstOrder.map(slot=>slot+1).join(', ')} · ${replay.frameRate} FPS`)));
     if(Number.isFinite(row.linearScore))provenance.append(make('p',say(`快速估算 ${number(row.linearScore,2)} 分 · 精算 ${number(row.scoreDistribution?.mean,2)} 分 · 差 ${number(row.scoreDistribution?.mean-row.linearScore,2)} 分`,`Quick estimate ${number(row.linearScore,2)} · Replay ${number(row.scoreDistribution?.mean,2)} · Difference ${number(row.scoreDistribution?.mean-row.linearScore,2)}`)));
   }
   if(row.sections)provenance.append(make('p',say(`激奏固定 LUCK 样本 ${number(row.sampleCount)} 个，标准误 ${number(row.standardError,2)} 分。分段百分比为该段额外奖励率；样本范围与标准误不包含模型误差。`,`Gekisou uses ${number(row.sampleCount)} fixed LUCK samples, standard error ${number(row.standardError,2)}. Section percentages are extra reward rates; sample ranges and standard error exclude model error.`)));

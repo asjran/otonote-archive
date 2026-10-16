@@ -4,10 +4,11 @@ import {setupQuickOptions,selectedOptionText} from './tool-quick-options.mjs';
 import {selectedControlValues,restoreFilterControl} from './filter-controls.mjs';
 import {renderRankingDetail} from './song-ranking-detail.mjs';
 import {rankingMetricExplanation} from './song-ranking-table.mjs';
-import {RANKING_OPTIONS, defaultRankingDirection, rankRefinedSongRows, scopeRankingRows, rankingRowState, validateRankingOptions, editionName} from './song-ranking-options.mjs';
+import {RANKING_OPTIONS, rankingWebsiteEdition, defaultRankingDirection, rankRefinedSongRows, scopeRankingRows, rankingRowState, validateRankingOptions, editionName} from './song-ranking-options.mjs';
 import {currentServerContext, gameServer} from './game-servers.mjs';
 import {withSongSkillProfile, validateSongSkillProfile} from './song-skill-profile.mjs';
 import {setupSongRankingReplay} from './song-ranking-replay-ui.mjs';
+import {setupRankingChartDialog} from './song-ranking-chart-dialog.mjs';
 const say = (zh, en) => document.documentElement.lang.startsWith('en') ? en : zh;
 const metricLabel = key => RANKING_OPTIONS[key]?.[document.documentElement.lang.startsWith('en') ? 1 : 0] ?? key;
 const node = (tag, text = '', cls = '') => { const e = document.createElement(tag); e.textContent = text; e.className = cls; return e; };
@@ -23,6 +24,9 @@ class SongRanking extends HTMLElement {
       this.data = JSON.parse(this.querySelector('[data-ranking-data]').textContent);
       if (!Array.isArray(this.data.rankings.ordinary) || !Array.isArray(this.data.rankings.gekisou)) throw Error('Invalid ranking data');
       this.mode = 'ordinary'; this.metric = 'expectedScore';
+      this.siteEdition=rankingWebsiteEdition(location.pathname,this.dataset.siteEdition);
+      this.querySelector('[data-filter="edition"]').value=this.siteEdition;
+      this.chartDialog=setupRankingChartDialog(this,this.data.rankings.chartSources??{});
       this.querySelector('[data-direction]').value = defaultRankingDirection(this.metric);
       try { this.server = currentServerContext().serverId; } catch (error) { this.serverError = error.message; }
       for (const button of this.querySelectorAll('[data-mode]')) listen(button, 'click', () => {
@@ -55,14 +59,14 @@ class SongRanking extends HTMLElement {
       listen(this.querySelector('[data-prev]'), 'click', () => { this.page--; this.render(); });
       listen(this.querySelector('[data-next]'), 'click', () => { this.page++; this.render(); });
       const clearFilters = () => {
-        for (const input of this.querySelectorAll('[data-filter]')) restoreFilterControl(input, input.tagName === 'SELECT' ? 'all' : '');
+        for (const input of this.querySelectorAll('[data-filter]')) restoreFilterControl(input, input.dataset.filter==='edition'?this.siteEdition:input.tagName === 'SELECT' ? 'all' : '');
         this.page = 0; this.render();
       };
       for (const button of this.querySelectorAll('[data-reset], [data-empty-reset]')) listen(button, 'click', clearFilters);
       listen(this.querySelector('[data-show-all]'), 'click', () => { this.querySelector('[data-replay-method]').value = 'linear'; this.page = 0; this.render(); });
       listen(this.querySelector('[data-reset-all]'), 'click', () => {
         this.replays.reset(); this.mode = 'ordinary'; this.setMetric('expectedScore');
-        for (const field of this.querySelectorAll('[data-filter]')) restoreFilterControl(field, field.tagName === 'SELECT' ? 'all' : '');
+        for (const field of this.querySelectorAll('[data-filter]')) restoreFilterControl(field, field.dataset.filter==='edition'?this.siteEdition:field.tagName === 'SELECT' ? 'all' : '');
         this.querySelector('[data-grade-profile]').value = 'benchmark';
         this.querySelector('[data-overhead]').value = '0'; this.querySelector('[data-duration]').value = 'chart';
         this.querySelector('[data-grouping]').value = 'charts'; this.querySelector('[data-replay-fps]').value = '60';
@@ -81,7 +85,7 @@ class SongRanking extends HTMLElement {
       this.querySelector('[data-reset-all]').hidden = true;
     }
   }
-  disconnectedCallback() { this.shortcuts?.destroy(); this.replays?.destroy(); this.events?.abort(); this.events = null; }
+  disconnectedCallback() { this.chartDialog?.destroy();this.shortcuts?.destroy(); this.replays?.destroy(); this.events?.abort(); this.events = null; }
   setMetric(metric) {
     this.metric = metric;
     this.querySelector('[data-direction]').value = defaultRankingDirection(metric);
@@ -132,10 +136,10 @@ class SongRanking extends HTMLElement {
     for (const error of this.querySelectorAll('[data-panel-error]')) error.hidden=true;
     const tags = q('[data-ranking-filter-tags]'); tags.replaceChildren();
     for (const field of this.querySelectorAll('[data-filter]')) {
-      if (field.multiple ? !selectedControlValues(field).length : field.value === '' || field.value === 'all') continue;
+      if (field.multiple ? !selectedControlValues(field).length : field.value === '' || field.value === 'all' || field.dataset.filter==='edition'&&field.value===this.siteEdition) continue;
       const label = field.tagName === 'SELECT' ? selectedOptionText(field) : `${field.getAttribute('aria-label')} ${field.value}`;
       const button = node('button', `${label} ×`); button.type = 'button'; button.setAttribute('aria-label', say(`取消筛选：${label}`, `Remove filter: ${label}`));
-      button.addEventListener('click', () => { restoreFilterControl(field, field.tagName === 'SELECT' ? 'all' : ''); this.page = 0; this.render(); (tags.querySelector('button') ?? q('.ranking-clear')).focus(); }); tags.append(button);
+      button.addEventListener('click', () => { restoreFilterControl(field, field.dataset.filter==='edition'?this.siteEdition:field.tagName === 'SELECT' ? 'all' : ''); this.page = 0; this.render(); (tags.querySelector('button') ?? q('.ranking-clear')).focus(); }); tags.append(button);
     }
     tags.hidden = !tags.children.length;
     q('[data-filter-count]').textContent = String(tags.children.length); q('[data-filter-count]').hidden = !tags.children.length;
@@ -160,8 +164,8 @@ class SongRanking extends HTMLElement {
       replayView ? say('仅已完成精算内排名','Completed replays only') : ''].filter(Boolean).join(' · ');
     const calculated = ranked.filter(row => rankingRowState(row) === 'calculated').length, pending = ranked.filter(row => row.pending).length;
     q('[data-result-status]').textContent = say(`可排名 ${valid.length} · 有分 ${calculated} · 待算 ${pending} · 缺条件 ${ranked.length-calculated-pending}`, `${valid.length} ranked · ${calculated} scored · ${pending} pending · ${ranked.length-calculated-pending} unavailable`);
-    const releases = Object.entries(this.data.rankings.releases ?? {}).map(([edition, release]) => `${editionName(edition,en)} ${release}`).join(' / ');
-    q('[data-identity]').textContent = [say('结果范围：', 'Result scope: ') + (filters.edition === 'all' ? say('全部版本', 'All editions') : editionName(filters.edition,en)),
+    const releases = Object.entries(this.data.rankings.releases ?? {}).filter(([edition])=>edition===filters.edition).map(([edition, release]) => `${editionName(edition,en)} ${release}`).join(' / ');
+    q('[data-identity]').textContent = [say('结果范围：', 'Result scope: ') + editionName(filters.edition,en),
       this.server ? say('当前区服：', 'Selected server: ') + gameServer(this.server)?.[en ? 'englishLabel' : 'label'] : say('当前区服未选择', 'No server selected'), releases,
       this.serverError ?? ''].filter(Boolean).join(' · ');
     q('[data-metric-help]').textContent = this.mode === 'gekisou' && ['minimumScore','maximumScore','p10Score','scoreSpread','p10Efficiency'].includes(this.metric)
@@ -186,7 +190,7 @@ class SongRanking extends HTMLElement {
     this.shortcuts?.sync();
   }
   detail(root,row) {
-    renderRankingDetail(root,row,{mode:this.mode,locale:document.documentElement.lang,server:this.server,edition:this.options.edition==='all'?row.sourceEdition:this.options.edition,artwork:this.data.artwork[row.trackId]});
+    renderRankingDetail(root,row,{mode:this.mode,locale:document.documentElement.lang,server:this.server,edition:this.options.edition,artwork:this.data.artwork[row.trackId],openChart:(chart,edition)=>this.chartDialog.open(chart,edition)});
     this.activationDetail(root,row);
   }
   activationDetail(root,row){

@@ -33,7 +33,7 @@ export function rankingStatusTags(row, locale = 'zh-CN') {
     {kind:'band',label:row.bandLabels?.join(' / ') || '—',title:en?'Performing band':'演唱乐队',icons:row.bandIcons?.filter(Boolean)},
     {kind:'attribute',label:row.attribute || '—',title:en?'Song attribute':'歌曲属性',icons:row.attributeIcon?[row.attributeIcon]:[],color:row.attributeColor},
     {kind:'edition',label:formatRankingCell('editionLabel',row,locale),title:en?'Score editions':'分数适用版本',editions:[...new Set([...(row.applicableEditions??[]),...(row.pendingEditions??[])])]},
-    {kind:'state',label:row.pending?en?'Pending':'待算':!Number.isFinite(row.expectedScore)?en?'N/A':'缺条件':row.calculation==='replay'?en?'Replay':'精算':row.calculation==='linear'&&row.skillProfile?.some(skill=>skill.percent&&skill.seconds)?en?'Estimate':'估算':en?'Base':'基准',description:formatRankingCell('calculationState',row,locale),title:en?'Calculation state':'计算状态',state:row.pending?'pending':Number.isFinite(row.expectedScore)?'calculated':'unavailable'}
+    {kind:'state',symbol:row.pending?'pending':!Number.isFinite(row.expectedScore)?'unavailable':row.calculation==='replay'?'replay':row.calculation==='linear'&&row.skillProfile?.some(skill=>skill.percent&&skill.seconds)?'estimate':'base',label:row.pending?en?'Pending':'待算':!Number.isFinite(row.expectedScore)?en?'N/A':'缺条件':row.calculation==='replay'?en?'Replay':'精算':row.calculation==='linear'&&row.skillProfile?.some(skill=>skill.percent&&skill.seconds)?en?'Estimate':'估算':en?'Base':'基准',description:formatRankingCell('calculationState',row,locale),title:en?'Calculation state':'计算状态',state:row.pending?'pending':Number.isFinite(row.expectedScore)?'calculated':'unavailable'}
   ];
 }
 export function rankingMetricExplanation(metric,mode='ordinary',en=false) {

@@ -7,6 +7,7 @@ import { catalog } from '../../../lib/shared-catalog';
 import {sharedSongRankings as rankings} from '../../../lib/shared-song-ranking-data';
 import {rankRefinedSongRows} from '../../../lib/song-ranking-options.mjs';
 import {rankingTableColumns,formatRankingCell,rankingStatusTags} from '../../../lib/song-ranking-table.mjs';
+import RankingChartDialog from '../../../components/RankingChartDialog.astro';
 import RankingIcon from '../../../components/RankingIcon.astro';
 import { RANKING_SORT_OPTIONS } from '../../../lib/song-ranking-options.mjs';
 import '../../../styles/song-ranking.css';
@@ -19,7 +20,7 @@ const artwork = rankings.artwork;
 const attributes = [...new Set([...rankings.ordinary, ...rankings.gekisou].map(row => row.attribute).filter(Boolean))].sort();
 const bands = [...new Map<string,string>([...rankings.ordinary, ...rankings.gekisou].flatMap(row => row.bands.map((id: string, i: number): [string,string] => [id, row.bandLabels[i] ?? id]))).entries()];
 const data = JSON.stringify({ rankings, artwork }).replaceAll('<', '\\u003c');
-const initial: Array<Record<string,any>> = rankRefinedSongRows(rankings.ordinary);
+const initial: Array<Record<string,any>> = rankRefinedSongRows(rankings.ordinary,{edition:catalog.release.region});
 const columns = rankingTableColumns();
 const tableWidth = columns.filter(column => column.key !== 'title').reduce((sum,column) => sum + column.width,0);
 ---
@@ -28,7 +29,7 @@ const tableWidth = columns.filter(column => column.key !== 'title').reduce((sum,
 <div class="tool-studio" data-tool-kind="song-ranking">
   <ToolPageHeader kind="song-ranking" title="歌曲排行榜" description="完整谱面数据 · 点表头排序 · 横向比较" />
   <div class="content-shell ranking-shell">
-    <song-ranking class="song-ranking">
+    <song-ranking class="song-ranking" data-site-edition={catalog.release.region}>
       <script is:inline type="application/json" data-ranking-data set:html={data}></script>
       <p class="ranking-startup" data-startup role="status">正在准备交互筛选；下方先展示普通演出基准排行。</p>
       <section class="ranking-board" aria-labelledby="ranking-title">
@@ -108,7 +109,7 @@ const tableWidth = columns.filter(column => column.key !== 'title').reduce((sum,
           <div class="ranking-board-tabs" role="group" aria-label="快捷榜单"><button type="button" data-board="expectedScore" aria-pressed="true">平均分</button><button type="button" data-board="efficiency">效率</button><button type="button" data-board="minimumScore">最低分</button><button type="button" data-board="maximumScore">最高分</button><button type="button" data-board="p10Score">偏低分</button><button type="button" data-board="durationSeconds">短曲</button><button type="button" data-board="skillScoreGain">技能增分</button><button type="button" data-board="averageDensity">密度</button></div>
           <div class="ranking-quickstrip">
             <label class="ranking-difficulty-options"><span>难度</span><select data-filter="difficulty" multiple data-quick data-quick-all="all" aria-label="难度"><option value="all" selected>全部</option>{['easy','normal','hard','expert'].map(d => <option value={d} data-difficulty={d}>{d.toUpperCase()}</option>)}</select></label>
-            <div class="ranking-edition-switch" role="group" aria-label="结果适用版本">{[["all","全部版本"],["global","国际版 Global"],["jp","日服 JP"]].map(([edition,label])=><button type="button" data-edition-choice={edition} aria-label={label} title={label} aria-pressed={edition === "all" ? "true" : "false"}><span class="ranking-edition-symbol" data-edition={edition} aria-hidden="true"></span></button>)}<select data-filter="edition" data-quick-native aria-label="结果适用版本" hidden><option value="all">全部版本</option><option value="global">Global</option><option value="jp">JP</option></select></div>
+            <div class="ranking-edition-switch" role="group" aria-label="结果适用版本">{[["global","国际版 Global"],["jp","日服 JP"]].map(([edition,label])=><button type="button" data-edition-choice={edition} aria-label={label} title={label} aria-pressed={edition === catalog.release.region ? "true" : "false"}><span class="ranking-edition-symbol" data-edition={edition} aria-hidden="true"></span></button>)}<select data-filter="edition" data-quick-native aria-label="结果适用版本" hidden><option value="global" selected={catalog.release.region !== "jp"}>Global</option><option value="jp" selected={catalog.release.region === "jp"}>JP</option></select></div>
             <label class="ranking-grouping-control"><span class="ranking-sr-only">展示范围</span><select data-grouping data-quick-native aria-label="展示范围"><option value="charts">显示所有难度</option><option value="songs">每首歌仅显示一张</option></select></label>
             <button type="button" data-reset class="ranking-clear" aria-label="清空筛选" title="清空筛选"><RankingIcon name="reset" /></button>
           </div>
@@ -142,7 +143,7 @@ const tableWidth = columns.filter(column => column.key !== 'title').reduce((sum,
                     class={`ranking-tag ranking-tag--${tag.kind}${tag.icons?.length ? " ranking-tag--icon" : ""}`}
                     title={`${tag.title}：${tag.description ?? tag.label}`} data-label={`${tag.title}：${tag.description ?? tag.label}`} data-state={tag.state} tabindex="0">
                     {tag.icons?.length ? tag.icons.map((icon:string)=><img src={icon} alt="" width={tag.kind === "band" ? 44 : 18} height="18" loading="lazy" />)
-                      : tag.editions?.length ? tag.editions.map(edition=><span class="ranking-edition-symbol" data-edition={edition} aria-hidden="true"></span>) : tag.label}
+                      : tag.editions?.length ? tag.editions.map(edition=><span class="ranking-edition-symbol" data-edition={edition} aria-hidden="true"></span>) : tag.kind === "state" ? <span class="ranking-state-symbol" data-symbol={tag.symbol} aria-hidden="true"></span> : tag.label}
                   </span>)}</div>
                 </div> : formatRankingCell(column.key,row,isEnglish ? 'en' : 'zh-CN')}
               </td>)}
@@ -157,5 +158,6 @@ const tableWidth = columns.filter(column => column.key !== 'title').reduce((sum,
     </song-ranking>
   </div>
 </div>
+<RankingChartDialog />
 </BaseLayout>
 <script>import '../../../lib/song-ranking-ui.mjs';</script>

@@ -15,8 +15,8 @@ export async function neutralRankingRulesFingerprint(rules, releaseId) {
 /** Result identity includes the verified rule digest and chart digest, not scores or IDs. */
 export function combineSongRankings(sources, {region = "global", locale = 'zh-CN'} = {}) {
   const order = [region, region === 'jp' ? 'global' : 'jp'];
-  /** @type {{ordinary:any[],gekisou:any[],artwork:Record<string,string>,releases:Record<string,string>}} */
-  const result = {ordinary:[],gekisou:[],artwork:{},releases:{}};
+  /** @type {{ordinary:any[],gekisou:any[],artwork:Record<string,string>,releases:Record<string,string>,chartSources:Record<string,{releaseId:string,charts:any[]}>}} */
+  const result = {ordinary:[],gekisou:[],artwork:{},releases:{},chartSources:{}};
   const rowsFor = (source, mode) => {
     if (!source) return null;
     const {catalog,data,edition} = source;
@@ -27,6 +27,7 @@ export function combineSongRankings(sources, {region = "global", locale = 'zh-CN
     const counterpart=sources.find(s=>s?.edition!==edition);
     const otherSongs=new Set(counterpart?.catalog.musicTracks.map(track=>catalogIdentity('musicTracks',track,counterpart.catalog))??[]);
     result.releases[edition] = catalog.release.id;
+    result.chartSources[edition]={releaseId:catalog.release.id,charts:catalog.musicCharts.filter(chart=>chart.analysisDataUrl).map(chart=>({id:chart.id,trackId:chart.trackId,difficulty:chart.difficulty,level:chart.displayLevel??chart.level,url:chart.analysisDataUrl}))};
     const tracks = new Map(catalog.musicTracks.map(t=>[t.id,t]));
     const assets = new Map(catalog.assets.map(asset=>[asset.id,asset]));
     const bandLogos = new Map((catalog.bands??[]).map(band=>{const asset=assets.get(band.logoAssetId);return [band.id,asset?.thumbnailUrl??asset?.previewUrl??null];}));

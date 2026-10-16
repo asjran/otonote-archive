@@ -1,0 +1,21 @@
+.ranking-chart-dialog {width:min(1440px,calc(100vw - 48px));}
+.ranking-chart-dialog .song-dialog-heading {padding:12px 18px;}
+.ranking-chart-dialog .song-dialog-heading h2 {font-size:18px;}
+.ranking-chart-dialog .song-dialog-body {padding:16px;}
+.ranking-chart-dialog .score-workbench {margin:0;padding:0;border:0;background:transparent;}
+.ranking-chart-dialog .workbench-heading h2 {font-size:20px;}
+.ranking-chart-dialog .workbench-heading p {font-size:11px;}
+.ranking-chart-dialog .ranking-chart-status {margin:0 0 12px;padding:10px 12px;border-radius:9px;background:#edf3f8;color:#5d7893;font-size:12px;}
+.ranking-chart-dialog[data-load-state=error] .ranking-chart-status {background:#fff0ed;color:#965f57;}
+.ranking-chart-dialog [data-ranking-chart-retry] {padding:6px 12px;border:1px solid #d4deea;border-radius:7px;background:#fff;color:#526e88;cursor:pointer;}
+.ranking-chart-dialog .density-panel {margin-top:14px;}
+.ranking-chart-dialog :is(button,input,select):focus-visible {outline:3px solid #8cb1cb;outline-offset:2px;}
+@media(max-width:700px) {
+ .ranking-chart-dialog {width:calc(100vw - 12px);max-height:calc(100dvh - 16px);}
+ .ranking-chart-dialog .song-dialog-body {padding:9px;}
+ .ranking-chart-dialog .song-dialog-heading {padding:10px;gap:9px;}
+ .ranking-chart-dialog .song-dialog-heading>div {flex-basis:calc(100% - 44px);}
+ .ranking-chart-dialog .song-dialog-close {position:absolute;right:10px;top:12px;}
+ .ranking-chart-dialog .song-dialog-difficulty {margin:0;}
+ .ranking-chart-dialog .workbench-heading {display:none;}
+}

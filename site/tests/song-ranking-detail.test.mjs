@@ -24,14 +24,16 @@ test('covers reserve their shape and fall back without a broken image',()=>{
 });
 test('compact details preserve links, five positions and accurate no-skill labels',()=>{
   const root=document.createElement('div');
-  renderRankingDetail(root,{...row,skillProfile:Array.from({length:5},()=>({percent:0,seconds:0}))},{server:'global-hmt',artwork:'/cover.webp'});
+  let opened;
+  renderRankingDetail(root,{...row,skillProfile:Array.from({length:5},()=>({percent:0,seconds:0}))},{server:'global-hmt',edition:'global',artwork:'/cover.webp',openChart:(chart,edition)=>opened={chart,edition}});
   const nodes=walk(root),links=nodes.filter(n=>n.tagName==='a');
-  assert.equal(links.length,2);assert.ok(links.every(n=>n.href.includes('server=global-hmt')&&n.href.includes('difficulty=expert')));
+  assert.equal(links.length,1);assert.ok(links.every(n=>n.href.includes('server=global-hmt')&&n.href.includes('difficulty=expert')));
   assert.equal(nodes.find(n=>n.className==='ranking-skill-slots').children.length,5);
   assert.equal(nodes.filter(n=>n.tagName==='small'&&n.textContent==='无加分技能').length,5);
   assert.ok(nodes.filter(n=>n.tagName==='details').every(n=>!n.open));
   assert.match(root.textContent,/Song <one>/);assert.match(root.textContent,/release-a/);
   assert.equal(nodes.find(n=>n.tagName==='img').src,'/cover.webp');
+  const chartButton=nodes.find(n=>n.tagName==='button'&&n.textContent==='查看谱面');chartButton.listeners.click();assert.equal(opened.edition,'global');assert.equal(opened.chart.trackId,row.trackId);assert.doesNotMatch(root.textContent,/[↗→]/);
 });
 test('Gekisou stage reward and section total share remain separate readings',()=>{
   const root=document.createElement('div');
