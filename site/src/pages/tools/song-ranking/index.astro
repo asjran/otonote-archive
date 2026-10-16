@@ -5,69 +5,76 @@ import BaseLayout from '../../../layouts/BaseLayout.astro';
 import ScoringModelNotice from '../../../components/ScoringModelNotice.astro';
 import { catalog } from '../../../lib/shared-catalog';
 import {sharedSongRankings as rankings} from '../../../lib/shared-song-ranking-data';
-import { RANKING_METRICS, rankSongRows } from '../../../lib/song-ranking-view.mjs';
+import {rankRefinedSongRows} from '../../../lib/song-ranking-options.mjs';
+import {rankingTableColumns,formatRankingCell,rankingStatusTags} from '../../../lib/song-ranking-table.mjs';
+import RankingChartDialog from '../../../components/RankingChartDialog.astro';
+import RankingIcon from '../../../components/RankingIcon.astro';
+import { RANKING_SORT_OPTIONS } from '../../../lib/song-ranking-options.mjs';
 import '../../../styles/song-ranking.css';
+import '../../../styles/song-ranking-detail.css';
 import { filterVisual } from '../../../lib/filter-visuals';
 const charts = catalog.musicCharts;
 const isEnglish = catalog.release.locale === 'en';
-const metricLabels: Record<string, string> = {
-  scoreMultiplier: 'Score multiplier', p10Score: 'P10 reference score', difficultyFactor: 'Difficulty multiplier',
-  comboFactor: 'Weighted combo multiplier', skillMultiplier: 'Ordinary skill gain multiplier',
-  gekisouMultiplier: 'Gekisou / ordinary score multiplier', rankingBonusShare: 'Gekisou placement bonus share'
-};
 const skillDurations = Array.from({length:41}, (_,i) => i / 2);
 const artwork = rankings.artwork;
+const attributes = [...new Set([...rankings.ordinary, ...rankings.gekisou].map(row => row.attribute).filter(Boolean))].sort();
+const bands = [...new Map<string,string>([...rankings.ordinary, ...rankings.gekisou].flatMap(row => row.bands.map((id: string, i: number): [string,string] => [id, row.bandLabels[i] ?? id]))).entries()];
 const data = JSON.stringify({ rankings, artwork }).replaceAll('<', '\\u003c');
-const initial: Array<(typeof rankings.ordinary)[number] & {rank:number|null;efficiency:number|null}> = rankSongRows(rankings.ordinary);
-const format = (n: number | null) => n == null ? '—' : n.toLocaleString('zh-CN', { maximumFractionDigits: 0 });
+const initial: Array<Record<string,any>> = rankRefinedSongRows(rankings.ordinary,{edition:catalog.release.region});
+const columns = rankingTableColumns();
+const tableWidth = columns.filter(column => column.key !== 'title').reduce((sum,column) => sum + column.width,0);
 ---
+
 <BaseLayout title="歌曲排行榜">
 <div class="tool-studio" data-tool-kind="song-ranking">
-  <ToolPageHeader kind="song-ranking" title="歌曲排行榜" description="按技能组合与谱面时长，比较出分、效率和达档所需综合力。" meta="普通演出 / 激奏演出" />
+  <ToolPageHeader kind="song-ranking" title="歌曲排行榜" description="完整谱面数据 · 点表头排序 · 横向比较" />
   <div class="content-shell ranking-shell">
-    <song-ranking class="song-ranking">
-
+    <song-ranking class="song-ranking" data-site-edition={catalog.release.region}>
       <script is:inline type="application/json" data-ranking-data set:html={data}></script>
+      <p class="ranking-startup" data-startup role="status">正在准备交互筛选；下方先展示普通演出基准排行。</p>
       <section class="ranking-board" aria-labelledby="ranking-title">
-      <section class="ranking-setup ranking-mode-setup" aria-labelledby="ranking-mode-title">
-        <header class="ranking-setup-heading"><h2 id="ranking-mode-title">模式与榜单</h2>
-        <details class="ranking-method"><summary>排名口径 <span aria-hidden="true">ⓘ</span></summary><div class="ranking-method-body">
-          <h2>同一条件下比较谱面</h2>
-          <p>基准使用 100,000 综合力，五次 +100% 加分技能、每次 5 秒；AP、满生命、无辅助。普通基准已在发布数据时逐音符计算，打开即可比较。排除卡牌、属性及乐队适配差异，固定基准，不读取个人编成。</p>
-          <p>激奏统一三段第一、零判定偏差、60 FPS，不加入卡牌专属激奏技能。LUCK 使用固定种子 20260927、2 批抽样，每个数据版本预先生成同一份结果；随机谱面为 240 个样本。结果稳定可复现，不是实战必然得分。</p>
-          <p>每秒得分 = 当前条件得分 ÷ 所选时长。谱面时长从零点至最后事件；音频时长包含音频首尾。不含加载与结算时间；缺少时长不参与效率排名。</p>
-          <p>转分倍率 = 基准得分 ÷ 100,000。难度倍率 = 1 +（等级 − 5）× 0.005。连击倍率按音符分值权重加权；技能倍率为普通得分相对无技能分的增益。各项均保留游戏计分中的取整，不能直接相乘还原总分。</p>
-          <p>按原始数值排序，相同结果采用 1、1、3 并列名次。激奏样本极值不是理论极值，接近的随机谱面不代表确定强弱。此榜用于比较谱面，不是实战成绩或活动收益榜。达档综合力 = 目标分数线 × 基准综合力 ÷ 所选技能口径的基准得分，是近似反推；排名使用未舍入值，展示值向上取到千位。</p>
-        </div></details>
-        </header>
-        <div class="ranking-setting-row"><span>演出模式</span><div class="ranking-mode" role="group" aria-label="演出模式"><button type="button" data-mode="ordinary" aria-pressed="true">普通演出</button><button type="button" data-mode="gekisou" aria-pressed="false">激奏演出</button></div></div>
-        <div class="ranking-setting-row"><span>查看榜单</span><div class="ranking-board-tabs" role="group" aria-label="榜单"><button type="button" data-board="expectedScore" aria-pressed="true">出分榜</button><button type="button" data-board="efficiency" aria-pressed="false">效率榜</button><button type="button" data-board="requiredPower" aria-pressed="false">达档综合力</button></div></div>
-      </section>
-        <section class="ranking-setup ranking-song-setup" aria-labelledby="ranking-filter-title">
-          <header class="ranking-setup-heading"><h3 id="ranking-filter-title">歌曲筛选</h3><button type="button" data-reset class="ranking-clear">清空筛选</button></header>
-          <div class="ranking-filter-fields">
-            <label class="ranking-setting-row"><span>搜索歌曲</span><input data-filter="query" type="search" placeholder="歌曲名或关键词" /></label>
-            <label class="ranking-setting-row ranking-difficulty-options"><span>难度</span><select data-filter="difficulty" multiple data-quick data-quick-all="all" aria-label="难度"><option value="all" selected>全部</option>{['easy','normal','hard','expert'].map(d => <option value={d} data-difficulty={d}>{d.toUpperCase()}</option>)}</select></label>
-            <label class="ranking-setting-row ranking-band-options"><span>乐队</span><select data-filter="band" multiple data-quick data-quick-all="all" aria-label="乐队"><option value="all" selected>全部</option>{catalog.bands.map(b => { const visual = filterVisual('band', String(b.masterId)); return <option value={b.id} data-icon={visual.icon} data-icon-only={visual.iconOnly ? 'true' : undefined} data-round={visual.round ? 'true' : undefined} title={b.displayName} aria-label={b.displayName}>{b.displayName}</option>; })}</select></label>
-            <label class="ranking-setting-row"><span>最高等级</span><input data-filter="maxLevel" aria-label="最高等级" type="number" min="1" max="40" step="0.5" placeholder="不限" /></label>
-            <label class="ranking-setting-row ranking-duration-options"><span>最长时长</span><select data-filter="maxSeconds" aria-label="最长时长"><option value="all">不限</option>{[90,100,110,120,150].map(seconds=><option value={seconds}>{isEnglish ? `≤ ${seconds} s` : `≤ ${seconds} 秒`}</option>)}</select></label>
+        <div class="ranking-controls">
+          <div class="ranking-commandbar">
+            <label class="ranking-search"><RankingIcon name="search" /><span class="ranking-sr-only">搜索歌曲</span><input data-filter="query" type="search" aria-label="搜索歌曲" placeholder="搜索歌曲、乐队…" /></label>
+            <div class="ranking-mode" role="group" aria-label="演出模式"><button type="button" data-mode="ordinary" aria-label="普通演出" aria-pressed="true">普通</button><button type="button" data-mode="gekisou" aria-label="激奏演出" aria-pressed="false">激奏</button></div>
+            <label class="ranking-metric-control"><span class="ranking-sr-only">排序指标</span><RankingIcon name="sort" /><select data-metric data-quick-native aria-label="排序指标">{Object.entries(RANKING_SORT_OPTIONS).map(([key,labels]) => <option value={key}>{labels[isEnglish ? 1 : 0]}</option>)}</select></label>
+            <label class="ranking-direction-control"><span class="ranking-sr-only">排序方向</span><select data-direction data-quick-native aria-label="排序方向"><option value="desc">↓ 降序</option><option value="asc">↑ 升序</option></select></label>
+            <details class="ranking-panel ranking-filter-panel" data-toolbar-panel>
+              <summary><RankingIcon name="filters" /><span>筛选</span><b data-filter-count hidden></b></summary>
+              <div class="ranking-panel-body">
+                <header class="ranking-panel-heading"><div><strong>组合筛选</strong><span>条件可叠加，关闭后保留</span></div><div><button type="button" data-reset class="ranking-text-button"><RankingIcon name="reset" />重置筛选</button><button type="button" data-close-panel aria-label="关闭筛选"><RankingIcon name="close" /></button></div></header>
+                <p class="ranking-inline-error" data-panel-error hidden></p>
+                <div class="ranking-filter-fields">
+            <label class="ranking-setting-row ranking-band-options"><span>乐队</span><select data-filter="band" multiple data-quick data-quick-all="all" aria-label="乐队"><option value="all" selected>全部</option>{bands.map(([id,label]) => { const band = catalog.bands.find(b => b.id === id); const visual = band && filterVisual('band', String(band.masterId)); return <option value={id} data-icon={visual?.icon} title={label} aria-label={label}>{label}</option>; })}</select></label>
+            <label class="ranking-setting-row"><span>歌曲属性</span><select data-filter="attribute" data-quick-native aria-label="歌曲属性"><option value="all">全部属性</option>{attributes.map(value => <option value={value}>{value}</option>)}</select></label>
+            <label class="ranking-setting-row"><span>计算状态</span><select data-filter="status" data-quick-native aria-label="计算状态"><option value="all">全部状态</option><option value="calculated">当前条件有分数</option><option value="pending">基准待计算</option><option value="unavailable">当前技能条件不可计算</option></select></label>
+            <fieldset class="ranking-range"><legend>等级区间</legend><input data-filter="minLevel" aria-label="最低等级" type="number" min="1" max="40" step="any" placeholder="最低，不限" /><span>–</span><input data-filter="maxLevel" aria-label="最高等级" type="number" min="1" max="40" step="any" placeholder="最高，不限" /></fieldset>
+            <fieldset class="ranking-range"><legend>时长区间（秒）</legend><input data-filter="minSeconds" aria-label="最短时长（秒）" type="number" min="0" max="3600" step="any" placeholder="最短，不限" /><span>–</span><input data-filter="maxSeconds" aria-label="最长时长（秒）" type="number" min="0" max="3600" step="any" placeholder="最长，不限" /></fieldset>
+
+            <fieldset class="ranking-range"><legend>BPM 范围（整曲）</legend><input data-filter="minBpm" aria-label="BPM 下限" type="number" min="0" max="2000" step="any" placeholder="下限，不限" /><span>–</span><input data-filter="maxBpm" aria-label="BPM 上限" type="number" min="0" max="2000" step="any" placeholder="上限，不限" /></fieldset>
+            <fieldset class="ranking-range"><legend>平均判定密度（次 / 秒）</legend><input data-filter="minDensity" aria-label="平均判定密度下限" type="number" min="0" max="10000" step="any" placeholder="下限，不限" /><span>–</span><input data-filter="maxDensity" aria-label="平均判定密度上限" type="number" min="0" max="10000" step="any" placeholder="上限，不限" /></fieldset>
+            <fieldset class="ranking-range" data-value-range><legend>当前排序值区间 <span data-value-unit></span></legend><input data-filter="minValue" aria-label="排序值下限" type="number" min="0" step="any" placeholder="下限，不限" /><span>–</span><input data-filter="maxValue" aria-label="排序值上限" type="number" min="0" step="any" placeholder="上限，不限" /></fieldset>
+            <p>时长区间按“效率时长”选择，不含额外耗时。BPM 区间要求整曲 BPM 均落在范围内。密度包含滑条自动计数，不等于游玩难度；缺少对应数值的谱面不会匹配数值区间。</p>
           </div>
-          <div class="ranking-filter-tags tool-options" data-ranking-filter-tags aria-label="已选筛选"></div>
-        </section>
-        <details class="ranking-setup ranking-calculation-setup" data-calculation-controls aria-labelledby="ranking-calculation-title">
-          <summary class="ranking-calculation-summary" id="ranking-calculation-title"><strong>计算条件</strong><span data-calculation-profile>基准五技能</span></summary>
-          <div class="ranking-calculation-body">
-        <label class="ranking-setting-row"><span>其他排序</span><select data-metric data-quick aria-label="其他排序"><option value="">按当前榜单</option>{Object.entries(RANKING_METRICS).filter(([key]) => !['expectedScore','efficiency','minimumScore','maximumScore'].includes(key)).map(([key,label]) => <option value={key}>{isEnglish ? metricLabels[key] ?? label : label}</option>)}</select></label>
-          <label class="ranking-setting-row"><span>效率时长</span><select data-duration aria-label="效率时长"><option value="chart">谱面时长</option><option value="audio">音频时长</option></select></label>
+              </div>
+            </details>
+            <details class="ranking-panel ranking-calculation-panel" data-toolbar-panel data-calculation-controls>
+              <summary aria-label="计算条件"><RankingIcon name="settings" /><span>计算</span><small data-calculation-profile>基准五技能</small></summary>
+          <div class="ranking-panel-body ranking-calculation-body">
+            <header class="ranking-panel-heading"><strong>计算条件</strong><button type="button" data-close-panel aria-label="关闭计算条件"><RankingIcon name="close" /></button></header>
+            <p class="ranking-inline-error" data-panel-error hidden></p>
+            <div class="ranking-timing-controls"><label><span>效率时长</span><select data-duration data-quick-native aria-label="效率时长"><option value="chart">谱面时长</option><option value="audio">音频时长</option></select></label><label><span>额外耗时（秒）</span><input data-overhead type="number" min="0" max="3600" step="any" value="0" aria-label="每局额外耗时（秒）" /></label></div>
+            <p class="ranking-panel-note">每秒得分 = 分数 ÷（所选时长 + 额外耗时）。等级与时长区间按谱面自身条件筛选。</p>
           <section class="ranking-profile-controls" data-profile-controls aria-label="歌曲技能条件">
             <label class="ranking-setting-row"><span>技能组合</span><select data-grade-profile aria-label="技能组合"><option value="benchmark">基准五技能</option><option value="none">无加分技能</option><option value="custom">我的五个技能</option></select></label>
             <p class="ranking-skill-summary" data-skill-summary role="status"></p>
             <div class="ranking-custom-skills" data-custom-skills hidden>
               <div class="ranking-skill-actions"><strong>五个技能分别发动一次</strong><button type="button" data-copy-skills>将技能 1 应用于全部</button></div>
-              {Array.from({length:5},(_,i)=><fieldset data-skill-slot><legend>技能 {i+1}</legend><label>加分（%）<input data-skill-percent type="number" min="0" max="1000" step="1" value="100" /></label><label>持续时间<select data-skill-seconds>{skillDurations.map(seconds=><option value={seconds} selected={seconds===5}>{seconds} 秒</option>)}</select></label></fieldset>)}
+              {Array.from({length:5},(_,i)=><fieldset data-skill-slot><legend>技能 {i+1}</legend><label>加分（%）<input data-skill-percent aria-label={`技能 ${i+1} 加分（%）`} type="number" min="0" max="1000" step="1" value="100" /></label><label>持续时间<select data-skill-seconds aria-label={`技能 ${i+1} 持续时间`}>{skillDurations.map(seconds=><option value={seconds} selected={seconds===5}>{seconds} 秒</option>)}</select></label></fieldset>)}
               <p>填写技能的加分与时长即可；计算会遍历发动顺序。时长支持 0–20 秒，每档 0.5 秒。</p>
             </div>
           </section>
+          <details class="ranking-advanced-replay"><summary>高级计算 · 逐音符精算</summary><p>日常选曲直接使用基准或技能估算即可。仅在比较帧率与取整细节时，重新计算候选谱面。</p>
           <section class="ranking-replay-controls" data-replay-panel aria-label="逐谱精算">
             <div class="ranking-replay-intro"><strong>逐谱精算 <small>可选</small></strong><p data-replay-description>基准榜已预先逐音符计算，可直接使用。调整技能或帧率后，可对筛出的谱面重新计算。</p></div>
             <div class="ranking-replay-options">
@@ -79,11 +86,7 @@ const format = (n: number | null) => n == null ? '—' : n.toLocaleString('zh-CN
             <p data-replay-status role="status" aria-live="polite"></p>
             <details data-replay-errors hidden></details>
           </section>
-          <section class="ranking-grade-controls" data-grade-controls hidden aria-label="达档比较条件">
-            <label class="ranking-setting-row"><span>目标档位</span><select data-grade-target data-quick aria-label="目标档位">{['D','C','B','A','S','SS'].map((name,i)=><option value={i+2} selected={name==='A'}>{name}</option>)}</select></label>
-            <label class="ranking-setting-row"><span>已有分数</span><input data-grade-score type="number" min="0" step="1" placeholder="可选，输入分数直接判档" /></label>
-            <p>达档综合力由当前条件下的得分近似反推，数值越低，达到目标档位所需综合力越少。显示到千位，不是实打保底；真实技能、活动加成及逐音符取整仍会影响结果。</p>
-          </section>
+          </details>
           <details class="ranking-skill-help"><summary>基准、快速估算与逐谱精算有什么区别？</summary><div>
             <p>普通基准：100,000 综合力、五次 +100% / 5 秒技能，已预先逐音符计算。无加分技能使用同一谱面的无技能基础分，两者打开即可比较。</p>
             <p>我的五个技能：先用技能窗口表快速估算，修改条件即可看结果。需要比较接近的候选时，再运行逐谱精算，逐个音符计算技能覆盖、浮点累积与取整，并遍历 120 种发动顺序。</p>
@@ -91,20 +94,70 @@ const format = (n: number | null) => n == null ? '—' : n.toLocaleString('zh-CN
             <p>以上按 AP、满生命、无条件加分技能比较。激奏使用固定基准。需要真实卡牌技能、非 AP 判定或活动加成时，从歌曲明细进入队伍计算器。</p>
           </div></details>
           </div>
-        </details>
-        <header class="ranking-board-heading"><div><h2 id="ranking-title">比较结果 <span data-count>{charts.length} 张谱面</span></h2></div><p data-context role="status">统一曲库 · 固定基准</p></header>
-        <div class="ranking-picks" data-picks aria-label="本次筛选的选曲推荐"></div>
-        <div class="ranking-table-wrap"><table class="ranking-table"><caption class="ranking-sr-only">歌曲、难度及统一基准下的分数与效率</caption><thead><tr><th scope="col">#</th><th scope="col">歌曲 / 难度</th><th scope="col"><button type="button" data-sort="expectedScore">基准得分（降序）</button></th><th scope="col"><button type="button" data-sort="efficiency">每秒得分</button></th><th scope="col" data-factor-heading>{isEnglish ? metricLabels.scoreMultiplier : '转分倍率'}</th><th scope="col"><span class="ranking-sr-only">倍率明细</span></th></tr></thead><tbody data-rows>
-          {initial.slice(0,25).map(row => <tr><td class="ranking-position">{row.rank}</td><td class="ranking-song"><div class="ranking-track"><img src={artwork[row.trackId]} alt="" width="48" height="48" loading="lazy" /><div><strong>{row.title}</strong><small>{row.difficulty.toUpperCase()} · Lv.{row.level} · {row.bandLabels.join(' / ')}</small></div></div></td><td>{format(row.expectedScore)}</td><td>{format(row.efficiency)}</td><td>{row.scoreMultiplier == null ? '—' : `${row.scoreMultiplier.toFixed(4)}×`}</td><td></td></tr>)}
-        </tbody></table></div>
-        <div class="ranking-empty" data-empty hidden><strong>这次没有找到匹配的谱面</strong><p>换个关键词，或放宽难度和乐队筛选。</p></div>
-        <footer class="ranking-pagination"><span data-range>第 1–25 项</span><div><button type="button" data-prev aria-label="上一页">上一页</button><span data-page>1 / 14</span><button type="button" data-next aria-label="下一页">下一页</button></div></footer>
+                    </details>
+            <details class="ranking-panel ranking-method" data-toolbar-panel>
+              <summary aria-label="查看排名口径" title="排名口径"><RankingIcon name="info" /></summary><div class="ranking-panel-body ranking-method-body"><header class="ranking-panel-heading"><strong>排名口径</strong><button type="button" data-close-panel aria-label="关闭排名口径"><RankingIcon name="close" /></button></header>
+          <h2>同一条件下比较谱面</h2>
+          <p>基准使用 100,000 综合力，五次 +100% 加分技能、每次 5 秒；AP、满生命、无辅助。普通基准已在发布数据时逐音符计算，打开即可比较。排除卡牌、属性及乐队适配差异，固定基准，不读取个人编成。</p>
+          <p>激奏统一三段第一、零判定偏差、60 FPS，不加入卡牌专属激奏技能。LUCK 使用固定种子 20260927、2 批抽样，每个数据版本预先生成同一份结果；随机谱面为 240 个样本。结果稳定可复现，不是实战必然得分。</p>
+          <p>每秒得分 = 当前条件得分 ÷ 所选时长。谱面时长从零点至最后事件；音频时长包含音频首尾。不含加载与结算时间；缺少时长不参与效率排名。</p>
+          <p>转分倍率 = 基准得分 ÷ 100,000。难度倍率 = 1 +（等级 − 5）× 0.005。连击倍率按音符分值权重加权；技能倍率为普通得分相对无技能分的增益。各项均保留游戏计分中的取整，不能直接相乘还原总分。</p>
+          <p>按原始数值排序，相同结果采用 1、1、3 并列名次。激奏样本极值不是理论极值，接近的随机谱面不代表确定强弱。此榜用于比较谱面，不是实战成绩或活动收益榜。</p>
+        </div>
+            </details>
+          </div>
+          <div class="ranking-board-tabs" role="group" aria-label="快捷榜单"><button type="button" data-board="expectedScore" aria-pressed="true">平均分</button><button type="button" data-board="efficiency">效率</button><button type="button" data-board="minimumScore">最低分</button><button type="button" data-board="maximumScore">最高分</button><button type="button" data-board="p10Score">偏低分</button><button type="button" data-board="durationSeconds">短曲</button><button type="button" data-board="skillScoreGain">技能增分</button><button type="button" data-board="averageDensity">密度</button></div>
+          <div class="ranking-quickstrip">
+            <label class="ranking-difficulty-options"><span>难度</span><select data-filter="difficulty" multiple data-quick data-quick-all="all" aria-label="难度"><option value="all" selected>全部</option>{['easy','normal','hard','expert'].map(d => <option value={d} data-difficulty={d}>{d.toUpperCase()}</option>)}</select></label>
+            <div class="ranking-edition-switch" role="group" aria-label="结果适用版本">{[["global","国际版 Global"],["jp","日服 JP"]].map(([edition,label])=><button type="button" data-edition-choice={edition} aria-label={label} title={label} aria-pressed={edition === catalog.release.region ? "true" : "false"}><span class="ranking-edition-symbol" data-edition={edition} aria-hidden="true"></span></button>)}<select data-filter="edition" data-quick-native aria-label="结果适用版本" hidden><option value="global" selected={catalog.release.region !== "jp"}>Global</option><option value="jp" selected={catalog.release.region === "jp"}>JP</option></select></div>
+            <label class="ranking-grouping-control"><span class="ranking-sr-only">展示范围</span><select data-grouping data-quick-native aria-label="展示范围"><option value="charts">显示所有难度</option><option value="songs">每首歌仅显示一张</option></select></label>
+            <button type="button" data-reset class="ranking-clear" aria-label="清空筛选" title="清空筛选"><RankingIcon name="reset" /></button>
+          </div>
+          <div class="ranking-filter-tags" data-ranking-filter-tags aria-label="已选筛选"></div>
+        </div>
+        <div class="ranking-error" data-error role="alert" hidden><strong>暂时无法显示结果</strong><p data-error-message></p><button type="button" data-reset-all>恢复默认条件</button><button type="button" data-reload hidden>重新加载页面</button></div>
+        <header class="ranking-board-heading"><div><RankingIcon name="table" /><h2 id="ranking-title">谱面榜单 <span data-count>{initial.length} 张谱面</span></h2></div><details class="ranking-provenance"><summary>数据与口径 <RankingIcon name="chevron" /></summary><div><p data-identity></p><p>固定综合力 100,000 · 不读取账号编成。手填技能仅供参考，真实账号条件请进入队伍计算器。</p><p data-metric-help></p></div></details></header>
+        <div class="ranking-result-summary"><p data-context role="status" aria-live="polite">普通演出 · 基准五技能</p><p data-result-status role="status"></p><p class="ranking-explanation" data-metric-explanation hidden></p><p class="ranking-explanation" data-grouping-explanation hidden>每首歌只保留当前排序中排名最靠前的难度；切换排序后会重新选择。</p></div>
+        <div class="ranking-table-wrap" data-results role="region" aria-label="完整歌曲排行榜，可横向和纵向滚动" tabindex="0">
+          <table class="ranking-table" data-ranking-table style={`--ranking-data-width:${tableWidth}px`}>
+            <caption class="ranking-sr-only">完整谱面数据；点击列标题排序，固定排名与歌曲列，横向滚动查看所有指标。</caption>
+            <colgroup data-ranking-cols>
+              <col class="ranking-position-col" />
+              {columns.map(column=><col class={column.key === 'title' ? 'ranking-song-col' : undefined} style={column.key === 'title' ? undefined : `width:${column.width}px`} />)}
+            </colgroup>
+            <thead data-ranking-head><tr>
+              <th scope="col" class="ranking-position">#</th>
+              {columns.map(column=><th scope="col" data-column={column.key} class={column.key === 'title' ? 'ranking-song' : undefined} aria-sort={column.key === 'expectedScore' ? 'descending' : 'none'}>
+                <button type="button" data-sort={column.key}><span>{column.labels[isEnglish ? 1 : 0]}</span><i aria-hidden="true">{column.key === 'expectedScore' ? '↓' : '↕'}</i></button>
+              </th>)}
+            </tr></thead>
+            <tbody data-rows>{initial.slice(0,25).map(row=><tr>
+              <td class="ranking-position">{row.rank ?? '—'}</td>
+              {columns.map(column=><td class={column.key === 'title' ? 'ranking-song' : 'ranking-value'} data-column={column.key}>
+                {column.key === 'title' ? <div class="ranking-ssr-track">
+                  <div class="ranking-track">
+                    <span class="ranking-cover" aria-hidden="true"><span>♪</span>{artwork[row.trackId] && <img src={artwork[row.trackId]} alt="" width="44" height="44" loading="lazy" decoding="async" />}</span>
+                    <div><strong>{row.title}</strong><div class="ranking-subtitle"><span class="ranking-difficulty" data-difficulty={row.difficulty}>{row.difficulty.toUpperCase()}</span><small>Lv.{row.level}</small></div></div>
+                  </div>
+                  <div class="ranking-track-tags">{rankingStatusTags(row,isEnglish ? 'en' : 'zh-CN').map(tag=><span
+                    class={`ranking-tag ranking-tag--${tag.kind}${tag.icons?.length ? " ranking-tag--icon" : ""}`}
+                    title={`${tag.title}：${tag.description ?? tag.label}`} data-label={`${tag.title}：${tag.description ?? tag.label}`} data-state={tag.state} tabindex="0">
+                    {tag.icons?.length ? tag.icons.map((icon:string)=><img src={icon} alt="" width={tag.kind === "band" ? 44 : 18} height="18" loading="lazy" />)
+                      : tag.editions?.length ? tag.editions.map(edition=><span class="ranking-edition-symbol" data-edition={edition} aria-hidden="true"></span>) : tag.kind === "state" ? <span class="ranking-state-symbol" data-symbol={tag.symbol} aria-hidden="true"></span> : tag.label}
+                  </span>)}</div>
+                </div> : formatRankingCell(column.key,row,isEnglish ? 'en' : 'zh-CN')}
+              </td>)}
+            </tr>)}</tbody>
+          </table>
+        </div>
+        <div class="ranking-empty" data-empty hidden><strong>没有符合这些条件的谱面</strong><p>清空或放宽筛选后继续比较。</p><button type="button" data-empty-reset>清空歌曲筛选</button><button type="button" data-show-all>查看全部筛选结果</button></div>
+        <footer class="ranking-pagination"><span data-range>第 1–25 项</span><span class="ranking-scroll-hint">↔ 横向查看更多列 · 点击表头排序</span><div><button type="button" data-prev aria-label="上一页">上一页</button><span data-page>1 / {Math.max(1,Math.ceil(initial.length/25))}</span><button type="button" data-next aria-label="下一页">下一页</button></div></footer>
       </section>
       <details class="tool-help"><summary>估算范围与限制</summary><ScoringModelNotice /></details>
-      <p class="ranking-footnote">蓝色看出分，紫色看效率。对比条以当前筛选中的最高值为满格。<span>统一曲库 · 理想演奏估算</span></p>
-      <noscript>当前展示普通演出出分榜前 25 项；切换和筛选需要启用 JavaScript。</noscript>
+      <noscript>当前展示普通演出基准排行前 25 项；切换和排序需要 JavaScript。</noscript>
     </song-ranking>
   </div>
 </div>
+<RankingChartDialog />
 </BaseLayout>
 <script>import '../../../lib/song-ranking-ui.mjs';</script>

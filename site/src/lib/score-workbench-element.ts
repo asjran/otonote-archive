@@ -137,6 +137,7 @@ export function registerScoreWorkbenchElement(): void {
       if (difficulty) this.difficultyCoordinator?.selectFromSummary(difficulty);
     };
     handleDifficultyPopState = () => {
+      if (this.dataset.embedded === 'true') return;
       const requestedStart = Number(
         new URLSearchParams(location.search).get("t") || 0
       );
@@ -159,7 +160,7 @@ export function registerScoreWorkbenchElement(): void {
       );
       if (!labelsNode) return;
       this.labels = JSON.parse(labelsNode.textContent ?? "{}");
-      const params = new URLSearchParams(location.search);
+      const params = new URLSearchParams(this.dataset.embedded === 'true' ? '' : location.search);
       const requestedStart = Number(params.get("t") || 0);
       if (Number.isFinite(requestedStart) && requestedStart >= 0) {
         this.start = requestedStart;
@@ -173,8 +174,10 @@ export function registerScoreWorkbenchElement(): void {
         difficulties: difficultyButtons
           .map((button) => button.dataset.difficulty)
           .filter((difficulty): difficulty is string => Boolean(difficulty)),
-        readSearch: () => location.search,
+        readSearch: () => this.dataset.embedded === 'true'
+          ? new URLSearchParams({difficulty:this.dataset.initialDifficulty ?? 'expert'}).toString() : location.search,
         replaceDifficulty: (difficulty) => {
+          if (this.dataset.embedded === 'true') { this.dataset.initialDifficulty=difficulty; return; }
           const url = new URL(location.href);
           url.searchParams.set("difficulty", difficulty);
           history.replaceState(null, "", url);
@@ -732,6 +735,7 @@ export function registerScoreWorkbenchElement(): void {
     }
 
     updateUrl() {
+      if (this.dataset?.embedded === 'true') return;
       // Hidden analysis rendering must not overwrite the playback cursor.
       const panel = this.closest<HTMLElement>('[data-song-panel]');
       const dialog = this.closest<HTMLDialogElement>('dialog');

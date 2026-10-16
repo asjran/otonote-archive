@@ -10,10 +10,14 @@ export function setupSongRankingReplay(root, change) {
   const results = new Map();
   function stop() { worker?.terminate(); worker = null; }
   function renderStatus() {
+    const available = context?.rows.filter(row => row.replaySource).length ?? 0;
     q('cancel').hidden = !worker;
-    q('run').disabled = !!worker || !context?.valid || !context.rows.some(row => row.replaySource);
+    q('run').disabled = !!worker || !context?.valid || !available;
     q('panel').setAttribute('aria-busy', String(!!worker));
     q('status').textContent = worker ? say(`逐谱精算 ${done} / ${total} 张谱面${failures.length ? `，${failures.length} 张失败` : ''}…`, `Replaying ${done} / ${total} charts${failures.length ? `, ${failures.length} failed` : ''}…`)
+      : context?.valid && !available ? context.rows.length
+        ? say('当前筛选没有绑定完整谱面与计分规则，暂不能逐谱精算；已有基准或快速估算仍可比较。', 'No chart in this selection has complete linked chart and scoring data for replay. Existing benchmarks or quick estimates remain usable.')
+        : say('当前筛选没有可计算的谱面，请放宽筛选。', 'No charts match the replay selection. Relax the filters.')
       : message || (results.size ? say(`已完成 ${results.size} 张谱面。当前名次只比较这些已算谱面；调整技能或帧率后需重新计算。`, `${results.size} charts complete. Ranks compare completed charts only; run again after changing skills or frame rate.`)
         : say('选好歌曲与技能后，可计算当前排序前 25 张或全部匹配谱面；计算期间可以停止。', 'Choose songs and skills, then replay the first 25 charts in the current order or all matching charts. You can stop at any time.'));
     const errors = q('errors'); errors.replaceChildren(); errors.hidden = !failures.length;
@@ -63,6 +67,8 @@ export function setupSongRankingReplay(root, change) {
   }, { signal: listeners.signal });
   for (const name of ['method', 'fps']) q(name).addEventListener('change', change, { signal: listeners.signal });
   return {
+    invalidate() { stop(); context = null; renderStatus(); },
+    reset() { stop(); context = null; key = ''; results.clear(); failures = []; message = ''; q('method').value = 'linear'; renderStatus(); },
     sync({ skills, rows, mode, profile = 'benchmark' }) {
       const frameRate = Number(q('fps').value);
       let next; try { next = songSkillProfileKey(skills, frameRate); } catch { next = 'invalid'; }
