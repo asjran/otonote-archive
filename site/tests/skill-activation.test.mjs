@@ -6,6 +6,8 @@ import {createGekisouSongCalculator} from '../../packages/scoring/scoring-rules/
 import {createPerformanceSongCalculator,createPerformanceTemplate} from '../../packages/scoring/scoring-rules/formal-performance-replay.mjs';
 import {calculateSongSkillReplay} from '../src/lib/song-skill-replay.mjs';
 import {activationRows,noteDensity,createReplayClock} from '../src/lib/skill-activation-model.mjs';
+import {skillOrderModel} from '../src/lib/skill-order-summary.mjs';
+import {createCandidateEvaluator} from '../src/lib/formation-candidate-evaluator.mjs';
 const rules=JSON.parse(readFileSync(new URL('../../packages/scoring/data/formal-scoring-rules.json',import.meta.url)));
 const chart={id:'music-chart-10000103',trackId:'music-100001',difficulty:'expert',sourceReleaseId:rules.sourceReleaseId,
   bpmEvents:[{tick:0,bpm:125}],skillTimings:[1,3,5,7,9],duration:15,gekisouRanges:[{start:0,end:4},{start:5,end:9},{start:10,end:14}],
@@ -21,6 +23,43 @@ test('optional ordinary traces reproduce both extrema without changing score res
    const clock=createReplayClock(detailed.skillPlayback,variant);assert.equal(clock.at(clock.duration).score,variant.score);
    assert.equal(activationRows(detailed.skillPlayback,variant).length,5);
  }
+});
+
+test('candidate summaries reuse the complete scored order and match highest-score replay without altering scores',()=>{
+ const result=createCandidateEvaluator({rules,chart,objective:'expected_song_score'}).score(draft);
+ const replay=createFormalSongCalculator(rules,chart).calculate(draft,{includeTrace:true});
+ assert.equal(result.orderCount,120);
+ assert.deepEqual(result.scoreDistribution,replay.scoreDistribution);
+ for(const field of ['expectedScore','maximumScore','minimumScore'])assert.equal(result[field],replay[field]);
+ assert.deepEqual(result.bestOrder,replay.skillPlayback.variants[0].order);
+ assert.deepEqual(result.worstOrder,replay.skillPlayback.variants[1].order);
+ const summary=skillOrderModel(result);
+ assert.deepEqual(summary,{kind:'best',order:replay.bestOrder});
+ summary.order.reverse();assert.deepEqual(result.bestOrder,replay.bestOrder,'presentation must not mutate scored orders');
+ assert.equal(result.skillPlayback,undefined,'lightweight candidates must not retain note traces');
+});
+
+test('order summaries distinguish full comparisons, screening, fixed replays and random samples',()=>{
+ const bestOrder=[4,2,0,1,3];
+ assert.deepEqual(skillOrderModel({bestOrder,scorePrecision:'screen'}),{kind:'screen',order:bestOrder});
+ const fixed={bestOrder,orderCount:1,performanceScenario:{profile:'explicit'}};
+ assert.equal(skillOrderModel(fixed).kind,'explicit');
+ assert.equal(skillOrderModel({...fixed,randomSampling:true}).kind,'sample','fixed member order does not remove game randomness');
+ assert.equal(skillOrderModel({bestOrder,randomSources:{player:true}}).kind,'sample');
+ assert.equal(skillOrderModel({bestOrder,randomSources:{game:true}}).kind,'sample');
+ assert.equal(skillOrderModel({skillPlayback:{variants:[{kind:'explicit',order:bestOrder}]}}).kind,'explicit');
+ assert.equal(skillOrderModel({skillPlayback:{randomSampling:true,variants:[{kind:'best',order:bestOrder}]}}).kind,'sample');
+ for(const invalid of [null,{}, {bestOrder:[]}, {bestOrder:[0,0,2,3,4]}, {bestOrder:[0,1,2,3,5]}, {bestOrder:[0,1,2,3,NaN]}])assert.equal(skillOrderModel(invalid),null);
+});
+
+test('random player and Gekisou candidates carry the sample semantics into the order summary',()=>{
+ const player=createCandidateEvaluator({rules,chart,objective:'expected_song_score',
+   performanceScenario:{profile:'ideal',timingSpreadMs:25,samples:2}}).score(draft);
+ assert.equal(player.randomSources.player,true);assert.equal(skillOrderModel(player).kind,'sample');
+ const r=structuredClone(rules);Object.assign(r.tables.LiveMusic.find(m=>m._id===100001),{_gekisouMission1:1,_gekisouMission2:2,_gekisouMission3:3});
+ const result=createCandidateEvaluator({rules:r,chart,mode:'gekisou',objective:'expected_song_score',gekisouScenario:{seed:123}}).score(draft);
+ assert.equal(result.randomSampling,true);assert.equal(skillOrderModel(result).kind,'sample');
+ assert.deepEqual(skillOrderModel(result).order,result.bestOrder);
 });
 test('coverage uses half-open windows, counts overlap once and excludes inactive skills',()=>{
  const skills=Array.from({length:5},(_,slotIndex)=>({slotIndex,liveEffects:[]}));
@@ -133,4 +172,21 @@ test('conditional skill branches are grouped by the scored trace; simultaneous e
  assert.deepEqual(result.active.map(e=>e.effect.id),[2,3,4]);assert.deepEqual(result.inactive.map(e=>e.effect.id),[1]);
  const traced=partitionActivationEffects(skill,[{effectId:1,active:true},{effectId:2,active:false}]);
  assert.deepEqual(traced.active.map(e=>e.effect.id),[1,3,4]);assert.deepEqual(traced.inactive.map(e=>e.effect.id),[2]);
+});
+
+test('member traces cannot activate a support branch with a colliding table-local effect ID',async()=>{
+ const {partitionActivationEffects}=await import('../src/lib/skill-activation-model.mjs');
+ const skill={liveEffects:[{id:5,type:2000,active:true}],supportEffects:[{id:5,type:15000,active:false}]};
+ const trace=[{effectId:5,type:2000,slotIndex:0,active:true}];
+ const minimal=partitionActivationEffects(skill,trace);
+ assert.deepEqual(minimal.inactive.map(e=>[e.kind,e.effect.id]),[['support',5]]);
+ assert.deepEqual(minimal.active.map(e=>[e.kind,e.effect.id]),[['member',5]]);
+ // Real member-card-2 / support-card-2 data has precisely this ID collision.
+ const grown={...draft,modifiers:{growth:{'member-card-2':{skillLevel:5},'support-card-2':{rank:5}}}};
+ const replay=createPerformanceSongCalculator(rules,chart,{performance:createPerformanceTemplate(rules,chart)}).calculate(grown,{includeTrace:true});
+ const pair=replay.skills[1],events=replay.skillPlayback.variants[0].skillTrace.filter(e=>e.slotIndex===1);
+ assert.equal(pair.extensionMs,3000);
+ const rows=partitionActivationEffects(pair,events);
+ assert.ok(rows.inactive.some(e=>e.kind==='support'&&e.effect.id===5));
+ assert.equal(rows.active.filter(e=>e.kind==='support'&&e.effect.type===15000).reduce((sum,e)=>sum+e.effect.value,0),pair.extensionMs);
 });

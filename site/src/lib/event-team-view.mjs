@@ -12,7 +12,7 @@ export function applyEventPlan(tool,row,mode){
  tool.q('team-status').textContent='已应用收益方案的队伍、歌曲与当前条件下的估计档位；可按实打情况调整档位。';
 }
 export function eventTeamDetails(tool,row){
- const section=eventElement('section',null,'task-event-result-team');section.append(createWorkbenchTeamView(tool,row.draft),skillActivation(tool,row.draft,{mode:row.reward.mode,eventId:Number(tool.q('event').value)}));return section;
+ const section=eventElement('section',null,'task-event-result-team');section.append(createWorkbenchTeamView(tool,row.draft),skillActivation(tool,row.draft,{mode:row.reward.mode,eventId:Number(tool.q('event').value),summary:row}));return section;
 }
 
 export function eventTeamSaveButton(draft, name) {
