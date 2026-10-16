@@ -24,23 +24,23 @@ const browseTools = [
  <div class="tools-desk">
   <header class="tools-opening">
    <div><a class="tools-wordmark" href={href('/tools/')}><span class="tools-signal" aria-hidden="true"><i></i><i></i><i></i><i></i></span> OTONOTE · TOOLBOX</a><h1>{say('游戏工具','Game tools')}</h1><p>{say('配队、选曲、估分与活动收益计算。','Team building, song selection, score estimates and event rewards.')}</p></div>
-   <a class="tools-library-link" href={href('/my-growth/')}><span class="tools-library-symbol" aria-hidden="true">＋</span><div><strong>{say('我的卡库与养成','My collection and growth')}</strong><span>{say('保存养成，在各工具中直接使用','Save your cards and use them across tools')}</span></div><span aria-hidden="true">↗</span></a>
+   <a class="tools-library-link" href={href('/my-growth/')}><span class="tools-library-symbol" aria-hidden="true">＋</span><div><strong>{say('我的卡库与养成','My collection and growth')}</strong><span>{say('保存养成，在各工具中直接使用','Save your cards and use them across tools')}</span></div></a>
   </header>
   <nav class="tools-task-grid" aria-label={say('可用工具','Available tools')}>
    {[items[1],items[5],items[0],items[3],items[2],items[4],items[6]].map(item=><a class={`tools-task tools-task--${item.path}`} href={href(`/tools/${item.path}/`)} data-tool-state="available" data-navigation-title={item.title}>
-    <div class="tools-task-top"><span class="tools-task-glyph"><ToolGlyph kind={item.path}/></span><span class="tools-task-name">{item.title}</span><span class="tools-task-arrow" aria-hidden="true">↗</span></div>
+    <div class="tools-task-top"><span class="tools-task-glyph"><ToolGlyph kind={item.path}/></span><span class="tools-task-name">{item.title}</span></div>
     <div class="tools-task-copy"><h2>{item.goal}</h2><p>{item.description}</p></div>
     {item.path==='deck-builder' && <div class="tools-lineup" aria-hidden="true"><div class="tools-lineup-cards">{['♪','♫','✦','♫','♪'].map((mark,i)=><span style={`--card-index:${i}`}><i>{mark}</i><b>{i===2?'LEADER':'MEMBER'}</b><small>SUPPORT</small></span>)}</div><span class="tools-lineup-caption">MEMBER × SUPPORT</span></div>}
-    <div class="tools-task-bottom"><small>{item.input}</small><span class="tools-task-open">{say('打开工具','Open tool')} <span aria-hidden="true">→</span></span></div>
+    <div class="tools-task-bottom"><small>{item.input}</small><span class="tools-task-open">{say('打开工具','Open tool')}</span></div>
    </a>)}
   </nav>
   <section class="tools-browse" aria-labelledby="tools-browse-title">
    <header><h2 id="tools-browse-title">{say('阅读与预览','Read and preview')}</h2><p>{say('沿用资料库里的内容，找到后直接查看。','Open the tools already connected to the archive.')}</p></header>
    <nav class="tools-browse-grid" aria-label={say('资料工具','Archive tools')}>
-    {browseTools.map(item=><a href={href(item.path)} class="tools-browse-link"><span class="tools-task-glyph"><ToolGlyph kind={item.kind}/></span><div><h3>{item.title}</h3><p>{item.description}</p></div><span aria-hidden="true">↗</span></a>)}
+    {browseTools.map(item=><a href={href(item.path)} class="tools-browse-link"><span class="tools-task-glyph"><ToolGlyph kind={item.kind}/></span><div><h3>{item.title}</h3><p>{item.description}</p></div></a>)}
    </nav>
   </section>
-  <nav class="tools-workflow" aria-label={say('常用工具流程','Common workflows')}><strong>{say('从哪里开始','Where to start')}</strong><a href={href('/my-growth/')}>{say('录入卡库','Save cards')}</a><span aria-hidden="true">→</span><a href={href('/tools/deck-builder/')}>{say('推荐配队','Build a team')}</a><span aria-hidden="true">→</span><a href={href('/tools/ap-grade/')}>{say('选曲达档','Find a score grade')}</a><span aria-hidden="true">→</span><a href={href('/tools/event-efficiency/')}>{say('规划活动收益','Plan event rewards')}</a><a class="tools-account-guide" href={href('/tools/account-export/')}>{say('如何导入账号数据','How to import account data')} ↗</a></nav>
+  <nav class="tools-workflow" aria-label={say('常用工具流程','Common workflows')}><strong>{say('从哪里开始','Where to start')}</strong><a href={href('/my-growth/')}>{say('录入卡库','Save cards')}</a><a href={href('/tools/deck-builder/')}>{say('推荐配队','Build a team')}</a><a href={href('/tools/ap-grade/')}>{say('选曲达档','Find a score grade')}</a><a href={href('/tools/event-efficiency/')}>{say('规划活动收益','Plan event rewards')}</a><a class="tools-account-guide" href={href('/tools/account-export/')}>{say('如何导入账号数据','How to import account data')}</a></nav>
   <footer class="tools-desk-note"><span class="tools-note-symbol" aria-hidden="true">♪</span><p><small>{say('配队与分数为参考估算。AP 表示全 Perfect；实际表现受判定与技能顺序影响。','Score results are estimates. AP means all Perfect; judgement and skill order affect actual scores.')}</small></p></footer>
  </div>
 </BaseLayout>

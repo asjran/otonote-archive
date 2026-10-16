@@ -61,7 +61,7 @@ export function renderOptimizerResults(workbench,results,{mode,objective,live=fa
     save.addEventListener('click',()=>requestTeamSave(result.draft,`${recommendationScenarioLabel(result)} · ${direction?.label??`${mode==='gekisou'?'激奏':'普通'}方案 ${i+1}`}`));actions.append(save);
     if(planning?.trainingChanges?.length){const adjust=el('button','修改培养目标');adjust.type='button';adjust.addEventListener('click',()=>{workbench.querySelector('[data-planning-training]')?.scrollIntoView({block:'center',behavior:'auto'});workbench.querySelector('[data-planning-count]')?.focus();});actions.append(adjust);}
     if(objective!=='formation_power'){
-      const link=el('a','查看分数明细 →');link.href=toolRoute(`/tools/song-calculator/${scoringScenarioSearch(result.draft,mode,result.scenario)}`,window.location.pathname);actions.append(link);
+      const link=el('a','查看分数明细');link.href=toolRoute(`/tools/song-calculator/${scoringScenarioSearch(result.draft,mode,result.scenario)}`,window.location.pathname);actions.append(link);
     }
     row.append(actions);
     const detail=el('details',null,'recommendation-details');detail.append(el('summary','查看配对、分段得分与计算条件'));

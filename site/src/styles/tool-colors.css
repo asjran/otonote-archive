@@ -16,6 +16,9 @@ html[data-tool-theme="site"][data-tool-theme] body {
   --tool-border: #c9c1bd;
   --tool-line: var(--line);
   --tool-muted: #655e63;
+  --tool-selected-bg: var(--tool-tint);
+  --tool-selected-ink: var(--tool-accent);
+  --tool-selected-border: var(--tool-accent);
   --studio-ink: var(--stage-ink);
   --studio-muted: var(--tool-muted);
   --studio-accent: var(--lacquer);
@@ -92,19 +95,19 @@ html[data-tool-theme="site"][data-tool-theme] body :is(.site-nav, .site-brand) {
 
   :is(.tool-options, .journey-choices, .task-tgw-options) button[aria-pressed="true"],
   .task-song-dialog .attribute-filter-options button[aria-pressed="true"] {
-    color: var(--lacquer);
-    background: var(--tool-tint);
-    border-color: var(--lacquer);
-    box-shadow: inset 0 0 0 1px var(--lacquer);
+    color: var(--tool-selected-ink);
+    background: var(--tool-selected-bg);
+    border-color: var(--tool-selected-border);
+    box-shadow: none;
     font-weight: 700;
   }
 
-  .journey-choices button[aria-pressed="true"] strong { color: var(--lacquer); }
+  .journey-choices button[aria-pressed="true"] strong { color: var(--tool-selected-ink); }
 
   :is(.task-subtabs, .task-candidate-tabs) button[aria-pressed="true"] {
     background: transparent;
-    color: var(--lacquer);
-    border-bottom-color: var(--lacquer);
+    color: var(--tool-selected-ink);
+    border-bottom-color: var(--tool-selected-border);
     font-weight: 700;
   }
 
@@ -156,10 +159,10 @@ html[data-tool-theme="site"][data-tool-theme] body :is(.site-nav, .site-brand) {
   .calculator-progress { color: var(--stage-ink); }
   .calculator-empty h3 { color: var(--stage-ink); }
   .task-song-dialog [data-song-choice][aria-pressed="true"] {
-    outline: 2px solid var(--lacquer);
-    border-color: var(--lacquer);
-    background: var(--tool-tint);
-    color: var(--lacquer);
+    outline: none;
+    border-color: var(--tool-selected-border);
+    background: var(--tool-selected-bg);
+    color: var(--tool-selected-ink);
   }
 }
 
@@ -189,10 +192,10 @@ html[data-tool-theme="site"][data-tool-theme] body {
   .tw-panel .tw-current { border-top-color: var(--lacquer); }
   .tw-panel .tw-tabs button[aria-selected="true"],
   .tw-panel button[aria-pressed="true"] {
-    background: var(--tool-tint);
-    border-color: var(--lacquer);
-    color: var(--lacquer);
-    box-shadow: inset 0 0 0 1px var(--lacquer);
+    background: var(--tool-selected-bg);
+    border-color: var(--tool-selected-border);
+    color: var(--tool-selected-ink);
+    box-shadow: none;
     font-weight: 700;
   }
 
@@ -201,7 +204,7 @@ html[data-tool-theme="site"][data-tool-theme] body {
     border-color: var(--line);
   }
   .tw-panel .ux-card-picker .ux-card-grid > button { border-color: var(--tool-border); background: var(--tool-surface); }
-  .tw-panel .ux-card-picker .ux-card-grid > button[aria-pressed="true"] { border-color: var(--lacquer); box-shadow: inset 0 0 0 1px var(--lacquer); }
+  .tw-panel .ux-card-picker .ux-card-grid > button[aria-pressed="true"] { border-color: var(--tool-selected-border); box-shadow: none; }
   .tw-panel .ux-card-picker .ux-card-grid .tw-card-source { color: var(--tool-muted); font-size: 10px; }
   .tw-panel .ux-card-picker .ux-card-in-use { color: var(--lacquer); background: var(--tool-surface); }
   .tw-panel button:disabled:not([data-card-id]) {
@@ -222,7 +225,7 @@ html[data-tool-theme="site"][data-tool-theme] body {
     width: 22px;
     height: 22px;
     border-radius: 50%;
-    background: var(--lacquer);
+    background: var(--tool-selected-ink);
     color: white;
     font-size: 14px;
     box-shadow: 0 0 0 2px var(--tool-surface);
@@ -284,8 +287,8 @@ html[data-tool-theme="site"][data-tool-theme] body {
   }
 
   :is(.tool-options, .attribute-filter-options) button[aria-pressed="true"] {
-    color: var(--tool-accent); background: var(--tool-tint); border-color: var(--tool-accent);
-    box-shadow: inset 0 0 0 1px var(--tool-accent); font-weight: 700;
+    color: var(--tool-selected-ink); background: var(--tool-selected-bg); border-color: var(--tool-selected-border);
+    box-shadow: none; font-weight: 700;
   }
   dialog::backdrop { background: rgb(17 19 27 / 48%); }
   :is(button, input, select, textarea) { accent-color: var(--tool-accent); }
@@ -320,8 +323,8 @@ html[data-tool-theme="site"][data-tool-theme] body {
     background: var(--tool-surface); color: var(--tool-ink); border-color: var(--tool-border);
   }
   :is(.tool-options, .ranking-mode, .ranking-board-tabs) button[aria-pressed="true"] {
-    color: var(--tool-accent); background: var(--tool-tint);
-    border-color: var(--tool-accent); box-shadow: inset 0 0 0 1px var(--tool-accent);
+    color: var(--tool-selected-ink); background: var(--tool-selected-bg);
+    border-color: var(--tool-selected-border); box-shadow: none;
   }
   :is(.ranking-mode, .ranking-board-tabs, .ranking-mode-setup) { background: var(--paper); }
   .ranking-skill-actions button { background: var(--paper); border-color: var(--tool-border); }
@@ -339,9 +342,10 @@ html[data-tool-theme="site"][data-tool-theme] body {
     background: var(--tool-hover); border-color: var(--tool-hover); color: white;
   }
   .task-event-rush-song[data-selected="true"], .task-event-plan-choice[aria-pressed="true"] {
-    background: var(--tool-tint); border-color: var(--tool-accent);
+    background: var(--tool-selected-bg); border-color: var(--tool-selected-border);
   }
-  .task-event-rush-levels button[aria-pressed="true"] { background: var(--tool-tint); }
+  .task-event-rush-levels button[aria-pressed="true"] { background: var(--tool-selected-bg); color: var(--tool-selected-ink); border-color: var(--tool-selected-border); }
+  .task-dialog .task-replay-controls button[aria-pressed="true"] { background: var(--tool-selected-bg); color: var(--tool-selected-ink); border-color: var(--tool-selected-border); }
   .task-dialog :is(.activation-body, skill-activation) {
     --activation-ink: var(--tool-ink); --activation-muted: var(--tool-muted);
     --activation-line: var(--tool-border); --activation-night: var(--paper);
@@ -367,7 +371,7 @@ html[data-tool-theme="site"][data-tool-theme] body {
   .activation-density i { background: var(--tool-muted); }
   .activation-inspection { background: var(--tool-surface); }
   .task-dialog .activation-controls button[aria-pressed="true"] {
-    background: var(--tool-tint); border-color: var(--tool-accent); color: var(--tool-accent);
+    background: var(--tool-selected-bg); border-color: var(--tool-selected-border); color: var(--tool-selected-ink);
   }
   .task-dialog .task-replay-controls { background: var(--paper); }
   .task-dialog .task-replay-controls input[type="range"] { accent-color: var(--tool-accent); }
@@ -387,23 +391,44 @@ html[data-tool-theme="site"][data-tool-theme] body {
   .gacha-tool :is(.gacha-segmented, .gacha-bar-track, .gacha-card-art) { background: var(--paper); border-color: var(--tool-border); }
   .gacha-tool.gacha-tool .gacha-primary { background: var(--tool-accent); border-color: var(--tool-accent); color: white; }
   .gacha-tool.gacha-tool .gacha-primary:hover:not(:disabled) { background: var(--tool-hover); }
-  .gacha-tool .gacha-segmented button[aria-pressed="true"] { color: var(--tool-accent); background: var(--tool-tint); box-shadow: inset 0 0 0 1px var(--tool-accent); }
+  .gacha-tool .gacha-segmented button[aria-pressed="true"] { border-color: var(--tool-selected-border); color: var(--tool-selected-ink); background: var(--tool-selected-bg); box-shadow: none; }
   .gacha-tool input::placeholder { color: var(--tool-muted); }
 
   .tools-desk { --desk-blue: var(--tool-accent); --desk-berry: var(--tool-accent); --desk-ink: var(--tool-ink); --desk-muted: var(--tool-muted); }
-  .tools-desk .tools-task { --tile-accent: var(--tool-accent); --tile-tint: var(--tool-tint); border-color: var(--tool-border); background: var(--tool-surface); }
-  .tools-desk .tools-task--deck-builder { --tile-accent: white; --tile-tint: #ffffff16; background: var(--tool-accent); border-color: var(--tool-accent); }
-  .tools-desk .tools-task--deck-builder :is(p, small, .tools-lineup-caption) { color: #fff; }
-  .tools-desk .tools-task--deck-builder .tools-task-open { color: white; }
+  .tools-desk .tools-task { border-color: var(--tool-border); background: var(--tool-surface); }
+  .tools-desk .tools-task--deck-builder {
+    --tile-accent: #526357; --tile-tint: #d8e0d5;
+    color: var(--tool-ink); background: #e7ebe2; border-color: #c7cec1;
+  }
+  .tools-desk .tools-task--deck-builder :is(p, small, .tools-lineup-caption) { color: #586153; }
+  .tools-desk .tools-task--deck-builder .tools-task-open { color: #3e5144; background: #f5f6ef; border-color: #bcc6b6; }
+  .tools-desk .tools-task--event-efficiency { --tile-accent: #7a624b; --tile-tint: #e8ddce; background: #f3ede3; }
+  .tools-desk .tools-task--gacha-history { --tile-accent: #796849; --tile-tint: #eae1cc; background: #f7f3e8; }
+  .tools-desk .tools-task--song-calculator { --tile-accent: #536575; --tile-tint: #dfe7ea; background: #eef2f2; }
+  .tools-desk .tools-task--song-ranking { --tile-accent: #52665d; --tile-tint: #dde6de; background: #eff2eb; }
+  .tools-desk .tools-task--ap-grade { --tile-accent: #745d67; --tile-tint: #e7dce0; background: #f4edef; }
+  .tools-desk .tools-task--live2d { --tile-accent: #655e71; --tile-tint: #e2dee7; background: #efedf2; }
+  .tools-desk .tools-lineup-cards > span { background: #f5f5ef; color: #617063; border-color: #fafbf6; box-shadow: 0 5px 12px #26382b18; }
+  .tools-desk .tools-lineup-cards > span:nth-child(3) { background: #d1dccc; color: #405642; }
+  .tools-desk .tools-lineup-cards i { background: #e0e6db; }
+  .tools-desk .tools-lineup-cards > span:nth-child(3) i { background: #edf1e8; }
+  .tools-desk .tools-lineup-cards small { background: #dfe5d9; color: #586153; }
   .tools-desk :is(.tools-browse-link, .tools-workflow) { background: var(--tool-surface); border-color: var(--tool-border); }
-  .tools-desk :is(.tools-library-link, .tools-task-open, .tools-task-arrow, .tools-library-symbol) { border-color: var(--tool-border); }
+  .tools-desk :is(.tools-library-link, .tools-task-open, .tools-library-symbol) { border-color: var(--tool-border); }
 
   .l2d { --l2d-accent: var(--tool-accent); background: var(--tool-surface); }
   .l2d :is(button, select, .l2d-search, .l2d-picker, .l2d-load-card) { background: var(--tool-surface); color: var(--tool-ink); border-color: var(--tool-border); }
   .l2d :is(.l2d-controls, .l2d-panel-switch, .l2d-roster, .l2d-viewbar) { background: var(--paper); border-color: var(--tool-border); }
   .l2d :is(button[data-open], .l2d-play-actions [data-play]) { background: var(--tool-accent); border-color: var(--tool-accent); color: white; }
   .l2d :is(button[data-open], .l2d-play-actions [data-play]):hover:not(:disabled) { background: var(--tool-hover); }
-  .l2d button[aria-pressed="true"] { background: var(--tool-tint); border-color: var(--tool-accent); color: var(--tool-accent); }
+  .l2d button[aria-pressed="true"] { background: var(--tool-selected-bg); border-color: var(--tool-selected-border); color: var(--tool-selected-ink); }
   .l2d :is(.l2d-load-card p, .l2d-progress-meta, .l2d-look-tag) { color: var(--tool-muted); }
+  .l2d .l2d-cycle button { min-width: 38px; font-size: 11px; }
   .l2d :is(input[type=range], input[type=checkbox], progress) { accent-color: var(--tool-accent); }
+}
+
+/* Written labels carry navigation; avoid decorative arrows throughout tools. */
+html[data-tool-theme="site"][data-tool-theme] body {
+  .task-studio.task-studio .task-conditions-collapsed .task-condition-toggle { font-size: 11px; }
+  .archive-footer__about > span[aria-hidden="true"], .archive-footer__top > svg { display: none; }
 }

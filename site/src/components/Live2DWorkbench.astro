@@ -31,7 +31,7 @@ const payload = { models: selectedModels, characters, characterId, base, en, com
   <div class="l2d-selected">
     <div class="l2d-avatar" data-selected-avatar aria-hidden="true"></div>
     <div class="l2d-selected-copy"><div class="l2d-selected-title"><strong data-selected-name></strong><span data-selected-group></span></div><span data-selected-costume></span></div>
-    <div class="l2d-selection-actions"><button type="button" data-picker-open><svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>{say('切换角色 / 造型', 'Choose character / look')}</button><div class="l2d-cycle" role="group" aria-label={say('切换造型', 'Switch look')}><button type="button" data-costume-prev aria-label={say('上一套造型', 'Previous look')}>‹</button><span data-costume-position></span><button type="button" data-costume-next aria-label={say('下一套造型', 'Next look')}>›</button></div></div>
+    <div class="l2d-selection-actions"><button type="button" data-picker-open><svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>{say('切换角色 / 造型', 'Choose character / look')}</button><div class="l2d-cycle" role="group" aria-label={say('切换造型', 'Switch look')}><button type="button" data-costume-prev aria-label={say('上一套造型', 'Previous look')}>{say('上套', 'Prev')}</button><span data-costume-position></span><button type="button" data-costume-next aria-label={say('下一套造型', 'Next look')}>{say('下套', 'Next')}</button></div></div>
   </div>
   <dialog class="l2d-picker" data-picker aria-label={say('选择角色与造型', 'Choose character and look')}>
     <header class="l2d-picker-header"><div><span class="l2d-eyebrow">MODEL LIBRARY</span><h2>{say('挑选登场造型', 'Choose a look')}</h2></div><button type="button" data-picker-close aria-label={say('关闭模型选择', 'Close model library')}>✕</button></header>
@@ -81,14 +81,14 @@ const payload = { models: selectedModels, characters, characterId, base, en, com
       </div>
       <p class="l2d-hint">{say('拖动平移 · 滚轮缩放 · 切换服装自动取消旧加载', 'Drag to pan · Scroll to zoom · Switching costumes cancels the previous load')}</p>
       <div class="l2d-export">
-        <button type="button" data-export disabled>{say('导出模型 ZIP', 'Export model ZIP')} <span aria-hidden="true">↓</span></button>
+        <button type="button" data-export disabled>{say('导出模型 ZIP', 'Export model ZIP')}</button>
         <button type="button" data-export-cancel hidden>{say('取消导出', 'Cancel export')}</button>
         <a data-export-save hidden>{say('保存 ZIP', 'Save ZIP')}</a>
         <span class="l2d-hint" data-export-status role="status" aria-live="polite">{say('运行时模型包 · 使用资源默认参数', 'Runtime model package · Source defaults')}</span>
         <progress data-export-progress max="100" hidden aria-label={say('模型导出进度', 'Model export progress')}></progress>
       </div>
       <details class="l2d-resource-info"><summary>{say('角色预览说明', 'About this preview')} <span class="l2d-file-info" data-model-info></span></summary><div class="l2d-model-source" data-model-source></div></details>
-      {compact && <a class="l2d-workbench-link" href={href(`/tools/live2d/?character=${characterId}`)}>{say('打开调试工作台', 'Open debugger')} ↗</a>}
+      {compact && <a class="l2d-workbench-link" href={href(`/tools/live2d/?character=${characterId}`)}>{say('打开调试工作台', 'Open debugger')}</a>}
     </div>
     <aside class="l2d-panel" aria-label={say('播放与调试', 'Playback and debugging')}>
       {!compact && <div class="l2d-panel-switch" role="group" aria-label={say('控制面板', 'Control panel')}><button type="button" data-panel-mode="play" aria-pressed="true">{say('播放控制', 'Playback')}</button><button type="button" data-panel-mode="debug" aria-pressed="false">{say('参数调试', 'Debug')}</button></div>}

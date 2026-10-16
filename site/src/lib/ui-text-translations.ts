@@ -12,6 +12,9 @@ export const englishExactTranslations: Record<string, string> = {
   ...coreTranslations,
   ...teamPlanningEnglish,
   // Tool filter controls and chart-comparison wording. Exact matches only.
+  "（降序）": " (descending)",
+  "基准得分（降序）": "Reference score (descending)",
+  "参考综合力（约，升序）": "Reference power (approx., ascending)",
   "含 COMBO": "Has COMBO",
   "含 LUCK": "Has LUCK",
   "含 JUST": "Has JUST",

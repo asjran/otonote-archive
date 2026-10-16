@@ -13,7 +13,7 @@
 .tool-studio>.tool-page-header {background:transparent;padding:18px 0 14px;}
 .tool-studio .tool-page-header h1 {display:flex;align-items:center;gap:13px;font:700 clamp(23px,2.5vw,28px)/1.3 var(--font-body);letter-spacing:-.04em;color:var(--studio-ink);}
 .tool-studio .tool-page-back {font-size:11px;margin-bottom:9px;gap:8px;}
-.tool-studio .tool-page-back span {display:none;}.tool-studio .tool-page-back::before {content:'←';font-size:14px;}
+.tool-studio .tool-page-back span {display:none;}.tool-studio .tool-page-back::before {content:none;}
 .tool-studio .tool-title-glyph {display:grid;place-items:center;width:34px;height:34px;flex-shrink:0;background:var(--tool-tint,#e6dce7);border:1px solid var(--tool-border,#d9c9da);border-radius:8px;color:var(--studio-accent);}
 .tool-title-glyph svg {width:24px;height:24px;}
 .tool-studio .tool-page-header p {font-size:12px;color:var(--studio-muted);margin-top:8px;}
@@ -59,7 +59,7 @@
  background:var(--studio-accent);border:1px solid var(--studio-accent);color:white;min-height:44px;padding:12px 20px;font:650 13px/1.5 var(--font-body);box-shadow:0 4px 8px #79456018;
 }
 .tool-studio :is(.event-primary,button[data-ap-run],button[data-optimize-pairing],button[data-yield-run]):hover:not(:disabled) {background:var(--tool-hover,#63344e);border-color:var(--tool-hover,#63344e);box-shadow:0 5px 12px #79456024;}
-.tool-studio :is(button[data-ap-run],button[data-optimize-pairing],button[data-yield-run])::after {content:'→';margin-left:14px;}
+.tool-studio :is(button[data-ap-run],button[data-optimize-pairing],button[data-yield-run])::after {content:none;}
 /* Team builder: a clear song desk next to the two smaller decisions. */
 .tool-studio .calculator-journey {gap:18px;grid-template-columns:minmax(0,1.12fr) minmax(300px,1fr);}
 .tool-studio .calculator-journey>.journey-heading {padding:0 2px;color:var(--studio-muted);}.tool-studio .journey-heading>button {font-size:11px;}

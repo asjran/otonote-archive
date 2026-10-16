@@ -545,7 +545,7 @@ export function registerScoreWorkbenchElement(): void {
         card.className = "score-segment";
         card.dataset.segment = String(segment.index);
         card.setAttribute("role", "listitem");
-        card.innerHTML = `<header><span class="score-segment-number">${number}</span><strong>${range}</strong><button type="button" data-segment-focus aria-label="${this.labels.atlas.focusSegment.replace("{index}", String(segment.index + 1))}">${this.labels.atlas.expand} ↗</button></header><canvas role="img"></canvas><footer><span>↑ ${this.labels.atlas.fromHere}</span><button type="button" data-segment-analyze>${this.labels.atlas.analyze} →</button></footer>`;
+        card.innerHTML = `<header><span class="score-segment-number">${number}</span><strong>${range}</strong><button type="button" data-segment-focus aria-label="${this.labels.atlas.focusSegment.replace("{index}", String(segment.index + 1))}">${this.labels.atlas.expand}</button></header><canvas role="img"></canvas><footer><span>${this.labels.atlas.fromHere}</span><button type="button" data-segment-analyze>${this.labels.atlas.analyze}</button></footer>`;
         const canvas = card.querySelector("canvas")!;
         canvas.setAttribute("aria-label", `${this.dataset.trackTitle} ${this.chart!.difficulty.toUpperCase()} ${this.labels.atlas.segment.replace("{index}", String(segment.index + 1))} ${range}`);
         paintScoreCard(canvas, this.chart!, segment, this.enabled);

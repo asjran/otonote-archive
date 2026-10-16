@@ -421,7 +421,7 @@ body:has(.task-studio) :is(.task-pairing,.tw-panel) .tw-card-stat[data-field=awa
 .task-studio.task-studio .task-rush-hidden{display:none!important}
 .task-studio.task-studio .task-event-advanced{border:0;background:transparent;padding:0;margin:12px 0 0}
 .task-studio.task-studio .task-event-advanced>summary{font-size:11px;color:var(--studio-muted);list-style:none;cursor:pointer}
-.task-studio.task-studio .task-event-advanced>summary:after{content:' ›'}
+.task-studio.task-studio .task-event-advanced>summary:after{content:none}
 .task-studio.task-studio .event-quick-bonus{border:0;background:transparent;margin:0;padding:0}
 .task-studio.task-studio .event-quick-bonus>summary{display:none}
 .task-studio.task-studio .event-quick-bonus p{font-size:10px}
