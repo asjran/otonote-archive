@@ -1,79 +1,62 @@
-# 配队工具主题配色调整与本地验收
+# 工具页与关联弹窗主题配色调整
 
 日期：2026-10-16。任务分支：`codex/team-tool-colors`。
 
-## 范围与设计
+## 范围与整合
 
-从 `codex/release-2026-10-16` 的 `3861c0f153e2ca9cfcf8c662c848f7cfd364ba54` 创建独立 worktree：`/Users/stone/.codex/worktrees/team-tool-colors/otonote`。未在本对话修改发布分支，未推送、创建 PR 或部署。
+从 `codex/release-2026-10-16` 的 `3861c0f153e2ca9cfcf8c662c848f7cfd364ba54` 创建独立 worktree `/Users/stone/.codex/worktrees/team-tool-colors/otonote`。未修改发布分支，未推送、创建 PR 或部署。
 
-查看发布基线的真实浏览器页面，并核对 `global.css`、`site-shell.css`、`tool-studio.css`、`task-prototype-theme.css` 和既有共享队伍设计。发现：
+首个提交 `6dc542038e240692dc4dfa647ad952f9b061df06` 仅覆盖配队页。用户随后明确要求所有工具页及关联页面、弹窗，本次后续提交扩大覆盖范围。发布整合应按顺序纳入两次提交；若首个已合入，只需纳入后续提交。
 
-- 工具覆写了全站背景与侧栏颜色，灰蓝、淡紫、酒红混用。
-- 淡紫边框不足以区分普通卡、选中卡和队长；选卡预览需要颜色之外的选中标记。
-- 卡面图标容易受图片背景干扰；同属性／同乐队关系颜色层级接近，部分缺图后的乐队文字挤在固定圆形按钮内。
-- 主操作、确认按钮、分数与辅助说明缺少统一层级，小字号来源信息较淡。
+覆盖工具目录、配队推荐、歌曲计算及选曲、活动收益及活动曲冲榜、歌曲排行榜、AP 估分、抽卡记录、Live2D 控件与角色选择、账号导出说明，以及关联的我的养成／卡库页面。覆盖共用队伍、选卡、歌曲、账号加成、计分明细、技能回放、截图导入和登录弹窗的界面配色。
 
-选择沿用现有站点纸白／墨色／酒红的方案。仅替换按钮颜色会留下明显的背景和卡面差异；全站替换共享工具样式则会扩大到其他任务，因此采用配队页独立样式。
+## 问题与设计
 
-核心配色：纸底 `#f0eee8`、面板 `#fffdf7`、正文 `#11131b`、辅助文字 `#655e63`、主色 `#7a3155`、焦点 `#315f73`。布局与字体沿用既有页面。
+实际页面存在灰蓝、淡紫和酒红主题混用；旧原型样式中的硬编码颜色覆盖了站点颜色。选中卡、队长、普通卡的层级接近，图标底色受卡面干扰，部分乐队缺图后的文字挤在圆形容器里。按钮、说明文字和结果缺乏统一层级。此前单页导入也无法覆盖其他工具和容器外共用弹窗。
 
-实现：
+统一沿用网站纸白／墨色／酒红：页面 `#f0eee8`、面板 `#fffdf7`、正文 `#11131b`、辅助文字 `#655e63`、主色 `#7a3155`、焦点 `#315f73`、边框 `#c9c1bd`。沿用布局与字体。
 
-- 页面、侧栏和弹窗使用纸白与中性边框；选中按钮使用酒红边框、内描边与加粗文字。
-- 选中卡片保留原有 `aria-pressed`，增加视觉勾选；队长保留文字并使用酒红标题条。
-- 属性／乐队图标放在不透明浅底上，关系标签分别使用蓝／酒红，任务关系为绿色；游戏本身的图标、属性码、乐队身份与 COMBO／LUCK／JUST 颜色不变。
-- 图片失败时，乐队名称回退为可伸展的文字按钮，避免固定圆形按钮造成重叠。
-- 生成、应用、保存、替换和完成按钮统一为酒红；保留禁用态和明显的键盘焦点。
-- 结果区域上沿与主要分数突出，卡名及养成来源提高可读性，原有说明与搜索状态原样保留。
+- 主按钮与主要分数用酒红；次要按钮用浅底、中性边框；选中状态有酒红描边、文字和浅色背景。
+- 选中卡保留 `aria-pressed` 并增加勾选；队长保留文字与酒红标题条。保留禁用态与键盘焦点。
+- 属性／乐队图标放在不透明浅底上，缺图时乐队文字可伸展。同属性／同乐队／任务关系保持可区分。
+- 游戏属性、乐队身份、稀有度、难度、COMBO／LUCK／JUST 和图表类别保持语义区分。技能时间轴五个位置使用适合浅底的五种颜色。
+- Live2D 只改工具控件、选择器及面板；用户选择的画布背景和角色图像不变。
 
-## 改动文件与整合边界
+## 实现与整合边界
 
-- `site/src/pages/tools/deck-builder/index.astro`：增加一条样式导入。
-- `site/src/styles/team-tool-colors.css`：配队页面限定的主题样式。
-- 本文：设计、验证与遗留事项。
-
-共享弹窗位于工具容器之外，因此用 `body:has(.tool-studio.task-studio[data-tool-kind="deck-builder"])` 限定。内部规则提高优先级以覆盖既有原型主题；没有修改共享弹窗模块、全站 CSS、搜索器、Worker、评分器或数据文件。
-
-活动曲实际属性覆盖、候选范围、评分模型、最优性证明与技能发动逻辑均未变更。完成状态和“参考”说明不作新的最优性承诺。最终产物中 `--team-surface` 仅出现于配队页 CSS，不进入歌曲排行榜、歌曲计算或活动收益页的 CSS。
-
-整合弹窗交互任务时保留本文件及配队页导入即可；若交互任务更名现有 `.tw-*`、`.ux-card-*` 或 `.task-*` 类名，应联合复核对应样式。没有共享评分接口变动。
+- `BaseLayout.astro` 统一导入 `tool-colors.css`，仅规范化路径 `/tools/`、`/my-growth/` 增加 `html[data-tool-theme="site"]`。
+- 将原 `team-tool-colors.css` 扩展、更名为 `tool-colors.css`，移除配队页独立导入。共用弹窗通过 HTML 根节点作用域获得主题。
+- 标记必须放在 HTML 根节点：正式编译运行时只同步根节点属性，body 属性不会随路由渲染同步。已用编译后的客户端验证；无需修改运行时。
+- `tool-studio.css`、`task-prototype-theme.css`、`shared-team-workspace.css`、`shared-inventory-imports.css` 只将相关颜色改为带原色回退的 `--tool-*` 令牌。工具作用域外沿用回退值；这些文件的布局、交互逻辑不变。
+- 未修改评分器、搜索器、Worker、技能模拟、导入算法、数据和 API。活动曲实际属性覆盖及最优性说明保持原样。
+- 弹窗交互任务若更名 `.tw-*`、`.task-*`、`.activation-*` 等类名，需要一起复核对应样式。
 
 ## 验证
 
-环境：macOS，本地 Node `22.22.0`，真实 Chromium 浏览器。系统默认 Node 18 未用于验证。
+使用本机 Node 22.22.0 和真实 Chromium 浏览器。
 
-1. 现有定向 Node 回归 **28/28 通过**：
+1. 首轮定向测试 28/28 通过：team-card-view、team-card-picker-ui、team-planning-ui、challenge-optimizer-ui、challenge-best-search。
+2. 本轮全量 `node --test site/tests/*.test.mjs`：1161 项，1155 通过，6 失败。与 `docs/releases/2026-10-16.md` 记录一致：舞台皮肤缺失、卡片身份测试 `import.meta.glob` 夹具、两项沉浸场景缺失、激奏 4004 效果行、养成素材清单缺失。检查未标为全绿。
+3. `astro check`：14 errors、0 warnings、37 hints。按 file／line／column／code／message 与 `docs/releases/2026-10-16-astro-diagnostics.json` 比较，14 项错误完全相同，新增 0。
+4. 最终独立客户端构建通过：`node tools/build_web_client.mjs output/all-tools-colors-delivery`，code ID `d4945432009506b2ad387faf`，54 路由、58 脚本、337 文件。
+5. `git diff --check` 通过。最后的颜色修正通过重新构建和浏览器复核，没有另行增加镜像实现的 CSS 测试。
+6. 浏览器覆盖桌面 1280×720 和手机 390×844（首轮配队另含 1440×1000）。桌面覆盖上述工具主页面、活动两个任务、账号导出、养成卡库，以及选卡／队伍／选歌／账号加成／截图导入／计分／技能弹窗；手机复核活动两任务、AP、截图导入和技能弹窗。检查页面无整页横向溢出，原有卡组局部横向滚动保留。手机尺寸已恢复。
+7. 正式编译版本核验背景为 `rgb(240,238,232)`、弹窗为 `rgb(255,253,247)`、选中状态及主操作为 `rgb(122,49,85)`。抽卡主按钮白字酒红底；Live2D 选中边框酒红；技能弹窗顺序与进度控件统一。关于本站页面无工具主题标记。
+8. 计分结果 UI 样例：global-hmt、迷星叫 EASY，成员与留影 ID 1–5；成员 level30／rank1／awake1／skillLevel1／gekisouSkillLevel1，留影 level30／rank1；AP 满生命，结果 `329,314`，计分明细与五轨技能回放可打开。仅作 UI 验收，不代表评分准确性或最优性证明。
 
-   ```sh
-   node --test site/tests/team-card-view.test.mjs site/tests/team-card-picker-ui.test.mjs site/tests/team-planning-ui.test.mjs site/tests/challenge-optimizer-ui.test.mjs site/tests/challenge-best-search.test.mjs
-   ```
+## 本地预览与证据
 
-2. 最终完整独立客户端构建通过：
+推荐验收地址：`http://127.0.0.1:4347/global/zh-CN/tools/?server=global-hmt`。4347 服务运行最终编译产物，保留供用户查看。旧 4346 为源代码开发预览，不是本次完整数据验收入口。
 
-   ```sh
-   node tools/build_web_client.mjs output/team-tool-colors-code-final
-   ```
+临时服务器脚本 `/private/tmp/otonote-tools-compiled-preview.mjs` 只存在本机，不入 Git。代码从本地最终产物提供，公开内容和图片只读转发至站点 `/content/`，内容指针 `856eb982b9af67f4f261e1bc`，与对应媒体版本匹配；没有部署、更改远程数据或下载媒体归档。账号 `/api/` 返回本地预览未连接说明。
 
-   code ID：`ed29f782d10893ca38235e39`；54 路由、58 脚本、337 文件。最初复用的依赖目录缺少 OpenCV，换用本机完整依赖目录后完成构建；没有为此修改依赖清单。
+卡库默认为“已持有”，新端口没有用户卡库记录会显示空列表。浏览器已验证切换“卡库 → 全部卡片”后出现卡片；截图导入索引显示 136 张卡、0 个卡面索引缺失。无需把别的端口的用户数据写入本预览。
 
-3. `astro check`：14 错误、0 warnings、37 hints。按 file／line／column／code／message 提取，与 `docs/releases/2026-10-16-astro-diagnostics.json` 的 release 错误逐条相同；新增 **0**。仍不把该检查标为通过。
-4. `git diff --check` 通过。未重跑全部 1161 项 Node 测试，发布记录中的 6 项已有失败保持原有结论。
-5. 浏览器视觉验收覆盖：1440×1000 桌面、390×844 手机；初始空编成、选卡预览及选中勾选、属性／乐队图标与缺图文字回退、键盘焦点、队长标记、主次按钮、禁用态和实际计算结果。手机队伍沿用局部横向滚动。
-6. 实际结果样例：EN 区服，`music-100001`（迷星叫）EASY；成员与留影 ID 均为 1–5；成员 level 30／rank 1／awake 1／skillLevel 1／gekisouSkillLevel 1，留影 level 30／rank 1；手选卡、普通自由演出、参考发挥、平均分。点击生成后显示 `322,637.67`，本次比较 4 组候选。仅作为结果 UI 的验收输入，不作为全局最优或实战分数证据。
-7. 浏览器计算样式确认：背景 `rgb(240,238,232)`；主按钮、选中边框和分数为 `rgb(122,49,85)`；桌面无整页横向溢出。
-8. 核心文本对比度：白字／酒红 8.76:1，辅助文字／浅面板 6.19:1，正文／浅面板 18.22:1，焦点蓝／浅面板 6.85:1，养成提示琥珀／浅面板 6.38:1。这是对应静态配色的计算值，未宣称全站无障碍审计通过。
+证据位于 `output/playwright/all-tools-colors/`（忽略、不入 Git）：各页面／弹窗截图、`browser-evidence.json`、`astro-comparison.json`、完整 Node 日志、Astro 日志、构建日志。首轮前后对照仍保留于 `output/playwright/team-tool-colors/`。
 
-## 本地视觉证据
+## 遗留与限制
 
-保存在此任务 worktree 的 `output/playwright/team-tool-colors/`（构建／截图不入 Git）：
-
-- `results-before.png`、`results-desktop.png`：同一结果状态的配色前后；before 仅在浏览器临时禁用本次新增样式，随后恢复。
-- `selected-desktop.png`、`selected-mobile.png`：卡图预览与选中勾选。
-- `results-mobile.png`：手机结果卡组和分数层级。
-- `browser-evidence.json`、`astro-comparison.json`、`node-tests.log`、`build.log`：检查证据。
-
-## 遗留与验收限制
-
-- 本地未保存媒体库。验收浏览器通过临时路由读取网站公开内容版本 `856eb982b9af67f4f261e1bc` 的卡图；产品代码未增加代理或在线依赖。旧本地内容版本的部分属性／成长／乐队图标在该公开版本中缺失，仍有媒体 404；已验证文字回退，未把浏览器控制台说成无错误。整合后应以完整匹配媒体库再确认全部游戏图标。
-- 本次本地视觉与定向回归不能替代部署后的验收。评分模型、搜索性能和历史 8 分差均不属于本任务修复范围。
-- 界面仍沿用既有紧凑字号与手机局部横向卡组；弹窗完整交互由对应任务负责。
+- 6 项 Node 失败和 14 项 Astro 错误为已记录发布基线，未在纯配色任务中修复。
+- 未登录 BHK、查询真实账号、上传用户截图、写入卡库、生成真实抽卡分享图或完整加载 Live2D 模型；这些流程的界面样式已覆盖，需相应集成环境另验实际业务。未宣称整个浏览器控制台无错误。
+- 本地预览依赖公开内容网络可达。验证不替代统一合入后与部署后的验收；评分模型、搜索性能及历史分差仍属于其他任务。
+- 本地依赖与数据符号链接仅供构建／开发服务使用，未暂存或提交。
