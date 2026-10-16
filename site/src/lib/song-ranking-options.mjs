@@ -10,7 +10,12 @@ export const RANKING_OPTIONS = Object.freeze({
   p10Score: ['P10 参考分', 'P10 reference score', 'score'],
   p10Efficiency: ['P10 每秒得分', 'P10 score per second', 'efficiency'],
   requiredPower: ['达档参考综合力', 'Estimated power for grade', 'power', 'asc'],
+  targetScore: ['目标分数线', 'Target score threshold', 'score', 'asc'],
+  enteredRank: ['输入分数档位', 'Grade for entered score', 'grade'],
   durationSeconds: ['歌曲时长', 'Song duration', 'seconds', 'asc'],
+  chartSeconds: ['谱面时长', 'Chart duration', 'seconds', 'asc'],
+  audioSeconds: ['音频时长', 'Audio duration', 'seconds', 'asc'],
+  cycleSeconds: ['每局总耗时', 'Time per play', 'seconds', 'asc'],
   level: ['谱面等级', 'Chart level', 'number', 'asc'],
   skillScoreGain: ['普通技能净增分', 'Ordinary skill score gain', 'score'],
   skillShare: ['普通技能得分占比', 'Ordinary skill score share', 'percent'],
@@ -20,12 +25,25 @@ export const RANKING_OPTIONS = Object.freeze({
   difficultyFactor: ['难度倍率', 'Difficulty multiplier', 'ratio'],
   comboFactor: ['加权连击倍率', 'Weighted combo multiplier', 'ratio'],
   eventCount: ['计分判定数', 'Scoring event count', 'number'],
+  convertedNoteCount: ['换算音符数', 'Converted note count', 'number'],
+  baseScore: ['无技能基础分', 'No-skill baseline', 'score'],
   averageDensity: ['平均判定密度', 'Average scoring event density', 'density'],
   peakDensity: ['最密一秒判定数', 'Peak scoring events in one second', 'number'],
   bpmMax: ['最高 BPM', 'Maximum BPM', 'number'],
+  bpmMin: ['最低 BPM', 'Minimum BPM', 'number', 'asc'],
   gekisouMultiplier: ['激奏 / 普通得分倍率', 'Gekisou / ordinary multiplier', 'ratio'],
-  rankingBonusShare: ['激奏名次奖励占比', 'Gekisou placement bonus share', 'percent']
+  rankingBonusShare: ['激奏名次奖励占比', 'Gekisou placement bonus share', 'percent'],
+  rankingBonus: ['激奏名次奖励分', 'Gekisou placement bonus', 'score'],
+  sampleCount: ['激奏样本数', 'Gekisou sample count', 'number'],
+  standardError: ['激奏样本标准误', 'Gekisou standard error', 'score', 'asc'],
+  title: ['歌曲名称', 'Song title', 'text', 'asc'],
+  difficulty: ['难度', 'Difficulty', 'text', 'asc'],
+  bandLabel: ['乐队', 'Band', 'text', 'asc'],
+  attribute: ['歌曲属性', 'Song attribute', 'text', 'asc'],
+  editionLabel: ['适用版本', 'Applicable editions', 'text', 'asc'],
+  calculationState: ['计算状态', 'Calculation state', 'text', 'asc']
 });
+export const GRADE_RANKING_METRICS = ['requiredPower', 'targetScore', 'enteredRank'];
 export const defaultRankingDirection = metric => RANKING_OPTIONS[metric]?.[3] ?? 'desc';
 export const editionName = (edition, en = false) => edition === 'jp' ? (en ? 'JP' : '日服') : (en ? 'Global' : '国际版');
 
@@ -66,7 +84,7 @@ export function scopeRankingRows(rows, edition = 'all') {
       const reference = row.editionChartReferences?.[edition];
       const {trackId: _trackId, sourceReleaseId: _releaseId, ...display} = reference ?? {};
       const pending = { ...row, ...display, pending: true, replaySource: null, skillReference: null, scoreDistribution: null, skillReplay: null,
-        meta: null, eventCount: null, convertedNoteCount: null, sections: null, sampleCount: null, standardError: null };
+        meta: null, eventCount: null, convertedNoteCount: null, sections: null, sampleCount: null, standardError: null, rankingBonus: null };
       for (const field of [...Object.keys(RANKING_METRICS), 'baseScore', 'skillScoreGain', 'power']) pending[field] = null;
       return pending;
     });
@@ -78,7 +96,10 @@ export function rankingRowState(row) {
 
 function derived(row) {
   const valid = (value, predicate = () => true) => Number.isFinite(value) && predicate(value) ? value : null;
-  return { ...row, averageDensity: valid(row.meta?.averageDensity), peakDensity: valid(row.meta?.peakDensity), bpmMax: valid(row.meta?.bpmMax),
+  return { ...row, averageDensity: valid(row.meta?.averageDensity), peakDensity: valid(row.meta?.peakDensity), bpmMax: valid(row.meta?.bpmMax), bpmMin: valid(row.meta?.bpmMin),
+    bandLabel: row.bandLabels?.join(' / ') || null,
+    editionLabel: [...new Set([...(row.applicableEditions ?? []), ...(row.pendingEditions ?? [])])].sort().join(' / ') || null,
+    calculationState: rankingRowState(row),
     skillShare: Number.isFinite(row.skillScoreGain) && Number.isFinite(row.baseScore) && row.baseScore + row.skillScoreGain > 0 ? row.skillScoreGain / (row.baseScore + row.skillScoreGain) : null,
     scoreSpread: Number.isFinite(row.minimumScore) && Number.isFinite(row.maximumScore) ? row.maximumScore - row.minimumScore : null,
     p10Efficiency: Number.isFinite(row.p10Score) && row.cycleSeconds > 0 ? row.p10Score / row.cycleSeconds : null };
@@ -92,15 +113,23 @@ export function rankRefinedSongRows(rows, settings = {}) {
   const { metric, direction = defaultRankingDirection(metric), edition = 'all', status = 'all', attribute = 'all', grouping = 'charts' } = options;
   let selected = rankSongRows(scopeRankingRows(rows, edition), { query: options.query ?? '', difficulty: options.difficulty ?? 'all', band: options.band ?? 'all',
     durationBasis: options.durationBasis ?? 'chart', overhead: options.overhead })
-    .map(row => derived(metric === 'requiredPower' ? songGradeReference(row, { ...options, edition: options.gradeEdition ?? (edition === 'all' ? undefined : edition) }) : row))
+    .map(row => derived(GRADE_RANKING_METRICS.includes(metric) ? songGradeReference(row, { ...options, edition: options.gradeEdition ?? (edition === 'all' ? undefined : edition) }) : row))
     .filter(row => (status === 'all' || status === rankingRowState(row)) && (attribute === 'all' || row.attribute === attribute)
       && inRange(row.level, options.minLevel, options.maxLevel) && inRange(row.durationSeconds, options.minSeconds, options.maxSeconds)
       && inRange(row.meta?.bpmMin, options.minBpm, null) && inRange(row.meta?.bpmMax, null, options.maxBpm)
-      && inRange(row.averageDensity, options.minDensity, options.maxDensity) && inRange(row[metric], options.minValue, options.maxValue));
+      && inRange(row.averageDensity, options.minDensity, options.maxDensity) && (RANKING_OPTIONS[metric][2] === 'text' || inRange(row[metric], options.minValue, options.maxValue)));
+  const textSort = RANKING_OPTIONS[metric][2] === 'text';
+  const valueFor = row => {
+    if (!textSort) return Number.isFinite(row[metric]) ? row[metric] : null;
+    const value = row[metric];
+    if (typeof value !== 'string' || !value.trim()) return null;
+    if (metric === 'difficulty') return `${['easy','normal','hard','expert'].indexOf(value) + 1 || 99}:${value}`;
+    return value.normalize('NFKC');
+  };
   selected.sort((a, b) => {
-    const av = a[metric], bv = b[metric], aValid = Number.isFinite(av), bValid = Number.isFinite(bv);
+    const av = valueFor(a), bv = valueFor(b), aValid = av !== null, bValid = bv !== null;
     if (aValid !== bValid) return aValid ? -1 : 1;
-    return (aValid ? (av - bv) * (direction === 'asc' ? 1 : -1) : 0) || a.id.localeCompare(b.id);
+    return (aValid ? (textSort ? av.localeCompare(bv, options.locale ?? 'zh-CN', {numeric:true}) : av - bv) * (direction === 'asc' ? 1 : -1) : 0) || a.id.localeCompare(b.id);
   });
   if (grouping === 'songs') {
     const seen = new Set();
@@ -112,7 +141,8 @@ export function rankRefinedSongRows(rows, settings = {}) {
   }
   let rank = 0;
   return selected.map((row, index) => {
-    if (!Number.isFinite(row[metric])) return { ...row, rank: null };
+    if (valueFor(row) === null) return { ...row, rank: null };
+    if (textSort) return { ...row, rank: index + 1 };
     if (!index || row[metric] !== selected[index - 1][metric]) rank = index + 1;
     return { ...row, rank };
   });
