@@ -1,0 +1,245 @@
+/* Deck builder only. Game attributes, bands and mission colors keep their identities. */
+body:has(.tool-studio.task-studio[data-tool-kind="deck-builder"]) {
+  --paper: #f0eee8;
+  --ink: var(--stage-ink);
+  --lacquer: #7a3155;
+  --silver-dark: #655e63;
+  --gel-blue: #315f73;
+  --line: color-mix(in srgb, var(--stage-ink) 18%, transparent);
+  --team-surface: var(--paper-light);
+  --team-tint: color-mix(in srgb, var(--lacquer) 8%, var(--paper-light));
+  --team-border: #c9c1bd;
+  --team-muted: #655e63;
+  --studio-ink: var(--stage-ink);
+  --studio-muted: var(--team-muted);
+  --studio-accent: var(--lacquer);
+  --studio-line: var(--team-border);
+  --studio-bg: var(--paper);
+  --studio-tint: var(--team-tint);
+  background: var(--paper);
+}
+
+body:has(.tool-studio.task-studio[data-tool-kind="deck-builder"]) :is(.site-nav, .site-brand) {
+  background: var(--paper-light);
+}
+
+/* Match the legacy theme specificity without changing the other tool pages. */
+.tool-studio.task-studio[data-tool-kind="deck-builder"][data-tool-kind] {
+  --task-ink: var(--stage-ink);
+  --task-muted: var(--team-muted);
+  --task-line: var(--team-border);
+  --task-accent: var(--lacquer);
+  --task-soft: var(--team-tint);
+  --accent: var(--lacquer);
+  --studio-ink: var(--stage-ink);
+  --studio-muted: var(--team-muted);
+  --studio-accent: var(--lacquer);
+  --studio-line: var(--team-border);
+  --studio-bg: var(--paper);
+  --studio-tint: var(--team-tint);
+  background: var(--paper);
+
+  .task-workbench {
+    --task-ink: var(--stage-ink);
+    --task-muted: var(--team-muted);
+    --task-line: var(--team-border);
+    --task-accent: var(--lacquer);
+  }
+
+  :is(.task-current-team, .task-context-bar, .task-condition-panel,
+      .task-condition-group, .optimizer-results-panel, .task-dialog,
+      .task-dialog-body, .task-dialog > header, .task-dialog footer,
+      .task-account-group details, .task-song-dialog .selection-filters,
+      .task-song-dialog .song-picker-row) {
+    background: var(--team-surface);
+    border-color: var(--team-border);
+  }
+
+  :is(.task-condition-group, .task-context-bar > header, .task-condition-panel > header,
+      .task-candidate-tabs, .task-subtabs, .recommendation-details,
+      .task-song-dialog .selection-filters.selection-filters--compact,
+      .task-song-dialog .song-selection-pin, .task-dialog > header, .task-dialog footer,
+      .task-condition-body details) {
+    border-color: var(--line);
+  }
+
+  :is(button, input, select, textarea) {
+    accent-color: var(--lacquer);
+    border-color: var(--team-border);
+  }
+
+  :is(.task-workbench, .task-dialog) :is(button, input, select, textarea) {
+    background: var(--team-surface);
+    border-color: var(--team-border);
+  }
+
+  :is(button, a, summary, input, select, textarea):focus-visible {
+    outline: 3px solid var(--gel-blue);
+    outline-offset: 3px;
+  }
+
+  .task-workbench button:hover:not(:disabled) {
+    background: var(--team-tint);
+    border-color: var(--lacquer);
+  }
+
+  :is(.tool-options, .journey-choices, .task-tgw-options) button[aria-pressed="true"],
+  .task-song-dialog .attribute-filter-options button[aria-pressed="true"] {
+    color: var(--lacquer);
+    background: var(--team-tint);
+    border-color: var(--lacquer);
+    box-shadow: inset 0 0 0 1px var(--lacquer);
+    font-weight: 700;
+  }
+
+  .journey-choices button[aria-pressed="true"] strong { color: var(--lacquer); }
+
+  :is(.task-subtabs, .task-candidate-tabs) button[aria-pressed="true"] {
+    background: transparent;
+    color: var(--lacquer);
+    border-bottom-color: var(--lacquer);
+    font-weight: 700;
+  }
+
+  .task-workbench-nav { background: var(--paper-deep); border-color: var(--team-border); }
+  .task-workbench-nav a[aria-current="page"] { color: var(--lacquer); background: var(--team-surface); }
+  .task-condition-tags { background: var(--team-surface); border-color: var(--team-border); }
+  .task-condition-tags > span, .recommendation-scenario {
+    color: var(--team-muted);
+    background: var(--paper);
+    border-color: var(--team-border);
+  }
+
+  .task-pairing .score-pair { border-color: var(--team-border); background: var(--team-surface); }
+  .task-pairing .score-pair[data-leader="true"] { border-color: var(--lacquer); }
+  .task-pairing .score-position { background: var(--paper); color: var(--team-muted); }
+  .task-pairing [data-leader="true"] .score-position { background: var(--lacquer); color: white; font-weight: 700; }
+  .task-pairing :is(.score-face, .tw-card-art, .score-face--support .tw-card-art) { background: var(--paper); }
+  .task-pairing .task-empty-card { color: var(--team-muted); background: var(--paper) !important; }
+  .task-pairing .tw-card-name { color: var(--stage-ink); font-size: 11px; }
+  .task-pairing .tw-card-source { font-size: 10px; }
+  .task-pairing .task-pair-links { background: var(--paper); border-color: var(--line); gap: 5px; }
+  .task-pair-links .task-link--attribute { color: #315f73; }
+  .task-pair-links .task-link--band { color: var(--lacquer); }
+  .task-pair-links .task-link--mission { color: #39614d; }
+  .task-link-icons img + img { margin-left: 0; }
+
+  .calculator-start [data-optimize-pairing],
+  .recommendation-actions button:first-child,
+  .task-dialog footer button:last-child {
+    background: var(--lacquer);
+    border-color: var(--lacquer);
+    color: white;
+  }
+
+  .calculator-start [data-optimize-pairing]:hover:not(:disabled),
+  .recommendation-actions button:first-child:hover:not(:disabled),
+  .task-dialog footer button:last-child:hover:not(:disabled) {
+    background: #602642;
+    border-color: #602642;
+    color: white;
+  }
+
+  :is(.task-subtabs, .task-candidate-tabs) button { background: transparent; }
+
+  .task-workbench button:disabled { cursor: not-allowed; }
+  .task-workbench-main .optimizer-results-panel { border-top: 3px solid var(--lacquer); }
+  .recommendation-score strong { color: var(--lacquer); font-variant-numeric: tabular-nums; }
+  .recommendation-mode, .recommendation-tradeoff, .recommendation-caption { font-size: 11px; }
+  .calculator-progress { color: var(--stage-ink); }
+  .calculator-empty h3 { color: var(--stage-ink); }
+  .task-song-dialog [data-song-choice][aria-pressed="true"] {
+    outline: 2px solid var(--lacquer);
+    border-color: var(--lacquer);
+    background: var(--team-tint);
+    color: var(--lacquer);
+  }
+}
+
+/* The shared workspace lives outside the tool element; scope it through this page. */
+body:has(.tool-studio.task-studio[data-tool-kind="deck-builder"]) {
+  .tw-panel {
+    --accent: var(--lacquer);
+    --border: var(--team-border);
+    color: var(--stage-ink);
+    border-color: var(--team-border);
+    background: var(--team-surface);
+  }
+
+  :is(.tw-panel, .task-dialog)::backdrop { background: rgb(17 19 27 / 48%); }
+  .tw-launcher { background: var(--stage-ink); border-color: var(--stage-ink); }
+  .tw-panel :is(button, input, select, .tw-current, .tw-saved-team, .tw-editor,
+      .tw-edit-pair, .tw-inventory-card, .tw-inventory-extra-filters,
+      .tw-inventory-editor, .ux-card-picker, .tw-card-view--compact) {
+    background: var(--team-surface);
+    color: var(--stage-ink);
+    border-color: var(--team-border);
+  }
+
+  .tw-panel :is(.tw-heading, .tw-navigation, .tw-editor-actions) { background: var(--team-surface); border-color: var(--line); }
+  .tw-panel :is(.tw-tabs, .tw-edit-pair > header, .tw-edit-card > details, .tw-card-art, .tw-card-empty) { background: var(--paper); border-color: var(--team-border); }
+  .tw-panel :is(.tw-card-choice-action, .tw-pair > small, .tw-card-source, .tw-card-relation) { color: var(--team-muted); }
+  .tw-panel .tw-current { border-top-color: var(--lacquer); }
+  .tw-panel .tw-tabs button[aria-selected="true"],
+  .tw-panel button[aria-pressed="true"] {
+    background: var(--team-tint);
+    border-color: var(--lacquer);
+    color: var(--lacquer);
+    box-shadow: inset 0 0 0 1px var(--lacquer);
+    font-weight: 700;
+  }
+
+  .tw-panel :is(.ux-card-positions, .ux-card-preview, .ux-card-pinned, .ux-card-browser, .ux-card-picker > header, .ux-card-picker > footer) {
+    background: var(--team-surface);
+    border-color: var(--line);
+  }
+  .tw-panel .ux-card-picker .ux-card-grid > button { border-color: var(--team-border); background: var(--team-surface); }
+  .tw-panel .ux-card-picker .ux-card-grid > button[aria-pressed="true"] { border-color: var(--lacquer); box-shadow: inset 0 0 0 1px var(--lacquer); }
+  .tw-panel .ux-card-picker .ux-card-grid .tw-card-source { color: var(--team-muted); font-size: 10px; }
+  .tw-panel .ux-card-picker .ux-card-in-use { color: var(--lacquer); background: var(--team-surface); }
+  .tw-panel button:disabled:not([data-card-id]) {
+    color: var(--team-muted);
+    background: var(--paper);
+    border-color: var(--team-border);
+    opacity: .65;
+    cursor: not-allowed;
+  }
+  .tw-panel .ux-card-grid > button { position: relative; }
+  .tw-panel .ux-card-grid > button[aria-pressed="true"]::after {
+    content: "✓";
+    position: absolute;
+    right: 6px;
+    bottom: 6px;
+    display: grid;
+    place-items: center;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: var(--lacquer);
+    color: white;
+    font-size: 14px;
+    box-shadow: 0 0 0 2px var(--team-surface);
+  }
+
+  .tw-panel :is(button, a, summary, input, select):focus-visible { outline: 3px solid var(--gel-blue); outline-offset: 3px; }
+  .tw-panel button:hover:not(:disabled) { border-color: var(--lacquer); }
+  .tw-panel .tw-editor-actions button[data-variant="primary"], .tw-panel button[data-variant="primary"],
+  .tw-panel .ux-card-replace, .tw-panel .ux-card-done {
+    background: var(--lacquer); color: white; border-color: var(--lacquer);
+  }
+
+  /* Keep logos on an opaque plate; do not recolor the game's attribute/band art. */
+  :is(.task-pairing, .tw-panel) .tw-card-meta {
+    background: var(--team-surface);
+    border: 1px solid var(--team-border);
+    border-radius: 4px;
+    padding: 2px;
+    max-width: calc(100% - 46px);
+  }
+  :is(.task-pairing, .tw-panel) .tw-card-meta > span { color: var(--stage-ink); font-size: 10px; overflow-wrap: anywhere; }
+  .tw-panel .ux-card-picker .tool-options button[data-round="true"]:not([data-icon]) { width: auto; height: auto; border-radius: 5px; padding: 3px 6px; }
+  :is(.task-pairing, .tw-panel) .tw-card-meta .tw-card-band img { width: 22px !important; height: 20px !important; }
+  :is(.task-pairing, .tw-panel) .tw-card-view[data-source="reference"] .tw-card-source { color: #315f73; }
+  :is(.task-pairing, .tw-panel) .tw-card-view[data-source="training"] .tw-card-source { color: #80551d; }
+  :is(.task-pairing, .tw-panel) .tw-card-view[data-source="unknown"] .tw-card-source { color: #80551d; }
+}
