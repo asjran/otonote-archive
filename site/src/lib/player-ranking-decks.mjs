@@ -83,9 +83,9 @@ export function createRankingRow(entry, {en, catalog, server, scoreLabel}) {
   const profileImages = entry.profile?.profileCardImages || [];
   if (profileImages.length) {
     const namecard = node('span','pr-profile-card');const image = node('img');
-    let index = profileImages.length - 1;
+    let index = 0;
     image.src = profileImages[index];image.alt = en ? 'Player profile card' : '玩家名片';image.loading = 'lazy';image.decoding = 'async';image.referrerPolicy = 'no-referrer';
-    image.addEventListener('error',()=>{if (--index >= 0) image.src = profileImages[index];else namecard.remove();});namecard.append(image);identity.append(namecard);
+    image.addEventListener('error',()=>{if (++index < profileImages.length) image.src = profileImages[index];else namecard.remove();});namecard.append(image);identity.append(namecard);
   }
   const team = node('span', 'pr-team-preview');
   team.setAttribute('aria-label', en ? 'High-score team members' : '最高分队伍成员');
@@ -154,6 +154,16 @@ export function createRankingRow(entry, {en, catalog, server, scoreLabel}) {
     heading.append(node('h3', '', en ? 'Highest-score team' : '最高分队伍'),
       node('p', '', en ? 'Team and power saved with this score.' : '取得该成绩时保存的编成与综合力。'));
     panel.append(heading);
+    if (profileImages.length) {
+      const gallery=node('section','pr-profile-gallery');gallery.setAttribute('aria-label',en?'Player profile cards':'玩家名片');
+      gallery.append(node('h4','',en?'Profile cards':'名片'));
+      const pictures=node('div','pr-profile-pictures');
+      for (const source of profileImages) {
+        const image=node('img');image.src=source;image.alt=en?'Player profile card':'玩家名片';image.loading='lazy';image.decoding='async';image.referrerPolicy='no-referrer';
+        image.addEventListener('error',()=>image.remove(),{once:true});pictures.append(image);
+      }
+      gallery.append(pictures);panel.append(gallery);
+    }
     if (anomaly) panel.append(node('p', 'pr-score-warning-detail', anomalyReason + (en
       ? ' Automatically flagged for this score; this is not a confirmed cheating verdict.'
       : ' 此标记由成绩规则自动判定，不代表已确认作弊。')));
