@@ -4,7 +4,7 @@ import {createSharedTeamRules} from './fixtures/shared-team-rules.mjs';
 import {createTeamDraft,parseTeamDraftSearch} from '../src/lib/team-draft.mjs';
 import {createPersonalGrowthStore} from '../src/lib/personal-growth-store.mjs';
 import {registerToolTeamContext,refreshToolTeamGrowth,toolTeamInputState} from '../src/lib/shared-team-context.mjs';
-import {prepareCurrentTeamGrowthEdit,teamCardSelectionReason} from '../src/lib/shared-team-workspace.mjs';
+import {prepareCurrentTeamGrowthEdit,teamCardSelectionReason,retainTeamCardGrowth} from '../src/lib/shared-team-workspace.mjs';
 import {createPlanningSettings} from '../src/lib/team-planning-scenario-ui.mjs';
 const rules=createSharedTeamRules();
 const context={region:'global',serverId:'global-hmt'};
@@ -105,4 +105,16 @@ test('replacement permits same-character variants in their own slot, never acros
  assert.equal(teamCardSelectionReason({id:'support-card-6',characterIds:['character-1']},{kind:'support',slot:0},options),'');
  assert.match(teamCardSelectionReason(members.at(-1),{kind:'member',slot:0},{...options,restrictions:{rules:localRules,allowedMemberIds:[]}}),/不允许/);
  assert.deepEqual(d,before);
+});
+
+
+test('reselecting a card retains edited growth; new cards copy inventory without aliasing it',()=>{
+ const draft=createTeamDraft({modifiers:{growth:{'member-card-1':{level:42,skillLevel:3}}}});
+ const inventory={growth:{'member-card-1':{level:1,skillLevel:1},'support-card-2':{level:10,rank:1}}},before=structuredClone(inventory);
+ retainTeamCardGrowth(draft,'member-card-1',inventory);
+ assert.deepEqual(draft.modifiers.growth['member-card-1'],{level:42,skillLevel:3});
+ retainTeamCardGrowth(draft,'support-card-2',inventory);
+ assert.deepEqual(draft.modifiers.growth['support-card-2'],inventory.growth['support-card-2']);
+ draft.modifiers.growth['support-card-2'].level=20;assert.deepEqual(inventory,before);
+ retainTeamCardGrowth(draft,'member-card-3',inventory);assert.equal(draft.modifiers.growth['member-card-3'],undefined);
 });

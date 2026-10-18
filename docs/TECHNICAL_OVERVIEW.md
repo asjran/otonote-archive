@@ -108,3 +108,9 @@ python3 tools/preview_independent_site.py \
 `shared-team-context` 是工具页与浮窗的接口：读取或应用队伍、声明限制、作废计算结果。它保留页面歌曲与活动条件，并监听同页养成通知和跨标签页变化。已打开的工具持有各自工作副本，不会因另一页换队而自动改队。`team-workspace-compatibility` 共用禁用原因与输入检查，活动加成不得被转为硬限制。
 
 `SharedTeamWorkspace` 只挂载轻量入口，首次打开才加载浮窗和卡库管理；非计算工具通过 `shared-team-data` 按需读取当前内容快照。`shared-inventory-panel` 负责实际养成、导入预览与撤销；`shared-team-workspace` 负责命名队伍、配对、队长和培养场景编辑。所有个人数据仍保存在浏览器，不新增账号数据后台。
+
+## 截图导入定位
+
+`card-recognition/engine.mjs` 校验图片尺寸并传递截图类型；经典 Worker 加载 `layout.js`，使用 OpenCV 边缘检测从重复卡框推断列位置、尺寸和完整行。定位不依赖设备型号、固定列数或列表起点。卡片统一缩放为识别尺寸后，以同行可见数字基线校准裁片；缺少一致锚点时保留卡面候选，养成字段留空。ORB 几何验证、数字 OCR、逐卡校对和库存合并沿用现有路径。`tools/build_web_client.mjs` 将定位模块与 Worker 一起打入不可变代码包，候选离线门禁包含几何与基线回归。
+
+仍保留游戏卡框比例、邻列间距范围与数字样式的约束；不承诺任意裁剪、单列、换肤或严重模糊截图。浏览器构造样本验证与不同手机实测分开记录。

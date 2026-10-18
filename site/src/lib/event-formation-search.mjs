@@ -14,7 +14,7 @@ export async function searchEventFormations({ rules, draft, chart, scope, invent
   objective = 'expected_song_score', boundMetric, seeds = [], bonusFor, upperCandidate, transformScore = r => r,
   compareCandidates = (a,b) => b.value-a.value, rankCandidates = compareCandidates, maxEvaluations = 24, topN = 3,
   signal, yieldControl = async () => {}, onProgress = () => {}, scoreCache,
-  pairCache, pairCacheKey, modelCache, scoreCounters, baselineResult, bonusCeiling, scoreBoundOptions = {}, proofCount = topN,
+  pairCache, pairCacheKey, modelCache, scoreCounters, baselineResult, bonusCeiling, scoreBoundOptions = {}, proofCount = topN, includeTieScoreBound = true,
   shouldPause = () => false, onContinuation }) {
   if (!Number.isInteger(maxEvaluations) || maxEvaluations < 0) throw new Error('Invalid event search budget');
   if (!Number.isInteger(topN) || topN < 1 || topN > 100) throw new Error('Invalid event result limit');
@@ -41,14 +41,14 @@ export async function searchEventFormations({ rules, draft, chart, scope, invent
   if (!['expectedScore','minimumScore','maximumScore'].includes(metric)) throw new Error('Invalid event score objective');
   const scoreBound = createOrdinaryScoreBound({ ...scoreBoundOptions, song, pairSkills, legacyFactor: Math.fround((1+2*maxima.sort((a,b)=>b-a).slice(0,5).reduce((a,b)=>a+b,0))*1.0001), input, metric });
   // Event grade may use minimumScore, but its final tie-break uses expectedScore.
-  const tieBound = bonusFor && metric !== 'expectedScore'
+  const tieBound = bonusFor && includeTieScoreBound && metric !== 'expectedScore'
     ? createOrdinaryScoreBound({ song, pairSkills, legacyFactor: Math.fround((1+2*maxima.slice(0,5).reduce((a,b)=>a+b,0))*1.0001), input, metric: 'expectedScore' })
     : scoreBound;
   const rootHints = new Map();
   // One global bonus ceiling can certify the retained reward tuples after
   // bounding reachable grades. Avoid two bonus flows per leader (and their
   // large edge matrices) when no further reward improvement is possible.
-  if (bonusCeiling && seeds.length >= topN) {
+  if (bonusCeiling && seeds.length >= proofCount) {
     for (const model of models) {
       const state={leader:model.leader,required:[],forbidden:[]};
       const power=maximumPairing({edges:model.edges,requiredMembers:[model.leader]});
@@ -59,10 +59,13 @@ export async function searchEventFormations({ rules, draft, chart, scope, invent
     }
     const upper=upperCandidate({...bonusCeiling,scoreUpper:Math.max(...[...rootHints.values()].map(r=>r.scoreUpper)),tieScoreUpper:Number.MAX_VALUE});
     const retained=[...seeds].sort(rankCandidates).slice(0,topN);
-    if(compareCandidates(upper,retained.at(-1))>=0)return {results:retained,evaluated:0,
+    if(compareCandidates(upper,retained[proofCount-1])>=0)return {results:retained,evaluated:0,expanded:0,candidateBoundPruned:0,
+      fullScoreCalculations:0,scoreCacheHits:0,
+      boundScoreCalculations:scoreBound.stats.fullScoreCalculations+(tieBound===scoreBound?0:tieBound.stats.fullScoreCalculations),
+      proofTarget:proofCount===1?'best':'top_n',certifiedCount:proofCount,
       optimality:'proven_within_model',searchStatus:'completed',upperBound:upper.value,optimalityGap:0,
       upperCandidate:{value:upper.value,total:upper.total,scoreRank:upper.reward.scoreRank},
-      bestProven:true,topNComplete:true,frontier:0,proof:'reachable_grade_and_bonus_ceiling'};
+      bestProven:true,topNComplete:proofCount===topN,frontier:0,proof:'reachable_grade_and_bonus_ceiling'};
   }
   const byLeader = new Map(models.map(m => [m.leader, m]));
   const primary = bonusFor ? bonusFor.metric : null;
@@ -101,14 +104,14 @@ export async function searchEventFormations({ rules, draft, chart, scope, invent
   // Legacy callers retain their expansion order and separate certificate heap.
   // The joint challenge relaxation uses its tighter bound for both purposes.
   const preservePriority = !bonusFor && !scoreBoundOptions.jointPowerBound;
-  const solve = state => {
+  const solve = (state, cutoff = -Infinity) => {
     const model = byLeader.get(state.leader), options = { required: state.required, forbidden: state.forbidden, requiredMembers: [state.leader] };
     const hint=!state.required.length&&!state.forbidden.length?rootHints.get(state.leader):null;
     const power = hint?.power??maximumPairing({ ...options, edges: model.edges });
     if (!power) return null;
     if (!bonusFor) {
       const {upper,priority}=scoreBoundOptions.jointPowerBound
-        ? {upper:scoreBound(state,model,power,()=>draftFromPairing(input,state.leader,power.edges))}
+        ? {upper:scoreBound.withCutoff(state,model,power,()=>draftFromPairing(input,state.leader,power.edges),cutoff)}
         : scoreBound.withPriority(state,model,power,()=>draftFromPairing(input,state.leader,power.edges));
       const inherited=Math.min(upper,state.upper?.value??Infinity);
       return { ...state, solution: power, upper: { value:inherited,expectedScore:inherited },
@@ -141,7 +144,7 @@ export async function searchEventFormations({ rules, draft, chart, scope, invent
   const signature = d => d.slots.map(s=>`${s.memberCardId}|${s.supportCardId}`).join(';');
   const results = new Map(seeds.map(r=>[signature(r.draft),r]));
   const best = () => [...results.values()].sort(rankCandidates).slice(0,topN);
-  let evaluated = 0, expanded = 0, candidateBoundPruned = 0;
+  let evaluated = 0, expanded = 0, candidateBoundPruned = 0, fullScoreCalculations = 0, scoreCacheHits = 0;
   const run = async () => {
     const startedExpanded=expanded;
     while (queue.length && !signal?.aborted && !shouldPause() && (!maxEvaluations || expanded-startedExpanded < maxEvaluations)) {
@@ -157,13 +160,13 @@ export async function searchEventFormations({ rules, draft, chart, scope, invent
       // can be much weaker. Bound THIS complete team before paying for 120
       // native order replays. Still partition the state when it cannot win.
       const candidateUpper = !bonusFor && scoreBoundOptions.jointPowerBound && worst
-        ? scoreBound({...state,required:state.solution.edges.map(e=>e.key)},{edges:state.solution.edges},state.solution,()=>candidate)
+        ? scoreBound.withCutoff({...state,required:state.solution.edges.map(e=>e.key)},{edges:state.solution.edges},state.solution,()=>candidate,worst.value)
         : Infinity;
       if (worst && candidateUpper <= worst.value) candidateBoundPruned++;
       else {
         let raw = scoreCache?.get(key);
-        if (raw) { if(scoreCounters)scoreCounters.scoreCacheHits++; }
-        else { raw=evaluator.score(candidate);scoreCache?.set(key,raw);if(scoreCounters)scoreCounters.scoreCalculations++; }
+        if (raw) { scoreCacheHits++; if(scoreCounters)scoreCounters.scoreCacheHits++; }
+        else { fullScoreCalculations++; raw=evaluator.score(candidate);scoreCache?.set(key,raw);if(scoreCounters)scoreCounters.scoreCalculations++; }
         const transformed = transformScore(raw,candidate);
         const value = { ...transformed, draft:candidate, id:signature(candidate), origins:['certified-search'],
           delta:baselineResult ? transformed.value-baselineResult.value : null,
@@ -174,7 +177,13 @@ export async function searchEventFormations({ rules, draft, chart, scope, invent
         for (const key of results.keys()) if (!keep.has(key)) results.delete(key);
       }
       expanded++;
-      for (const child of partitionPairing(state,state.solution)) { const solved=solve(child);if(solved)push(solved); }
+      const cutoff=!bonusFor && scoreBoundOptions.jointPowerBound ? best()[proofCount-1]?.value??-Infinity : -Infinity;
+      for (const child of partitionPairing(state,state.solution)) {
+        const solved=solve(child,cutoff);
+        // The incumbent cannot decrease. Discard a certified losing partition
+        // now instead of retaining its edges and solution in the frontier.
+        if(solved && (cutoff===-Infinity || solved.upper.value>cutoff))push(solved);
+      }
       onProgress({ phase:'event-exact',completed:evaluated,expanded,frontier:queue.length,bestCandidate:best()[0] });
       await yieldControl();
     }
@@ -183,7 +192,8 @@ export async function searchEventFormations({ rules, draft, chart, scope, invent
     const complete=!queue.length;
     const upper=remaining();
     const bestRemaining=upper??retained[0];
-    return { results:retained, evaluated, expanded, candidateBoundPruned, proofTarget:proofCount===1?'best':'top_n',
+    return { results:retained, evaluated, expanded, candidateBoundPruned, fullScoreCalculations, scoreCacheHits,
+      boundScoreCalculations:scoreBound.stats.fullScoreCalculations+(tieBound===scoreBound?0:tieBound.stats.fullScoreCalculations), proofTarget:proofCount===1?'best':'top_n',
       certifiedCount:complete?Math.min(proofCount,retained.length):0,
       optimality:complete?(retained.length?'proven_within_model':'infeasible'):'incomplete',
       searchStatus:complete?(retained.length?'completed':'no_feasible_formation'):signal?.aborted?'cancelled':shouldPause()?'paused':'budget_exhausted',

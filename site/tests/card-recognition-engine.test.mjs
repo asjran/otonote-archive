@@ -5,10 +5,20 @@ import {createRecognitionEngine} from '../src/lib/card-recognition/engine.mjs';
 test('cancel initialization/matching, reject engine errors, then retry with a fresh worker',async t=>{
   const original=new Map(['Worker','OffscreenCanvas','createImageBitmap','isSecureContext','document','Tesseract'].map(k=>[k,Object.getOwnPropertyDescriptor(globalThis,k)]));
   t.after(()=>{for(const [k,d] of original)if(d)Object.defineProperty(globalThis,k,d);else delete globalThis[k];});
-  let behavior='stall',ocrStops=0,cvStops=0,matchingStarted;
+  let behavior='stall',ocrStops=0,cvStops=0,matchingStarted,unaligned=false;
   class FakeWorker{
     postMessage(message){
-      if(message.type==='recognize'){matchingStarted();return;}
+      if(message.type==='recognize'){
+        assert.equal(message.regions,undefined,'geometry belongs to the image worker');
+        assert.equal(message.mode,'member-level');
+        if(unaligned){
+          queueMicrotask(()=>{
+            this.onmessage({data:{type:'row',id:message.id,growthAligned:false,badge:null,crop:{},match:{accepted:true,candidates:[{id:'member-card-1'}]}}});
+            this.onmessage({data:{type:'complete',id:message.id}});
+          });
+        }else matchingStarted();
+        return;
+      }
       queueMicrotask(()=>{
         if(behavior==='ready')this.onmessage({data:{type:'ready'}});
         if(behavior==='error')this.onmessage({data:{type:'error',message:'broken index'}});
@@ -30,4 +40,10 @@ test('cancel initialization/matching, reject engine errors, then retry with a fr
   const processing=retry.recognize({name:'synthetic'},'member-level','id',()=>assert.fail('cancelled recognition must not publish rows'));
   await started;retry.dispose();await assert.rejects(processing,/取消/);
   assert.equal(cvStops,3);assert.equal(ocrStops,1);
+  unaligned=true;
+  const conservative=createRecognitionEngine(config),rows=[];await conservative.initialize();
+  await conservative.recognize({name:'no numeric anchors'},'member-level','unaligned',row=>rows.push(row));
+  assert.equal(rows[0].cardId,'member-card-1');
+  assert.deepEqual(rows[0].observations,{awakeningStars:null,level:null});
+  conservative.dispose();
 });

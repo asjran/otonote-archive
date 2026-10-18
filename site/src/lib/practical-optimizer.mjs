@@ -67,7 +67,7 @@ export async function optimizePractical({ rules, draft, scope = 'selected', inve
     { id: 'neighbours', label: '检查一轮换卡与配对', completed: 0, total: null },
     { id: 'screen', label: '快速模拟候选', completed: 0, total: null },
     { id: 'final', label: '完整复算领先队伍', completed: 0, total: null }];
-  const report = { plan: {...PRACTICAL_PLAN, finalists: finalistLimit}, stages, directions: [], neighbourChecks: 0, neighbourGenerated: 0, screened: 0, finalists: 0, scoreCacheHits: 0, scoreCalculations: 0, unsupportedPairs: [], unsupportedCandidates: [] };
+  const report = { plan: {...PRACTICAL_PLAN, finalists: finalistLimit}, stages, directions: [], neighbourChecks: 0, neighbourGenerated: 0, screened: 0, finalists: 0, scoreCacheHits: 0, scoreCalculations: 0, fullScoreCalculations: 0, screenScoreCalculations: 0, unsupportedPairs: [], unsupportedCandidates: [] };
   const results = [], warnings = [...input.assumptions, ...PRACTICAL_SEARCH_WARNINGS];
   let baselineResult = null;
   const result = status => ({ status, searchMethod: 'practical', objective, searchScope: scope, mode,
@@ -113,7 +113,7 @@ export async function optimizePractical({ rules, draft, scope = 'selected', inve
       report.unsupportedCandidates.push({ ...issue, slots: draft.slots });
       return null;
     }
-    report.scoreCalculations++;scoreCache?.set(key,value);return value;
+    report.scoreCalculations++;report[precision==='full'?'fullScoreCalculations':'screenScoreCalculations']++;scoreCache?.set(key,value);return value;
   };
   const screened = [];
   for (const candidate of screenDrafts.values()) {
