@@ -7,6 +7,13 @@ import {createCalculationScheduler} from './calculation-scheduler.mjs';
 const seconds=c=>c.seconds??Infinity;
 const compare=(a,b,goal)=>compareEventPlans({...a,expectedScore:0},{...b,expectedScore:0},goal);
 
+/** Shared demand order for the batch and its bounded network lookahead. */
+export function eventYieldChartPlan(candidates,rules,input){
+ const plan=planEventSearch(candidates,rules,input.draft),full=input.searchDepth==='full';
+ const selected=full?[...plan.full].sort((a,b)=>seconds(a)-seconds(b)||a.id.localeCompare(b.id)):plan.quick;
+ return {plan,selected};
+}
+
 /** Production worker and local benchmarks share this complete batch path.
  * A skipped chart is covered by a global objective bound, never represented
  * as if its own best formation had been calculated. */
@@ -15,8 +22,7 @@ export async function runEventYieldBatch({rules,eventId,candidates,challengeCand
  getScoreCache=async()=>new Map(),afterChart=async()=>{},onJobComplete=async()=>{},onGroupComplete=async()=>{},
  onMessage=()=>{},signal,yieldControl=createCalculationScheduler({eco:input.eco!==false}),proveGroup,
  globalPruning=true,witnessPrepass=true}){
- const plan=planEventSearch(candidates,rules,input.draft),full=input.searchDepth==='full';
- const selected=full?[...plan.full].sort((a,b)=>seconds(a)-seconds(b)||a.id.localeCompare(b.id)):plan.quick;
+ const {plan,selected}=eventYieldChartPlan(candidates,rules,input),full=input.searchDepth==='full';
  const cycle=input.mode==='ordinary'&&input.includeChallenge;
  const goals=eventYieldGoals(input.goal,input.mode),total=selected.length+(cycle?challengeCandidates.length:0),available=candidates.length+(cycle?challengeCandidates.length:0);
  const failures=[],challengeRows=[],rows=new Map(),scoreCaches=new Map(),resolved=new Map(goals.map(g=>[g,new Set()])),
