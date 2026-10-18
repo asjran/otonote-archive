@@ -1,4 +1,5 @@
 import {currentServerContext} from './game-servers.mjs';
+import {maintenanceNotice} from './game-service-status.mjs';
 import {createHistoryModel, selectHistory, summarizeHistory, shareSummary, historyTime, RARITIES, HIGH_RARITIES, CARD_KINDS, STATISTICS_NOTE} from './gacha-history.mjs';
 import {createGachaShareImage} from './gacha-share-image.mjs';
 
@@ -27,6 +28,9 @@ export class GachaHistoryTool extends (globalThis.HTMLElement ?? class {}) {
     this.events = new AbortController(); this.q = selector => this.querySelector(`[data-gacha-${selector}]`);
     this.catalog = JSON.parse(this.q('catalog').textContent);
     const on = (target,event,callback) => target.addEventListener(event,callback,{signal:this.events.signal});
+    on(window,'game-service-status-change',event=>{
+      if(this.nonce)this.applyGameStatus(event.detail.servers[currentServerContext().serverId]);
+    });
     on(this.q('login'),'submit',event => {event.preventDefault();this.queryHistory();});
     on(this.q('retry'),'click',() => this.checkService());
     on(this.q('clear'),'click',() => this.reset());
@@ -68,11 +72,19 @@ export class GachaHistoryTool extends (globalThis.HTMLElement ?? class {}) {
         throw Error('登录服务尚未开放抽卡记录查询，请稍后重新检查。');
       }
       if(controller.signal.aborted)return;
-      this.nonce=result.nonce;this.q('fields').disabled=false;this.q('service').textContent='BHK 登录已就绪 · 每次查询重新登录';
+      this.nonce=result.nonce;this.applyGameStatus(result.gameStatus);
     } catch(error) {
       if (!this.isConnected) return;
       this.q('service').textContent=error.name==='AbortError'?'检查登录服务超时，请重试。':error.message;this.q('retry').hidden=false;
     } finally {clearTimeout(timer);}
+  }
+
+  applyGameStatus(observation) {
+    this.maintenance=observation?.status==='maintenance';
+    this.q('fields').disabled=this.busy||!this.nonce||this.maintenance;
+    this.q('retry').hidden=!this.maintenance;
+    this.q('service').textContent=this.maintenance ? maintenanceNotice(observation)
+      : '本站查询入口已连接 · 每次查询重新登录；官方服务状态以实际结果为准';
   }
 
   clearShare() {
@@ -91,7 +103,7 @@ export class GachaHistoryTool extends (globalThis.HTMLElement ?? class {}) {
     this.q('pool').replaceChildren(node('option','全部卡池'));
     this.q('pool').firstChild.value='all';
     this.q('result').hidden=true;this.q('empty').hidden=false;this.q('clear').hidden=true;
-    this.q('fields').disabled=!this.nonce;
+    this.q('fields').disabled=!this.nonce||this.maintenance;
     this.q('login-panel').open=true;this.q('status').textContent='登录后查看抽卡记录。';
     for(const target of ['record-list','distribution','pools','trend','album'])this.q(target).replaceChildren();
     for(const target of ['total','member-ssr','support-ssr','pickup'])this.q(target).textContent='—';
@@ -101,7 +113,7 @@ export class GachaHistoryTool extends (globalThis.HTMLElement ?? class {}) {
   }
 
   async queryHistory() {
-    if(this.busy||!this.nonce)return;
+    if(this.busy||!this.nonce||this.maintenance)return;
     let body=JSON.stringify({account:this.q('account').value,password:this.q('password').value});
     this.reset();const sequence=this.sequence;
     this.busy=true;this.q('fields').disabled=true;this.q('clear').hidden=false;
@@ -114,6 +126,10 @@ export class GachaHistoryTool extends (globalThis.HTMLElement ?? class {}) {
       if(Number(response.headers.get('content-length'))>2_000_000)throw Error('返回记录过大，未载入。');
       const text=await response.text();if(text.length>2_000_000)throw Error('返回记录过大，未载入。');
       let result;try{result=JSON.parse(text);}catch{throw Error('登录服务返回异常，请稍后重新查询。');}
+      if(result.error==='game_maintenance'){
+        this.applyGameStatus(result.gameStatus??{status:'maintenance'});
+        throw Error(maintenanceNotice(result.gameStatus??{status:'maintenance'}));
+      }
       if(!response.ok){
         if(response.status===403){this.nonce=null;this.q('retry').hidden=false;}
         throw Error(messages[result.reason]??(response.status===429?'服务繁忙，请稍后重新查询。':response.status===403?'页面已过期，请重新检查登录服务。':'抽卡记录读取未完成，请稍后重新查询。'));
@@ -131,7 +147,7 @@ export class GachaHistoryTool extends (globalThis.HTMLElement ?? class {}) {
       if(sequence===this.sequence)this.q('status').textContent=error.name==='AbortError'?'读取超时，本次未载入记录。请稍后重新登录。':error.message;
     } finally {
       body='';clearTimeout(timer);
-      if(sequence===this.sequence){this.busy=false;this.request=null;this.q('fields').disabled=!this.nonce;}
+      if(sequence===this.sequence){this.busy=false;this.request=null;this.q('fields').disabled=!this.nonce||this.maintenance;}
     }
   }
 

@@ -20,6 +20,7 @@ from urllib.parse import urlsplit
 from tools.growth_export import ExportError
 from tools.growth_login import GameClient, LoginError, Profile, SdkClient
 from tools.gacha_history import GachaHistoryClient
+from tools.game_service_status import GameServiceStatus
 
 ROOT = '/api/growth-export/'
 DIAGNOSTIC_STAGES = frozenset({
@@ -29,6 +30,7 @@ DIAGNOSTIC_STAGES = frozenset({
 DIAGNOSTIC_ERRORS = frozenset({
     'origin_refused', 'not_found', 'invalid_request', 'request_too_large',
     'busy', 'rate_limited', 'upstream_unavailable', 'invalid_sdk_profile',
+    'game_maintenance',
     'unsupported_sdk_profile', 'invalid_auth_response',
     'sdk_parameter_override_refused', 'sdk_operation_refused',
     'sdk_response_too_large', 'sdk_network_or_tls_error',
@@ -84,7 +86,7 @@ class GrowthGateway(ThreadingHTTPServer):
     daemon_threads = True
 
     def __init__(self, profile, origins, port=0, sdk_factory=SdkClient, game_factory=GameClient,
-                 history_factory=GachaHistoryClient, diagnostic_sink=None):
+                 history_factory=GachaHistoryClient, diagnostic_sink=None, game_status=None):
         self.origins = set(origins)
         if not self.origins:
             raise ValueError('at_least_one_origin_required')
@@ -98,6 +100,7 @@ class GrowthGateway(ThreadingHTTPServer):
             self.hosts.add(p.netloc)
         self.profile, self.sdk_factory, self.game_factory = profile, sdk_factory, game_factory
         self.history_factory = history_factory
+        self.game_status = game_status
         self.nonce = secrets.token_urlsafe(32)
         self.capacity = threading.BoundedSemaphore(2)
         self.connections = threading.BoundedSemaphore(16)
@@ -168,6 +171,11 @@ class GrowthGateway(ThreadingHTTPServer):
             if progress_callback:
                 progress_callback(value)
         try:
+            if getattr(self, 'game_status', None) is not None:
+                observation = self.game_status.server('global-hmt')
+                if observation.get('status') == 'maintenance':
+                    return 503, {'error': 'game_maintenance', 'gameStatus': observation,
+                                 'stage': stage}
             progress(stage)
             game = (self.history_factory if history else self.game_factory)()
             host = game.discover()
@@ -180,7 +188,8 @@ class GrowthGateway(ThreadingHTTPServer):
         except (LoginError, ExportError) as exc:
             if failure_callback:
                 failure_callback(exc)
-            return 422, {'error': str(exc), 'stage': stage, 'reason': getattr(exc, 'reason', None)}
+            return (503 if str(exc) == 'game_maintenance' else 422), {
+                'error': str(exc), 'stage': stage, 'reason': getattr(exc, 'reason', None)}
         except Exception:
             return 502, {'error': 'upstream_unavailable', 'stage': stage}
         finally:
@@ -207,7 +216,7 @@ class Handler(BaseHTTPRequestHandler):
         self.send_header('Cache-Control', 'no-store')
         self.send_header('X-Content-Type-Options', 'nosniff')
         self.send_header('Referrer-Policy', 'no-referrer')
-        if status == 429:
+        if status in (429, 503):
             self.send_header('Retry-After', '60')
         self.end_headers()
         self.wfile.write(data)
@@ -219,10 +228,18 @@ class Handler(BaseHTTPRequestHandler):
     def do_GET(self):
         if not self.valid_source():
             return self.reply(403, {'error': 'origin_refused'})
-        if self.path.rstrip('/') != ROOT + 'capabilities':
+        path = self.path.rstrip('/')
+        if path == ROOT + 'status':
+            if self.server.game_status is None:
+                return self.reply(503, {'error': 'status_not_configured'})
+            return self.reply(200, self.server.game_status.snapshot())
+        if path != ROOT + 'capabilities':
             return self.reply(404, {'error': 'not_found'})
-        return self.reply(200, {'enabled': True, 'region': 'TW/HK/MO', 'nonce': self.server.nonce,
-                               'gachaHistory': True})
+        result = {'enabled': True, 'region': 'TW/HK/MO', 'nonce': self.server.nonce,
+                  'gachaHistory': True}
+        if self.server.game_status is not None:
+            result['gameStatus'] = self.server.game_status.server('global-hmt')
+        return self.reply(200, result)
 
     def do_POST(self):
         path = self.path.rstrip('/')
@@ -292,7 +309,8 @@ def main():
     parser.add_argument('--origin', action='append', required=True)
     parser.add_argument('--port', type=int, default=18765)
     args = parser.parse_args()
-    server = GrowthGateway(Profile.from_resources(args.sdk_resources), args.origin, args.port)
+    server = GrowthGateway(Profile.from_resources(args.sdk_resources), args.origin, args.port,
+                           game_status=GameServiceStatus())
     print('Growth gateway listening on loopback port ' + str(server.server_port), flush=True)
     try:
         server.serve_forever()
