@@ -111,3 +111,16 @@ html:not([data-home="immersive"]) .home-scene-switch [data-home-mode="original"]
 @media(max-width:480px) { .immersive-catalog-grid { grid-template-columns:1fr; } .immersive-heading nav { gap:6px; } }
 .immersive-scene-select { display:flex; align-items:center; flex-wrap:wrap; gap:8px; font-size:12px; }
 .immersive-scene-select select { max-width:260px; padding:9px 12px; border:1px solid var(--line); border-radius:8px; color:var(--ink); background:var(--paper-light); }
+
+/* Character actions stay outside the artwork and remain available to keyboard users. */
+.immersive-cast { display:flex; flex-wrap:wrap; flex-basis:100%; gap:8px; padding-top:4px; }
+.immersive-cast button { position:relative; display:flex; align-items:center; gap:12px; overflow:hidden; min-height:42px; padding:9px 13px; }
+.immersive-cast button::after { content:""; position:absolute; bottom:0; left:0; width:var(--motion-progress,0%); height:2px; background:var(--lacquer); opacity:.25; }
+.immersive-cast button[data-playing="true"] { border-color:var(--lacquer); background:var(--paper-deep); }
+.immersive-cast button[data-playing="true"]::after { opacity:1; }
+.immersive-cast button small { color:var(--silver-dark); font-size:10px; }
+.immersive-interaction-hint { flex-basis:100%; margin:0; color:var(--silver-dark); font-size:11px; line-height:1.7; }
+.immersive-scene--compact .immersive-controls { gap:8px; padding:10px 12px; }
+.immersive-scene--compact .immersive-controls > a { margin-left:auto; }
+.immersive-scene--compact .immersive-cast button { padding:8px 10px; }
+@media(max-width:480px) { .immersive-cast { gap:6px; } .immersive-cast button { flex:1; justify-content:center; gap:7px; padding:8px; } .immersive-cast button small { display:none; } }

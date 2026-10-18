@@ -1,3 +1,4 @@
+import { immersiveClientProfile, verifyImmersiveClientProfile } from './immersive-profile.mjs';
 import { EXPORT_SIZE, posterPng, webmMimeType } from './immersive-export.mjs';
 import { beginExport, recordDownload } from './site-analytics.mjs';
 import { loadImmersivePreview } from './immersive-loading.mjs';
@@ -7,7 +8,7 @@ export function initImmersiveScenes() {
     if (root.dataset.initialized) return;
     root.dataset.initialized = 'true';
     const en = root.dataset.locale === 'en', compact = root.dataset.compact === 'true';
-    if (root.dataset.cameraVerified !== 'true') {
+    if (root.dataset.cameraVerified !== 'true' && root.dataset.clientProfile !== 'true') {
       const button = root.querySelector('[data-scene-export="png"]');
       if (!button) return;
       const status = root.querySelector('[data-scene-status]');
@@ -49,6 +50,7 @@ export function initImmersiveScenes() {
     const find = selector => root.querySelector(selector);
     const load = find('[data-scene-load]'), play = find('[data-scene-play]'), status = find('[data-scene-status]');
     const timeline = find('[data-scene-time]'), clock = find('[data-scene-clock]'), cancel = find('[data-scene-cancel]');
+    const cast = find('[data-scene-cast]');
     const controls = find('[data-scene-controls]'), download = find('[data-scene-download]');
     const loadProgress = find('[data-load-progress]'), loadBar = find('[data-load-bar]');
     const loadStage = find('[data-load-stage]'), loadPercent = find('[data-load-percent]'), loadBytes = find('[data-load-bytes]');
@@ -80,7 +82,33 @@ export function initImmersiveScenes() {
     const exportButtons = [...root.querySelectorAll('[data-scene-export]')];
     const reduced = matchMedia('(prefers-reduced-motion: reduce)');
     let viewer, loading = false, paused = true, busy = false, objectURL, controller, disposed = false;
-    const pause = value => { paused = value; viewer?.setPaused(value); play.textContent = value ? say('播放', 'Play') : say('暂停', 'Pause'); play.setAttribute('aria-pressed', String(!value)); };
+    function updatePlay() {
+      play.textContent = viewer?.finished ? say('重播入场', 'Replay entrance') : paused ? say('播放', 'Play') : say('暂停', 'Pause');
+      play.setAttribute('aria-pressed', String(!paused && !viewer?.finished));
+    }
+    const pause = value => { paused = value; viewer?.setPaused(value); updatePlay(); };
+    function replayCharacter(id) {
+      if (busy || !viewer?.replayCharacter(id)) return;
+      pause(false);
+      const character = viewer.characters.find(character => character.id === id);
+      const name = en ? character.nameEn : character.name;
+      status.textContent = say(`重播${name}的入场动作。`, `Replaying ${name}'s entrance.`);
+    }
+    function showCharacters() {
+      if (!cast) return;
+      cast.replaceChildren();
+      for (const character of viewer.characters) {
+        const button = document.createElement('button'); button.type = 'button';
+        button.dataset.sceneCharacter = String(character.id);
+        const name = en ? character.nameEn : character.name;
+        button.setAttribute('aria-label', say(`重播${name}的入场动作`, `Replay ${name}'s entrance`));
+        const label = document.createElement('span'); label.textContent = name;
+        const action = document.createElement('small'); action.textContent = say('重播动作', 'Replay');
+        button.append(label, action);
+        button.addEventListener('click', () => replayCharacter(character.id)); cast.append(button);
+      }
+      cast.hidden = !viewer.characters.length;
+    }
     const updateExportButtons = () => exportButtons.forEach(button => {
       const unavailable = button.dataset.sceneExport === 'webm' && !webmMimeType();
       button.disabled = !viewer || busy || unavailable;
@@ -101,22 +129,38 @@ export function initImmersiveScenes() {
         const { resources, createImmersiveScene } = await loadImmersivePreview(root.dataset.assets, {
           signal: controller.signal, onProgress: showLoadProgress
         });
-        if (resources.manifest?.approximateCamera !== false) throw new Error('camera-not-verified');
+        const profile = root.dataset.clientProfile === 'true'
+          ? immersiveClientProfile({ id: root.dataset.sceneId, assetRoot: root.dataset.assets }) : null;
+        if (profile) await verifyImmersiveClientProfile(resources, profile);
+        else if (resources.manifest?.approximateCamera !== false) throw new Error('camera-not-verified');
         if (disposed) return;
         showLoadProgress({ phase: 'initialize' });
         // Paint the final preparation stage before synchronous WebGL/Spine work.
         await new Promise(resolve => setTimeout(resolve, 0));
         controller.signal.throwIfAborted();
         viewer = await createImmersiveScene(find('[data-scene-canvas]'), resources, {
-          signal: controller.signal, onError: broken,
-          onTime(time) { if (timeline) timeline.value = String(time); if (clock) clock.textContent = `${time.toFixed(2)} / ${duration.toFixed(2)} s`; }
+          signal: controller.signal, onError: broken, profile, onCharacter: replayCharacter,
+          onTime(time, state) {
+            if (timeline) timeline.value = String(time);
+            if (clock) clock.textContent = `${time.toFixed(2)} / ${duration.toFixed(2)} s`;
+            root.dataset.playback = state.playing ? (paused ? 'paused' : 'playing') : 'settled';
+            for (const character of state.characters) {
+              const button = cast?.querySelector(`[data-scene-character="${character.id}"]`);
+              if (button) {
+                button.dataset.playing = String(character.playing && !paused);
+                button.style.setProperty('--motion-progress', `${character.time / character.duration * 100}%`);
+              }
+            }
+            updatePlay();
+          }
         });
         if (disposed) { viewer.dispose(); return; }
-        duration = viewer.duration; if (timeline) timeline.max = String(duration);
+        duration = viewer.duration; showCharacters(); if (timeline) timeline.max = String(duration);
         const quality = find('[data-png-quality]');
         if (quality) quality.textContent = `PNG ${viewer.pngSize.width} × ${viewer.pngSize.height} · WebM 1920 × 1080`;
         showLoadProgress({ phase: 'ready' });
         root.dataset.state = 'ready'; controls.hidden = false; updateExportButtons();
+        if (reduced.matches) viewer.seek(duration); else viewer.seek(0);
         pause(reduced.matches); status.textContent = reduced.matches ? say('已按减少动态效果设置暂停，可手动播放。', 'Paused for reduced motion. You can play manually.') : '';
         if (!compact && !webmMimeType()) status.textContent = say('可下载 PNG；当前浏览器不支持 WebM 导出。', 'PNG is available. This browser cannot export WebM.');
       } catch (error) {
@@ -128,12 +172,18 @@ export function initImmersiveScenes() {
         }
         console.error('Immersive scene could not load', error);
         root.dataset.state = 'error'; load.disabled = false; load.textContent = say('重试载入', 'Try again');
-        status.textContent = say('场景载入失败。请检查网络及浏览器图形加速，然后重试。', 'Could not load the scene. Check your connection and browser graphics support, then try again.');
+        status.textContent = error.message === 'scene-profile-mismatch'
+          ? say('资源与已核对的大厅版本不匹配，保留游戏原图。', 'These assets do not match the reviewed lobby version. Keeping the original image.')
+          : say('场景载入失败。请检查网络及浏览器图形加速，然后重试。', 'Could not load the scene. Check your connection and browser graphics support, then try again.');
       } finally { loading = false; loadProgress.hidden = true; root.removeAttribute('aria-busy'); }
     });
-    play.addEventListener('click', () => pause(!paused));
+    play.addEventListener('click', () => { if (viewer?.finished) { viewer.replay(); pause(false); } else pause(!paused); });
+    find('[data-scene-restart]')?.addEventListener('click', () => { if (!busy && viewer) { viewer.replay(); pause(false); } });
     timeline?.addEventListener('input', () => { pause(true); viewer.seek(Number(timeline.value)); });
-    find('[data-scene-layer]')?.addEventListener('change', event => viewer.setLayer(event.target.value));
+    find('[data-scene-layer]')?.addEventListener('change', event => {
+      viewer.setLayer(event.target.value);
+      cast?.querySelectorAll('button').forEach(button => { button.disabled = event.target.value === 'background'; });
+    });
     find('[data-scene-reset]')?.addEventListener('click', () => viewer.reset());
     root.querySelectorAll('[data-scene-zoom]').forEach(button => button.addEventListener('click', () => viewer.zoom(Number(button.dataset.sceneZoom))));
     reduced.addEventListener('change', event => { if (event.matches) pause(true); });
@@ -181,6 +231,7 @@ export function initImmersiveScenes() {
       } finally {
         busy = false; cancel.hidden = true; root.removeAttribute('aria-busy'); updateExportButtons();
         controls.querySelectorAll('button,input,select').forEach(control => { control.disabled = false; });
+        if (viewer?.layer === 'background') cast?.querySelectorAll('button').forEach(button => { button.disabled = true; });
       }
     });
     cancel?.addEventListener('click', () => viewer?.cancelExport());
