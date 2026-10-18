@@ -5,6 +5,7 @@ import '../styles/task-prototype-theme.css';
 import '../styles/card-skill-popover.css';
 import '../styles/shared-inventory-imports.css';
 import '../styles/calculation-progress.css';
+import '../styles/team-card-dialog.css';
 import AccountGrowthImport from './AccountGrowthImport.astro';
 import ScreenshotImport from './ScreenshotImport.astro';
 const en = Astro.props.locale === 'en';
@@ -23,14 +24,17 @@ const en = Astro.props.locale === 'en';
   </dialog>
 </div>
 <script>
+  import {containModalFocus} from '../lib/dialog-focus.mjs';
   import {installWorkspaceDismiss} from '../lib/workspace-dismiss.mjs';
   const shell = document.querySelector('[data-team-workspace-shell]');
   if (shell) {
     const panel = shell.querySelector('dialog')!;
     const launcher = shell.querySelector('[data-team-workspace-open]')!;
+    panel.addEventListener('keydown', event => containModalFocus(panel,event));
     const body = shell.querySelector('[data-team-workspace-body]')!;
     const loadingView = body.firstElementChild!.cloneNode(true);
     let workspace, ready = false, request = 0;
+    let opener: HTMLElement | null = null;
     let modulePromise;
     let codeWarmed=false;
     const loadModule = () => {
@@ -51,11 +55,13 @@ const en = Astro.props.locale === 'en';
       request++;
       document.body.classList.remove('tw-is-open');
       launcher.setAttribute('aria-expanded', 'false');
+      if (opener?.isConnected) opener.focus({preventScroll:true});
     });
     const open = async (event: Event) => {
       const detail = event instanceof CustomEvent ? event.detail : undefined;
       const currentRequest = ++request;
       if (!panel.open) {
+        opener = document.activeElement instanceof HTMLElement ? document.activeElement : launcher as HTMLElement;
         if (!document.querySelector('.task-studio') && matchMedia('(min-width: 1680px)').matches) panel.show(); else panel.showModal();
         document.body.classList.add('tw-is-open');
         launcher.setAttribute('aria-expanded', 'true');
@@ -70,7 +76,7 @@ const en = Astro.props.locale === 'en';
         ready = true;
         stopLoadingDismiss();
         body.removeAttribute('aria-busy');
-        if (currentRequest === request && panel.open) await instance.open(detail?.tab, event.type === 'team-workspace:save' ? detail : null);
+        if (currentRequest === request && panel.open) await instance.open(detail?.tab, event.type === 'team-workspace:save' ? detail : null, opener);
       } catch (error) {
         workspace = null;
         body.removeAttribute('aria-busy');

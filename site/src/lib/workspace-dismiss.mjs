@@ -10,7 +10,7 @@ export function installWorkspaceDismiss(panel, launcher, onDismiss = () => panel
     return event.clientX < bounds.left || event.clientX > bounds.right || event.clientY < bounds.top || event.clientY > bounds.bottom;
   }
   const down = event => { beganOutside = event.button === 0 && outside(event); };
-  const click = event => { const dismiss = beganOutside && outside(event); beganOutside = false; if (dismiss) onDismiss(); };
+  const click = event => { const dismiss = beganOutside && outside(event); beganOutside = false; if (dismiss) { event.preventDefault(); event.stopImmediatePropagation(); onDismiss(); } };
   const cancel = () => { beganOutside = false; };
   doc.addEventListener('pointerdown', down, {capture:true});
   doc.addEventListener('click', click, {capture:true});
