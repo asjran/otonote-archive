@@ -1,0 +1,11 @@
+[Unit]
+Description=Refresh %i event rankings capture
+
+[Timer]
+OnBootSec=4min
+OnUnitInactiveSec=10min
+RandomizedDelaySec=30s
+Unit=ournotes-player-rankings-capture@%i.service
+
+[Install]
+WantedBy=timers.target

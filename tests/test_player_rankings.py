@@ -3,12 +3,22 @@ import tempfile
 import unittest
 from datetime import datetime, timezone
 from pathlib import Path
-from backend.player_rankings import query_player_rankings, validate_observation
+from backend.player_rankings import query_player_rankings, validate_observation, public_player_profile
 from tools.import_player_rankings import (ensure_final_archive_metadata, publish,
                                           publish_final_observation)
 
 
 class PlayerRankingTests(unittest.TestCase):
+    def test_public_profile_images_only_use_official_https_origins(self):
+        url='https://l14-prod-hk-patch-sirius.gamerfusiontech.com/profile/example.png'
+        self.assertEqual(public_player_profile({'avatarMasterId':59,'profileCardImages':[url,url],'privateId':'ignored'}),
+                         {'avatarMasterId':59,'profileCardImages':[url]})
+        for image in ('http://l14-prod-hk-patch-sirius.gamerfusiontech.com/example.png',
+                      'https://example.invalid/image.png','https://localhost/image.png',
+                      url+'?token=private',url+'#fragment',url.replace('/profile/','/../')):
+            with self.assertRaises(ValueError):public_player_profile({'profileCardImages':[image]})
+        with self.assertRaises(ValueError):public_player_profile({'avatarMasterId':True})
+
     def snapshot(self, server="jp"):
         return {"schemaVersion": 1, "serverId": server, "observedAt": "2026-09-30T00:00:00Z", "expiresAt": "2026-09-30T01:00:00Z", "boards": [
             {"eventId": "event-1", "eventName": "Example", "type": "event-points", "entries": [
@@ -94,12 +104,14 @@ class PlayerRankingTests(unittest.TestCase):
             live = query_player_rankings(root, server='global-hmt', now=datetime(2026, 10, 10, tzinfo=timezone.utc))
             self.assertEqual(live['eventId'], '2')
             self.assertEqual([item['id'] for item in live['events']], ['2', '1'])
-            self.assertIn('结束后归档', live['events'][1]['name'])
+            self.assertEqual(live['events'][1]['state'], 'ended')
+            self.assertTrue(live['events'][1]['isFinal'])
             final = query_player_rankings(root, server='global-hmt', event='1', limit=1,
                                           now=datetime(2026, 10, 10, tzinfo=timezone.utc))
             self.assertEqual(final['eventId'], '1')
             self.assertTrue(final['isFinal'])
-            self.assertEqual(final['status'], 'stale')
+            self.assertEqual(final['status'], 'available')
+            self.assertIsNone(final['expiresAt'])
             self.assertEqual(final['totalEntries'], 3)
             with self.assertRaises(ValueError):
                 query_player_rankings(root, server='global-hmt', event='2', cursor=final['nextCursor'])
@@ -133,6 +145,19 @@ class PlayerRankingTests(unittest.TestCase):
             result = query_player_rankings(root, server='global-hmt', event='1')
             self.assertTrue(result['isFinal'])
             self.assertEqual(result['totalEntries'], 0)
+            self.assertEqual(result['status'], 'empty')
+            self.assertIsNone(result['expiresAt'])
+
+    def test_final_archive_wins_over_the_same_events_old_live_snapshot(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root=Path(folder);value=self.snapshot('global-hmt');value['boards'][0]['eventId']='1'
+            source=root/'input.json';source.write_text(json.dumps(value));publish(source,root,'global-hmt')
+            value['boards'][0]['entries'][0]['score']=999
+            publish_final_observation(value,root,'global-hmt')
+            result=query_player_rankings(root,server='global-hmt')
+            self.assertTrue(result['isFinal'])
+            self.assertEqual(result['entries'][0]['score'],999)
+            self.assertEqual(result['status'],'available')
 
 
 if __name__ == "__main__": unittest.main()
