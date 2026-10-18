@@ -120,7 +120,7 @@ while ([...workers.keys()].some(key=>!compiledWorkers.has(key))) {
 // Heavy recognition engines are static, same-origin and loaded only after explicit use.
 const recognitionDir=join(stage,'recognition');
 await mkdir(recognitionDir,{recursive:true});
-for(const name of ['worker.js','shortlist.js'])await cp(join(site,'src/lib/card-recognition',name),join(recognitionDir,name));
+for(const name of ['worker.js','shortlist.js','layout.js'])await cp(join(site,'src/lib/card-recognition',name),join(recognitionDir,name));
 for(const [source,target] of [
   ['@techstark/opencv-js/dist/opencv.js','opencv.js'],['@techstark/opencv-js/LICENSE','OPENCV-LICENSE'],
   ['tesseract.js/dist/tesseract.min.js','tesseract.min.js'],['tesseract.js/dist/worker.min.js','worker.min.js'],

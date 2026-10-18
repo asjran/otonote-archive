@@ -5,7 +5,7 @@ const {headingId='screenshot-import-heading'}=Astro.props;
 <dialog class="screenshot-import" data-screenshot-dialog aria-labelledby={headingId}>
   <header><div><p class="screenshot-eyebrow">我的卡库</p><h2 id={headingId} tabindex="-1">从游戏截图导入</h2></div><button type="button" data-shot-close aria-label="关闭截图导入">×</button></header>
   <p data-shot-context></p>
-  <p class="screenshot-help">图片只在此浏览器内处理。支持完整横屏列表：角色卡每行 6 张、留影每行 4 张；底部不完整的卡牌会跳过。请先核对结果，再保存到卡库。</p>
+  <p class="screenshot-help">图片只在此浏览器内处理。自动定位横屏列表中不同列数的卡牌，请保留至少两列完整卡牌；不完整的卡牌会跳过。请先核对结果，再保存到卡库。</p>
   <div class="screenshot-preparation" data-shot-preparation aria-live="polite">
     <strong data-shot-preparation-title>正在准备识别工具</strong>
     <div class="screenshot-preparation-steps">{[['cards','卡面引擎'],['index','卡库索引'],['numbers','数字识别']].map(([key,label])=><span data-shot-stage={key}>{label}<small>等待准备</small></span>)}</div>
