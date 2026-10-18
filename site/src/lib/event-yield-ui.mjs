@@ -9,6 +9,17 @@ const fmt=n=>Number(n).toLocaleString('zh-CN',{maximumFractionDigits:1}),grades=
 const gapText=n=>n===0?'相同':`${n>0?'少':'多'} ${fmt(Math.abs(n))}`;
 const selectedDifficulties=field=>field.multiple?[...field.selectedOptions].map(o=>o.value).filter(value=>value!=='all'):field.value;
 
+export function eventYieldCompletionText(data){
+ const complete=data.coverageComplete??data.complete,proofs=Object.values(data.globalProofs??{});
+ const proven=complete&&!data.failures.length&&proofs.length>0&&proofs.every(p=>p.bestProven);
+ const covered=data.prunedCharts?`完整求解 ${data.fullyOptimizedCharts} 张，按全局上界覆盖 ${data.prunedCharts} 张谱面`:`已比较 ${data.done} / ${data.available} 张谱面`;
+ const ties=proofs.every(p=>p.scoreTieOptimality==='proven');
+ const evidence=proven?`所选条件的收益第一名已证明；备选供参考${ties?'，同收益的期望分排序已证明':'，同收益的期望分排序未证明'}`:'当前结果尚未证明所选条件下的第一名';
+ const continuation=proofs.some(p=>p.scope==='all_selected_charts_given_challenge_rows')?'；后续挑战以本次已计算方案为范围':'';
+ return {complete,proven,label:complete?'活动收益比较完成':'活动收益推荐完成',detail:covered,
+   status:`${covered}。${evidence}${continuation}。展示 ${data.rows.length} 个队伍＋歌曲方案${data.cacheHits?`，复用 ${data.cacheHits} 次估分`:''}。${data.failures.length?'有计算失败，结果不完整。':complete?'':'可继续完整比较，已算结果会复用。'}`};
+}
+
 export function setupEventYieldOptimizer(tool){
  const root=tool.q('yield-optimizer'),q=s=>tool.querySelector(`[data-yield-${s}]`);
  const feedback=createCalculationProgress(q('status'),'yield');
@@ -110,8 +121,8 @@ export function setupEventYieldOptimizer(tool){
        if(data.type==='progress'){feedback.update({label:data.stage,completed:data.done,total:data.total,detail:`${data.title} · ${data.detail??'谱面比较进度，单曲内部仍需比较编成'}`});q('status').textContent=`${data.stage}：${data.title}（${data.done} / ${data.total}）`;return;}
        if(data.type==='partial'){feedback.update({label:'继续比较活动收益',completed:data.done,total:data.total,detail:'目前领先方案已显示，排名可能继续变化'});result=data;render();q('status').textContent=`已比较 ${data.done} / ${data.total} 张谱面，展示目前领先方案；还在计算，排名可能改变。`;return;}
        stop();if(data.type==='result'){
-         result=data;render();feedback.finish(data.complete?'活动收益比较完成':'快速推荐完成',`已比较 ${data.done} / ${data.available} 张谱面${data.failures.length?' · 部分谱面失败，结果不完整':''}${data.complete?'':' · 可继续完整比较'}`);q('continue').hidden=data.complete;
-         q('status').textContent=`${data.complete?'完整比较完成':'快速推荐完成'}：已比较 ${data.done} / ${data.available} 张谱面。${data.complete?'':'可继续比较其余谱面，已算结果会复用。'}展示 ${data.rows.length} 个队伍＋歌曲方案${data.cacheHits?`，复用 ${data.cacheHits} 次估分`:''}。有限候选搜索，不保证全卡库最优${data.failures.length?'；有计算失败，结果不完整':''}。`;
+         result=data;render();const summary=eventYieldCompletionText(data);feedback.finish(summary.label,summary.detail);q('continue').hidden=summary.complete;
+         q('status').textContent=summary.status;
        }else {feedback.finish('计算失败',data.message,'error');q('continue').hidden=!result;q('status').textContent=`计算失败：${data.message}${result?'；保留已完成的方案，可继续比较。':''}`;}
      });
      worker.addEventListener('error',()=>{if(worker!==active)return;stop();feedback.finish('计算服务加载失败','请重试','error');q('status').textContent='计算服务加载失败，请重试。';});

@@ -1,5 +1,6 @@
 import { createFrameClock, skillEndFrame } from './formal-frame-clock.mjs';
 import { createJointPowerScoreBound } from './joint-power-score-bound.mjs';
+import { createBonusConstrainedScoreBound } from './bonus-constrained-score-bound.mjs';
 
 const unitRoundoff = 2 ** -24;
 const gamma = n => n * unitRoundoff < 1 ? n * unitRoundoff / (1 - n * unitRoundoff) : Infinity;
@@ -34,7 +35,7 @@ export function ordinaryReplayApplicationLimit(timeline, profiles, frameRate = 6
 
 /** Bound the ideal ordinary replay, including native float32 rewind residue.
  * This is not a bound for dynamic player inputs or Gekisou task rewards. */
-export function createOrdinaryScoreBound({ song, pairSkills, legacyFactor, input, metric, frameRate = 60, localRewinds = true, assignmentBound = true, jointPowerBound = false }) {
+export function createOrdinaryScoreBound({ song, pairSkills, legacyFactor, input, metric, frameRate = 60, localRewinds = true, assignmentBound = true, jointPowerBound = false, bonusConstraintBound = false }) {
   // Audit adapters before either the envelope or homogeneous-team shortcut.
   song.upperBound(0, 1, { eventContext: input.draft.modifiers?.event });
   const clock = createFrameClock({ frameRate }), profiles = new Map(), canonical = new Map(), cache = new Map();
@@ -66,6 +67,9 @@ export function createOrdinaryScoreBound({ song, pairSkills, legacyFactor, input
   const jointBound = jointPowerBound ? createJointPowerScoreBound({
     coefficients:song.powerLinearUpperBound?.({eventContext:input.draft.modifiers?.event}),spans,profileFor,metric
   }) : null;
+  const bonusBound=bonusConstraintBound?createBonusConstrainedScoreBound({
+    coefficients:song.powerLinearUpperBound?.({eventContext:input.draft.modifiers?.event}),spans,profileFor,metric
+  }):null;
   const linearFor = power => {
     if (!assignmentBound || !song.linearUpperBound || events.length>100000) return null;
     if (!linearCache.has(power)) {
@@ -125,7 +129,7 @@ export function createOrdinaryScoreBound({ song, pairSkills, legacyFactor, input
     if (!cache.has(key)) { if (cache.size >= 8192) cache.delete(cache.keys().next().value); cache.set(key, calculate()); }
     return cache.get(key);
   };
-  const bound = function(state, model, solution, draftForSolution, includePriority = false, cutoff = -Infinity) {
+  const bound = function(state, model, solution, draftForSolution, includePriority = false, cutoff = -Infinity, minimumBonus) {
     const fixed = new Set(state.required), banned = new Set(state.forbidden);
     const forced = solution.edges.filter(e => fixed.has(e.key));
     const used = field => new Set(forced.map(e => e[field]));
@@ -184,6 +188,7 @@ export function createOrdinaryScoreBound({ song, pairSkills, legacyFactor, input
     const envelope=getEnvelope('',applicationLimit);
     const timedBound=(prefix,envelope)=>envelope===null?Infinity:remember(`${prefix}score:${envelopeKey}:${solution.weight}`, () => { const factors=envelope.factors; return song.upperBound(solution.weight, (_, index) => factors[index], { eventContext: input.draft.modifiers?.event }); });
     if(envelope===null)return includePriority?{upper:Infinity,priority:Infinity}:Infinity;
+    if(minimumBonus)return bonusBound?bonusBound(available,forced,state.leader,solution,envelope.error,minimumBonus.forEdge,minimumBonus.value,state):Infinity;
     const joint=jointBound ? jointBound(available,forced,state.leader,solution,envelope.error,!state.forbidden.length,cutoff) : Infinity;
     if (!includePriority && joint <= cutoff) return joint;
     const timed=timedBound('',envelope);
@@ -198,6 +203,27 @@ export function createOrdinaryScoreBound({ song, pairSkills, legacyFactor, input
   // A cutoff only skips additional SAFE bounds after one already proves
   // this partition cannot improve the incumbent. It never changes the domain.
   bound.withCutoff=(state,model,solution,draftForSolution,cutoff)=>bound(state,model,solution,draftForSolution,false,cutoff);
+  bound.withMinimumBonus=(state,model,solution,draftForSolution,forEdge,value)=>{
+    if(bonusBound)bonusBound.witnesses=[];
+    return bound(state,model,solution,draftForSolution,false,-Infinity,{forEdge,value});
+  };
+  Object.defineProperty(bound,'bonusConstraintWitnesses',{get:()=>bonusBound?.witnesses??[]});
+  bound.bonusConstraintStats=bonusBound?.stats??{matchingCalls:0};
+  // This chart-wide envelope covers every legal five-pair team. It is only
+  // used to prove a WHOLE group of charts cannot reach a grade; it supplies
+  // no score and must not be rounded to integer score/threshold units.
+  bound.normalizedPowerEnvelope=threshold=>{
+    if(!bonusBound||!Number.isFinite(threshold)||threshold<=0)return null;
+    const absolute=5*Math.max(0,...uniqueProfiles.map(p=>p.absolute));
+    const commands=10*Math.max(0,...uniqueProfiles.map(p=>p.effects.length));
+    const calls=Math.min(applicationLimit,4*(events.length+commands+1)),undo=commands*calls;
+    const stateError=gamma(2*undo+1)*(1+4*absolute)
+      +(1+gamma(2*undo+1))*undo*gamma(commands)*2*absolute;
+    const error=stateError+unitRoundoff*(1+2*absolute+stateError);
+    const baseCoefficient=bonusBound.envelope.baseCoefficient*(1+error)/threshold*(1+1e-10);
+    if(!Number.isFinite(baseCoefficient))return null;
+    return {baseCoefficient,gainFor:edge=>bonusBound.envelope.gainFor(edge)/threshold*(1+1e-10)};
+  };
   bound.stats={fullScoreCalculations:0};
   bound.withPriority=(...args)=>bound(...args,true);
   return bound;

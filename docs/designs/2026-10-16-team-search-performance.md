@@ -26,7 +26,7 @@
 
 ## 复现
 
-仪表基线提交 `12fd587` 只增加基准工具与相同计数，评分模型和搜索策略与发布起点相同。可用 `git archive 12fd587` 创建冻结基线目录；优化版本用最终任务分支提交。
+仪表基线提交 `12fd587` 只增加基准工具与相同计数，评分模型和搜索策略与发布起点相同。可用 `git archive 12fd587` 创建冻结基线目录；本节四组分数搜索测量的优化版本为 `8b17f72`；后续活动收益模块由单独报告记录，不把不同源码阶段混为同一基准。
 
 正式输入为本地已有的 Global 资料 `global-prod-remote-1-0-1-500-a3f7b2e9-fe6a9af3-e85baf9fb58be66a435eeb97ead996d4-ce9f2ad502d77`，并用同 sourceReleaseId 的 `band-items.json` 投影补齐升级表；没有固定 30 级回退。原历史性能输入缺少升级表，不能不加说明地直接用于当前入口。历史四组耗时不能与本轮相减计算收益。
 
@@ -71,3 +71,27 @@
 样本有波动，尤其Odd Dice最高分两次基线为40.41、28.24秒，不能把均值改善当作所有机器／温度／卡库的速度保证。四组原始逐次时间、CPU、RSS、最佳队伍、证明状态及两侧源码manifest见[机器证据](2026-10-16-team-search-performance-verification.json)。工具后续加固了缺失计数、未证明运行、evaluator指纹校验；这些只在计时区间外工作，机器证据保留实际测量时工具摘要。
 
 针对性回归 **59/59通过**（challenge best search / challenge optimizer / song skill profile+replay / event yield / skill activation）；包括独立穷举与新增cutoff测试。全量Node在后续活动收益任务合并后与同条件基线统一重跑，最终结果由该活动收益报告及任务交接记录补充，不把本次局部验证称为全量通过。无UI或评分公式修改，本阶段未重跑浏览器视觉／生产验收。
+
+
+## 最终源码与可持久化输入复测（2026-10-18）
+
+活动收益优化完成后，再用最终搜索源码、同一 Node v24.19.0／Apple M5、冷进程串行 ABBA 复测 Odd Dice EXPERT 最高分。基线仍为12fd587的发布搜索策略，候选源码与活动报告中的最终4f5980af指纹一致。此次完整输入由仓库内规则／catalog压缩快照和352张谱面的不可变URL／SHA清单固定，临时目录清理后仍可重建。
+
+四次均完成第一名证明，当前输入两边都得到 **20,150,657**。展开均4,580，完整评分均8次；平均墙钟基线27.6384秒／优化22.7720秒（本组降低17.61%），平均CPU29.3228／24.7105秒，平均峰值RSS632.791／549.183 MB。比较器确认输入、评分模型、预算、运行环境一致，所有计数完整。机器证据与两侧源码manifest见[最终出分复测](2026-10-18-score-search-final-replay.json)。
+
+这不是上文旧快照20,150,649的同一输入。旧临时谱面已丢失，新版不可变谱面输入指纹不同；**不得把8分变化当作本任务改了评分公式、修复或定位了历史Haneoka差异**。上文四组仍是8b17f72阶段的有效同输入对照，最终这组独立报告。评分公式变化为0。
+
+复现先按[活动报告](2026-10-16-event-yield-search-performance.md)的仓库外复现包与两条gzip命令恢复确切rules/catalog，并按谱面清单重建本地chart-map，然后：
+
+```sh
+# BASELINE为git archive 12fd587得到的冻结目录，TASK为最终任务提交目录。
+"$NODE" tools/benchmark_challenge_search_compare.mjs \
+  --baseline-root "$BASELINE" --candidate-root "$TASK" \
+  --data /path/to/decoded-rules.json \
+  --chart /path/to/charts/music-chart-10011103.json --event 2 \
+  --scope reference --account-preset maximum --objective maximum_song_score \
+  --evaluations 0 --time-limit-ms 240000 --pairs 2 \
+  --output-dir /path/to/final-replay
+```
+
+最终完整Node回归为1,224/1,231；六项数据／fixture失败与发布基线一致，另一个output写入测试在受限沙箱报EPERM，基线最初为缺目录。两侧建好目录并在任务目录可写条件下，该文件均4/4通过。最终缓存生命周期、跨谱面穷举、上界与批次契约补测16/16，本地预览54路由／58脚本构建通过。完整明细见[最终验证](2026-10-18-team-search-final-validation.json)。这些是Node与本地打包证据，没有替代浏览器／设备验收。

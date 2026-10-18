@@ -3,8 +3,16 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {selectEventYieldRows,eventYieldGoals,orderEventYieldRows,eventYieldGaps} from '../src/lib/event-yield-goals.mjs';
 import {eventYieldStageInput} from '../src/lib/event-yield-stage.mjs';
-import {setupEventYieldOptimizer} from '../src/lib/event-yield-ui.mjs';
+import {setupEventYieldOptimizer,eventYieldCompletionText} from '../src/lib/event-yield-ui.mjs';
 import {installProgressDom} from './helpers/progress-dom.mjs';
+test('global proof status distinguishes covered charts, alternatives and expected-score ties',()=>{
+ const data={coverageComplete:true,complete:true,failures:[],rows:[],fullyOptimizedCharts:3,prunedCharts:88,
+ globalProofs:{badges:{bestProven:true,scope:'all_selected_charts_given_challenge_rows'}}};
+ const summary=eventYieldCompletionText(data);assert.equal(summary.proven,true);
+ assert.match(summary.status,/完整求解 3 张，按全局上界覆盖 88 张/);assert.match(summary.status,/第一名已证明/);
+ assert.match(summary.status,/备选供参考/);assert.match(summary.status,/期望分排序未证明/);assert.match(summary.status,/后续挑战以本次已计算方案/);
+ const incomplete=eventYieldCompletionText({...data,coverageComplete:false});assert.equal(incomplete.proven,false);assert.match(incomplete.status,/尚未证明/);
+});
 test('cycle stages choose independent collection and AP basis without inheriting a normal grade',()=>{
  const input={rewardGrowthOverride:true,mode:'ordinary',includeChallenge:true,scope:'selected',basis:'minimumScore',challengeScope:'owned',challengeBasis:'expectedScore',draft:{slots:[]}};
  assert.equal(eventYieldStageInput(input,'ordinary').scope,'selected');
