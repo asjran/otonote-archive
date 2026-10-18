@@ -34,7 +34,7 @@
 - `npm exec --yes --package=node@22.22.0 -- node --test site/tests/r2-content-gateway.test.mjs`：17/17 通过。最初误用本机默认 Node 18 出现 9 项失败；同一未修改网关在项目指定 Node 22 全部通过，不将初次失败计为实现回归。Node 24 的补充检查也通过。
 - `tools.repository_hygiene scan --root . --scope working`：1749 个文件通过；`git diff --check` 与修改文件语法检查通过。提交时再次按 staged 清单检查。
 - 从干净实现提交 `4d1558a` 构建并再次验证不可变运行时包：374 个文件，包含新增 JP 模块与 `VerifyApk.java`；manifest SHA-256 `7b88c885338ae7c62bb4d2598e1fad69c18a11823622f5fc8445c33fa5ff5c03`。产物仅位于隔离验证目录，未部署。
-- 合入前重新检查集成分支为 `4c8911b`，任务分支同步结果为 already up to date。集成 checkout 中已有未跟踪的 `docs/plans/2026-10-18-global-account-login-research.md`，保持不加入本任务；合并后复核其摘要与工作区状态。
+- 合入前重新检查集成分支为 `4c8911b`，任务分支同步结果为 already up to date。集成 checkout 中已有未跟踪的 `docs/plans/2026-10-18-global-account-login-research.md`，保持不加入本任务；合并后复核其摘要与工作区状态。最终合并前另一任务开始写入维护提示和账号相关文件；因与本任务文件不重叠，按 Git 文件边界保留，禁止暂存到本任务。
 - 自审覆盖：官方推荐版本与实际包版本精确绑定、每个分包密码学验签、旧 metadata 摘要锚、绑定只存位置不存密钥、下载重定向前校验、临时 seed 与回滚备份保留、checkpoint 中的 profile/anchor 摘要、旧客户端兼容、所有现有公开晋级门禁。
 
 ## 真实客户端验证
