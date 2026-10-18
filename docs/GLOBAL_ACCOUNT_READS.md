@@ -76,6 +76,8 @@ Playwright 使用明确的合成服务验收 EN/韩服真实组件：养成预�
 
 ## Google 可行性
 
+2026-10-18 继续调查已找到游戏官网的 Google 网页登录组件，并完成无账号的回调与来源检查：本站测试回调被 Google 拒绝为 `redirect_uri_mismatch`，官方网页用户信息接口对本站 Origin 返回 403。网页与 Android SDK 的客户端配置和凭据形式不同；尚无已验证的第三方回调及游戏身份交换闭环。完整证据、可选路径和无登录会话边界见 [Google 网页授权调查](plans/2026-10-18-google-web-auth-research.md)。以下保留 Android 侧证据。
+
 已核对既有 Global Android 1.0.2 的 `GoogleLoginImp.init` 和 `GoogleLoginActivity.doSignIn`：
 
 - 使用游戏配置的 `server_client_id` 调用 `requestServerAuthCode`；申请 email/profile。
