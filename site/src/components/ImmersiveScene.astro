@@ -16,15 +16,15 @@ const bandName = en ? band.nameEn : band.name;
 const duration = scene.duration ?? 4;
 const durationLabel = Number(duration.toFixed(2));
 const megabytes = Math.ceil((scene.bytes ?? 9_000_000) / 1_000_000);
-const clientProfile = immersiveClientProfile(scene);
+const clientProfile = immersiveClientProfile(scene, activeReleaseContext.region);
 const verified = Reflect.get(scene, 'cameraVerified') === true || !!clientProfile;
 ---
-<section class:list={['immersive-scene', { 'immersive-scene--compact': compact }]} data-immersive data-scene-id={scene.id} data-duration={duration} data-assets={assets} data-poster-src={`${assets}poster.webp`} data-camera-verified={String(Reflect.get(scene, 'cameraVerified') === true)} data-client-profile={String(!!clientProfile)} data-locale={en ? 'en' : 'zh-CN'} data-compact={String(compact)} data-state="idle" aria-label={`${bandName} · ${name}`}>
+<section class:list={['immersive-scene', { 'immersive-scene--compact': compact }]} data-immersive data-region={activeReleaseContext.region} data-scene-id={scene.id} data-duration={duration} data-assets={assets} data-poster-src={`${assets}poster.webp`} data-camera-verified={String(Reflect.get(scene, 'cameraVerified') === true)} data-client-profile={String(!!clientProfile)} data-locale={en ? 'en' : 'zh-CN'} data-compact={String(compact)} data-state="idle" aria-label={`${bandName} · ${name}`}>
   <div class="immersive-viewport" data-scene-viewport>
     <img class="immersive-poster" src={`${assets}poster.webp`} width="1280" height="594" alt={name} loading={compact ? 'eager' : 'lazy'} />
     {verified && <div class="immersive-canvas" data-scene-canvas></div>}
     {verified && <div class="immersive-start" data-scene-start>
-      <button class="immersive-load" type="button" data-scene-load><span aria-hidden="true">▷</span> {say('播放大厅入场', 'Play the entrance')}</button>
+      <button class="immersive-load" type="button" data-scene-load><span aria-hidden="true">▷</span> {say('播放场景入场', 'Play the entrance')}</button>
       <span>{say(`点击载入 · 约 ${megabytes} MB · 无声`, `Load on click · about ${megabytes} MB · silent`)}</span>
       <div class="immersive-load-progress" data-load-progress hidden>
         <div><span data-load-stage role="status" aria-live="polite"></span><span data-load-percent></span></div>

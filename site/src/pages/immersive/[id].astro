@@ -13,7 +13,7 @@ const say = (zh: string, english: string) => en ? english : zh;
 const href = (path: string) => import.meta.env.BASE_URL === '/' ? path : siteHref(path, activeReleaseContext);
 const name = en ? scene.nameEn : scene.name;
 const band = catalog.bands.find(b => b.id === scene.bandId)!;
-const clientProfile = immersiveClientProfile(scene);
+const clientProfile = immersiveClientProfile(scene, activeReleaseContext.region);
 const verified = Reflect.get(scene, 'cameraVerified') === true || !!clientProfile;
 ---
 <BaseLayout title={name} description={verified ? say('播放已校准的沉浸式场景，收藏喜欢的画面与动态。', 'Play a verified immersive scene and export your favourite frame or animation.') : say('查看并保存游戏原图。', 'View and save the original game scene image.')}>

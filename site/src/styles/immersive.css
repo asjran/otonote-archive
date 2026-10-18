@@ -123,4 +123,4 @@ html:not([data-home="immersive"]) .home-scene-switch [data-home-mode="original"]
 .immersive-scene--compact .immersive-controls { gap:8px; padding:10px 12px; }
 .immersive-scene--compact .immersive-controls > a { margin-left:auto; }
 .immersive-scene--compact .immersive-cast button { padding:8px 10px; }
-@media(max-width:480px) { .immersive-cast { gap:6px; } .immersive-cast button { flex:1; justify-content:center; gap:7px; padding:8px; } .immersive-cast button small { display:none; } }
+@media(max-width:480px) { .immersive-cast { gap:6px; } .immersive-cast button { flex:1 1 110px; justify-content:center; gap:7px; padding:8px; } .immersive-cast button small { display:none; } }

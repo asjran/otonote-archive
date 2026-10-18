@@ -130,7 +130,7 @@ export function initImmersiveScenes() {
           signal: controller.signal, onProgress: showLoadProgress
         });
         const profile = root.dataset.clientProfile === 'true'
-          ? immersiveClientProfile({ id: root.dataset.sceneId, assetRoot: root.dataset.assets }) : null;
+          ? immersiveClientProfile({ id: root.dataset.sceneId, assetRoot: root.dataset.assets }, root.dataset.region) : null;
         if (profile) await verifyImmersiveClientProfile(resources, profile);
         else if (resources.manifest?.approximateCamera !== false) throw new Error('camera-not-verified');
         if (disposed) return;
@@ -155,7 +155,7 @@ export function initImmersiveScenes() {
           }
         });
         if (disposed) { viewer.dispose(); return; }
-        duration = viewer.duration; showCharacters(); if (timeline) timeline.max = String(duration);
+        duration = viewer.duration; showCharacters(); if (timeline) timeline.max = String(Math.ceil(duration * 100) / 100);
         const quality = find('[data-png-quality]');
         if (quality) quality.textContent = `PNG ${viewer.pngSize.width} × ${viewer.pngSize.height} · WebM 1920 × 1080`;
         showLoadProgress({ phase: 'ready' });
@@ -173,13 +173,13 @@ export function initImmersiveScenes() {
         console.error('Immersive scene could not load', error);
         root.dataset.state = 'error'; load.disabled = false; load.textContent = say('重试载入', 'Try again');
         status.textContent = error.message === 'scene-profile-mismatch'
-          ? say('资源与已核对的大厅版本不匹配，保留游戏原图。', 'These assets do not match the reviewed lobby version. Keeping the original image.')
+          ? say('资源与已核对的场景版本不匹配，保留游戏原图。', 'These assets do not match the reviewed scene version. Keeping the original image.')
           : say('场景载入失败。请检查网络及浏览器图形加速，然后重试。', 'Could not load the scene. Check your connection and browser graphics support, then try again.');
       } finally { loading = false; loadProgress.hidden = true; root.removeAttribute('aria-busy'); }
     });
     play.addEventListener('click', () => { if (viewer?.finished) { viewer.replay(); pause(false); } else pause(!paused); });
     find('[data-scene-restart]')?.addEventListener('click', () => { if (!busy && viewer) { viewer.replay(); pause(false); } });
-    timeline?.addEventListener('input', () => { pause(true); viewer.seek(Number(timeline.value)); });
+    timeline?.addEventListener('input', () => { const time = Number(timeline.value); pause(true); viewer.seek(time); });
     find('[data-scene-layer]')?.addEventListener('change', event => {
       viewer.setLayer(event.target.value);
       cast?.querySelectorAll('button').forEach(button => { button.disabled = event.target.value === 'background'; });

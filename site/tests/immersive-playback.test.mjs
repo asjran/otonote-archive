@@ -61,10 +61,12 @@ test('tap tolerance permits a small finger movement, while dragging does not rep
   assert.equal(isImmersiveTap({ x: 0, y: 0 }, { x: 7, y: 0 }), false);
 });
 
-test('only the audited lobby package advertises a native profile', () => {
+test('the complete scene module advertises reviewed packages and rejects unknown identities', () => {
   assert.ok(immersiveClientProfile({ id: 10007, assetRoot: '/content/v1/public/immersive/mygo-lobby-v1/' }));
   assert.ok(immersiveClientProfile({ id: 10007, assetRoot: '/content/v1/public/immersive/scene-10007-v1/' }));
+  assert.ok(immersiveClientProfile({ id: 10002, assetRoot: '/immersive/scene-10002-v1/' }));
   assert.equal(immersiveClientProfile({ id: 10008, assetRoot: '/immersive/mygo-lobby-v1/' }), null);
+  assert.equal(immersiveClientProfile({ id: 10002, assetRoot: '/immersive/scene-10002-v1/' }, 'jp'), null);
   assert.equal(immersiveClientProfile({ id: 10007, assetRoot: '/immersive/new-package/' }), null);
 });
 

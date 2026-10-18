@@ -1,5 +1,7 @@
 import * as THREE from 'three';
-import { AtlasAttachmentLoader, SkeletonJson, SkeletonBinary, SkeletonMesh, TextureAtlas, ThreeJsTexture } from '@esotericsoftware/spine-threejs';
+import { Skeleton, RegionAttachment, MeshAttachment, AtlasAttachmentLoader, SkeletonJson, SkeletonBinary, SkeletonMesh, TextureAtlas, ThreeJsTexture } from '@esotericsoftware/spine-threejs';
+import { createSpinePoseSampler } from './immersive-pose.mjs';
+import { composeSpineDrawOrder, pointInTriangle } from './immersive-composition.mjs';
 import { createImmersivePlayback, isImmersiveTap } from './immersive-playback.mjs';
 import { EXPORT_SIZE, recordCanvas, pngRenderSize, pngOutputSize, downsamplePng } from './immersive-export.mjs';
 
@@ -12,9 +14,9 @@ export async function createImmersiveScene(host, resources, { signal, onTime = (
   scene.background = new THREE.Color('#282929');
   root.scale.z = -1; scene.add(root);
   const camera = new THREE.PerspectiveCamera(30, 16 / 9, .01, 100);
-  const textures = [], materials = [], geometries = [], skeletons = [], layers = [], nodes = new Map();
+  const textures = [], materials = [], geometries = [], skeletons = [], layers = [], samplers = [], nodes = new Map();
   let frame = 0, time = 0, last = 0, paused = true, visible = true, disposed = false, exporting = false;
-  let layer = 'all', duration = 0, zoom = 1, initialZoom = 1, recordingAbort, resizeObserver, intersectionObserver, data, playback;
+  let layer = 'all', duration = 0, zoom = 1, initialZoom = 1, recordingAbort, resizeObserver, intersectionObserver, data, playback, runtimeCharacters;
   const pan = new THREE.Vector2();
   const raycaster = new THREE.Raycaster();
   const events = new AbortController();
@@ -37,15 +39,16 @@ export async function createImmersiveScene(host, resources, { signal, onTime = (
   function updateCamera() {
     if (!profile) { camera.position.set(pan.x, pan.y, 0); return; }
     const { start, end, target, duration: seconds } = profile.camera;
-    const progress = Math.min(time / seconds, 1);
+    const progress = seconds > 0 ? Math.min(time / seconds, 1) : 1;
     const eased = 1 - (1 - progress) ** 3; // client zoomOutEase = OutCubic (9)
     camera.position.fromArray(start).lerp(new THREE.Vector3(...end), eased);
     camera.position.x += pan.x; camera.position.y += pan.y;
     camera.lookAt(target[0] + pan.x, target[1] + pan.y, target[2]);
   }
+  function flushPoses() { for (const sample of samplers) sample(); }
   function notifyTime() { onTime(time, { playing: playback.playing, characters: playback.characters }); }
   function pose(value) {
-    playback.seek(value); time = playback.time; updateCamera();
+    playback.seek(value); time = playback.time; flushPoses(); updateCamera();
   }
   function render() { renderer.render(scene, camera); }
   function fitCamera(width, height) {
@@ -65,7 +68,7 @@ export async function createImmersiveScene(host, resources, { signal, onTime = (
     frame = 0;
     if (disposed || !visible || document.hidden || exporting || paused) return;
     playback.advance(Math.min((now - last) / 1000, .05)); time = playback.time; last = now;
-    updateCamera(); render(); notifyTime();
+    flushPoses(); updateCamera(); render(); notifyTime();
     if (playback.playing) frame = requestAnimationFrame(loop);
   }
   function schedule() {
@@ -82,7 +85,7 @@ export async function createImmersiveScene(host, resources, { signal, onTime = (
   }
   try {
     data = resources.data;
-    initialZoom = data.calibration.initialZoom ?? 1; zoom = initialZoom;
+    initialZoom = profile ? 1 : data.calibration.initialZoom ?? 1; zoom = initialZoom;
     // Downloads are complete. Decode locally in order so partial GPU setup is always disposable.
     const textureMap = new Map(), atlasMap = new Map(), materialMap = new Map(), spineTextures = new Map();
     function spinePage(id) {
@@ -116,10 +119,10 @@ export async function createImmersiveScene(host, resources, { signal, onTime = (
       const group = new THREE.Group(); group.name = node.name; group.userData.source = node;
       group.position.fromArray(node.position); group.quaternion.fromArray(node.rotation); group.scale.fromArray(node.scale);
       group.visible = node.active && !data.hide.includes(node.gameObjectId);
-      if (node.backgroundRoot || node.name === 'home_001_mygo_02_lobby_0102') {
+      if (node.backgroundRoot || node.id === profile?.background.node || node.name === 'home_001_mygo_02_lobby_0102') {
         if (profile) {
           group.position.fromArray(profile.background.position);
-          group.rotation.set(...profile.background.rotation.map(THREE.MathUtils.degToRad));
+          group.rotation.set(...profile.background.rotation.map(THREE.MathUtils.degToRad), 'YXZ');
           group.scale.fromArray(profile.background.scale);
         } else if (data.calibration.backgroundPosition) group.position.fromArray(data.calibration.backgroundPosition);
         group.userData.backgroundRoot = true;
@@ -149,18 +152,39 @@ export async function createImmersiveScene(host, resources, { signal, onTime = (
         mesh.zOffset = 0; if (node.animation) mesh.state.setAnimation(0, node.animation, false); mesh.update(0);
         mesh.renderOrder = 100 + node.order; mesh.traverse(o => { o.renderOrder = 100 + node.order; });
         group.add(mesh); skeletons.push(mesh);
-        const character = profile?.characters.find(character => character.nodes.includes(node.id));
-        if (character) group.userData.characterId = character.id;
-        layers.push({ id: node.id, duration: mesh.state.tracks[0]?.animation.duration ?? 0, apply(value) {
-          mesh.skeleton.setToSetupPose();
-          if (mesh.state.tracks[0]) mesh.state.tracks[0].trackTime = value;
-          mesh.update(0);
-        } });
+        const ownership = profile?.partitions?.[node.id];
+        const animation = mesh.state.tracks[0]?.animation;
+        mesh.state.clearTracks();
+        if (ownership && animation) {
+          mesh.userData.slotOwners = ownership.slots;
+          const members = new Map([...new Set(ownership.slots.filter(id => id !== null))]
+            .map(id => [id, new Skeleton(skeleton)]));
+          const times = new Map([[null, 0], ...[...members.keys()].map(id => [id, 0])]);
+          for (const id of times.keys()) layers.push({ id: id === null ? node.id : `${node.id}@${id}`,
+            duration: animation.duration, apply(value) { times.set(id, value); } });
+          const poses = new Map([[null, mesh.skeleton], ...members].map(([id, skeleton]) =>
+            [id, createSpinePoseSampler(skeleton, animation)]));
+          samplers.push(() => {
+            for (const [id, sample] of poses) sample(times.get(id));
+            mesh.skeleton.drawOrder = composeSpineDrawOrder(mesh.skeleton, members, ownership.slots);
+            mesh.updateGeometry(); mesh.traverse(object => { object.renderOrder = 100 + node.order; });
+          });
+        } else {
+          const character = profile?.characters.find(character => character.nodes.includes(node.id));
+          if (character) group.userData.characterId = character.id;
+          const sample = createSpinePoseSampler(mesh.skeleton, animation);
+          layers.push({ id: node.id, duration: animation?.duration ?? 0, apply(value) {
+            sample(value); mesh.updateGeometry(); mesh.traverse(object => { object.renderOrder = 100 + node.order; });
+          } });
+        }
+        mesh.userData.spineMesh = true;
       }
       nodes.set(node.id, group);
     }
     for (const node of data.nodes) (nodes.get(node.parent) ?? root).add(nodes.get(node.id));
-    playback = createImmersivePlayback(layers, profile?.characters); duration = playback.duration;
+    runtimeCharacters = profile?.characters.map(character => ({ ...character,
+      nodes: character.nodes.map(id => profile.partitions?.[id] ? `${id}@${character.id}` : id) }));
+    playback = createImmersivePlayback(layers, runtimeCharacters); duration = playback.duration;
     if (!(duration > 0)) throw Error('scene-animation-unavailable');
     signal?.throwIfAborted(); host.appendChild(renderer.domElement); pose(0); resize();
     resizeObserver = new ResizeObserver(resize); resizeObserver.observe(host);
@@ -181,10 +205,35 @@ export async function createImmersiveScene(host, resources, { signal, onTime = (
       const hits = raycaster.intersectObjects(skeletons, true)
         .sort((a, b) => b.object.renderOrder - a.object.renderOrder || a.distance - b.distance);
       for (const hit of hits) {
-        let object = hit.object, id, shown = true;
-        while (object) { shown &&= object.visible; id ??= object.userData.characterId; object = object.parent; }
+        let object = hit.object, id, shown = true, spine;
+        while (object) {
+          shown &&= object.visible; id ??= object.userData.characterId;
+          if (object.userData.spineMesh) spine = object;
+          object = object.parent;
+        }
+        if (spine?.userData.slotOwners) {
+          const point = spine.worldToLocal(hit.point.clone());
+          for (const slot of [...spine.skeleton.drawOrder].reverse()) {
+            const attachment = slot.getAttachment();
+            if (!attachment || slot.color.a < .01 || attachment.color?.a < .01) continue;
+            let vertices, triangles;
+            if (attachment instanceof RegionAttachment) {
+              vertices = new Float32Array(8); triangles = SkeletonMesh.QUAD_TRIANGLES;
+              attachment.computeWorldVertices(slot, vertices, 0, 2);
+            } else if (attachment instanceof MeshAttachment) {
+              vertices = new Float32Array(attachment.worldVerticesLength); triangles = attachment.triangles;
+              attachment.computeWorldVertices(slot, 0, vertices.length, vertices, 0, 2);
+            } else continue;
+            let inside = false;
+            for (let i = 0; i < triangles.length; i += 3) {
+              const [a, b, c] = triangles.slice(i, i + 3).map(index => index * 2);
+              if (pointInTriangle(point.x, point.y, vertices[a], vertices[a+1], vertices[b], vertices[b+1], vertices[c], vertices[c+1])) { inside = true; break; }
+            }
+            if (inside) { id = spine.userData.slotOwners[slot.data.index]; break; }
+          }
+        }
         if (!shown) continue;
-        if (id !== undefined) onCharacter(id);
+        if (id !== undefined && id !== null) onCharacter(id);
         return;
       }
     }
@@ -219,7 +268,7 @@ export async function createImmersiveScene(host, resources, { signal, onTime = (
       fitCamera(size.width, size.height);
       return await operation();
     }
-    finally { exporting = false; if (!disposed) { playback.restore(savedPlayback); time = playback.time; updateCamera(); resize(); schedule(); notifyTime(); } }
+    finally { exporting = false; if (!disposed) { playback.restore(savedPlayback); time = playback.time; flushPoses(); updateCamera(); resize(); schedule(); notifyTime(); } }
   }
   function pngLimit() {
     const gl = renderer.getContext();
@@ -234,7 +283,7 @@ export async function createImmersiveScene(host, resources, { signal, onTime = (
     replay() { if (exporting) return; pose(0); paused = false; render(); notifyTime(); schedule(); },
     replayCharacter(id) {
       if (exporting || layer === 'background' || !playback.replay(id)) return false;
-      paused = false; render(); notifyTime(); schedule(); return true;
+      paused = false; flushPoses(); render(); notifyTime(); schedule(); return true;
     },
     setLayer(value) {
       layer = value;
