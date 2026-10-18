@@ -1,7 +1,7 @@
 import {currentServerContext} from './game-servers.mjs';
 import {createRankingRow, validateHighScoreDeck, validatePlayerProfile} from './player-ranking-decks.mjs';
 
-import {rankingEvents, rankingEventState, filterRankingEvents, rankingEventLabel} from './player-ranking-events.mjs';
+import {rankingEvents, rankingEventState, filterRankingEvents, rankingEventLabel, rankingEventForBand} from './player-ranking-events.mjs';
 import {rankingPicker} from './ranking-picker.mjs';
 import {rankingSongCover} from './ranking-song-cover.mjs';
 
@@ -98,7 +98,7 @@ export function installPlayerRankings(root) {
     const filtered=filterRankingEvents(events,band.value);
     options(event,filtered.map(item=>({id:item.id,name:rankingEventLabel(item,en)})),requestedEvent,en?'No matching events':'暂无符合条件的活动');
   };
-  if(band.value && !requestedEvent) requestedEvent=filterRankingEvents(events,band.value)[0]?.id || '';
+  requestedEvent=rankingEventForBand(events,band.value,requestedEvent);
   syncEvents();
   const pickerLabels=[en?'Band':'乐队',en?'Event':'活动',en?'Board':'榜单',en?'Song':'歌曲'];
   [band,event,board,song].forEach((select,index)=>pickers.set(select,rankingPicker(select,{label:pickerLabels[index],en,
@@ -135,8 +135,15 @@ export function installPlayerRankings(root) {
   };
   const observer=supportsScroll ? new IntersectionObserver(entries=>{if(entries.some(entry=>entry.isIntersecting)) maybeLoad();},{rootMargin:'280px 0px'}) : null;
   observer?.observe(sentinel);
+  const noMatchingEvents=()=>{
+    pending?.abort();++generation;loading=false;autoPaused=true;refresh.disabled=true;retry.hidden=true;next.hidden=true;
+    rows.replaceChildren();seen.clear();cursor=null;lastData=null;empty.hidden=false;status.dataset.state='unavailable';
+    status.textContent=en?'No events match this band.':'该乐队暂无活动。';q('[data-rank-count]').textContent='';q('[data-rank-time]').textContent='';loadNote.textContent='';showHeading();
+    const url=new URL(location.href);url.searchParams.set('band',band.value);for(const key of ['event','music','board']) url.searchParams.delete(key);history.replaceState(history.state,'',url);
+  };
   async function load(append = false) {
     if (!server || append && (loading || !cursor)) return;
+    if(band.value && !filterRankingEvents(events,band.value).length){noMatchingEvents();return;}
     pending?.abort(); pending = new AbortController(); const controller = pending, request = ++generation;
     loading=true;autoPaused=false;failedAppend=false;
     let timedOut = false;
@@ -203,7 +210,7 @@ export function installPlayerRankings(root) {
     }
   }
   const resetBoard=()=>{requestedMusic='';if(![...board.options].some(option=>option.value==='auto')) board.append(new Option(en?'Available board':'已接入榜单','auto'));board.value='auto';pickers.get(board)?.update();};
-  band.addEventListener('change',()=>{syncEvents();const filtered=filterRankingEvents(events,band.value);requestedEvent=filtered.some(item=>item.id===requestedEvent)?requestedEvent:filtered[0]?.id || '';syncEvents();resetBoard();if(filtered.length) load();else{pending?.abort();++generation;loading=false;refresh.disabled=false;retry.hidden=true;next.hidden=true;rows.replaceChildren();seen.clear();cursor=null;lastData=null;empty.hidden=false;status.textContent=en?'No events match this band.':'该乐队暂无活动。';q('[data-rank-count]').textContent='';q('[data-rank-time]').textContent='';loadNote.textContent='';showHeading();}});
+  band.addEventListener('change',()=>{syncEvents();requestedEvent=rankingEventForBand(events,band.value,requestedEvent);syncEvents();resetBoard();load();});
   event.addEventListener('change', () => { requestedEvent = event.value;resetBoard();load(); });
   board.addEventListener('change', () => { requestedMusic = ''; load(); });
   song.addEventListener('change', () => { requestedMusic = song.value; load(); });

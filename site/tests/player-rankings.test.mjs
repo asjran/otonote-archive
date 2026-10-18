@@ -96,3 +96,13 @@ test('public profile images reject foreign origins and credentials',async()=>{
   const value=response();value.entries[0].profile={profileCardImages:['https://evil.example/test.png']};
   assert.throws(()=>validateRankingResponse(value,'global-hmt','auto','',''));
 });
+
+
+test('band links and refresh preserve an empty band instead of selecting another band',async()=>{
+  const {rankingEventForBand}=await import('../src/lib/player-ranking-events.mjs');
+  const events=[{id:'3',bandIds:['2']},{id:'2',bandIds:['2']},{id:'1',bandIds:['1']}];
+  assert.equal(rankingEventForBand(events,'1','3'),'1');
+  assert.equal(rankingEventForBand(events,'2','2'),'2');
+  assert.equal(rankingEventForBand(events,'missing','3'),'');
+  assert.equal(rankingEventForBand(events,'','99'),'99');
+});

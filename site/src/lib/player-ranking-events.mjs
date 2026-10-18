@@ -24,3 +24,9 @@ export function rankingEventLabel(event, en = false) {
   const state = {active:['进行中','Ongoing'], ended:['已结束','Ended'], upcoming:['未开始','Upcoming'], unknown:['时间待确认','Schedule unknown']};
   return `${event.name} · ${(state[event.state] || state.unknown)[Number(en)]}${event.isFinal ? (en ? ' · Final record' : ' · 最终记录') : ''}`;
 }
+
+export function rankingEventForBand(events, band, requested = '') {
+  if (!band || band === 'all') return requested;
+  const matching=filterRankingEvents(events,band);
+  return matching.some(event=>event.id===requested) ? requested : matching[0]?.id || '';
+}
