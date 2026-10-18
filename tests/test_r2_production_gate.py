@@ -419,7 +419,7 @@ class ProductionGateTests(unittest.TestCase):
         paths = {'metadata': 'output/r2-jp/metadata.v39.dat',
                  'apkRoot': 'output/r2-jp/apks',
                  'unityVersion': 'output/r2-jp/unity-version.txt'}
-        package = {'packageSetSha256': 'e' * 64, 'versionName': '1.0.5',
+        package = {'packageName':'com.bushiroad.sirius', 'packageSetSha256': 'e' * 64, 'versionName': '1.0.5',
                    'versionCode': 10059, 'certificateSha256': 'f' * 64}
         with patch.object(jp_phone_inputs, 'JP_METADATA_SHA256', gate.file_hash(metadata)), \
              patch.object(jp_phone_inputs, 'JP_REVIEWED_PACKAGE_SET_SHA256', 'e' * 64), \

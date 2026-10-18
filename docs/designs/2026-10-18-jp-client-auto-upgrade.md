@@ -1,6 +1,6 @@
 # 日服客户端自动升级设计
 
-状态：方案已由用户批准；实现前设计。任务分支 `codex/jp-client-auto-upgrade`，基线与交付目标均为 `codex/release-2026-10-18`。不直接合并 main。
+状态：方案已由用户批准，设计先于实现提交；本地实现完成，生产验收待维护结束与正式发布。任务分支 `codex/jp-client-auto-upgrade`，基线与交付目标均为 `codex/release-2026-10-18`。不直接合并 main。
 
 ## 目标与成功标准
 
@@ -26,7 +26,7 @@
 ## 模块边界
 
 - `jp_client_profile`：旧信任锚、metadata/绑定回执验证、位置重定位；接口返回版本和位置，材料仅在调用过程中留在内存。
-- `jp_client_refresh`：下载和分包/签名验证、临时 seed、资源验证、官方探测、可回滚替换。
+- `jp_client_upgrade`：下载和分包/签名验证、临时 seed、资源验证、官方探测、可回滚替换。`jp_client_refresh` 保留为旧 1.0.5 的离线初始化/修复入口。
 - `jp_public` / `jp_remote_sync`：地区专属升级信号、按绑定生成只读官方客户端。
 - `jp_phone_inputs`：使用绑定解密，校验观察版本与 APK 身份。
 - `r2_production_gate`：轻量升级转完整恢复、完整输入身份和新回执；无变化门禁不接受部分升级。

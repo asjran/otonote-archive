@@ -33,6 +33,24 @@ RESOURCE_VERSION = re.compile(r'([0-9]+(?:\.[0-9]+){1,4})/([0-9a-f]{32})')
 VERSION_PROXY_ENV = 'OURNOTES_JP_VERSION_PROXY'
 
 
+class JpClientUpdateRequired(ProtocolError):
+    def __init__(self, version):
+        if not isinstance(version, str) or len(version) > 64 or not VERSION.fullmatch(version):
+            raise ProtocolError('JP update requires a valid recommended version')
+        self.version = version
+        super().__init__('JP client version changed; a verified client intake is required')
+
+
+def decode_jp_grpc(headers, body):
+    # JP supplies a store link, not a Global direct-APK URL. Never follow it.
+    statuses = re.findall(r'^HTTP/\S+ (\d+)', headers, re.M)
+    parsed = {m[1].lower(): m[2].strip() for m in re.finditer(r'^([\w-]+):\s*([^\r\n]*)', headers, re.M)}
+    if (statuses and statuses[-1] == '200' and parsed.get('grpc-status') == '2'
+            and unquote(parsed.get('grpc-message', '')) == 'client update required'):
+        raise JpClientUpdateRequired(parsed.get('x-client-recommended-version'))
+    return decode_grpc(headers, body)
+
+
 def version_proxy():
     """Read an operator-configured RPC egress without exposing its credentials."""
     value = os.environ.get(VERSION_PROXY_ENV, '')
@@ -203,7 +221,7 @@ class JpPublicClient:
             if completed.returncode:
                 raise TransportError('JP read-only RPC transport failed (' + str(completed.returncode) + ')')
             raw_headers = headers.read_text()
-            safe_headers, payload = decode_grpc(raw_headers, body.read_bytes())
+            safe_headers, payload = decode_jp_grpc(raw_headers, body.read_bytes())
             # The service can refresh the short-lived CDN password. Keep it in
             # memory and out of the returned observation and error messages.
             private_headers = {m[1].lower(): m[2].strip() for m in re.finditer(
@@ -256,13 +274,13 @@ class JpPublicClient:
         # Live access is still gated by the official API; do not fall back to a cached
         # version and label it current when this request is refused.
         headers, payload = self.rpc('app.masterdata.MasterdataService/Version')
+        recommended = headers.get('x-client-recommended-version')
+        if recommended and recommended != self.client_version:
+            raise JpClientUpdateRequired(recommended)
         master = string_field(protobuf_fields(payload), 1)
         resource = resource_version(headers.get('x-asset-version'), self.client_version)
         version_parts(master)
         _, digest = version_parts(resource)
-        recommended = headers.get('x-client-recommended-version')
-        if recommended and recommended != self.client_version:
-            raise ProtocolError('JP client version changed; a verified client intake is required')
         return {'schemaVersion': 1, 'environmentId': 'jp-production', 'region': 'jp',
                 'observedAt': utc_now(), 'clientVersion': self.client_version,
                 'masterVersion': master, 'resourceVersion': resource, 'catalogHash': digest,

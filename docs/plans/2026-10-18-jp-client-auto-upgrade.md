@@ -1,6 +1,6 @@
 # 日服客户端自动升级实施与验收
 
-状态：实现前计划。设计见 `docs/designs/2026-10-18-jp-client-auto-upgrade.md`。
+状态：设计先提交后实现；本地实现与相关回归完成，准备合入今日集成分支。设计见 `docs/designs/2026-10-18-jp-client-auto-upgrade.md`。
 
 ## 实施顺序
 
@@ -26,7 +26,23 @@
 
 ## 验证记录
 
-待实现后填入实际命令、结果、提交身份和真实包证据。未取得实际证据的项明确保留为待验收。
+- 设计与计划先提交：`da9ba8f`；实现只在独立任务 worktree 进行。
+- 新增 `jp_client_profile.py` 与 `jp_client_upgrade.py`；升级信号、资源解析、完整/轻量门禁、私有回执和 CI 已接通。旧固定版本刷新不再位于生产工作流；保留为旧 seed 初始化工具。
+- 自动升级的两个关键失败回归先观察为红：日服商店链接被 Global APK 规则拒绝；新版本复用相同 metadata 时被错误识别成旧客户端。实现后均通过。
+- Python 3.11 独立环境：35 个相关模块、363 项测试通过。包含 18 项新增行为测试，覆盖真实结构的合成 metadata、独立 AES-CTR 密文、三分包验证调用、坏签名/旧版/超前版拒绝、损坏/不足的解密样本、重复 ZIP 成员、下载域名边界、失败回滚、升级信号转完整恢复、新 checkpoint 轻量恢复与无变化。
+- 回归模块：所有 `tests/test_jp*.py`、`tests/test_r2*.py`，以及 bundle_decoder、current_client_upgrade、global_remote_sync、global_update、global_state_retention、update_health、current_resources、deployment_preservation、runtime_bundle。
+- `npm exec --yes --package=node@22.22.0 -- node --test site/tests/r2-content-gateway.test.mjs`：17/17 通过。最初误用本机默认 Node 18 出现 9 项失败；同一未修改网关在项目指定 Node 22 全部通过，不将初次失败计为实现回归。Node 24 的补充检查也通过。
+- `tools.repository_hygiene scan --root . --scope working`：1749 个文件通过；`git diff --check` 与修改文件语法检查通过。提交时再次按 staged 清单检查。
+- 自审覆盖：官方推荐版本与实际包版本精确绑定、每个分包密码学验签、旧 metadata 摘要锚、绑定只存位置不存密钥、下载重定向前校验、临时 seed 与回滚备份保留、checkpoint 中的 profile/anchor 摘要、旧客户端兼容、所有现有公开晋级门禁。
+
+## 真实客户端验证
+
+- 旧 1.0.5 / 10059：对本机已保存的真实 XAPK 完整运行新校验器，三个分包验签、metadata 重定位和三个实际加密 bundle 均通过。新逻辑结果与原可信 metadata/包摘要相同；不是用模拟测试代替真实签名。
+- 官方旧客户端 Version RPC 已返回推荐 **1.0.6**，说明本次真实强制升级已可观察。
+- 隔离复制的旧 seed 自动下载本次新包并通过准备阶段；最后的新客户端官方探测返回 `RPC grpc-status 2: under maintenance`。流程因此保留旧 seed，未执行内容生产、R2 上传或指针切换。
+- 脱敏本地记录目录 `/private/tmp/otonote-jp-upgrade-validation`。旧包验证回执 `real-105.json`；首次真实自动升级记录 `live-106-8oed9ak1/result.json`。记录目录和游戏二进制均不提交。
+- 本次没有更改运行时依赖；现有受审镜像已含 Python、UnityPy、pyelftools、Java、curl、OpenSSL。只给 CI 增加了已有解析库的安装，不要求为本改动重建生产镜像。
+- 远端 CI、维护结束后的新客户端成功 RPC、完整云端 shadow、公开 promote 和双服页面切换仍待验收；本地测试及新包解密不能代替这些结论。
 
 ## 生产验收（开发合并后独立执行）
 
