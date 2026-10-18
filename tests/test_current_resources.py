@@ -118,3 +118,35 @@ class CurrentImageCoverageTests(unittest.TestCase):
         resource.members=[{'_id':1000,'_assetID':2002}]
         second=core_image_targets(resource)
         self.assertEqual(list(second),['Assets/AddressableResources/MemberCard/2002/member_full.png'])
+
+
+class NonPlayableCharacterImageTests(unittest.TestCase):
+    def resources(self, resource_class, characters):
+        resource = resource_class.__new__(resource_class)
+        name = 'character-image_assets_character-image-1everythinginitialdownload_' + 'a' * 32 + '.bundle'
+        location = SimpleNamespace(primary_key=name)
+        resource.locations = {name: location}
+        resource.catalog = SimpleNamespace(locations=[])
+        resource.rows = lambda table: characters if table == 'MasterCharacter' else []
+        return resource
+
+    def test_explicit_nonplayable_has_no_required_portrait_bundle_in_both_editions(self):
+        from tools.current_content_inputs import core_image_targets
+        from tools.jp_phone_inputs import PhoneResources
+        characters = [{'_id': 1, '_isNonPlayable': False}, {'_id': 1001, '_isNonPlayable': True}]
+        for resource_class in (CurrentResources, PhoneResources):
+            with self.subTest(edition=resource_class.__name__):
+                targets = core_image_targets(self.resources(resource_class, characters))
+                self.assertEqual(set(targets), {
+                    'Assets/AddressableResources/Character/Image/1/' + role + '.png'
+                    for role in ('character_thumbnail', 'character_sprite', 'character_face_icon')})
+                self.assertEqual(len(characters), 2)
+
+    def test_missing_playable_portrait_still_blocks_without_id_heuristic(self):
+        from tools.current_content_inputs import core_image_targets
+        for flag in ({}, {'_isNonPlayable': False}, {'_isNonPlayable': 'true'}):
+            with self.subTest(flag=flag):
+                resource = self.resources(CurrentResources, [{'_id': 1001, **flag}])
+                with self.assertRaisesRegex(ValueError, 'no unique resource'):
+                    core_image_targets(resource)
+        self.assertEqual(core_image_targets(self.resources(CurrentResources, [{'_id': 1, '_isNonPlayable': True}])), {})
