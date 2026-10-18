@@ -155,12 +155,18 @@ export function validateTeamDraft(draft, known = {}) {
 const parseList = (value) =>
   value === null ? [] : value.split(",").map(nullableString);
 
-export function parseTeamDraftSearch(search, known = {}) {
+export function parseTeamDraftSearch(search, known = {}, hash = '') {
   const params = new URLSearchParams(
     typeof search === "string" && search.startsWith("?")
       ? search.slice(1)
       : search
   );
+  const fragmentDraft = new URLSearchParams(hash.replace(/^#/, '')).get('team-draft');
+  if (fragmentDraft) {
+    for (const [key, value] of new URLSearchParams(fragmentDraft)) {
+      if (!params.has(key)) params.set(key, value);
+    }
+  }
   const memberIds = parseList(params.get("members"));
   const supportIds = parseList(params.get("supports"));
   const slotCount = TEAM_RULE_SET.officialSlotCount;

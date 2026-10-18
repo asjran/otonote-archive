@@ -21,7 +21,7 @@ class EventEfficiencyTool extends HTMLElement {
   if(this.ready)return;this.ready=true;
   this.data=JSON.parse(this.querySelector('[data-event-inputs]').textContent);
   this.q=s=>this.querySelector(`[data-${s}]`);
-  this.draft=createTeamDraft(parseTeamDraftSearch(location.search,{memberCardIds:new Set(this.data.memberCards.map(c=>c.id)),supportCardIds:new Set(this.data.supportCards.map(c=>c.id)),musicTrackIds:new Set(this.data.tracks.map(t=>t.id))}).draft);
+  this.draft=createTeamDraft(parseTeamDraftSearch(location.search,{memberCardIds:new Set(this.data.memberCards.map(c=>c.id)),supportCardIds:new Set(this.data.supportCards.map(c=>c.id)),musicTrackIds:new Set(this.data.tracks.map(t=>t.id))},location.hash).draft);
   this.personalGrowthStore=createPersonalGrowthStore({rules:this.data.rules,vipRanks:this.data.vipRanks});
   try{applyPersonalGrowth(this.draft,this.personalGrowthStore.read());}catch(error){this.q('team-status').textContent=`个人养成未载入：${error.message}`;}
   if(this.draft.selectedSongId)this.q('song').value=this.draft.selectedSongId;

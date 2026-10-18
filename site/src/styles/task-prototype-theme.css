@@ -1,8 +1,5 @@
 /* D / V14 visual contract. Calculators retain their original data and event bindings. */
-body:has(.task-studio){--sidebar-width:192px;--paper:var(--tool-page,#f5f5f9);--ink:var(--tool-ink,#273446);--silver-dark:var(--tool-muted,#677486);--line:var(--tool-border,#e7e1ed);--lacquer:var(--tool-accent,#794560);--gel-blue:#345d7c;--accent:var(--tool-accent,#794560);--font-body:"Avenir Next","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;background:var(--tool-page,#f5f5f9)}
-body:has(.task-studio) .site-nav,body:has(.task-studio) .site-brand{background:var(--tool-surface,#fcfbfe)}
-body:has(.task-studio) .nav-primary{font-size:12px;gap:9px}
-body:has(.task-studio) .nav-submenu a{font-size:11px}
+.task-studio{--font-body:"Avenir Next","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif}
 body:has(.task-studio) .page-editions{padding-block:5px;min-height:30px;font-size:10px}
 .task-studio{--task-ink:var(--tool-ink,#273446);--task-muted:var(--tool-muted,#677486);--task-line:var(--tool-border,#e7e1ed);--task-accent:var(--tool-accent,#794560);--task-soft:var(--tool-tint,#f0edf8);--accent:var(--tool-accent,#794560);background:var(--tool-page,#f5f5f9)}
 .task-studio.task-studio .content-shell{width:calc(100% - 60px);max-width:1600px;margin-inline:auto}

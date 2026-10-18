@@ -268,6 +268,7 @@ const htmlLanguage = activeReleaseContext.locale;
     <SiteFooter title={siteTitle} locale={activeReleaseContext.locale} href={href} />
 
     <script>
+      import {restoreNavigationScroll, revealCurrentNavigation} from "../lib/navigation-scroll.mjs";
   import "../lib/filter-panel-ui.mjs";
       const labels = {
         open: document.documentElement.lang === "en" ? "Open navigation" : "打开导航",
@@ -277,6 +278,9 @@ const htmlLanguage = activeReleaseContext.locale;
       };
       const toggle = document.querySelector("[data-nav-toggle]");
       const navigation = document.querySelector("[data-site-nav]");
+      let navigationStorage;
+      try { navigationStorage = window.sessionStorage; } catch { /* Storage is optional. */ }
+      restoreNavigationScroll(navigation, navigationStorage);
       const backdrop = document.querySelector<HTMLButtonElement>("[data-nav-backdrop]");
       const backgroundElements = document.querySelectorAll<HTMLElement>("#main-content, .site-footer, .availability-notice, .site-brand, .site-breadcrumb, .global-search, .context-switcher");
       const closeNavigation = () => {
@@ -298,9 +302,10 @@ const htmlLanguage = activeReleaseContext.locale;
         document.body.toggleAttribute("data-nav-open", !expanded);
         if (backdrop) backdrop.hidden = false;
         backgroundElements.forEach((element) => { element.inert = true; });
+        revealCurrentNavigation(navigation);
         const currentLink = navigation?.querySelector<HTMLElement>('a[aria-current="page"]')
           ?? navigation?.querySelector<HTMLElement>("a");
-        currentLink?.focus();
+        currentLink?.focus({preventScroll:true});
       });
       backdrop?.addEventListener("click", () => {
         closeNavigation();
@@ -365,6 +370,7 @@ const htmlLanguage = activeReleaseContext.locale;
         submenuToggles.forEach((button) => {
           applySubmenuState(button, button.getAttribute("aria-expanded") === "true");
         });
+        revealCurrentNavigation(navigation);
       });
 
       const unavailable =

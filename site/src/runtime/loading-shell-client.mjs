@@ -2,6 +2,7 @@ import { SITE_NAME } from "../lib/site-brand.mjs";
 import {GAME_SERVERS, currentServerContext, withServer} from '../lib/game-servers.mjs';
 import {restoreServerLabels} from '../lib/server-label.mjs';
 import { activeNavigationGroup, activeNavigationChild, NAVIGATION_GROUPS } from '../lib/navigation.mjs';
+import {restoreNavigationScroll, revealCurrentNavigation} from '../lib/navigation-scroll.mjs';
 import { loadingKind } from './loading-route.mjs';
 import { loadingPresentation } from './loading-presentation.mjs';
 
@@ -87,6 +88,9 @@ document.querySelectorAll('[data-loading-toggle]').forEach(button => {
   }, options);
 });
 if (group) document.querySelector(`[data-loading-group="${group.id}"]`)?.setAttribute('data-active', '');
+let navigationStorage;
+try { navigationStorage = sessionStorage; } catch { /* Storage is optional. */ }
+restoreNavigationScroll(navigation, navigationStorage, options);
 const mobile = matchMedia('(max-width: 1100px)');
 const menu = document.querySelector('[data-loading-menu]');
 const backdrop = document.querySelector('[data-loading-backdrop]');
@@ -100,15 +104,16 @@ function setMenu(open) {
   document.body.toggleAttribute('data-nav-open', open);
   backdrop.hidden = !open;
   background.forEach(node => { node.inert = open; });
+  if (open) revealCurrentNavigation(navigation);
 }
 setMenu(false);
 menu.addEventListener('click', () => {
   const open = menu.getAttribute('aria-expanded') !== 'true';
   setMenu(open);
-  if (open) navigation.querySelector('a[aria-current="page"],a')?.focus();
+  if (open) (navigation.querySelector('a[aria-current="page"]') ?? navigation.querySelector('a'))?.focus({preventScroll:true});
 }, options);
 backdrop.addEventListener('click', () => { setMenu(false); menu.focus(); }, options);
-mobile.addEventListener('change', () => setMenu(false), options);
+mobile.addEventListener('change', () => {setMenu(false); revealCurrentNavigation(navigation);}, options);
 document.addEventListener('keydown', event => {
   if (menu.getAttribute('aria-expanded') !== 'true') return;
   if (event.key === 'Escape') { setMenu(false); menu.focus(); }
