@@ -20,6 +20,6 @@
 
 ## 集成与待验收
 
-任务分支 `codex/screenshot-adaptive-columns` 从 `codex/release-2026-10-18` 的 `112aac0` 建立，使用独立 worktree。合并前同步最新集成提交并复验，保留其他任务修改。
+任务分支 `codex/screenshot-adaptive-columns` 从 `codex/release-2026-10-18` 的 `112aac0` 建立，使用独立 worktree。合并前已读取远端集成分支（仍为 `112aac0`），并将本地最新集成提交 `224ed45` 合入任务分支，无冲突；其非可玩角色图像修复保留。同步后五组固定候选离线门禁全部通过（Python 交付、浏览器内容契约、共享计分、演出规划、共用队伍卡库），独立前端构建及 `code_publication --verify-only` 通过，54 路由、59 脚本、340 文件；包内 Worker、shortlist 与 layout 文件逐字节匹配源码。该产物是本地验证产物，不是正式发布回执。集成 worktree 中其他任务的未提交修改不纳入本次提交。
 
 待验收：其他用户的真实原始截图、Android/iOS 浏览器耗时与内存、不同游戏语言和压缩质量，以及发布后实际导入、刷新、撤销。当前保留人工核对，不宣称所有布局或手机均已验证；本任务不部署、不推送、不直接合并 main。
