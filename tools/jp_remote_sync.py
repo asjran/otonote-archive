@@ -16,7 +16,6 @@ import tempfile
 from uuid import uuid4
 
 from tools.global_remote_sync import file_hash, read_json, validate_manifest, write_json
-from tools.jp_phone_inputs import JP_CLIENT_VERSION, JP_METADATA_SHA256
 from tools.resource_pipeline.adapters.global_public import ProtocolError, utc_now
 from tools.resource_pipeline.adapters.jp_public import (
     CDN_ROOT, JpPublicClient, asset_directory, asset_url, decode_catalog, version_parts,
@@ -25,28 +24,19 @@ from tools.resource_pipeline.catalog_adapter import CatalogAdapter
 from tools.resource_pipeline.transport import TransportError
 
 
-# Verified NetworkConfig literals in the signed JP 1.0.5 client. Do not apply these
-# offsets to another client, even when the requested version number is unchanged.
+# NetworkConfig offsets are bound to a verified client, never reused by version alone.
 def client_from_metadata(path, *, authorize_builtin_credentials=False):
     if not authorize_builtin_credentials:
         raise ProtocolError('explicit authorization for JP client credentials is required')
-    data = Path(path).read_bytes()
-    if hashlib.sha256(data).hexdigest() != JP_METADATA_SHA256:
-        raise ProtocolError('unverified JP client metadata; a new intake is required')
-    if struct.unpack_from('<II', data) != (0xFAB11BAF, 39):
-        raise ProtocolError('unexpected JP metadata format')
-    offsets = struct.unpack_from('<III', data, 8)
-    strings = struct.unpack_from('<III', data, 20)
-    def literal(index):
-        start, end = struct.unpack_from('<II', data, offsets[0] + index * 4)
-        if not 0 <= start < end <= strings[1]:
-            raise ProtocolError('invalid JP client credential binding')
-        return data[strings[0]+start:strings[0]+end]
-    credential = base64.b64encode(literal(43395) + b':' + literal(41482)).decode('ascii')
-    if (len(literal(43395)) != 6 or len(literal(41482)) != 32 or
-            any(byte < 0x21 or byte > 0x7e for value in (literal(43395), literal(41482)) for byte in value)):
-        raise ProtocolError('unreviewed JP NetworkConfig literals')
-    return JpPublicClient(JP_CLIENT_VERSION, 'Basic ' + credential)
+    from tools.jp_client_profile import load_binding, read_metadata, credentials
+    try:
+        binding = load_binding(path)
+        user, password = credentials(read_metadata(path), binding['networkIndices'])
+    except (OSError, ValueError, KeyError, TypeError, struct.error):
+        raise ProtocolError('unverified JP client metadata or binding; a new intake is required') from None
+    credential = base64.b64encode(user + b':' + password).decode('ascii')
+    return JpPublicClient(binding['clientVersion'], 'Basic ' + credential)
+
 
 
 def acquire(client, url, target, size, *, expected_sha=None, identity=None):

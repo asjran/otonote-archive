@@ -120,22 +120,20 @@ def input_identity(root: Path, region: str, paths: dict[str, str]) -> tuple[str,
     if region == "jp":
         if set(paths) != {"metadata", "apkRoot", "unityVersion"}:
             raise GateError("invalid JP gate input selection")
-        from tools.jp_phone_inputs import (
-            JP_CERTIFICATE_SHA256, JP_CLIENT_VERSION, JP_METADATA_SHA256,
-            JP_REVIEWED_PACKAGE_SET_SHA256, JP_VERSION_CODE,
-        )
-        from tools.resource_pipeline.package_intake import build_package_set_manifest
+        from tools.jp_client_profile import validate_package, PROFILE_NAME, ANCHOR_NAME
         metadata = safe_path(root, paths["metadata"])
         unity = safe_path(root, paths["unityVersion"])
-        package = build_package_set_manifest(safe_path(root, paths["apkRoot"], directory=True),
-                                             region="jp", channel="production")
-        if (file_hash(metadata) != JP_METADATA_SHA256 or
-                package.get("packageSetSha256") != JP_REVIEWED_PACKAGE_SET_SHA256 or
-                package.get("certificateSha256") != JP_CERTIFICATE_SHA256 or
-                package.get("versionName") != JP_CLIENT_VERSION or package.get("versionCode") != JP_VERSION_CODE):
-            raise GateError("unreviewed JP package or metadata")
-        values = {"metadata": JP_METADATA_SHA256, "unityVersion": file_hash(unity),
+        try:
+            package, binding = validate_package(metadata, safe_path(root, paths["apkRoot"], directory=True))
+        except (OSError, ValueError):
+            raise GateError("unreviewed JP package or metadata") from None
+        values = {"metadata": binding['metadataSha256'], "unityVersion": file_hash(unity),
                   "packageSetSha256": package["packageSetSha256"]}
+        profile = metadata.parent / PROFILE_NAME
+        if profile.exists() and read_json(profile).get('schemaVersion') == 2:
+            if read_json(profile).get('unityVersion') != unity.read_text().strip():
+                raise GateError('JP Unity identity differs from client receipt')
+            values.update(clientBinding=file_hash(profile), trustedMetadata=file_hash(metadata.parent / ANCHOR_NAME))
         return digest(canonical(values)), package_identity("jp", package)
     raise GateError("invalid region")
 
@@ -185,6 +183,13 @@ def trusted_input_inventory(root: Path, region: str, paths: dict[str, str], stat
         if not apks:
             raise GateError("reviewed JP APK set is absent")
         names.extend(relative_path(root, path) for path in apks)
+        from tools.jp_client_profile import PROFILE_NAME, ANCHOR_NAME
+        # Include the binding whenever present, including migration/rollback
+        # receipts. This keeps future metadata tied to its trusted anchor.
+        folder = safe_path(root, paths['metadata']).parent
+        for name in (PROFILE_NAME, ANCHOR_NAME):
+            if (folder/name).exists():
+                names.append(relative_path(root, folder/name))
     else:
         raise GateError("invalid region")
     result = []
@@ -227,18 +232,20 @@ def probe(root: Path, region: str, image: str, *, config: str | None = None,
         paths = {"metadata": relative_path(root, metadata),
                  "apkRoot": relative_path(root, apk_root, directory=True),
                  "unityVersion": relative_path(root, unity_version_file)}
-        from tools.jp_remote_sync import client_from_metadata
-        client = client_from_metadata(safe_path(root, paths["metadata"]), authorize_builtin_credentials=True)
-        observation = client.discover()
+        from tools.jp_client_upgrade import ensure_current
+        if (safe_path(root, paths['apkRoot'], directory=True) != safe_path(root, paths['metadata']).parent/'apks'
+                or safe_path(root, paths['unityVersion']) != safe_path(root, paths['metadata']).parent/'unity-version.txt'):
+            raise GateError('JP upgrade requires one coherent seed directory')
+        observation = ensure_current(safe_path(root, paths['metadata']).parent)
         package_sha = None
     else:
         raise GateError("invalid region")
     input_sha, local_package_sha = input_identity(root, region, paths)
     if region == "jp":
         package_sha = local_package_sha
-        from tools.jp_phone_inputs import JP_CLIENT_VERSION
-        if observation.get("clientVersion") != JP_CLIENT_VERSION:
-            raise GateError("JP client upgrade requires a reviewed profile")
+        from tools.jp_client_profile import load_binding
+        if observation.get("clientVersion") != load_binding(safe_path(root, paths['metadata']))['clientVersion']:
+            raise GateError("JP client changed during probe")
     producer_code_sha, code_sha = code_fingerprints(
         root, private_inputs=tuple(paths.values()) if region == "global" else ())
     return {"schemaVersion": PROBE_SCHEMA, "region": region,
@@ -458,6 +465,13 @@ def record(root: Path, region: str, observed: dict, production: dict,
                "imageDigest": observed["imageDigest"], "publicPointer": pointer,
                "publicPointerSha256": digest(pointer_bytes),
                "stateSha256": digest(canonical(state_without_receipt(state)))}
+    if region == 'jp':
+        from tools.jp_client_profile import PROFILE_NAME
+        profile = safe_path(root, observed['inputPaths']['metadata']).parent/PROFILE_NAME
+        if profile.is_file() and read_json(profile).get('schemaVersion') == 2:
+            row = read_json(profile)
+            receipt['jpClient'] = {key: row[key] for key in
+                ('clientVersion', 'versionCode', 'packageSetSha256', 'certificateSha256')}
     state[RECEIPT_FIELD] = receipt
     data = canonical(state)
     descriptor, temporary = tempfile.mkstemp(prefix=".r2-production-receipt-", dir=path.parent)
@@ -558,17 +572,35 @@ def _inventory_matches_manifest(manifest: dict, receipt: dict, region: str) -> b
             expected_input = digest(canonical({"config": by_path[paths["config"]]["sha256"],
                                                "decoderProfile": by_path[paths["decoderProfile"]]["sha256"]}))
         else:
-            from tools.jp_phone_inputs import JP_METADATA_SHA256, JP_REVIEWED_PACKAGE_SET_SHA256
-            if not {paths["metadata"], paths["unityVersion"]} <= seen or by_path[paths["metadata"]]["sha256"] != JP_METADATA_SHA256:
+            from tools.jp_phone_inputs import JP_METADATA_SHA256, JP_REVIEWED_PACKAGE_SET_SHA256, JP_CERTIFICATE_SHA256
+            from tools.jp_client_profile import PROFILE_NAME, ANCHOR_NAME
+            if not {paths['metadata'], paths['unityVersion']} <= seen:
                 return False
-            apk_prefix = paths["apkRoot"] + "/"
-            apks = {entry["path"] for entry in manifest["files"]
-                    if entry["path"].startswith(apk_prefix) and entry["path"].endswith(".apk")}
+            apk_prefix = paths['apkRoot'] + '/'
+            apks = {entry['path'] for entry in manifest['files']
+                    if entry['path'].startswith(apk_prefix) and entry['path'].endswith('.apk')}
             if not apks or {name for name in seen if name.startswith(apk_prefix)} != apks:
                 return False
-            expected_input = digest(canonical({"metadata": JP_METADATA_SHA256,
-                                               "unityVersion": by_path[paths["unityVersion"]]["sha256"],
-                                               "packageSetSha256": JP_REVIEWED_PACKAGE_SET_SHA256}))
+            values = {'metadata':by_path[paths['metadata']]['sha256'],
+                      'unityVersion':by_path[paths['unityVersion']]['sha256'],
+                      'packageSetSha256':JP_REVIEWED_PACKAGE_SET_SHA256}
+            client = receipt.get('jpClient')
+            if client is None:
+                if values['metadata'] != JP_METADATA_SHA256:
+                    return False
+            else:
+                if not isinstance(client, dict) or client.get('certificateSha256') != JP_CERTIFICATE_SHA256:
+                    return False
+                identity = dict(client, versionName=client.get('clientVersion'))
+                if package_identity('jp', identity) != receipt['packageSha256']:
+                    return False
+                prefix = str(Path(paths['metadata']).parent) + '/'
+                profile, anchor = prefix+PROFILE_NAME, prefix+ANCHOR_NAME
+                if not {profile, anchor} <= seen or by_path[anchor]['sha256'] != JP_METADATA_SHA256:
+                    return False
+                values.update(packageSetSha256=client['packageSetSha256'],
+                              clientBinding=by_path[profile]['sha256'], trustedMetadata=by_path[anchor]['sha256'])
+            expected_input = digest(canonical(values))
         return expected_input == receipt["inputSha256"]
     except (KeyError, TypeError, ValueError, GateError):
         return False
@@ -642,6 +674,17 @@ def light_prepare(private_bucket, root: Path, region: str, selections: list[str]
         stable_package_sha = None
         from tools.jp_phone_inputs import JP_CLIENT_VERSION
         client_version = JP_CLIENT_VERSION
+        if receipt.get('jpClient') is not None:
+            from tools.jp_client_profile import PROFILE_NAME, ANCHOR_NAME, load_binding
+            prefix = str(Path(paths['metadata']).parent) + '/'
+            for name in (PROFILE_NAME, ANCHOR_NAME):
+                _download_private(private_bucket, manifest, prefix+name, stage/name)
+            binding = load_binding(stage/'metadata.v39.dat')
+            profile = read_json(stage/PROFILE_NAME)
+            if (binding['clientVersion'] != receipt['jpClient']['clientVersion']
+                    or any(profile.get(key) != value for key,value in receipt['jpClient'].items())):
+                raise GateError('JP light client identity mismatch')
+            client_version = binding['clientVersion']
     publication = state.get("publication")
     if (not isinstance(publication, dict) or publication.get("pointer") != receipt.get("publicPointer") or
             region == "global" and state.get("status") not in {"content_published", "unchanged"}):
@@ -690,7 +733,14 @@ def light_probe(root: Path, region: str, prepared: Path, *, image: str) -> dict:
         if metadata != Path(prepared).parent / "metadata.v39.dat" or metadata.is_symlink():
             raise GateError("JP light probe metadata path is invalid")
         client = client_from_metadata(metadata, authorize_builtin_credentials=True)
-        return {"status": "probed", "region": region, "sourceSha256": source_identity(client.discover()),
+        from tools.resource_pipeline.adapters.jp_public import JpClientUpdateRequired
+        try:
+            observation = client.discover()
+        except JpClientUpdateRequired:
+            return _needs_full('client_update_required')
+        if observation.get('clientVersion') != proof.get('clientVersion'):
+            raise GateError('JP light probe client identity mismatch')
+        return {"status": "probed", "region": region, "sourceSha256": source_identity(observation),
                 "packageSha256": receipt["packageSha256"]}
     raise GateError("invalid region")
 

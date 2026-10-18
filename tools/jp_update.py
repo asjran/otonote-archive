@@ -1,7 +1,8 @@
 """Build one fresh JP content candidate from an official version observation.
 
-The verified 1.0.5 split APK and metadata are private inputs. Unknown client
-versions stop before any content publication. R2 promotion is a separate step.
+The verified client seed and metadata binding are private inputs. The production
+gate upgrades the seed before this producer runs; unverified clients stop before
+content publication. R2 promotion is a separate step.
 """
 from __future__ import annotations
 

@@ -1,8 +1,9 @@
-"""Refresh the restored JP production seed from its reviewed Android client.
+"""Bootstrap/repair the legacy pinned JP seed from its reviewed Android client.
 
 The package mirror is only a transport source. Trust comes from the pinned
 archive digest, APK signer, package-set identity, metadata digest, and Unity
-identity. A new client version must be reviewed and pinned in source first.
+identity. Automatic production upgrades use tools.jp_client_upgrade; this legacy
+command intentionally retains the fixed bootstrap package.
 """
 from __future__ import annotations
 
