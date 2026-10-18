@@ -12,17 +12,35 @@ const selectedDifficulties=field=>field.multiple?[...field.selectedOptions].map(
 export function eventYieldCompletionText(data){
  const complete=data.coverageComplete??data.complete,proofs=Object.values(data.globalProofs??{});
  const proven=complete&&!data.failures.length&&proofs.length>0&&proofs.every(p=>p.bestProven);
- const covered=data.prunedCharts?`完整求解 ${data.fullyOptimizedCharts} 张，按全局上界覆盖 ${data.prunedCharts} 张谱面`:`已比较 ${data.done} / ${data.available} 张谱面`;
+ const covered=data.prunedCharts?`已证明 ${data.fullyOptimizedCharts} 张谱面的单曲第一名，按全局上界覆盖 ${data.prunedCharts} 张谱面`:`已比较 ${data.done} / ${data.available} 张谱面`;
  const ties=proofs.every(p=>p.scoreTieOptimality==='proven');
  const evidence=proven?`所选条件的收益第一名已证明；备选供参考${ties?'，同收益的期望分排序已证明':'，同收益的期望分排序未证明'}`:'当前结果尚未证明所选条件下的第一名';
  const continuation=proofs.some(p=>p.scope==='all_selected_charts_given_challenge_rows')?'；后续挑战以本次已计算方案为范围':'';
  return {complete,proven,label:complete?'活动收益比较完成':'活动收益推荐完成',detail:covered,
-   status:`${covered}。${evidence}${continuation}。展示 ${data.rows.length} 个队伍＋歌曲方案${data.cacheHits?`，复用 ${data.cacheHits} 次估分`:''}。${data.failures.length?'有计算失败，结果不完整。':complete?'':'可继续完整比较，已算结果会复用。'}`};
+   status:`${covered}。${evidence}${continuation}。展示 ${data.rows.length} 个队伍＋歌曲方案${data.cacheHits?`，复用 ${data.cacheHits} 次估分`:''}。${data.failures.length?'有计算失败，结果不完整。':complete?'':'可重新开始完整比较，已保存的估分缓存可复用。'}`};
+}
+
+export function eventYieldStopText(hasResults){
+ return {label:'已停止',detail:hasResults?'保留当前显示的方案，可重新开始完整比较':'可调整条件后重新计算',
+   status:hasResults?'已停止。保留当前显示的方案。重新开始完整比较会从头搜索，可复用已保存的估分缓存；当前搜索进度不保留。':
+     '已停止收益配队计算。重新计算会从头搜索，可复用已保存的估分缓存。'};
+}
+
+const progressStages={
+ practical:'准备与比较配队','practical-result':'更新当前领先方案',pair_weights:'计算成员与留影的配对能力',leader_weights:'计算队长加成',
+ search:'搜索更优配队','event-exact':'验证收益第一名','event-witness':'验证全局收益上界','event-reward-exact':'验证收益配队与加成',
+ 'event-root-proof':'验证各队长的收益上界','event-group-preparation':'准备跨谱面评分上界','event-group-proof':'验证跨谱面收益第一名','event-group-seeds':'跨谱面复算合法候选'
+};
+export function eventYieldProgressText(data){
+ const raw=typeof data.stage==='string'?data.stage:'',stage=progressStages[raw]??(/[\u3400-\u9fff]/u.test(raw)?raw:'正在比较活动收益');
+ const detail=typeof data.detail==='string'&&data.detail?data.detail:'谱面比较进度，单曲内部仍需比较编成';
+ return {stage,detail:raw?detail.split(raw).join(stage):detail};
 }
 
 export function setupEventYieldOptimizer(tool){
  const root=tool.q('yield-optimizer'),q=s=>tool.querySelector(`[data-yield-${s}]`);
  const feedback=createCalculationProgress(q('status'),'yield');
+ q('continue').textContent='重新开始完整比较';
  let worker=null,key='',result=null,renderKey='',displaySort='yield',displayGoal='badges',page=0;
  const stop=()=>{worker?.terminate();worker=null;q('cancel').hidden=true;tool.q('suggest').disabled=false;q('run').disabled=false;root.setAttribute('aria-busy','false');};
  function context(){return {eventId:Number(tool.q('event').value),mode:tool.q('mode').value,scope:tool.q('pool').value,draft:currentEventDraft(tool),
@@ -118,18 +136,18 @@ export function setupEventYieldOptimizer(tool){
      const active=worker;q('cancel').hidden=false;q('run').disabled=true;tool.q('suggest').disabled=true;root.setAttribute('aria-busy','true');q('status').textContent='正在准备卡库、实际养成与谱面…';
      worker.addEventListener('message',({data})=>{
        if(worker!==active)return;
-       if(data.type==='progress'){feedback.update({label:data.stage,completed:data.done,total:data.total,detail:`${data.title} · ${data.detail??'谱面比较进度，单曲内部仍需比较编成'}`});q('status').textContent=`${data.stage}：${data.title}（${data.done} / ${data.total}）`;return;}
+       if(data.type==='progress'){const progress=eventYieldProgressText(data);feedback.update({label:progress.stage,completed:data.done,total:data.total,detail:`${data.title} · ${progress.detail}`});q('status').textContent=`${progress.stage}：${data.title}（${data.done} / ${data.total}）`;return;}
        if(data.type==='partial'){feedback.update({label:'继续比较活动收益',completed:data.done,total:data.total,detail:'目前领先方案已显示，排名可能继续变化'});result=data;render();q('status').textContent=`已比较 ${data.done} / ${data.total} 张谱面，展示目前领先方案；还在计算，排名可能改变。`;return;}
        stop();if(data.type==='result'){
          result=data;render();const summary=eventYieldCompletionText(data);feedback.finish(summary.label,summary.detail);q('continue').hidden=summary.complete;
          q('status').textContent=summary.status;
-       }else {feedback.finish('计算失败',data.message,'error');q('continue').hidden=!result;q('status').textContent=`计算失败：${data.message}${result?'；保留已完成的方案，可继续比较。':''}`;}
+       }else {feedback.finish('计算失败',data.message,'error');q('continue').hidden=!result;q('status').textContent=`计算失败：${data.message}${result?'；保留当前显示的方案，可重新开始完整比较。':''}`;}
      });
      worker.addEventListener('error',()=>{if(worker!==active)return;stop();feedback.finish('计算服务加载失败','请重试','error');q('status').textContent='计算服务加载失败，请重试。';});
      worker.postMessage({rules:tool.data.rules,eventId:c.eventId,candidates,challengeCandidates,input:c});
    }catch(error){stop();feedback.finish('无法开始计算',error.message,'error');q('status').textContent=error.message;tool.q('team-status').textContent=error.message;}
  }
- q('run').addEventListener('click',()=>run());q('continue').addEventListener('click',()=>run('full'));q('cancel').addEventListener('click',()=>{stop();feedback.finish('已停止',result?'保留已完成的方案，可继续比较':'可调整条件后重新计算','stopped');q('continue').hidden=!result;q('status').textContent=result?'已停止。保留已完成的方案，仍有谱面未比较；继续时会复用计算缓存。':'已停止收益配队计算。';});
+ q('run').addEventListener('click',()=>run());q('continue').addEventListener('click',()=>run('full'));q('cancel').addEventListener('click',()=>{stop();const summary=eventYieldStopText(Boolean(result));feedback.finish(summary.label,summary.detail,'stopped');q('continue').hidden=!result;q('status').textContent=summary.status;});
  root.addEventListener('change',event=>{event.stopPropagation();sync();});
  return {sync,run,invalidate:()=>{key='';stop();sync();},destroy:stop};
 }
