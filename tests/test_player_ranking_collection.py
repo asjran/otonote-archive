@@ -126,6 +126,10 @@ class RankingCollectionTests(unittest.TestCase):
             self.assertIn('observations/%i,target=/data/observations/%i',template)
             self.assertIn('ournotes-rankings-capture/%i,target=/state',template)
             self.assertIn('--lock-dir /lock',template)
+            self.assertIn('ExecStart=/usr/bin/flock --wait 120 /var/lib/ournotes-rankings-lock/dispatch.lock /usr/bin/docker',template)
+            self.assertIn('ReadWritePaths=/var/lib/ournotes-rankings-lock',template)
+        self.assertIn('ExecStart=/usr/bin/flock --wait 120',unit)
+        self.assertIn('ExecStart=/usr/bin/flock --wait 120',finalizer)
         self.assertIn('COPY tools/ranking_regions.py',dockerfile)
 
     def test_auto_event_selection_uses_verified_current_content_and_taipei_schedule(self):
