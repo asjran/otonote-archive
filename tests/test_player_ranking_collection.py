@@ -37,6 +37,7 @@ def content_fixture(events=None):
     raw_projection = json.dumps(projection).encode()
     root = '/content/releases/0123456789abcdef01234567/'
     manifest = {'schemaVersion': 1, 'region': 'global', 'root': root, 'contentReleaseId': release,
+                'releaseRecord': {'masterVersion': '1'*32},
                 'locales': {'zh-CN': {'files': {'projection/game-modes.json': {
                     'path': 'zh-CN/game-modes.json', 'sha256': hashlib.sha256(raw_projection).hexdigest()}}}}}
     raw_manifest = json.dumps(manifest).encode()
@@ -47,6 +48,58 @@ def content_fixture(events=None):
 
 
 class RankingCollectionTests(unittest.TestCase):
+    def test_ranking_capture_negotiates_upgrade_before_sdk_login(self):
+        from tools.growth_login import Profile, LOGIN_SERVICE
+        calls = []
+        class Client(RankingClient):
+            def authenticate(self, *args):
+                return []
+            def rpc(self, host, method, payload=b'', auth=()):
+                calls.append((method,self.client_version))
+                if method == LOGIN_SERVICE + 'GetServerList':
+                    if self.client_version == CLIENT_VERSION:
+                        raise LoginError('game_client_update_required', recommended_version='1.0.6')
+                    return message(1, message(1,'TW/HK/MO') + message(8,'2') +
+                                   message(3,'https://l14-prod-hk-all-gs-sirius.gamerfusiontech.com'))
+                if method.endswith('/Version'): return b''
+                return message(1, player('public',123))
+        with tempfile.TemporaryDirectory() as folder, patch('tools.collect_player_rankings.SdkClient') as sdk:
+            sdk.return_value.login.return_value = SdkIdentity('FAKE','FAKE')
+            path = run_capture(self.plan(),Profile('FAKE'),'FAKE','FAKE',Path(folder),
+                               game_factory=Client,sdk_factory=sdk)
+            self.assertEqual(sdk.call_args.args[0].version,'1.0.6')
+            self.assertEqual(json.loads(path.read_text())['source']['clientVersion'],'1.0.6')
+        self.assertEqual([v for m,v in calls if m.endswith('/GetServerList')],[CLIENT_VERSION,'1.0.6'])
+
+    def test_negotiated_version_and_server_reach_sdk_snapshot_and_publication(self):
+        from tools.growth_login import Profile
+        for server in ('global-hmt', 'global-en', 'global-kr'):
+            with self.subTest(server=server), tempfile.TemporaryDirectory() as folder:
+                plan = {**self.plan(), 'serverId': server}
+                stages = []
+                class Client(RankingClient):
+                    def discover(self):
+                        self.client_version = '1.0.6'
+                        return 'host'
+                    def authenticate(self, *args):
+                        return []
+                    def rpc(self, *args):
+                        return message(1, player('public-player', 123))
+                with patch('tools.collect_player_rankings.SdkClient') as sdk:
+                    sdk.return_value.login.return_value = SdkIdentity('FAKE', 'FAKE')
+                    path = run_capture(plan, Profile('FAKE-KEY'), 'FAKE', 'FAKE', Path(folder),
+                                       sdk_factory=sdk, game_factory=Client, progress=stages.append)
+                self.assertEqual(sdk.call_args.args[0].version, '1.0.6')
+                self.assertEqual(sdk.call_args.args[0].language,
+                                 {'global-hmt':'zh','global-en':'en','global-kr':'ko'}[server])
+                value = json.loads(path.read_text())
+                self.assertEqual(path.parent.name, server)
+                self.assertEqual(value['serverId'], server)
+                self.assertEqual(value['source']['clientVersion'], '1.0.6')
+                self.assertEqual(query_player_rankings(Path(folder), server=server)['entries'][0]['score'], 123)
+                for other in {'global-hmt','global-en','global-kr'} - {server}:
+                    self.assertEqual(query_player_rankings(Path(folder), server=other)['status'], 'unavailable')
+
     def test_observation_version_matches_the_actual_transport_version(self):
         client = RankingClient(self.plan())
         with patch.object(client, 'authenticate', return_value=[]), patch.object(client, 'rpc', return_value=b''):
@@ -67,6 +120,13 @@ class RankingCollectionTests(unittest.TestCase):
         self.assertIn('--mode finalize --event auto', finalizer)
         self.assertIn('--state-dir /state', finalizer)
         self.assertIn('source=${RANKING_SDK_RESOURCES},target=/run/ranking-sdk/resources.xml,readonly', finalizer)
+        for mode in ('capture','finalize'):
+            template = (root/f'deploy/ournotes-player-rankings-{mode}@.service').read_text()
+            self.assertIn('--server %i',template)
+            self.assertIn('observations/%i,target=/data/observations/%i',template)
+            self.assertIn('ournotes-rankings-capture/%i,target=/state',template)
+            self.assertIn('--lock-dir /lock',template)
+        self.assertIn('COPY tools/ranking_regions.py',dockerfile)
 
     def test_auto_event_selection_uses_verified_current_content_and_taipei_schedule(self):
         files = content_fixture()
@@ -126,6 +186,34 @@ class RankingCollectionTests(unittest.TestCase):
                                            now=datetime(2026, 10, 18, 13, 10, tzinfo=timezone.utc),
                                            fetch_bytes=files.__getitem__)
             self.assertEqual(plan['eventId'], '1')
+
+    def test_final_archive_selection_does_not_use_another_servers_archive(self):
+        files = content_fixture()
+        now = datetime(2026, 10, 18, 13, 10, tzinfo=timezone.utc)
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            final = {'schemaVersion':1,'serverId':'global-hmt',
+                     'observedAt':'2026-10-18T00:00:00Z','expiresAt':'2026-10-18T00:15:00Z',
+                     'boards':[{'eventId':'2','eventName':'Ended','type':'event-points','entries':[]}]}
+            publish_final_observation(final,root,'global-hmt')
+            self.assertEqual(read_ended_content_plan('https://ournotes.stonebg.cn',root,now=now,
+                fetch_bytes=files.__getitem__,server='global-en')['eventId'],'2')
+            self.assertEqual(read_ended_content_plan('https://ournotes.stonebg.cn',root,now=now,
+                fetch_bytes=files.__getitem__,server='global-hmt')['eventId'],'1')
+
+    def test_shared_login_lock_stops_a_second_server_without_authentication(self):
+        import fcntl
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            with (root/'capture.lock').open('a') as lock:
+                fcntl.flock(lock,fcntl.LOCK_EX|fcntl.LOCK_NB)
+                with patch('tools.collect_player_rankings.Profile.from_resources') as profile, \
+                     contextlib.redirect_stdout(io.StringIO()):
+                    self.assertEqual(main(['--server','global-en','--root',str(root/'observations'),
+                        '--state-dir',str(root/'en-state'),'--lock-dir',str(root),
+                        '--sdk-resources',str(root/'unused.xml')]),0)
+                profile.assert_not_called()
+                self.assertFalse((root/'en-state/status.json').exists())
 
     def test_finalizer_writes_only_archive_and_its_own_status(self):
         with tempfile.TemporaryDirectory() as folder:

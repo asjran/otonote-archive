@@ -4,6 +4,7 @@
 !backend/player_rankings.py
 !tools/
 !tools/collect_player_rankings.py
+!tools/ranking_regions.py
 !tools/growth_login.py
 !tools/game_service_status.py
 !tools/global_game_config.py

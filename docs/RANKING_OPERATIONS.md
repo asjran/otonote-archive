@@ -1,5 +1,19 @@
 # 玩家榜采集运行约定
 
+## 三服任务与版本升级
+
+`--server` 明确选择 `global-hmt`、`global-en` 或 `global-kr`，默认保持港澳台。SDK 语言、官方主机、已有角色检查、榜单来源及发布目录均使用相同区服。公开版本协商发生在账号认证前，SDK 与游戏登录使用本次协商版本；不通过修改固定版本号维护客户端兼容。
+
+EN/韩服从网站已验证的 Global 投影选择活动，但每轮认证前必须核对公开内容 manifest 的 `releaseRecord.masterVersion`，再比较该港澳台来源版本与目标服当前官方 Master 清单中的 `MasterEvent`、`MasterChallengeMusic`、`MasterLiveMusic`、`MasterText` 四张表的 SHA-256 和长度。只接受固定官方 CDN 主机、对应区服路径、完整且不重复的表记录；拒绝重定向。表不一致返回 `ranking_region_event_tables_differ`，来源或清单不可验证返回 `ranking_region_event_verification_failed`；两者均在 SDK 登录前停止且不覆盖旧榜单，后续周期可重试。榜单来源保存比较证据。
+
+活动时间继续使用网站既有 `Asia/Taipei` 计划，不根据网页语言或抽卡显示时区转换。此适配仅覆盖活动表一致的区服；不同活动配置需要独立投影。EN/韩服的显式 `--master-dir` 维护计划缺少内容版本绑定时拒绝认证。
+
+新增 `capture@.service/.timer` 与 `finalize@.service/.timer` 模板，分别以 `global-en`、`global-kr` 实例启用。每服独立 observations、state、暂停状态及最终归档；港澳台保留原有服务名称和路径。所有六项任务通过同一个 `--lock-dir` 锁串行登录，共用既有只读 credentials 与 SDK 挂载，不复制凭据。锁忙时跳过本轮，不改变快照或暂停状态。
+
+上线前备份现有镜像身份、服务文件、私有 env 和状态；从干净基础镜像构建并固定新采集镜像，验证其中包含 `ranking_regions.py`、最新共享认证模块且不含 SDK。准备共用锁目录和两服 state（UID/GID 10001、0700）以及 observations（UID/GID 10001、0755）。切换期间先暂停采集/归档 timers 并确认任务空闲，检查各服已有暂停原因，不自动 `--resume`。安装单元、更新镜像 pin 后依次人工运行三服采集，核对真实 `serverId`、`eventId`、`clientVersion`、新鲜度和公开接口，再恢复原有约十分钟周期及新增区服 timers。失败时停止新增 timers，恢复旧单元、env 与镜像；保留所有快照、归档和安全暂停状态。旧镜像受上游版本限制，回滚本身不代表恢复采集。
+
+2026-10-18 的排查与实服探测、尚未部署边界见 [三服榜单修复记录](plans/2026-10-18-ranking-three-server-refresh.md)。
+
 ## 程序、配置和数据
 
 - 程序镜像由经过验证的源码构建，部署记录固定镜像 ID 或 digest。每次公开发现得到的 `game.client_version` 同时用于 SDK、游戏请求和榜单来源记录；榜单 protobuf 解码规则的历史来源版本单独说明。
@@ -26,7 +40,7 @@
 5. 先只读检查现有 `status.json` 是否 `paused`，并按固定错误码处理原因；认证或限流暂停不得因换期自动解除。修复后必要时通过正式入口带 `--resume` 执行一次。检查状态中的 `eventId`、阶段、结果，以及公开接口的活动 ID、观察时间和新鲜度；不另外创建自动登录或无限重试。
 6. 若失败，保留最后成功榜单及当前安全暂停状态，按故障阶段处理。回滚需恢复旧镜像和旧 service 组合；旧版本仍可能被上游拒绝，不得将回滚声明为采集恢复。
 
-离线验证：`python3 -m unittest tests.test_player_ranking_collection tests.test_player_rankings`。实际环境配置和私有迁移记录不随此文档提交。
+离线验证：`python3 -m unittest tests.test_player_ranking_collection tests.test_player_rankings tests.test_ranking_regions`。实际环境配置和私有迁移记录不随此文档提交。
 
 ## 活动结束后的最终榜单
 
