@@ -1,20 +1,19 @@
-import {runEventYieldBatch} from './event-yield-batch.mjs';
+import {createBoundedChartLoader} from './bounded-chart-loader.mjs';
+import {runEventYieldBatch,eventYieldChartPlan} from './event-yield-batch.mjs';
 import {proveEventYieldGroups} from './event-yield-group-proof.mjs';
 import {createEventSearchStore,eventSearchPartition,searchDigest} from './event-search-cache.mjs';
 const store=createEventSearchStore();
 self.addEventListener('message',async({data})=>{
+ let chartLoader;
  try{
    const {rules,eventId,candidates,challengeCandidates,input}=data;
    const partition=await eventSearchPartition(rules,eventId,input),preparedKey=partition+':prepared';
-   const candidateCache=new Map(await store.get(preparedKey)??[]),charts=new Map(),storedScores=new Map();
+   const candidateCache=new Map(await store.get(preparedKey)??[]),storedScores=new Map();
    let storedCandidates=candidateCache.size,reportedAt=0,reportedStage='';
-   const loadChart=async c=>{
-     if(!charts.has(c.id))charts.set(c.id,(async()=>{
-       const response=await fetch(c.analysisDataUrl,{signal:AbortSignal.timeout(30000)});
-       if(!response.ok)throw Error(`谱面加载失败（${response.status}）`);return response.json();
-     })());
-     return charts.get(c.id);
-   };
+   const {selected}=eventYieldChartPlan(candidates,rules,input);
+   const cycle=input.mode==='ordinary'&&input.includeChallenge;
+   chartLoader=createBoundedChartLoader({candidates:[...(cycle?challengeCandidates:[]),...selected]});
+   const {loadChart}=chartLoader;
    const scoreKey=async(c,mode,stage,chart)=>await eventSearchPartition(rules,eventId,stage)+':'+mode+':'+await searchDigest({chart});
    const result=await runEventYieldBatch({rules,eventId,candidates,challengeCandidates,input,candidateCache,loadChart,proveGroup:proveEventYieldGroups,
      getScoreCache:async(c,mode,stage,chart)=>{
@@ -36,6 +35,7 @@ self.addEventListener('message',async({data})=>{
            detail:typeof progress==='object'?`${message.stage} ${progress.completed??''} / ${progress.total??'…'}`:progress});
        }else self.postMessage(message);
      }});
+   await chartLoader.close();
    self.postMessage(result);
- }catch(error){self.postMessage({type:'error',message:error.message});}
+ }catch(error){await chartLoader?.close();self.postMessage({type:'error',message:error.message});}
 });
