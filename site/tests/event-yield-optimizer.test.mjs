@@ -255,7 +255,16 @@ test('global grade/bonus ceiling proves reward objectives without enumerating sc
  assert.equal(result.certifiedSearch.scoreTieOptimality,'not_proven');
  assert.equal(result.certifiedSearch.evaluated,0);
  const practical=await optimizeEventYield({...input,includeChallenge:false,searchMethod:'practical'});
- assert.deepEqual(result.results,practical.results);
+ // Only first place is certified. A ceiling witness may return one fully
+ // scored team without spending work on two unproved alternatives.
+ assert.deepEqual(result.results[0].total,practical.results[0].total);
+ assert.equal(result.results[0].reward.scoreRank,practical.results[0].reward.scoreRank);
+ assert.equal(result.results[0].orderCount,120);
+ assert.equal(result.results.length,1);
+ assert.equal(result.practical.fullScoreCalculations,1);
+ assert.equal(result.certifiedSearch.proofTarget,'best');
+ assert.equal(result.certifiedSearch.topNComplete,false);
+ assert.equal(result.certifiedSearch.alternativesOptimality,'not_proven');
  await assert.rejects(optimizeEventYield({...input,maxEvaluations:-1}),/budget/);
 });
 

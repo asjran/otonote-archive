@@ -5,7 +5,7 @@ function fixture(){
   const doc=new EventTarget(),panel=new EventTarget(),inside={},outside={},launcher={contains:target=>target===launcher};
   Object.assign(panel,{ownerDocument:doc,open:true,isConnected:true,nested:false,querySelector:()=>panel.nested,contains:target=>target===inside,getBoundingClientRect:()=>({left:100,right:500,top:20,bottom:700})});
   let dismissed=0;const cleanup=installWorkspaceDismiss(panel,launcher,()=>dismissed++);
-  const fire=(type,target=outside,props={})=>{const event=new Event(type);Object.defineProperties(event,Object.fromEntries(Object.entries({target,button:0,clientX:0,clientY:0,...props}).map(([key,value])=>[key,{value}])));doc.dispatchEvent(event);};
+  const fire=(type,target=outside,props={})=>{const event=new Event(type,{cancelable:true});Object.defineProperties(event,Object.fromEntries(Object.entries({target,button:0,clientX:0,clientY:0,...props}).map(([key,value])=>[key,{value}])));doc.dispatchEvent(event);return event;};
   return {panel,inside,outside,launcher,fire,cleanup,count:()=>dismissed};
 }
 test('closes on an outside press and release, including modal backdrop coordinates',()=>{
@@ -25,4 +25,10 @@ test('child modal interactions and interrupted gestures do not close parent',()=
 test('closed or disconnected panels and disposed listeners are inert',()=>{
   const f=fixture();f.panel.open=false;f.fire('pointerdown');f.fire('click');f.panel.open=true;f.panel.isConnected=false;f.fire('pointerdown');f.fire('click');
   f.panel.isConnected=true;f.cleanup();f.fire('pointerdown');f.fire('click');assert.equal(f.count(),0);
+});
+
+
+test('outside dismissal consumes its click before the underlying page can act',()=>{
+ const f=fixture();f.fire('pointerdown');const click=f.fire('click');
+ assert.equal(click.defaultPrevented,true);assert.equal(click.cancelBubble,true);
 });

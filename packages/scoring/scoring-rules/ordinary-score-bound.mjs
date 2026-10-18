@@ -1,5 +1,6 @@
 import { createFrameClock, skillEndFrame } from './formal-frame-clock.mjs';
 import { createJointPowerScoreBound } from './joint-power-score-bound.mjs';
+import { createBonusConstrainedScoreBound } from './bonus-constrained-score-bound.mjs';
 
 const unitRoundoff = 2 ** -24;
 const gamma = n => n * unitRoundoff < 1 ? n * unitRoundoff / (1 - n * unitRoundoff) : Infinity;
@@ -34,7 +35,7 @@ export function ordinaryReplayApplicationLimit(timeline, profiles, frameRate = 6
 
 /** Bound the ideal ordinary replay, including native float32 rewind residue.
  * This is not a bound for dynamic player inputs or Gekisou task rewards. */
-export function createOrdinaryScoreBound({ song, pairSkills, legacyFactor, input, metric, frameRate = 60, localRewinds = true, assignmentBound = true, jointPowerBound = false }) {
+export function createOrdinaryScoreBound({ song, pairSkills, legacyFactor, input, metric, frameRate = 60, localRewinds = true, assignmentBound = true, jointPowerBound = false, bonusConstraintBound = false }) {
   // Audit adapters before either the envelope or homogeneous-team shortcut.
   song.upperBound(0, 1, { eventContext: input.draft.modifiers?.event });
   const clock = createFrameClock({ frameRate }), profiles = new Map(), canonical = new Map(), cache = new Map();
@@ -66,6 +67,9 @@ export function createOrdinaryScoreBound({ song, pairSkills, legacyFactor, input
   const jointBound = jointPowerBound ? createJointPowerScoreBound({
     coefficients:song.powerLinearUpperBound?.({eventContext:input.draft.modifiers?.event}),spans,profileFor,metric
   }) : null;
+  const bonusBound=bonusConstraintBound?createBonusConstrainedScoreBound({
+    coefficients:song.powerLinearUpperBound?.({eventContext:input.draft.modifiers?.event}),spans,profileFor,metric
+  }):null;
   const linearFor = power => {
     if (!assignmentBound || !song.linearUpperBound || events.length>100000) return null;
     if (!linearCache.has(power)) {
@@ -125,7 +129,7 @@ export function createOrdinaryScoreBound({ song, pairSkills, legacyFactor, input
     if (!cache.has(key)) { if (cache.size >= 8192) cache.delete(cache.keys().next().value); cache.set(key, calculate()); }
     return cache.get(key);
   };
-  const bound = function(state, model, solution, draftForSolution, includePriority = false) {
+  const bound = function(state, model, solution, draftForSolution, includePriority = false, cutoff = -Infinity, minimumBonus) {
     const fixed = new Set(state.required), banned = new Set(state.forbidden);
     const forced = solution.edges.filter(e => fixed.has(e.key));
     const used = field => new Set(forced.map(e => e[field]));
@@ -138,7 +142,7 @@ export function createOrdinaryScoreBound({ song, pairSkills, legacyFactor, input
     // power; the maximum-power feasible team therefore supplies an exact bound.
     if (types.size === 1 && [...types.values()][0].effects.every(e => e.value >= 0)) {
       const key = `exact:${[...types.keys()][0]}:${solution.weight}`;
-      const value=remember(key, () => song.calculate(draftForSolution())[metric]);
+      const value=remember(key, () => { bound.stats.fullScoreCalculations++; return song.calculate(draftForSolution())[metric]; });
       return includePriority?{upper:value,priority:value}:value;
     }
     const maxima = new Map();
@@ -155,7 +159,7 @@ export function createOrdinaryScoreBound({ song, pairSkills, legacyFactor, input
     const factor = Math.min(legacyFactor, upward((1 + 2 * absolute) * 1.0001));
     const signatures = [...types.keys()].sort(), envelopeKey = JSON.stringify([absolute, signatures]);
     const options = [...types.values()], commands = 10 * Math.max(0, ...options.map(p => p.effects.length));
-    const active = remember(`active:${JSON.stringify(signatures)}`, () => {
+    const active = () => remember(`active:${JSON.stringify(signatures)}`, () => {
       const intervals = song.timeline.skillTimes.map(start => options.map(p => p.effects.map(e => ({
         start, end: skillEndFrame(clock, start, e.durationRawMs).timeMs, value: e.value
       }))));
@@ -176,21 +180,51 @@ export function createOrdinaryScoreBound({ song, pairSkills, legacyFactor, input
       // The old 1+2*A bound is safe only while its extra A also dominates
       // accumulated rewind error. Huge future charts must keep the wider bound.
       const safeFactor = error <= absolute ? factor : Infinity;
-      const factors = active.map(value=>Math.min(safeFactor,upward(1+value+error)));
-      return {factors,error};
+      // The joint relaxation only needs error. Delay the per-note envelope
+      // until a cheaper safe bound has failed to prune this partition.
+      let factors;
+      return {get factors(){return factors??=active().map(value=>Math.min(safeFactor,upward(1+value+error)));},error};
     });
     const envelope=getEnvelope('',applicationLimit);
-    const timedBound=(prefix,envelope)=>envelope===null?Infinity:remember(`${prefix}score:${envelopeKey}:${solution.weight}`, () => song.upperBound(solution.weight, (_, index) => envelope.factors[index], { eventContext: input.draft.modifiers?.event }));
+    const timedBound=(prefix,envelope)=>envelope===null?Infinity:remember(`${prefix}score:${envelopeKey}:${solution.weight}`, () => { const factors=envelope.factors; return song.upperBound(solution.weight, (_, index) => factors[index], { eventContext: input.draft.modifiers?.event }); });
     if(envelope===null)return includePriority?{upper:Infinity,priority:Infinity}:Infinity;
+    if(minimumBonus)return bonusBound?bonusBound(available,forced,state.leader,solution,envelope.error,minimumBonus.forEdge,minimumBonus.value,state):Infinity;
+    const joint=jointBound ? jointBound(available,forced,state.leader,solution,envelope.error,!state.forbidden.length,cutoff) : Infinity;
+    if (!includePriority && joint <= cutoff) return joint;
     const timed=timedBound('',envelope);
     const assignment=assignedGain(available,forced,state.leader,solution.weight);
     // The small outward binary64 allowance covers the <=100000 positive sums,
     // five-effect gains and assignment additions, separately from native f32.
     let upper=assignment && Number.isFinite(assignment.gain) ? Math.min(timed,
       Math.ceil((assignment.total*(1+envelope.error)+assignment.gain)*(1+1e-10))) : timed;
-    if (jointBound) upper=Math.min(upper,jointBound(available,forced,state.leader,solution,envelope.error,!state.forbidden.length));
+    upper=Math.min(upper,joint);
     return includePriority?{upper,priority:timedBound('legacy:',getEnvelope('legacy:',Infinity))}:upper;
   };
+  // A cutoff only skips additional SAFE bounds after one already proves
+  // this partition cannot improve the incumbent. It never changes the domain.
+  bound.withCutoff=(state,model,solution,draftForSolution,cutoff)=>bound(state,model,solution,draftForSolution,false,cutoff);
+  bound.withMinimumBonus=(state,model,solution,draftForSolution,forEdge,value)=>{
+    if(bonusBound)bonusBound.witnesses=[];
+    return bound(state,model,solution,draftForSolution,false,-Infinity,{forEdge,value});
+  };
+  Object.defineProperty(bound,'bonusConstraintWitnesses',{get:()=>bonusBound?.witnesses??[]});
+  bound.bonusConstraintStats=bonusBound?.stats??{matchingCalls:0};
+  // This chart-wide envelope covers every legal five-pair team. It is only
+  // used to prove a WHOLE group of charts cannot reach a grade; it supplies
+  // no score and must not be rounded to integer score/threshold units.
+  bound.normalizedPowerEnvelope=threshold=>{
+    if(!bonusBound||!Number.isFinite(threshold)||threshold<=0)return null;
+    const absolute=5*Math.max(0,...uniqueProfiles.map(p=>p.absolute));
+    const commands=10*Math.max(0,...uniqueProfiles.map(p=>p.effects.length));
+    const calls=Math.min(applicationLimit,4*(events.length+commands+1)),undo=commands*calls;
+    const stateError=gamma(2*undo+1)*(1+4*absolute)
+      +(1+gamma(2*undo+1))*undo*gamma(commands)*2*absolute;
+    const error=stateError+unitRoundoff*(1+2*absolute+stateError);
+    const baseCoefficient=bonusBound.envelope.baseCoefficient*(1+error)/threshold*(1+1e-10);
+    if(!Number.isFinite(baseCoefficient))return null;
+    return {baseCoefficient,gainFor:edge=>bonusBound.envelope.gainFor(edge)/threshold*(1+1e-10)};
+  };
+  bound.stats={fullScoreCalculations:0};
   bound.withPriority=(...args)=>bound(...args,true);
   return bound;
 }

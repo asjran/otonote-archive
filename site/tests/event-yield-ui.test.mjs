@@ -3,8 +3,44 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {selectEventYieldRows,eventYieldGoals,orderEventYieldRows,eventYieldGaps} from '../src/lib/event-yield-goals.mjs';
 import {eventYieldStageInput} from '../src/lib/event-yield-stage.mjs';
-import {setupEventYieldOptimizer} from '../src/lib/event-yield-ui.mjs';
+import {setupEventYieldOptimizer,eventYieldCompletionText,eventYieldStopText,eventYieldProgressText} from '../src/lib/event-yield-ui.mjs';
 import {installProgressDom} from './helpers/progress-dom.mjs';
+test('global proof status distinguishes covered charts, alternatives and expected-score ties',()=>{
+ const data={coverageComplete:true,complete:true,failures:[],rows:[],fullyOptimizedCharts:3,prunedCharts:88,
+ globalProofs:{badges:{bestProven:true,scope:'all_selected_charts_given_challenge_rows'}}};
+ const summary=eventYieldCompletionText(data);assert.equal(summary.proven,true);
+ assert.match(summary.status,/已证明 3 张谱面的单曲第一名，按全局上界覆盖 88 张/);assert.match(summary.status,/第一名已证明/);
+ assert.match(summary.status,/备选供参考/);assert.match(summary.status,/期望分排序未证明/);assert.match(summary.status,/后续挑战以本次已计算方案/);
+ const incomplete=eventYieldCompletionText({...data,coverageComplete:false});assert.equal(incomplete.proven,false);assert.match(incomplete.status,/尚未证明/);
+ assert.match(incomplete.status,/可重新开始完整比较，已保存的估分缓存可复用/);assert.doesNotMatch(incomplete.status,/已算结果会复用/);
+});
+test('cancelling preserves displayed candidates while a full restart only reuses saved score caches',()=>{
+ const stopped=eventYieldStopText(true);
+ assert.match(stopped.detail,/保留当前显示的方案/);
+ assert.match(stopped.status,/重新开始完整比较会从头搜索/);
+ assert.match(stopped.status,/可复用已保存的估分缓存/);
+ assert.match(stopped.status,/当前搜索进度不保留/);
+ const empty=eventYieldStopText(false);
+ assert.match(empty.status,/重新计算会从头搜索/);
+ assert.match(empty.status,/已保存的估分缓存/);
+ assert.doesNotMatch(empty.status,/保留当前显示的方案/);
+});
+test('worker stages show Chinese progress labels, including unknown-stage fallback',()=>{
+ const stages={
+  practical:'准备与比较配队','practical-result':'更新当前领先方案',pair_weights:'计算成员与留影的配对能力',leader_weights:'计算队长加成',
+  search:'搜索更优配队','event-exact':'验证收益第一名','event-witness':'验证全局收益上界','event-reward-exact':'验证收益配队与加成',
+  'event-root-proof':'验证各队长的收益上界','event-group-preparation':'准备跨谱面评分上界','event-group-proof':'验证跨谱面收益第一名','event-group-seeds':'跨谱面复算合法候选'
+ };
+ for(const [stage,label] of Object.entries(stages)){
+  const text=eventYieldProgressText({stage,detail:stage+' 1 / 9'});
+  assert.equal(text.stage,label);assert.equal(text.detail,label+' 1 / 9');
+ }
+ assert.deepEqual(eventYieldProgressText({stage:'验证成员与留影集合',detail:'验证成员与留影集合 2 / 9'}),
+  {stage:'验证成员与留影集合',detail:'验证成员与留影集合 2 / 9'});
+ assert.deepEqual(eventYieldProgressText({stage:'future_internal_stage',detail:'future_internal_stage 2 / 9'}),
+  {stage:'正在比较活动收益',detail:'正在比较活动收益 2 / 9'});
+ assert.equal(eventYieldProgressText({}).stage,'正在比较活动收益');
+});
 test('cycle stages choose independent collection and AP basis without inheriting a normal grade',()=>{
  const input={rewardGrowthOverride:true,mode:'ordinary',includeChallenge:true,scope:'selected',basis:'minimumScore',challengeScope:'owned',challengeBasis:'expectedScore',draft:{slots:[]}};
  assert.equal(eventYieldStageInput(input,'ordinary').scope,'selected');
@@ -146,5 +182,17 @@ test('ordinary song filters reach the worker, invalidate results and leave chall
  multi(q('difficulty'),[]);optimizer.sync();const beforePrimaryEmpty=workers.length;optimizer.run();assert.equal(workers.length,beforePrimaryEmpty);
  // An explicit chart keeps its chosen difficulty independently of auto filters.
  q('songs').value='selected';optimizer.sync();optimizer.run();assert.deepEqual(workers.at(-1).data.candidates.map(c=>c.id),['2-h']);
+ const cancelled=workers.at(-1);q('cancel').listeners.click();
+ assert.equal(cancelled.stopped,true);assert.equal(q('run').disabled,false);
+ assert.match(q('status').textContent,/重新计算会从头搜索/);assert.equal(q('continue').textContent,'重新开始完整比较');
+ const cancelledStatus=q('status').textContent;
+ cancelled.listeners.message({data:{type:'progress',stage:'旧任务',done:9,total:9}});cancelled.listeners.error();
+ assert.equal(q('status').textContent,cancelledStatus);
+ const beforeRestart=workers.length;optimizer.run('full');assert.equal(workers.length,beforeRestart+1);
+ assert.equal(workers.at(-1).data.input.searchDepth,'full');
+ const restartStatus=q('status').textContent;
+ cancelled.listeners.message({data:{type:'progress',stage:'旧任务',done:9,total:9}});assert.equal(q('status').textContent,restartStatus);
+ workers.at(-1).listeners.message({data:{type:'progress',stage:'practical-result',title:'歌曲',done:1,total:9,detail:'practical-result 1 / 9'}});
+ assert.match(q('status').textContent,/更新当前领先方案/);assert.doesNotMatch(q('status').textContent,/practical-result/);
  optimizer.destroy();
 });

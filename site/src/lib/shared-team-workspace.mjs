@@ -1,3 +1,4 @@
+import {containModalFocus} from './dialog-focus.mjs';
 import {cardGrowthLabel} from './card-growth-labels.mjs';
 import {loadTeamWorkspaceData} from './shared-team-loader.mjs';
 export {loadTeamWorkspaceData};
@@ -44,6 +45,12 @@ export function prepareCurrentTeamGrowthEdit(draft,inventory) {
   }
   draft.modifiers.growth=growth;
 }
+/** Keep hand-edited growth when a card is replaced away and selected again. */
+export function retainTeamCardGrowth(draft,cardId,inventory) {
+  draft.modifiers.growth??={};
+  const actual=inventory?.growth?.[cardId];
+  if(!Object.hasOwn(draft.modifiers.growth,cardId)&&actual)draft.modifiers.growth[cardId]=copy(actual);
+}
 /** Evaluate a replacement in its destination, excluding the card it replaces. */
 export function teamCardSelectionReason(card,target,{draft,restrictions={},memberCards=[],locale='zh-CN'}={}) {
   const next=copy(draft??createTeamDraft()),slot=Number(target.slot),en=locale==='en';
@@ -80,7 +87,7 @@ export async function setupSharedTeamWorkspace(shell) {
   data.memberCards=data.memberCards.map(card=>({...card,kind:'member'}));data.supportCards=data.supportCards.map(card=>({...card,kind:'support'}));
   let store,profileStore,state,inventoryPanel,editing=null,editBaseline='',editingId=null,editingRevision,undo=null,pendingSave=null,origin=null;
   const tabScroll={teams:0,inventory:0};
-  let activeTab='teams',applying=false,loadedProfile,includePerformance=false,dismissedOutside=false,lastSavedId=null,previewedTeam=null;
+  let activeTab='teams',applying=false,guarding=false,loadedProfile,includePerformance=false,dismissedOutside=false,lastSavedId=null,previewedTeam=null;
   const status=element('div','','tw-status tw-feedback');status.setAttribute('role','status');status.setAttribute('aria-live','polite');
   const serverRow=element('div',null,'tw-server'),tabs=element('div',null,'tw-tabs'),teams=element('section'),inventory=element('section');
   teams.id='tw-teams';inventory.id='tw-inventory';tabs.setAttribute('role','tablist');
@@ -181,18 +188,27 @@ export async function setupSharedTeamWorkspace(shell) {
   }
   importInput.addEventListener('change',async()=>{const file=importInput.files?.[0];if(!file)return;try{if(file.size>5_000_000)throw Error(say('文件不能超过 5 MB','Maximum file size is 5 MB'));const value=JSON.parse(await file.text()),next=store.fromImport(value),revision=store.read().revision;importPreview.replaceChildren(element('p',say(`将导入 ${next.teams.length} 套队伍，现有队伍保留。`,`Import ${next.teams.length} teams and keep existing teams.`)),button(say('确认导入','Confirm import'),()=>run(()=>{state=store.importWorkspace(value,{expectedRevision:revision});importPreview.replaceChildren();renderList();feedback(say('队伍已导入。','Teams imported.'));})),button(say('取消','Cancel'),()=>importPreview.replaceChildren()));}catch(error){feedback(error.message,{tone:'error'});}finally{importInput.value='';}});
 
-  function ask(message,choices){return new Promise(resolve=>{const dialog=element('dialog',null,'tw-confirm');dialog.append(element('h3',message));const row=element('div',null,'tw-actions');for(const [label,value] of choices)row.append(button(label,()=>{dialog.close();resolve(value);}));dialog.append(row);panel.append(dialog);dialog.addEventListener('cancel',()=>resolve('cancel'));dialog.addEventListener('close',()=>dialog.remove(),{once:true});dialog.showModal();});}
-  async function guardEditor(action,onCancel){if(dirty()){const choice=await ask(say('队伍修改尚未保存','Team changes have not been saved'),[[say('保存后继续','Save and continue'),'save'],[say('放弃修改','Discard changes'),'discard'],[say('取消','Cancel'),'cancel']]);if(choice==='cancel'){onCancel?.();return;}if(choice==='save'&&!saveEditor())return;}action();}
+  function ask(message,choices){return new Promise(resolve=>{
+    const origin=document.activeElement,dialog=element('dialog',null,'tw-confirm'),title=element('h3',message);title.id='tw-confirm-title';dialog.setAttribute('aria-labelledby',title.id);dialog.append(title);
+    const row=element('div',null,'tw-actions');for(const [label,value] of choices)row.append(button(label,()=>dialog.close(value)));dialog.append(row);panel.append(dialog);
+    dialog.addEventListener('cancel',event=>event.stopPropagation());
+    dialog.addEventListener('close',event=>{event.stopPropagation();const answer=dialog.returnValue||'cancel';dialog.remove();if(origin?.isConnected)origin.focus({preventScroll:true});resolve(answer);},{once:true});
+    dialog.addEventListener('keydown',event=>containModalFocus(dialog,event));dialog.showModal();row.lastElementChild?.focus();
+  });}
+  async function guardEditor(action,onCancel){
+    if(guarding)return;guarding=true;
+    try{if(dirty()){const choice=await ask(say('队伍修改尚未保存','Team changes have not been saved'),[[say('保存后继续','Save and continue'),'save'],[say('放弃修改','Discard changes'),'discard'],[say('取消','Cancel'),'cancel']]);if(choice==='cancel'){onCancel?.();return;}if(choice==='save'&&!saveEditor())return;}return action();}finally{guarding=false;}
+  }
   async function applyTeam(draft){
-    if(!context)return;
-    if(context.isDirty?.()){const choice=await ask(say('当前工具的队伍有未保存修改','The current tool has unsaved team changes'),[[say('保存后切换','Save before switching'),'save'],[say('放弃修改并切换','Switch without saving'),'discard'],[say('取消','Cancel'),'cancel']]);if(choice==='cancel')return;if(choice==='save'){await guardEditor(()=>{edit(context.getDraft(),null,say('我的队伍','My team'),true);pendingSave={afterSave:()=>{context.markSaved?.();applyTeam(draft);}};});return;}}
-    try{applying=true;await context.applyDraft(copy(draft),{includePerformance});context.markSaved?.();renderCurrent();feedback(say('队伍已用于当前工具，歌曲与活动设置保留。','Team applied. Song and event settings were kept.'));}catch(error){feedback(error.message,{tone:'error'});}finally{applying=false;}
+    if(!context||applying)return;applying=true;
+    try{if(context.isDirty?.()){const choice=await ask(say('当前工具的队伍有未保存修改','The current tool has unsaved team changes'),[[say('保存后切换','Save before switching'),'save'],[say('放弃修改并切换','Switch without saving'),'discard'],[say('取消','Cancel'),'cancel']]);if(choice==='cancel')return;if(choice==='save'){await guardEditor(()=>{edit(context.getDraft(),null,say('我的队伍','My team'),true);pendingSave={afterSave:()=>{context.markSaved?.();applyTeam(draft);}};});return;}}
+    await context.applyDraft(copy(draft),{includePerformance});context.markSaved?.();renderCurrent();feedback(say('队伍已用于当前工具，歌曲与活动设置保留。','Team applied. Song and event settings were kept.'));}catch(error){feedback(error.message,{tone:'error'});}finally{applying=false;}
   }
   function cardReason(card,target){return teamCardSelectionReason(card,target,{draft:editing??createTeamDraft(),restrictions:restrictions(),memberCards:data.memberCards,locale:data.locale});}
   shell.data=data;
   const picker=createToolCardPicker({root:shell,getCards:kind=>data[`${kind}Cards`],getDraft:()=>editing,getOwned:kind=>profile()?.inventory?.[`${kind}CardIds`]??[],getCardState:card=>resolveTeamCardGrowth({card,draft:editing,inventory:profile()?.inventory,rules:data.formalRules}),conflict:cardReason,onChoose:(card,target)=>{
     editing.slots[target.slot][`${target.kind}CardId`]=card.id;
-    const actual=profile()?.inventory?.growth?.[card.id];editing.modifiers.growth??={};if(actual)editing.modifiers.growth[card.id]=copy(actual);syncPlanningCards();
+    retainTeamCardGrowth(editing,card.id,profile()?.inventory);syncPlanningCards();
     renderEditor();
   }});
   // Put the chooser in the panel so stacked modal focus remains inside the workspace.
@@ -202,7 +218,7 @@ export async function setupSharedTeamWorkspace(shell) {
   function renderEditor(){
     const openGrowth=new Set([...editor.querySelectorAll('details[open]')].map(node=>node.dataset.growthCard));const focused=document.activeElement?.dataset.growthField;const scroll=body.scrollTop;
     editor.replaceChildren();if(!editing){updateSaveState();return;}const manager=createInventoryManager(data.formalRules),name=element('input');name.type='text';name.maxLength=80;name.value=editing._name??'';name.placeholder=say('例如：日常稳分队','For example: steady daily team');name.dataset.twName='';name.addEventListener('input',()=>editing._name=name.value);
-    const nameLabel=element('label',say('队伍名称','Team name'));nameLabel.append(name);const editorHeading=element('header',null,'tw-editor-heading'),saveState=element('span',null,'tw-save-state');saveState.dataset.saveState='';editorHeading.append(element('h3',editingId?say('编辑队伍','Edit team'):say('新建队伍','New team')),saveState);editor.append(editorHeading,nameLabel);
+    const nameLabel=element('label',say('队伍名称','Team name'));nameLabel.append(name);const editorHeading=element('header',null,'tw-editor-heading'),saveState=element('span',null,'tw-save-state');saveState.dataset.saveState='';editorHeading.append(element('h3',editingId?say('编辑队伍','Edit team'):say('新建队伍','New team')),saveState);editor.append(editorHeading,nameLabel,element('p',say('关闭窗口会在本页保留草稿；保存到队伍库后，刷新或离开页面也能找回。','Closing keeps this draft on this page. Save it to keep it after reloading or leaving.')));
     const settings=planningSettingsValues(editing.modifiers,'selected'),scenario=element('select');
     for(const [value,zh,english] of [['current','当前养成','Current growth'],['training','培养后使用','After training'],['reference','满养成参考','Max growth reference'],['selected','保留手选养成','Keep selected growth'],['trial','试用未持有卡','Try unowned cards']])scenario.append(new Option(say(zh,english),value));scenario.value=settings.kind;
     const scenarioLabel=element('label',say('养成场景','Growth scenario'));scenarioLabel.append(scenario);editor.append(scenarioLabel);
@@ -245,5 +261,5 @@ export async function setupSharedTeamWorkspace(shell) {
   panel.addEventListener('cancel',event=>{if(panel.querySelector('dialog[open]'))event.preventDefault();});
   installWorkspaceDismiss(panel,launcher,()=>{dismissedOutside=true;panel.close();});
   initializeStores();switchTab('teams');
-  return {async open(tab=activeTab,saveRequest=null){origin=panel.contains(document.activeElement)?launcher:document.activeElement;context=getActiveToolTeamContext();if(!panel.open){if(matchMedia('(min-width: 1680px)').matches)panel.show();else panel.showModal();document.body.classList.add('tw-is-open');launcher.setAttribute('aria-expanded','true');}panel.dataset.taskEntry=tab;panel.querySelector('#tw-title').textContent=tab==='editor'?say('编辑队伍配对','Edit team pairs'):say('卡库与队伍','Cards & teams');switchTab(tab);renderCurrent();renderList();if(tab==='editor'&&context&&!saveRequest){await guardEditor(()=>edit(context.getDraft()));}else if(saveRequest){await guardEditor(()=>{edit(saveRequest.draft,null,saveRequest.name||say('我的队伍','My team'),true);pendingSave=saveRequest;});}else panel.querySelector('[data-team-workspace-close]')?.focus();}};
+  return {async open(tab=activeTab,saveRequest=null,entryOrigin=null){origin=entryOrigin??(panel.contains(document.activeElement)?launcher:document.activeElement);context=getActiveToolTeamContext();if(!panel.open){if(matchMedia('(min-width: 1680px)').matches)panel.show();else panel.showModal();document.body.classList.add('tw-is-open');launcher.setAttribute('aria-expanded','true');}panel.dataset.taskEntry=tab;panel.querySelector('#tw-title').textContent=tab==='editor'?say('编辑队伍配对','Edit team pairs'):say('卡库与队伍','Cards & teams');switchTab(tab);renderCurrent();renderList();if(tab==='editor'&&context&&!saveRequest){if(!editing)edit(context.getDraft());else{panel.dataset.taskEntry='editor';panel.querySelector('#tw-title').textContent=say('编辑队伍配对','Edit team pairs');editor.scrollIntoView({block:'start',behavior:'auto'});editor.querySelector('[data-tw-name]')?.focus({preventScroll:true});}}else if(saveRequest){await guardEditor(()=>{edit(saveRequest.draft,null,saveRequest.name||say('我的队伍','My team'),true);pendingSave=saveRequest;});}else panel.querySelector('[data-team-workspace-close]')?.focus();}};
 }
