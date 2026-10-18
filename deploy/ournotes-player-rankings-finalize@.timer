@@ -1,0 +1,11 @@
+[Unit]
+Description=Refresh %i event rankings finalize
+
+[Timer]
+OnBootSec=7min
+OnUnitInactiveSec=10min
+RandomizedDelaySec=30s
+Unit=ournotes-player-rankings-finalize@%i.service
+
+[Install]
+WantedBy=timers.target

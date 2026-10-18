@@ -51,7 +51,7 @@ class ScoringResearchWorkbench extends HTMLElement {
       known.tgwCardRanks = new Set(this.data.vipRanks.map((entry) => entry.rank));
     }
     this.known=known;
-    const parsed = parseTeamDraftSearch(window.location.search, known);
+    const parsed = parseTeamDraftSearch(window.location.search, known, window.location.hash);
     this.draft = createTeamDraft(parsed.draft);
     try{applyPersonalGrowth(this.draft,createPersonalGrowthStore({rules:this.data.formalRules,vipRanks:this.data.vipRanks}).read());}
     catch(error){parsed.issues.push({code:'personal_growth_unavailable',severity:'warning',message:`${this.labels.song.growthUnavailable}${error.message}`});}

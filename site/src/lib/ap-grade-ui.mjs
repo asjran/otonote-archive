@@ -14,7 +14,7 @@ class APGradeTool extends HTMLElement{
  connectedCallback(){
   if(this.ready)return;this.ready=true;this.q=s=>this.querySelector(`[data-ap-${s}]`);this.data=JSON.parse(this.q('inputs').textContent);
   const d=this.data,params=new URLSearchParams(location.search);
-  const parsed=parseTeamDraftSearch(location.search,{memberCardIds:new Set(d.memberCards.map(c=>c.id)),supportCardIds:new Set(d.supportCards.map(c=>c.id)),musicTrackIds:new Set(d.tracks.map(c=>c.id))});
+  const parsed=parseTeamDraftSearch(location.search,{memberCardIds:new Set(d.memberCards.map(c=>c.id)),supportCardIds:new Set(d.supportCards.map(c=>c.id)),musicTrackIds:new Set(d.tracks.map(c=>c.id))},location.hash);
   this.draft=createTeamDraft(parsed.draft);delete this.draft.modifiers.event;this.rows=null;this.page=0;
   try{this.profile=createPersonalGrowthStore({rules:d.rules,vipRanks:d.vipRanks}).read();applyPersonalGrowth(this.draft,this.profile);}
   catch(e){this.q('status').textContent=`个人养成未载入：${e.message}`;}

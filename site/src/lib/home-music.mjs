@@ -44,9 +44,9 @@ export function homeMusic(tracks, events, region, now = Date.now()) {
   };
 }
 
-/** A historical debut remains added even between challenge access and free live opening. */
+/** Challenge access is temporary; ordinary availability removes the restriction label. */
 export function challengeSongLabel({ freeLiveStart, challengePeriods }, now = Date.now(), en = false) {
-  if (freeLiveStart !== null && now >= freeLiveStart) return en ? 'Challenge debut' : '挑战演出先行';
+  if (freeLiveStart !== null && now >= freeLiveStart) return '';
   if (challengePeriods.some(period => period.start <= now && period.end !== null && now < period.end)) {
     return en ? 'Challenge Live only' : '挑战演出限定';
   }

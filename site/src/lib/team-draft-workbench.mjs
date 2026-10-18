@@ -34,7 +34,7 @@ import {attributeBadge} from './calculator-attribute-ui.mjs';
       if (this.data.vipRanks?.length) {
         this.known.tgwCardRanks = new Set(this.data.vipRanks.map((entry) => entry.rank));
       }
-      const parsed = parseTeamDraftSearch(window.location.search, this.known);
+      const parsed = parseTeamDraftSearch(window.location.search, this.known, window.location.hash);
       this.draft = parsed.draft;
       try{applyPersonalGrowth(this.draft,createPersonalGrowthStore({rules:this.data.formalRules,vipRanks:this.data.vipRanks}).read());}catch(error){this.profileError=error.message;}
       this.parseIssues = parsed.issues.filter((issue) => issue.code === "invalid_modifiers");

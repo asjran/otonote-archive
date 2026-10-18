@@ -1,8 +1,7 @@
-import {toolRoute} from './tool-route.mjs';
+import {toolRoute, toolNavigationHref} from './tool-route.mjs';
 import {createAccountEditor} from './workbench-account-ui.mjs';
 import {createWorkbenchDialog,modalizeDetails,showWorkbenchToast,enhanceNumericInputs} from './workbench-dialog.mjs';
 import {createWorkbenchTeamView} from './workbench-team-view.mjs';
-import {serializeTeamDraftSearch} from './team-draft.mjs';
 import {destroySkillPopover} from './calculator-card-ui.mjs';
 import {setupScoreWorkbenchView} from './score-workbench-view.mjs';
 import {setupEventWorkbenchView} from './event-workbench-view.mjs';
@@ -105,7 +104,7 @@ export function setupTaskWorkbench(host,kind) {
   function refresh() {
     const draft=host.draft,track=host.data.tracks?.find(t=>t.id===draft.selectedSongId);songLabel.textContent=track?`${track.title} · ${draft.selectedDifficulty?.toUpperCase()??'未选难度'}`:'未选谱面';songButton.textContent=track?'更换谱面':'选择歌曲 / 谱面';songRow.querySelector('.task-song-cover')?.remove();const jacket=track&&picker?.querySelector(`[data-song-row="${track.id}"] .song-picker-jacket`);if(jacket){const cover=jacket.cloneNode();cover.className='task-song-cover';cover.alt='';songRow.prepend(cover);}
     view?.refresh();
-    for(const link of nav.querySelectorAll('a:not(.task-ranking-link)')){const url=new URL(link.href);url.search=serializeTeamDraftSearch(draft);const server=new URLSearchParams(location.search).get('server');if(server)url.searchParams.set('server',server);link.href=url.href;}
+    for(const link of nav.querySelectorAll('a:not(.task-ranking-link)')){const path=new URL(link.href).pathname.replace(/^\/(global|jp)\/(zh-CN|zh-TW|ja|en)/,'');link.href=toolNavigationHref(path,draft);}
     if(kind==='score')q('[data-score-team]')?.replaceChildren(createWorkbenchTeamView(host,draft));
     tags.replaceChildren();
     const entries=[],explicitPerformance=q('[data-performance-mode]')?.value==='explicit',savedPerformance=draft.modifiers?.performanceScenario;

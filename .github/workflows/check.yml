@@ -68,6 +68,7 @@ jobs:
       - name: Admin content delivery gates
         run: |
           python3 -m pip install -r requirements-admin.txt
+          python3 -m unittest tests.test_player_ranking_collection tests.test_player_rankings tests.test_ranking_regions tests.test_ranking_finalizations -q
           python3 -m unittest tests.test_admin_r2_delivery -q
           node --check backend/admin/static/admin.mjs
       - name: Changed media compilation gates

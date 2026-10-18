@@ -1,4 +1,4 @@
-"""Bounded HMT event ranking reads using an existing, in-memory game login.
+"""Bounded Global event ranking reads using an existing, in-memory game login.
 
 Wire schema: Global Android 1.0.1 (25), EventService and PlayerSimpleProfile.
 Transport version follows per-request public negotiation, independently of this schema.
@@ -20,10 +20,13 @@ from pathlib import Path
 from urllib.parse import urlsplit
 from urllib.request import Request, urlopen
 
-from backend.player_rankings import public_high_score_deck, validate_observation
+from backend.player_rankings import public_high_score_deck, public_player_profile, validate_observation
 from tools.growth_export import fields
 from tools.growth_login import CLIENT_VERSION, GameClient, LoginError, integer, message, single, string, varint
 from tools.growth_login import Profile, SdkClient
+from tools.global_game_config import GLOBAL_SERVERS
+from tools.ranking_regions import verify_shared_event_tables
+from tools.ranking_finalizations import remember_plan, pending_plan
 from tools.import_player_rankings import (ensure_final_archive_metadata, publish_final_observation,
                                           publish_observation)
 from tools.resource_pipeline.localization import resolve_text
@@ -49,7 +52,7 @@ def _event_local_time(value) -> datetime:
 
 
 def _read_content_plan(base: str, *, now: datetime | None = None, fetch_bytes=None,
-                       ended_root: Path | None = None) -> dict | None:
+                       ended_root: Path | None = None, server='global-hmt') -> dict | None:
     """Bind a ranking plan to the site's hash-checked Global event projection."""
     parsed = urlsplit(base)
     if parsed.scheme != 'https' or not parsed.hostname or parsed.username or parsed.password or parsed.path not in ('', '/') or parsed.query or parsed.fragment:
@@ -124,9 +127,9 @@ def _read_content_plan(base: str, *, now: datetime | None = None, fetch_bytes=No
             raise ValueError('invalid_event_projection')
         if ended_root is None and start <= current <= end:
             active.append(event)
-        if (ended_root is not None and end + timedelta(minutes=10) <= current
+        if (ended_root is not None and end < current
                 and (flags['eventPoints'] or flags['music'])
-                and not ensure_final_archive_metadata(ended_root, 'global-hmt', str(event['id']))):
+                and not ensure_final_archive_metadata(ended_root, server, str(event['id']))):
             ended.append((end, event))
     if ended_root is None:
         if len(active) > 1:
@@ -161,7 +164,10 @@ def _read_content_plan(base: str, *, now: datetime | None = None, fetch_bytes=No
     if not boards or len(boards) > 20:
         raise ValueError('no_supported_boards_or_too_many_boards')
     return {'eventId': str(event['id']), 'eventName': event['name'], 'boards': boards, 'ttl': 900,
+            'eventStartAt': _event_local_time(event['schedule']['startAt']).isoformat(),
+            'eventEndAt': _event_local_time(event['schedule']['endAt']).isoformat(),
             'contentReleaseId': pointer['contentReleaseId'], 'eventProjectionSha256': sha,
+            'contentMasterVersion': (manifest.get('releaseRecord') or {}).get('masterVersion'),
             'uncollectedBoards': ['total-music'] if flags['totalMusic'] else []}
 
 
@@ -170,8 +176,8 @@ def read_current_content_plan(base: str, *, now: datetime | None = None, fetch_b
 
 
 def read_ended_content_plan(base: str, root: Path, *, now: datetime | None = None,
-                            fetch_bytes=None) -> dict | None:
-    return _read_content_plan(base, now=now, fetch_bytes=fetch_bytes, ended_root=root)
+                            fetch_bytes=None, server='global-hmt') -> dict | None:
+    return _read_content_plan(base, now=now, fetch_bytes=fetch_bytes, ended_root=root, server=server)
 
 
 def read_plan(master: Path, event_id: int, *, ttl: int = 900) -> dict:
@@ -243,6 +249,26 @@ def high_score_deck(raw):
         raise LoginError('invalid_high_score_deck') from None
 
 
+def ranking_profile(raw):
+    avatar = single(raw, 7, wire=0, required=False) or None
+    card = single(raw, 8, required=False)
+    images = []
+    # Current Global responses can repeat the thumbnail URL field. Keep only
+    # the public images; omit private profile IDs, card names and timestamps.
+    if card is not None:
+        for number, wire, value in fields(card):
+            if number != 3 or wire != 2 or len(images) >= 8:
+                continue
+            try:
+                url = bytes(value).decode('utf-8')
+                public_player_profile({'profileCardImages': [url]})
+            except (UnicodeError, ValueError):
+                continue
+            if url not in images:
+                images.append(url)
+    return public_player_profile({'avatarMasterId': avatar, 'profileCardImages': images}) if avatar or images else None
+
+
 def ranking_entries(raw: bytes, *, music: bool) -> list[dict]:
     result = []
     for number, wire, value in fields(raw):
@@ -259,6 +285,7 @@ def ranking_entries(raw: bytes, *, music: bool) -> list[dict]:
             raise LoginError('ranking_order_changed')
         result.append({'playerId': string(profile, 1), 'name': string(profile, 2, optional=True),
                        'rank': rank, 'score': score,
+                       'profile': ranking_profile(profile),
                        'highScoreDeck': high_score_deck(single(value, 4, required=False)) if music else None})
     return result
 
@@ -267,8 +294,14 @@ class RankingClient(GameClient):
     read_methods = GameClient.read_methods | {MUSIC_RPC, POINTS_RPC}
 
     def __init__(self, plan: dict):
-        super().__init__()
+        super().__init__(server_id=plan.get('serverId', 'global-hmt'))
         self.plan = plan
+
+    def discover(self):
+        host = super().discover()
+        if self.server_id != 'global-hmt':
+            self.plan = {**self.plan, 'sharedEventTables': verify_shared_event_tables(self, host, self.plan)}
+        return host
 
     def export(self, identity, device_id, host, progress=lambda s: None):
         auth = self.authenticate(identity, device_id, host, progress)
@@ -288,15 +321,18 @@ class RankingClient(GameClient):
         finally:
             auth.clear()
         source = {'kind': 'direct_game_read', 'clientVersion': self.client_version}
-        for key in ('masterHashes', 'contentReleaseId', 'eventProjectionSha256'):
+        for key in ('masterHashes', 'contentReleaseId', 'eventProjectionSha256',
+                    'contentMasterVersion', 'sharedEventTables'):
             if key in self.plan:
                 source[key] = self.plan[key]
         return validate_observation({
-            'schemaVersion': 1, 'serverId': 'global-hmt', 'observedAt': observed.isoformat(),
+            'schemaVersion': 1, 'serverId': self.server_id, 'observedAt': observed.isoformat(),
             'expiresAt': (observed + timedelta(seconds=self.plan['ttl'])).isoformat(), 'boards': boards,
             'source': source,
             'uncollectedBoards': self.plan['uncollectedBoards'],
-        }, 'global-hmt')
+            **({'eventSchedule': {'eventId': self.plan['eventId'], 'startAt': self.plan['eventStartAt'],
+                                 'endAt': self.plan['eventEndAt']}} if self.plan.get('eventEndAt') else {}),
+        }, self.server_id)
 
 
 def pause_required(error: str) -> bool:
@@ -311,14 +347,14 @@ def run_capture(plan, profile, account, password, root, *, sdk_factory=SdkClient
     progress('discovering')
     host = game.discover()
     progress('sdk_login')
-    sdk = sdk_factory(replace(profile, version=game.client_version))
+    sdk = sdk_factory(replace(profile, version=game.client_version, language=game.server['language']))
     identity = sdk.login(account, password)
     try:
         snapshot = game.export(identity, sdk.device_id, host, progress)
     finally:
         identity = None
     progress('publishing')
-    return (publisher or publish_observation)(snapshot, root, 'global-hmt')
+    return (publisher or publish_observation)(snapshot, root, game.server_id)
 
 
 def main(argv=None):
@@ -328,15 +364,19 @@ def main(argv=None):
                         help='public current content origin used by auto selection')
     parser.add_argument('--event', default='auto', help='auto or an explicit event ID for maintenance')
     parser.add_argument('--mode', choices=('capture', 'finalize'), default='capture')
+    parser.add_argument('--server', choices=tuple(GLOBAL_SERVERS), default='global-hmt')
     parser.add_argument('--root', type=Path, required=True, help='published observations root')
     parser.add_argument('--state-dir', type=Path, required=True, help='private lock/status directory')
+    parser.add_argument('--lock-dir', type=Path, help='shared login lock across server jobs; defaults to state-dir')
     parser.add_argument('--sdk-resources', type=Path, required=True)
     parser.add_argument('--prompt', action='store_true', help='maintenance-only terminal input, with echo disabled')
     parser.add_argument('--resume', action='store_true', help='operator resume after resolving authentication or rate limits')
     args = parser.parse_args(argv)
     args.state_dir.mkdir(parents=True, exist_ok=True, mode=0o700)
     status_path = args.state_dir / ('finalize-status.json' if args.mode == 'finalize' else 'status.json')
-    with (args.state_dir / 'capture.lock').open('a') as lock:
+    lock_dir = args.lock_dir or args.state_dir
+    lock_dir.mkdir(parents=True, exist_ok=True, mode=0o700)
+    with (lock_dir / 'capture.lock').open('a') as lock:
         try:
             fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
         except BlockingIOError:
@@ -356,10 +396,13 @@ def main(argv=None):
             if args.mode == 'finalize':
                 if args.event != 'auto':
                     raise ValueError('manual_finalization_not_supported')
-                plan = read_ended_content_plan(args.content_base, args.root)
+                plan = read_ended_content_plan(args.content_base, args.root, server=args.server)
+                remember_plan(args.state_dir, plan, args.server)
+                plan = pending_plan(args.state_dir, args.root, args.server) or plan
                 event_id = int(plan['eventId']) if plan else None
             elif args.event == 'auto':
                 plan = read_current_content_plan(args.content_base)
+                remember_plan(args.state_dir, plan, args.server)
                 event_id = int(plan['eventId']) if plan else None
             else:
                 try:
@@ -375,6 +418,7 @@ def main(argv=None):
                 code = 0
             else:
                 stage = 'configuration'
+                plan = {**plan, 'serverId': args.server}
                 profile = Profile.from_resources(args.sdk_resources)
                 if args.prompt:
                     account = getpass.getpass('Account (hidden): ')
@@ -406,7 +450,8 @@ def main(argv=None):
             code = 2
         finally:
             account = password = ''
-        result.update(stage=stage, discoverySeedVersion=CLIENT_VERSION, eventId=event_id, mode=args.mode)
+        result.update(stage=stage, discoverySeedVersion=CLIENT_VERSION, eventId=event_id,
+                      mode=args.mode, serverId=args.server)
         result.setdefault('clientVersion',None)
         temporary = status_path.with_suffix('.tmp')
         temporary.write_text(json.dumps(result) + '\n')
