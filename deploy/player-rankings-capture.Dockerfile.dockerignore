@@ -5,6 +5,7 @@
 !tools/
 !tools/collect_player_rankings.py
 !tools/growth_login.py
+!tools/game_service_status.py
 !tools/growth_export.py
 !tools/import_player_rankings.py
 !tools/growth-export-requirements.txt

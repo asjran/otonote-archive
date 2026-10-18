@@ -1,5 +1,6 @@
 import {currentServerContext} from './game-servers.mjs';
 import {growthModifiersForDraft} from './account-growth-import.mjs';
+import {maintenanceNotice} from './game-service-status.mjs';
 
 const messages={credentials_rejected:'官方服务提示账号或密码校验未通过。',account_not_found:'官方服务提示账号不存在。',
   verification_required:'需要额外验证，当前工具已停止。',rate_limited:'请求过于频繁，请稍后再试。'};
@@ -8,7 +9,22 @@ export function setupAccountGrowthImport(workbench,{getInventory,replaceInventor
   const q=s=>root.querySelector(s),status=q('[data-growth-status]'),fields=q('[data-growth-login-fields]');
   const context=currentServerContext();
   const store=workbench.personalGrowthStore;
-  let nonce=null,busy=false,preview=null,undo=null;
+  let nonce=null,busy=false,preview=null,undo=null,maintenance=false;
+  function applyStatus(observation) {
+    maintenance=observation?.status==='maintenance';
+    fields.disabled=busy||!nonce||maintenance;
+    q('[data-growth-service-status]').textContent=maintenance ? maintenanceNotice(observation)
+      : '本站登录入口已连接；官方服务是否可用以实际读取结果为准。';
+    q('[data-growth-retry]').hidden=!maintenance;
+  }
+  if(globalThis.window?.addEventListener) {
+    const events=new AbortController();
+    window.addEventListener('game-service-status-change',event=>{
+      if(nonce)applyStatus(event.detail.servers[context.serverId]);
+    },{signal:events.signal});
+    globalThis.document?.addEventListener('ournotes:shell-dispose',()=>events.abort(),{once:true,signal:events.signal});
+    window.addEventListener('pagehide',event=>{if(!event.persisted)events.abort();},{signal:events.signal});
+  }
   function changed(){if(typeof workbench.commit==='function')workbench.commit();else workbench.refreshInput?.();workbench.dispatchEvent(new CustomEvent('personal-growth-changed'));}
   function clear(){preview=null;q('[data-growth-preview]').hidden=true;q('[data-growth-actions]').hidden=!undo;q('[data-growth-apply]').disabled=true;q('[data-growth-download]').disabled=true;}
   function prepare(snapshot){
@@ -26,13 +42,13 @@ export function setupAccountGrowthImport(workbench,{getInventory,replaceInventor
     q('[data-growth-service-status]').textContent='当前网页登录仅支持港澳台；请先选择匹配区服。';
    } else await fetch('/api/growth-export/capabilities/',{cache:'no-store',credentials:'same-origin',signal:AbortSignal.timeout(10000)})
     .then(async r=>{if(!r.ok)throw Error();const result=await r.json();if(result.enabled!==true||typeof result.nonce!=='string')throw Error();
-      nonce=result.nonce;fields.disabled=busy;q('[data-growth-service-status]').textContent='网页登录已就绪，登录请求将经过本站服务端。';})
+      nonce=result.nonce;applyStatus(result.gameStatus);})
     .catch(()=>{q('[data-growth-service-status]').textContent='暂时无法连接登录服务，可重新检查或导入 JSON。';retry.hidden=false;});
   }
   q('[data-growth-retry]').addEventListener('click',()=>{if(!busy){q('[data-growth-service-status]').textContent='正在检查网页登录服务…';checkService();}});
   checkService();
   q('[data-growth-login]').addEventListener('submit',async event=>{
-    event.preventDefault();if(busy||!nonce)return;busy=true;clear();fields.disabled=true;q('[data-growth-file]').disabled=true;
+    event.preventDefault();if(busy||!nonce||maintenance)return;busy=true;clear();fields.disabled=true;q('[data-growth-file]').disabled=true;
     let body=JSON.stringify({account:q('[data-growth-account]').value,password:q('[data-growth-password]').value});
     q('[data-growth-password]').value='';status.textContent='正在登录并读取养成，请稍候。不会自动重试。';
     const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),150000);
@@ -48,17 +64,21 @@ export function setupAccountGrowthImport(workbench,{getInventory,replaceInventor
       if(Number(response.headers.get('content-length'))>2_000_000)throw new Error('返回文件过大，未导入。');
       const text=await response.text();if(text.length>2_000_000)throw new Error('返回文件过大，未导入。');
       let result;try{result=JSON.parse(text);}catch{throw new Error('服务暂不可用，请稍后再试。');}
+      if(result.error==='game_maintenance'){
+        applyStatus(result.gameStatus??{status:'maintenance'});
+        throw new Error(maintenanceNotice(result.gameStatus??{status:'maintenance'}));
+      }
       if(!response.ok){const code=typeof result.error==='string'&&/^sdk_service_-?\d+$/.test(result.error)?`（${result.error}）`:'';
         throw new Error(messages[result.reason]??(response.status===429?'服务繁忙，请稍后再试。':`读取未完成，请稍后再试。${code}`));}
       prepare(result.snapshot);
     }catch(error){status.textContent=error.name==='AbortError'?'读取超时，未修改卡库。':error.message;}
-    finally{body='';clearTimeout(timer);busy=false;fields.disabled=!nonce;q('[data-growth-file]').disabled=false;}
+    finally{body='';clearTimeout(timer);busy=false;fields.disabled=!nonce||maintenance;q('[data-growth-file]').disabled=false;}
   });
   q('[data-growth-file]').addEventListener('change',async event=>{
     if(busy)return;clear();busy=true;fields.disabled=true;q('[data-growth-file]').disabled=true;
     try{const file=event.target.files[0];if(!file)return;if(file.size>2_000_000)throw new Error('文件超过 2 MB。');prepare(JSON.parse(await file.text()));}
     catch(error){status.textContent=`未导入：${error.message}`;}
-    finally{event.target.value='';busy=false;fields.disabled=!nonce;q('[data-growth-file]').disabled=false;}
+    finally{event.target.value='';busy=false;fields.disabled=!nonce||maintenance;q('[data-growth-file]').disabled=false;}
   });
   q('[data-growth-apply]').addEventListener('click',()=>{
     if(!preview||busy)return;
