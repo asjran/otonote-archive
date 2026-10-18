@@ -23,6 +23,9 @@ def core_image_targets(resources):
         container = 'Assets/AddressableResources/' + reference + '.png'
         targets[container] = loc
     for row in resources.rows('MasterCharacter'):
+        # Non-playable story characters do not ship the playable portrait set.
+        if row.get('_isNonPlayable') is True:
+            continue
         identifier = row['_id']
         for name in ('character_thumbnail', 'character_sprite', 'character_face_icon'):
             add(f'character-image_assets_character-image-{identifier}everythinginitialdownload_', f'Character/Image/{identifier}/{name}')
