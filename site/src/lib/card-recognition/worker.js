@@ -6,7 +6,7 @@ async function init(){
   const start=performance.now();
   notify('progress',{message:'加载本地识别引擎与卡库…'});
   notify('preparation',{stage:'cards',label:'加载卡面识别引擎…'});
-  importScripts('opencv.js','shortlist.js');
+  importScripts('opencv.js','shortlist.js','layout.js');
   // OpenCV's legacy thenable resolves to itself: awaiting it loops forever.
   let cv=self.cv;
   if(cv instanceof Promise)cv=await cv;
@@ -99,24 +99,26 @@ function matchCard(canvas,kind){
   }finally{rgba.delete();gray.delete();mask.delete();kp.delete();des.delete();}
 }
 
-function crop(normalized,rect){
-  const canvas=new OffscreenCanvas(rect.w,rect.h);
-  canvas.getContext('2d').drawImage(normalized,rect.x,rect.y,rect.w,rect.h,0,0,rect.w,rect.h);return canvas;
+function crop(normalized,rect,kind){
+  const size=self.CardLayout.sizes[kind];
+  const canvas=new OffscreenCanvas(size.w,size.h);
+  canvas.getContext('2d').drawImage(normalized,rect.x,rect.y,rect.w,rect.h,0,0,canvas.width,canvas.height);return canvas;
 }
 self.onmessage=async({data})=>{
   try{
     if(data.type==='init'){config=data.config;await init();return;}
     if(!['recognize','detect'].includes(data.type))return;
     await init();
-    const {bitmap,regions,kind,id}=data,start=performance.now();
+    const {bitmap,kind,mode,id}=data,start=performance.now();
     const normalized=new OffscreenCanvas(1280,Math.round(bitmap.height*1280/bitmap.width));
     normalized.getContext('2d').drawImage(bitmap,0,0,normalized.width,normalized.height);bitmap.close();
     if(data.type==='detect'){
       const scores={},samples={};
-      for(const [candidate,boxes] of Object.entries(regions)){
+      for(const candidate of ['member','support']){
+        const boxes=self.CardLayout.align(normalized,self.CardLayout.detect(normalized,cvReady,candidate),candidate);
         scores[candidate]=0;samples[candidate]=[];
         for(const rect of boxes.slice(0,4)){
-          const canvas=crop(normalized,rect),match=matchCard(canvas,candidate);
+          const canvas=crop(normalized,rect,candidate),match=matchCard(canvas,candidate);
           if(match.accepted)scores[candidate]++;
           samples[candidate].push(canvas);
         }
@@ -125,11 +127,13 @@ self.onmessage=async({data})=>{
       const crops=best==='member'?await Promise.all(samples.member.map(c=>c.convertToBlob({type:'image/png'}))):[];
       notify('detected',{id,kind:best,crops});return;
     }
+    const regions=self.CardLayout.align(normalized,self.CardLayout.detect(normalized,cvReady,kind),kind,mode);
+    if(!regions.length)throw Error('未找到完整卡牌区域，请使用至少包含两列完整卡牌的横屏列表截图');
     for(let i=0;i<regions.length;i++){
-      const rect=regions[i],canvas=crop(normalized,rect);
-      const match=matchCard(canvas,kind),count=badge(canvas,kind);
+      const rect=regions[i],canvas=crop(normalized,rect,kind);
+      const match=matchCard(canvas,kind),count=rect.growthAligned?badge(canvas,kind):null;
       const blob=await canvas.convertToBlob({type:'image/png'});
-      notify('row',{id,index:i,rect,match,badge:count,crop:blob});
+      notify('row',{id,index:i,rect,match,growthAligned:!!rect.growthAligned,badge:count,crop:blob});
       notify('progress',{message:`匹配卡面 ${i+1} / ${regions.length}`,done:i+1,total:regions.length});
     }
     notify('complete',{id,matchMs:performance.now()-start});

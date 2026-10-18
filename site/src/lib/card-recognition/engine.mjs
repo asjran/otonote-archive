@@ -1,4 +1,4 @@
-import {MODES,regions,numericValue} from './observations.mjs';
+import {MODES,validateScreenshot,numericValue} from './observations.mjs';
 import {isolateGlyphs} from './numeric.mjs';
 const runtime=new URL('../recognition/',import.meta.url);
 let library;
@@ -54,19 +54,17 @@ export function createRecognitionEngine({manifest,featuresUrl,onProgress=()=>{},
     const decoding=createImageBitmap(file);
     decoding.then(bitmap=>{if(signal.aborted)bitmap.close();},()=>{});
     const bitmap=await bounded(decoding);
-    let boxes;
     try{
-      if(bitmap.width*bitmap.height>20_000_000)throw Error('图片超过 2000 万像素，请缩小后重试');
-      boxes=regions(bitmap.width,bitmap.height,mode);
-      if(!boxes.length)throw Error('未找到完整卡牌区域，请使用原始列表截图');
+      validateScreenshot(bitmap.width,bitmap.height);
+      if(!MODES[mode])throw Error('请选择截图类型');
     }catch(error){bitmap.close();throw error;}
     const results=await bounded(new Promise((resolve,reject)=>{
-      pending={id,resolve,reject,rows:[]};worker.postMessage({type:'recognize',id,bitmap,regions:boxes,kind:MODES[mode].kind},[bitmap]);
+      pending={id,resolve,reject,rows:[]};worker.postMessage({type:'recognize',id,bitmap,mode,kind:MODES[mode].kind},[bitmap]);
     }));
     for(const [index,row] of results.entries()){
       if(signal.aborted)throw Error('已取消');
       onProgress(`${file.name}：读取数字 ${index+1} / ${results.length}`);
-      const number=await bounded(readNumber(row.crop,mode,ocr)),kind=MODES[mode].kind;
+      const number=row.growthAligned===false?{value:null}:await bounded(readNumber(row.crop,mode,ocr)),kind=MODES[mode].kind;
       onRow({key:`${id}:${index}`,imageName:file.name,index,kind,mode,crop:row.crop,
         cardId:row.match.accepted?row.match.candidates[0].id:'',selected:row.match.accepted,
         observations:{[kind==='member'?'awakeningStars':'supportPetals']:row.badge,[mode==='member-training'?'training':'level']:number.value}});
@@ -74,13 +72,11 @@ export function createRecognitionEngine({manifest,featuresUrl,onProgress=()=>{},
   }
   async function detect(file,id){
     const bitmap=await bounded(createImageBitmap(file));
-    let boxes;
     try{
-      if(bitmap.width*bitmap.height>20_000_000)throw Error('图片超过 2000 万像素');
-      boxes={member:regions(bitmap.width,bitmap.height,'member-level'),support:regions(bitmap.width,bitmap.height,'support')};
+      validateScreenshot(bitmap.width,bitmap.height);
     }catch(error){bitmap.close();throw error;}
     const result=await bounded(new Promise((resolve,reject)=>{
-      pending={id,resolve,reject};worker.postMessage({type:'detect',id,bitmap,regions:boxes},[bitmap]);
+      pending={id,resolve,reject};worker.postMessage({type:'detect',id,bitmap},[bitmap]);
     }));
     if(result.kind==='support')return 'support';
     if(result.kind!=='member')return null;

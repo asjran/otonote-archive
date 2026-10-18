@@ -1,22 +1,13 @@
 export const MODES = {
-  'member-level': {label:'角色卡 · 等级', kind:'member', cols:6, x:147, y:122, dx:167.5, dy:214, w:148, h:194},
-  'member-training': {label:'角色卡 · 特训', kind:'member', cols:6, x:147, y:122, dx:167.5, dy:214, w:148, h:194},
-  support: {label:'留影卡', kind:'support', cols:4, x:170, y:120, dx:241.5, dy:146.5, w:216, h:121},
+  'member-level': {label:'角色卡 · 等级', kind:'member'},
+  'member-training': {label:'角色卡 · 特训', kind:'member'},
+  support: {label:'留影卡', kind:'support'},
 };
 
-export function regions(width, height, mode) {
-  const p=MODES[mode];
-  if(!p)throw Error('请选择截图类型');
-  const ratio=width/height;
-  if(ratio<1.25 || ratio>2.5)throw Error('目前支持横屏列表截图，请使用未裁切的横屏截图');
-  const normalizedHeight=Math.round(height*1280/width), result=[];
-  // Grid is calibrated to this game-list layout. Partial cards are never inferred.
-  for(let row=0;row<20;row++){
-    const y=Math.round(p.y+row*p.dy);
-    if(y+p.h>normalizedHeight-10)break;
-    for(let col=0;col<p.cols;col++)result.push({x:Math.round(p.x+col*p.dx),y,w:p.w,h:p.h,row,col});
-  }
-  return result;
+export function validateScreenshot(width,height) {
+  if(!Number.isFinite(width)||!Number.isFinite(height)||width<=0||height<=0)throw Error('图片尺寸无效');
+  if(width*height>20_000_000)throw Error('图片超过 2000 万像素，请缩小后重试');
+  if(width/height<1.1||width/height>4)throw Error('请使用未裁切的横屏列表截图');
 }
 
 export function numericValue(text, mode, confidence=100) {
