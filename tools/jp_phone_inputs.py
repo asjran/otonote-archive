@@ -63,16 +63,17 @@ def extract_taxonomy(resources, output):
 class PhoneResources(CurrentResources):
     def __init__(self, capture, master, metadata, apk, cache, *, remote_client=None,
                  observation=None, max_download_bytes=8_000_000_000):
-        from analysis.crypto.decrypt_global_formal_scores import MetadataV39, field_bytes
+        from analysis.crypto.decrypt_global_formal_scores import MetadataV39
         self.snapshot, self.master, self.metadata_path, self.apk, self.cache = map(Path, (capture, master, metadata, apk, cache))
-        if file_hash(self.metadata_path) != JP_METADATA_SHA256:
-            raise ValueError('JP 1.0.5 metadata changed; review field references before decoding')
+        from tools.jp_client_profile import load_binding
+        from tools.bundle_decoder import resolve_bundle_decoder
+        binding = load_binding(self.metadata_path)
         self.metadata = MetadataV39(self.metadata_path)
-        self.key = field_bytes(self.metadata, 0x8000020B, 16)
-        self.seed = field_bytes(self.metadata, 0x80000213, 8)
+        self.key, self.seed, _ = resolve_bundle_decoder(
+            self.metadata, binding['clientVersion'], profile=binding['decoderProfile'])
         catalog = self.snapshot / 'RemoteCatalog/catalog_main.bin'
         self.catalog = CatalogAdapter().parse(catalog)
-        if observation and (observation.get('region') != 'jp' or observation.get('clientVersion') != JP_CLIENT_VERSION):
+        if observation and (observation.get('region') != 'jp' or observation.get('clientVersion') != binding['clientVersion']):
             raise ValueError('JP client upgrade requires a reviewed decoder profile')
         self.report = {'catalogSha256': file_hash(catalog), 'observation': observation or {'resourceVersion': 'jp-phone-20260930'}}
         self.remote_client = remote_client
@@ -223,10 +224,13 @@ def build(capture, master, metadata, apk_root, output, reuse_catalog=None, reuse
     if remote:
         from tools.jp_remote_sync import client_from_metadata
         from tools.resource_pipeline.adapters.global_public import version_identity
-        if (package.get('packageSetSha256') != JP_REVIEWED_PACKAGE_SET_SHA256 or
-                observation.get('region') != 'jp' or observation.get('clientVersion') != package['versionName']
-                or package['versionName'] != JP_CLIENT_VERSION or package['versionCode'] != JP_VERSION_CODE):
+        from tools.jp_client_profile import validate_package
+        if observation.get('region') != 'jp' or observation.get('clientVersion') != package['versionName']:
             raise ValueError('JP client upgrade requires a reviewed decoder profile')
+        try:
+            validate_package(metadata, apk_root, package)
+        except (OSError, ValueError):
+            raise ValueError('JP client upgrade requires a reviewed decoder profile') from None
         remote_client = client_from_metadata(metadata, authorize_builtin_credentials=True)
         if version_identity(remote_client.discover()) != version_identity(observation):
             raise ValueError('JP version changed since verified snapshot')

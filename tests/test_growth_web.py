@@ -10,6 +10,7 @@ from tools.growth_web import GrowthGateway, ROOT, diagnostic_error
 from tests.test_growth_export import account_response
 from tests.test_gacha_history import execution
 from tools.gacha_history import extract_history
+from tools.game_service_status import GameServiceStatus
 
 
 class FakeSdk:
@@ -133,6 +134,27 @@ class GrowthWebTests(unittest.TestCase):
         self.assertEqual(status,200);self.assertEqual(json.loads(data)['nonce'],self.server.nonce)
         self.assertNotIn('Access-Control-Allow-Origin',headers)
         self.assertEqual(self.request(body=json.dumps({'account':'a','password':'b','url':'https://evil.invalid'}))[0],400)
+
+    def test_maintenance_is_public_but_blocks_both_reads_before_sdk_login(self):
+        self.server.game_status = GameServiceStatus(lambda server, version: {
+            'status': 'maintenance', 'source': 'official_game_response',
+            'maintenance': {'total': True, 'expectedEndAt': '2026-10-18T06:00:00Z'}}, version='1.0.6')
+        status, headers, data = self.request('status', method='GET')
+        self.assertEqual(status, 200)
+        self.assertEqual(headers['Cache-Control'], 'no-store')
+        self.assertNotIn('nonce', json.loads(data))
+        self.assertEqual(len(json.loads(data)['servers']), 3)
+        self.assertEqual(self.request('status', method='GET', delta={'Host':'evil.invalid'})[0],403)
+        capabilities = json.loads(self.request('capabilities', method='GET')[2])
+        self.assertEqual(capabilities['gameStatus']['status'], 'maintenance')
+        with patch.object(FakeSdk, 'login') as login:
+            for route in ('read', 'gacha-history'):
+                status, headers, data = self.request(route)
+                self.assertEqual(status, 503)
+                self.assertEqual(headers['Retry-After'], '60')
+                self.assertEqual(json.loads(data)['error'], 'game_maintenance')
+                self.assertNotIn(b'PRIVATE', data)
+            login.assert_not_called()
 
     def test_history_is_uncached_requires_fresh_login_and_has_no_download_endpoint(self):
         with patch.object(FakeSdk, 'login', wraps=FakeSdk(Profile('fake')).login) as login:

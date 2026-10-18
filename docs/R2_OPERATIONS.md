@@ -12,7 +12,11 @@ Global 日常任务先用已验证的客户端版本查询游戏接口。版本�
 
 ## JP 自动探测恢复（2026-10-07）
 
-JP 服务强制更新到 1.0.5 后，旧 1.0.4 Version RPC 返回 `client update required`。当前受审客户端固定为 Android 1.0.5 / version code 10059：runner 仅在私有 seed 不是该版本时获取固定 XAPK，并同时校验归档 SHA-256、三个 split APK 的签名证书及 package-set 摘要、解码后的 v39 metadata 摘要和 Unity 版本。APKPure 只是二进制传输来源，未匹配这些 pin 的包不会进入 seed。已验证的 1.0.5 客户端继续通过四小时 JP 任务探测官方 Master/catalog/resource 版本并下载最新资源；新客户端发布仍须先更新受审 pin 和 decoder profile。自动晋级仍由 `CONTENT_R2_AUTO_PROMOTE_JP` 控制，shadow 不切换公开 current 指针。
+既有生产基线为 Android 1.0.5 / version code 10059；该版本仍是固定签名和 metadata 信任锚。2026-10-18 的日服自动客户端升级改造见 [设计](designs/2026-10-18-jp-client-auto-upgrade.md) 与 [实施验收](plans/2026-10-18-jp-client-auto-upgrade.md)，是否部署以该验收记录为准。
+
+新实现发布后：官方 Version RPC 的推荐版本变化使轻量门禁转完整恢复；完整探测自动获取最新 XAPK，验证推荐版本、递增 versionCode、每个分包的官方签名，再通过旧材料唯一重定位、三个加密 bundle 和新客户端 Version RPC 验证。APKPure 仅为传输来源，不取代官方推荐版本或签名。新 seed 回执及可信旧 metadata 随私有 checkpoint 保存；生产、轻量恢复和后续无变化判断使用该绑定，不再把 1.0.5 当作唯一可运行版本。旧回执兼容或转完整验证，不放宽公开晋级门禁。
+
+镜像尚未同步、密钥/认证材料变化、Unity/metadata 结构不支持、维护/403 或任一验证失败时，保留旧 seed 和公开内容；新包验证通过不等于资源生产完成。运行时依赖已在现有镜像中，本次纯源码改造不强制重建镜像。实际云端验收仍先 shadow，成功后按正式发布授权 promote。
 
 ## 当前运维状态（2026-10-06 北京时间，旧服务器管线已退役）
 

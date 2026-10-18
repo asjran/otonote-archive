@@ -12,6 +12,7 @@ from tools.preview_independent_site import handler
 from tools.growth_login import Profile
 from tools.growth_web import GrowthGateway
 from tests.test_growth_web import FakeSdk, FakeGame, FakeHistory
+from tools.game_service_status import GameServiceStatus
 
 
 class PreviewGrowthTests(unittest.TestCase):
@@ -77,3 +78,12 @@ class PreviewGrowthTests(unittest.TestCase):
         self.assertEqual(json.loads(body)['snapshot']['format'], 'otonote-gacha-history')
         self.assertNotIn(b'PRIVATE', body)
         self.assertEqual(self.request('gacha-history', 'GET')[0], 404)
+
+    def test_public_maintenance_snapshot_passes_without_auth_or_nonce(self):
+        self.gateway.game_status = GameServiceStatus(lambda server, version: {
+            'status':'maintenance','source':'official_game_response'}, version='1.0.6')
+        status, headers, body = self.request('status', 'GET', delta={'X-Growth-Nonce':''})
+        self.assertEqual(status, 200)
+        self.assertEqual(headers['Cache-Control'], 'no-store')
+        self.assertEqual(json.loads(body)['servers']['global-en']['status'], 'maintenance')
+        self.assertNotIn(b'nonce', body)

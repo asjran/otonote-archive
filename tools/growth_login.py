@@ -16,6 +16,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from tools.growth_export import ExportError, MAX_BYTES, extract_growth, fields
+from tools.game_service_status import maintenance_metadata
 
 SDK_ROOT = 'https://l11-sdk-login-intl.biligame.net'
 # GetServerList rejected 1.0.2 and accepted 1.0.3 on 2026-10-09.
@@ -304,6 +305,8 @@ class GameClient:
                                            response_deserializer=lambda b: b)
                 return call(payload, metadata=metadata, timeout=25, wait_for_ready=False)
         except grpc.RpcError as exc:
+            if maintenance_metadata(getattr(exc, 'trailing_metadata', lambda: ())(), exc.details()) is not None:
+                raise LoginError('game_maintenance') from None
             if exc.code() == grpc.StatusCode.UNKNOWN and exc.details() == 'authentication failed':
                 raise LoginError('game_authentication_failed') from None
             raise LoginError('game_rpc_' + exc.code().name.lower()) from None

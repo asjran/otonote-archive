@@ -1,0 +1,17 @@
+---
+interface Props { locale?: string; }
+const {locale='zh'}=Astro.props;
+---
+<aside class="game-service-notice" data-game-service-notice data-locale={locale} role="status" hidden>
+  <strong data-game-service-message></strong>
+  <span data-game-service-detail></span>
+</aside>
+<script>
+  import {installGameServiceNotice} from '../lib/game-service-status.mjs';
+  document.querySelectorAll('[data-game-service-notice]').forEach(installGameServiceNotice);
+</script>
+<style>
+  .game-service-notice { margin-block:0 1rem; padding:.9rem 1rem; border:1px solid #c8a66b; border-radius:.5rem; background:#fff6e4; color:#563e1d; }
+  .game-service-notice:not([hidden]) { display:grid; gap:.35rem; }
+  .game-service-notice span { font-size:.9rem; }
+</style>
