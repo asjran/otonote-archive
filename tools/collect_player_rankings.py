@@ -20,12 +20,13 @@ from pathlib import Path
 from urllib.parse import urlsplit
 from urllib.request import Request, urlopen
 
-from backend.player_rankings import public_high_score_deck, validate_observation
+from backend.player_rankings import public_high_score_deck, public_player_profile, validate_observation
 from tools.growth_export import fields
 from tools.growth_login import CLIENT_VERSION, GameClient, LoginError, integer, message, single, string, varint
 from tools.growth_login import Profile, SdkClient
 from tools.global_game_config import GLOBAL_SERVERS
 from tools.ranking_regions import verify_shared_event_tables
+from tools.ranking_finalizations import remember_plan, pending_plan
 from tools.import_player_rankings import (ensure_final_archive_metadata, publish_final_observation,
                                           publish_observation)
 from tools.resource_pipeline.localization import resolve_text
@@ -126,7 +127,7 @@ def _read_content_plan(base: str, *, now: datetime | None = None, fetch_bytes=No
             raise ValueError('invalid_event_projection')
         if ended_root is None and start <= current <= end:
             active.append(event)
-        if (ended_root is not None and end + timedelta(minutes=10) <= current
+        if (ended_root is not None and end < current
                 and (flags['eventPoints'] or flags['music'])
                 and not ensure_final_archive_metadata(ended_root, server, str(event['id']))):
             ended.append((end, event))
@@ -163,6 +164,8 @@ def _read_content_plan(base: str, *, now: datetime | None = None, fetch_bytes=No
     if not boards or len(boards) > 20:
         raise ValueError('no_supported_boards_or_too_many_boards')
     return {'eventId': str(event['id']), 'eventName': event['name'], 'boards': boards, 'ttl': 900,
+            'eventStartAt': _event_local_time(event['schedule']['startAt']).isoformat(),
+            'eventEndAt': _event_local_time(event['schedule']['endAt']).isoformat(),
             'contentReleaseId': pointer['contentReleaseId'], 'eventProjectionSha256': sha,
             'contentMasterVersion': (manifest.get('releaseRecord') or {}).get('masterVersion'),
             'uncollectedBoards': ['total-music'] if flags['totalMusic'] else []}
@@ -246,6 +249,26 @@ def high_score_deck(raw):
         raise LoginError('invalid_high_score_deck') from None
 
 
+def ranking_profile(raw):
+    avatar = single(raw, 7, wire=0, required=False) or None
+    card = single(raw, 8, required=False)
+    images = []
+    # Current Global responses can repeat the thumbnail URL field. Keep only
+    # the public images; omit private profile IDs, card names and timestamps.
+    if card is not None:
+        for number, wire, value in fields(card):
+            if number != 3 or wire != 2 or len(images) >= 8:
+                continue
+            try:
+                url = bytes(value).decode('utf-8')
+                public_player_profile({'profileCardImages': [url]})
+            except (UnicodeError, ValueError):
+                continue
+            if url not in images:
+                images.append(url)
+    return public_player_profile({'avatarMasterId': avatar, 'profileCardImages': images}) if avatar or images else None
+
+
 def ranking_entries(raw: bytes, *, music: bool) -> list[dict]:
     result = []
     for number, wire, value in fields(raw):
@@ -262,6 +285,7 @@ def ranking_entries(raw: bytes, *, music: bool) -> list[dict]:
             raise LoginError('ranking_order_changed')
         result.append({'playerId': string(profile, 1), 'name': string(profile, 2, optional=True),
                        'rank': rank, 'score': score,
+                       'profile': ranking_profile(profile),
                        'highScoreDeck': high_score_deck(single(value, 4, required=False)) if music else None})
     return result
 
@@ -306,6 +330,8 @@ class RankingClient(GameClient):
             'expiresAt': (observed + timedelta(seconds=self.plan['ttl'])).isoformat(), 'boards': boards,
             'source': source,
             'uncollectedBoards': self.plan['uncollectedBoards'],
+            **({'eventSchedule': {'eventId': self.plan['eventId'], 'startAt': self.plan['eventStartAt'],
+                                 'endAt': self.plan['eventEndAt']}} if self.plan.get('eventEndAt') else {}),
         }, self.server_id)
 
 
@@ -371,9 +397,12 @@ def main(argv=None):
                 if args.event != 'auto':
                     raise ValueError('manual_finalization_not_supported')
                 plan = read_ended_content_plan(args.content_base, args.root, server=args.server)
+                remember_plan(args.state_dir, plan, args.server)
+                plan = pending_plan(args.state_dir, args.root, args.server) or plan
                 event_id = int(plan['eventId']) if plan else None
             elif args.event == 'auto':
                 plan = read_current_content_plan(args.content_base)
+                remember_plan(args.state_dir, plan, args.server)
                 event_id = int(plan['eventId']) if plan else None
             else:
                 try:

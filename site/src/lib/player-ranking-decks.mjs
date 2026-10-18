@@ -34,6 +34,20 @@ export function rankingCard(kind, masterId, catalog) {
   return catalog?.[kind]?.[String(masterId)];
 }
 
+const profileHosts = new Set(['l14-prod-hk-patch-sirius.gamerfusiontech.com','l12-prod-hk-patch-sirius.gamerfusiontech.com',
+  'l14-prod-sg-patch-sirius.bilibiligame.net','l12-prod-sg-patch-sirius.bilibiligame.net']);
+export function validatePlayerProfile(profile) {
+  if (profile == null) return;
+  if (!object(profile) || !number(profile.avatarMasterId,1,Number.MAX_SAFE_INTEGER,true)
+    || !Array.isArray(profile.profileCardImages) || profile.profileCardImages.length > 8) throw Error('Invalid public profile');
+  for (const image of profile.profileCardImages) {
+    if (typeof image !== 'string' || image.length > 2048 || /[\u0000-\u0020]/.test(image)) throw Error('Invalid profile image');
+    const url = new URL(image);
+    if (url.protocol !== 'https:' || !profileHosts.has(url.hostname) || url.username || url.password || url.search || url.hash
+      || url.port && url.port !== '443') throw Error('Invalid profile image');
+  }
+}
+
 export function orderedDeckSlots(deck) {
   return Array.from({length: 5}, (_, slot) => deck?.cards?.find(row => row.slot === slot) ?? {
     slot, performanceOrder: null, member: null, support: null,
@@ -58,6 +72,21 @@ export function createRankingRow(entry, {en, catalog, server, scoreLabel}) {
   const rank = node('span', 'pr-rank', format(entry.rank));
   rank.setAttribute('aria-label', `${en ? 'Rank' : '排名'} ${entry.rank}`);
   const player = node('span', 'pr-player-name', entry.name || (en ? 'Unnamed player' : '未命名玩家'));
+  const identity = node('span','pr-identity');
+  const avatar = node('span','pr-avatar');
+  const avatarInfo = rankingCard('member',entry.profile?.avatarMasterId,catalog);
+  if (avatarInfo?.image) {
+    const image = node('img');image.src = avatarInfo.image;image.alt = en ? 'Player avatar' : '玩家头像';image.loading = 'lazy';image.decoding = 'async';
+    image.addEventListener('error',()=>avatar.replaceChildren(node('span','',entry.name?.slice(0,1) || '♪')),{once:true});avatar.append(image);
+  } else avatar.append(node('span','',entry.name?.slice(0,1) || '♪'));
+  identity.append(avatar,player);
+  const profileImages = entry.profile?.profileCardImages || [];
+  if (profileImages.length) {
+    const namecard = node('span','pr-profile-card');const image = node('img');
+    let index = profileImages.length - 1;
+    image.src = profileImages[index];image.alt = en ? 'Player profile card' : '玩家名片';image.loading = 'lazy';image.decoding = 'async';image.referrerPolicy = 'no-referrer';
+    image.addEventListener('error',()=>{if (--index >= 0) image.src = profileImages[index];else namecard.remove();});namecard.append(image);identity.append(namecard);
+  }
   const team = node('span', 'pr-team-preview');
   team.setAttribute('aria-label', en ? 'High-score team members' : '最高分队伍成员');
 
@@ -94,7 +123,7 @@ export function createRankingRow(entry, {en, catalog, server, scoreLabel}) {
   }
   const toggle = node('span', 'pr-expand');
   toggle.append(node('span', 'pr-open-label', en ? 'View team' : '查看队伍'), node('span', 'pr-close-label', en ? 'Collapse' : '收起队伍'));
-  summary.append(rank, player, team, power, score, toggle);
+  summary.append(rank, identity, team, power, score, toggle);
   details.append(summary); row.append(details);
 
   function detailCard(card, kind) {
@@ -107,15 +136,14 @@ export function createRankingRow(entry, {en, catalog, server, scoreLabel}) {
     const stats = node('dl', 'pr-card-stats');
     const add = (label, value) => { const pair = node('div'); pair.append(node('dt', '', label), node('dd', '', value)); stats.append(pair); };
     if (card) {
-      add(en ? 'Limit break' : '突破', card.rank == null ? '—' : `${card.rank}/5`);
-      if (kind === 'member') add(en ? 'Awakening' : '觉醒', card.awake == null ? '—' : `${card.awake}/5`);
-      add(en ? 'EXP' : '经验', card.exp == null ? '—' : format(card.exp));
+      if (card.rank != null) add(en ? 'Limit break' : '突破', `${card.rank}/5`);
+      if (kind === 'member' && card.awake != null) add(en ? 'Awakening' : '觉醒', `${card.awake}/5`);
       if (kind === 'member') {
-        add(en ? 'Live skill' : '演出技能', card.liveSkillLevel == null ? (en ? 'Not provided' : '未提供') : `Lv. ${card.liveSkillLevel}`);
-        add(en ? 'Performance skill' : '表演技能', card.performanceSkillLevel == null ? (en ? 'Not provided' : '未提供') : `Lv. ${card.performanceSkillLevel}`);
+        if (card.liveSkillLevel != null) add(en ? 'Live skill' : '演出技能', `Lv. ${card.liveSkillLevel}`);
+        if (card.performanceSkillLevel != null) add(en ? 'Performance skill' : '表演技能', `Lv. ${card.performanceSkillLevel}`);
       }
     }
-    box.append(stats); return box;
+    if (stats.childElementCount) box.append(stats); return box;
   }
 
   details.addEventListener('toggle', () => {

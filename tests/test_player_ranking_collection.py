@@ -160,14 +160,14 @@ class RankingCollectionTests(unittest.TestCase):
             read_current_content_plan('https://ournotes.stonebg.cn', now=datetime(2026, 10, 10, tzinfo=timezone.utc),
                                       fetch_bytes=files.__getitem__)
 
-    def test_ended_event_selection_waits_ten_minutes_and_skips_one_final_archive(self):
+    def test_ended_event_selection_reads_after_end_and_skips_one_final_archive(self):
         files = content_fixture()
         with tempfile.TemporaryDirectory() as folder:
             root = Path(folder)
             select = lambda now: read_ended_content_plan('https://ournotes.stonebg.cn', root, now=now,
                                                           fetch_bytes=files.__getitem__)
-            self.assertIsNone(select(datetime(2026, 10, 8, 13, 9, 58, tzinfo=timezone.utc)))
-            self.assertEqual(select(datetime(2026, 10, 8, 13, 9, 59, tzinfo=timezone.utc))['eventId'], '1')
+            self.assertIsNone(select(datetime(2026, 10, 8, 12, 59, 59, tzinfo=timezone.utc)))
+            self.assertEqual(select(datetime(2026, 10, 8, 13, 0, 0, tzinfo=timezone.utc))['eventId'], '1')
             snapshot = {'schemaVersion': 1, 'serverId': 'global-hmt',
                         'observedAt': '2026-10-08T13:10:00Z', 'expiresAt': '2026-10-08T13:25:00Z',
                         'boards': [{'eventId': '1', 'eventName': 'Old event', 'type': 'music',
@@ -426,6 +426,15 @@ class RankingCollectionTests(unittest.TestCase):
             ranking_entries(message(1, player('a', 1)) + message(1, player('b', 2)), music=True)
         with self.assertRaises(LoginError):
             ranking_entries(message(1, player('a', 1 << 63)), music=True)
+
+    def test_public_avatar_and_repeated_profile_card_images_are_whitelisted(self):
+        url='https://l14-prod-hk-patch-sirius.gamerfusiontech.com/profile/image.png'
+        card=message(2,'PRIVATE-CARD-NAME')+message(3,url)+message(3,url.replace('image','other'))
+        profile=message(1,'p')+message(2,'Player')+integer(7,59)+message(8,card)+integer(6,99999)
+        rows=ranking_entries(message(1,message(1,profile)+integer(3,123)),music=True)
+        self.assertEqual(rows[0]['profile'],{'avatarMasterId':59,'profileCardImages':[url,url.replace('image','other')]})
+        self.assertNotIn('PRIVATE',json.dumps(rows));self.assertNotIn('99999',json.dumps(rows))
+        self.assertIsNone(ranking_entries(message(1,player('p',123)),music=True)[0]['profile'])
 
     def test_missing_role_stops_before_game_login_or_ranking_reads(self):
         client = RankingClient(self.plan())

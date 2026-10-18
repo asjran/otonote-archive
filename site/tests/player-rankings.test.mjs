@@ -36,6 +36,10 @@ test('an open page changes to stale when its observation expires',()=>{
   assert.equal(rankingStatus(response(),Date.parse('2026-09-30T00:15:00Z')),'stale');
   assert.equal(rankingStatus({...response(),status:'unavailable'},Infinity),'unavailable');
 });
+test('an explicit final record stays final after the live snapshot TTL',()=>{
+  assert.equal(rankingStatus({...response(),isFinal:true,status:'stale'},Infinity),'available');
+  assert.equal(rankingStatus({...response(),isFinal:true,status:'empty',entries:[]},Infinity),'empty');
+});
 test('event links use LiveMusic IDs and only offer configured boards',()=>{
   const event={id:1,ranking:{configured:{eventPoints:false,music:true,totalMusic:true}},challengeSongs:[{id:1,musicId:100109}]};
   assert.equal(eventRankingPath(event,'music',100109),'/rankings/?event=1&board=music&music=100109');
@@ -65,4 +69,30 @@ test('card kinds never collide and incomplete decks retain five explicit positio
   const slots=orderedDeckSlots(deck());assert.equal(slots.length,5);
   assert.equal(slots[0].member.masterId,59);assert.equal(slots[0].performanceOrder,2);
   assert.equal(slots[1].member,null);assert.equal(slots[1].performanceOrder,null);
+});
+
+test('activity schedules and final archives stay separate from snapshot freshness',async()=>{
+  const {rankingEvents,filterRankingEvents,rankingEventLabel}=await import('../src/lib/player-ranking-events.mjs');
+  const definitions=[{id:3,name:'Now',startAt:'2026-10-18T12:00:00+08:00',endAt:'2026-10-25T12:00:00+08:00',bandIds:['1'],attributes:[2]},
+    {id:4,name:'Next',startAt:'2026-10-26T12:00:00+08:00',endAt:'2026-11-01T12:00:00+08:00',bandIds:['2']}];
+  const records=rankingEvents(definitions,[{id:'2',name:'Archive',isFinal:true}],Date.parse('2026-10-18T20:00:00+08:00'));
+  assert.deepEqual(records.map(item=>item.state),['active','upcoming','ended']);
+  assert.deepEqual(filterRankingEvents(records,'1').map(item=>item.id),['3']);
+  assert.deepEqual(filterRankingEvents(records,'2').map(item=>item.id),['4']);
+  assert.equal(filterRankingEvents(records,'missing').length,0);
+  assert.equal(filterRankingEvents(records,'').length,3);
+  assert.equal(rankingEventLabel(records[2]),'Archive · 已结束 · 最终记录');
+  assert.deepEqual(records[0].attributes,[2]);
+  assert.equal(rankingEvents(definitions,[],Date.parse('2026-10-25T12:00:01+08:00')).find(item=>item.id==='3').state,'ended');
+});
+
+test('public profile images reject foreign origins and credentials',async()=>{
+  const {validatePlayerProfile}=await import('../src/lib/player-ranking-decks.mjs');
+  const url='https://l14-prod-hk-patch-sirius.gamerfusiontech.com/profile/test.png';
+  validatePlayerProfile(null);validatePlayerProfile({avatarMasterId:59,profileCardImages:[url]});
+  for(const profile of [{avatarMasterId:true,profileCardImages:[]},{profileCardImages:['https://evil.example/test.png']},
+    {profileCardImages:[url+'?token=private']},{profileCardImages:[url+'#fragment']},{profileCardImages:[url.replace('https:','http:')]},
+    {profileCardImages:[(()=>{const image=new URL(url);image.username='EXAMPLE_USER';image.password='EXAMPLE_PASSWORD';return image.href;})()]}]) assert.throws(()=>validatePlayerProfile(profile));
+  const value=response();value.entries[0].profile={profileCardImages:['https://evil.example/test.png']};
+  assert.throws(()=>validateRankingResponse(value,'global-hmt','auto','',''));
 });

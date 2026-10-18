@@ -40,11 +40,15 @@ EN/韩服从网站已验证的 Global 投影选择活动，但每轮认证前必
 5. 先只读检查现有 `status.json` 是否 `paused`，并按固定错误码处理原因；认证或限流暂停不得因换期自动解除。修复后必要时通过正式入口带 `--resume` 执行一次。检查状态中的 `eventId`、阶段、结果，以及公开接口的活动 ID、观察时间和新鲜度；不另外创建自动登录或无限重试。
 6. 若失败，保留最后成功榜单及当前安全暂停状态，按故障阶段处理。回滚需恢复旧镜像和旧 service 组合；旧版本仍可能被上游拒绝，不得将回滚声明为采集恢复。
 
-离线验证：`python3 -m unittest tests.test_player_ranking_collection tests.test_player_rankings tests.test_ranking_regions`。实际环境配置和私有迁移记录不随此文档提交。
+离线验证：`python3 -m unittest tests.test_player_ranking_collection tests.test_player_rankings tests.test_ranking_regions tests.test_ranking_finalizations`。实际环境配置和私有迁移记录不随此文档提交。
 
 ## 活动结束后的最终榜单
 
-- `ournotes-player-rankings-finalize.timer` 每约 10 分钟触发独立任务。任务读取并校验网站当前 Global 活动投影，选择已结束至少 10 分钟、含已支持榜单且尚未归档的最近一期活动；一次只处理一期。它与在线采集共用 `capture.lock`，状态写入独立的 `finalize-status.json`。
+- `ournotes-player-rankings-finalize.timer` 每约 10 分钟触发独立任务。任务读取并校验网站当前 Global 活动投影，选择已结束、含已支持榜单且尚未归档的活动，结束后的首次调度即可采集（取消额外 10 分钟等待）；一次只处理一期。它与在线采集共用 `capture.lock`，状态写入独立的 `finalize-status.json`。
 - 任务重新登录并读取游戏最终榜单，全部验证成功后只创建 `observations/global-hmt/archive/event-<ID>-post-end.json` 和同名 `.meta.json`。归档文件使用不可覆盖创建；元数据包含活动身份、采集时间和 SHA-256。已有归档仅补齐缺失的元数据，不重新抓取或改写原数据。失败时保留待重试状态，不改动 `current.json`。
 - 部署时先核对归档文件的活动 ID、结束时间与摘要，再确保 `archive` 目录为 `0755`、归档文件与元数据为 `0644`，使只读排行榜服务可以访问。元数据不包含玩家信息；不要在部署日志中输出完整榜单。页面会把归档活动列入选择框，历史快照保留原采集时间。
 - 回滚时停用并停止 finalizer timer/service，恢复旧采集镜像和旧的排行榜后端目录链接；不要删除已生成的归档。现有 `current.json` 和历史归档应分别核验。
+
+- 每次自动采集保存已验证活动的开始、结束时间、榜单读取计划及内容来源证据到私有 state/event-plans（目录 0700、文件 0600），不保存玩家资料或凭据。归档任务优先处理最早结束且未归档的计划；公开新版本移除旧活动时仍保留补采依据。一次只补一期，不解除认证暂停，失败不创建最终记录。新活动与归档任务继续约十分钟调度并共用登录锁。
+- 公开查询中最终归档优先于同活动的旧 current，返回 isFinal=true、eventState=ended、expiresAt=null。页面展示“已结束 · 最终记录”，不按实时 TTL 报过期；活动结束但尚无最终读取的情况显示“等待最终采集”。
+- 新快照仅额外保留榜单返回的头像卡标识及固定官方 HTTPS CDN 名片图片。忽略非允许来源、查询参数与私有资料字段；旧归档不改写补字段。网页使用本区服内容资源展示封面、头像及活动加成属性图标，页面配色不随乐队改变。

@@ -5,6 +5,7 @@ import base64
 import hashlib
 import json
 import re
+from urllib.parse import urlsplit
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -62,6 +63,66 @@ def list_final_archives(root: Path, server: str) -> dict[str, dict]:
         except (OSError, ValueError, TypeError):
             continue
     return result
+
+
+PROFILE_IMAGE_HOSTS = {'l14-prod-hk-patch-sirius.gamerfusiontech.com',
+                       'l12-prod-hk-patch-sirius.gamerfusiontech.com',
+                       'l14-prod-sg-patch-sirius.bilibiligame.net',
+                       'l12-prod-sg-patch-sirius.bilibiligame.net'}
+
+
+def public_player_profile(value):
+    if value is None:
+        return None
+    if not isinstance(value, dict):
+        raise ValueError('invalid public player profile')
+    avatar = value.get('avatarMasterId')
+    if avatar is not None and (type(avatar) is not int or not 1 <= avatar <= (1 << 53) - 1):
+        raise ValueError('invalid public avatar')
+    images = value.get('profileCardImages', [])
+    if not isinstance(images, list) or len(images) > 8:
+        raise ValueError('invalid public profile images')
+    result = []
+    for url in images:
+        if not isinstance(url, str) or len(url) > 2048:
+            raise ValueError('invalid public profile image')
+        parsed = urlsplit(url)
+        if (parsed.scheme != 'https' or parsed.hostname not in PROFILE_IMAGE_HOSTS
+                or parsed.username or parsed.password or parsed.port not in (None, 443)
+                or parsed.query or parsed.fragment or not parsed.path.startswith('/')
+                or any(part in ('.', '..') for part in parsed.path.split('/'))
+                or any(ord(char) < 33 for char in url)):
+            raise ValueError('invalid public profile image')
+        if url not in result:
+            result.append(url)
+    return {'avatarMasterId': avatar, 'profileCardImages': result}
+
+
+def event_schedule(value):
+    if value is None:
+        return None
+    if (not isinstance(value, dict) or not isinstance(value.get('eventId'), str)
+            or not FINAL_EVENT_ID.fullmatch(value['eventId'])):
+        raise ValueError('invalid ranking schedule')
+    result = {'eventId': value['eventId']}
+    for key in ('startAt', 'endAt'):
+        if not isinstance(value.get(key), str) or len(value[key]) > 64:
+            raise ValueError('invalid ranking schedule')
+        stamp = datetime.fromisoformat(value[key].replace('Z', '+00:00'))
+        if stamp.tzinfo is None:
+            raise ValueError('invalid ranking schedule')
+        result[key] = stamp.isoformat()
+    if datetime.fromisoformat(result['endAt']) < datetime.fromisoformat(result['startAt']):
+        raise ValueError('invalid ranking schedule')
+    return result
+
+
+def schedule_state(schedule, now):
+    if not schedule:
+        return 'unknown'
+    start = datetime.fromisoformat(schedule['startAt'])
+    end = datetime.fromisoformat(schedule['endAt'])
+    return 'upcoming' if now < start else 'ended' if now > end else 'active'
 
 
 def public_high_score_deck(value):
@@ -122,6 +183,7 @@ def validate_observation(value: dict, server: str) -> dict:
     if not isinstance(value.get("boards"), list):
         raise ValueError("missing boards")
     identities = set()
+    event_schedule(value.get('eventSchedule'))
     for board in value["boards"]:
         if not isinstance(board, dict):
             raise ValueError("invalid ranking board")
@@ -146,6 +208,7 @@ def validate_observation(value: dict, server: str) -> dict:
                 raise ValueError("invalid player result")
             players.add(row["playerId"])
             public_high_score_deck(row.get('highScoreDeck'))
+            public_player_profile(row.get('profile'))
     return value
 
 
@@ -158,17 +221,25 @@ def query_player_rankings(root: Path, *, server: str, board: str = "auto", event
               "status": "unavailable", "observedAt": None, "expiresAt": None, "events": [], "songs": [], "boards": [], "entries": [], "nextCursor": None}
     current_raw = path.read_bytes() if path.exists() else None
     current = validate_observation(json.loads(current_raw), server) if current_raw is not None else None
+    current_time = now or datetime.now(timezone.utc)
+    current_schedule = event_schedule(current.get('eventSchedule')) if current else None
     current_events = list({b["eventId"]: {"id": b["eventId"], "name": b.get("eventName", b["eventId"])}
                            for b in current["boards"]}.values()) if current else []
     archives = list_final_archives(root, server)
     current_ids = {item["id"] for item in current_events}
+    for item in current_events:
+        if current_schedule and current_schedule['eventId'] == item['id']:
+            item.update(startAt=current_schedule['startAt'], endAt=current_schedule['endAt'],
+                        state=schedule_state(current_schedule, current_time))
+        if item['id'] in archives:
+            item.update(state='ended', isFinal=True)
     result["events"] = current_events + [
-        {"id": key, "name": archives[key]["eventName"] + " · 结束后归档"}
+        {"id": key, "name": archives[key]["eventName"], "state": "ended", "isFinal": True}
         for key in sorted(archives, key=int, reverse=True) if key not in current_ids]
     event = event or (result["events"][0]["id"] if result["events"] else None)
     result["eventId"] = event
     archived = False
-    if event in current_ids:
+    if event in current_ids and event not in archives:
         raw, data = current_raw, current
     elif event in archives:
         archive_path, _ = final_archive_paths(root, server, event)
@@ -184,6 +255,10 @@ def query_player_rankings(root: Path, *, server: str, board: str = "auto", event
         return result
     result.update(observedAt=data["observedAt"], expiresAt=data["expiresAt"])
     result["isFinal"] = archived
+    selected_schedule = event_schedule(data.get('eventSchedule'))
+    result['eventState'] = 'ended' if archived else schedule_state(selected_schedule, current_time)
+    if archived:
+        result['expiresAt'] = None
     result["boards"] = list(dict.fromkeys(b['type'] for b in data['boards'] if b['eventId'] == event))
     if board == 'auto' and result['boards']:
         board = result['boards'][0]
@@ -211,10 +286,11 @@ def query_player_rankings(root: Path, *, server: str, board: str = "auto", event
     entries = sorted(selected["entries"], key=lambda r: (r["rank"], r["playerId"]))
     result["entries"] = [{**{key: row[key] for key in ("playerId", "name", "rank", "score")},
                           "playerKey": f"{server}:{row['playerId']}",
+                          "profile": public_player_profile(row.get('profile')),
                           "highScoreDeck": public_high_score_deck(row.get('highScoreDeck'))}
                          for row in entries[offset:offset + limit]]
     expired = datetime.fromisoformat(data["expiresAt"].replace("Z", "+00:00")) <= (now or datetime.now(timezone.utc))
-    result["status"] = "stale" if expired else "available" if entries else "empty"
+    result["status"] = "stale" if expired and not archived else "available" if entries else "empty"
     if offset + limit < len(entries):
         result["nextCursor"] = base64.urlsafe_b64encode(json.dumps({"identity": identity, "offset": offset + limit}).encode()).decode().rstrip("=")
     return result
