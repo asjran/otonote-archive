@@ -38,7 +38,8 @@ test('expired challenge access stays added and changes its label when free live 
   const row = homeMusic([song], [earlyEnd], 'jp', ended).recent[0];
   assert.equal(challengeSongLabel(row, ended - 1), '挑战演出限定');
   assert.equal(challengeSongLabel(row, ended), '挑战演出已结束');
-  assert.equal(challengeSongLabel(row, at('2026-10-08T21:00:00')), '挑战演出先行');
+  assert.equal(challengeSongLabel(row, at('2026-10-08T21:00:00')), '');
+  assert.equal(challengeSongLabel(row, at('2026-10-08T21:00:00'), true), '');
   assert.equal(homeMusic([song], [event], 'jp', at('2026-10-09T00:00:00')).recent[0].addedAt, event.schedule.startAt);
 });
 
@@ -80,4 +81,14 @@ test('ordinary songs retain ordering, regional time zones, and list limits', () 
   assert.deepEqual(jp.upcoming.map(row => row.track.masterId), [8, 9, 10]);
   assert.equal(homeMusic(songs, [], 'global', now).recent.length, 7);
   assert.deepEqual(homeMusic([{ masterId: 1, startAt: '' }], [], 'jp', now), { recent: [], upcoming: [] });
+});
+
+test('ordinary availability clears even a later active challenge label in both locales', () => {
+  const row = homeMusic([song], [event], 'jp', during).recent[0];
+  const opening = row.freeLiveStart;
+  row.challengePeriods.push({start:opening-1000,end:opening+86400000});
+  assert.equal(challengeSongLabel(row, opening-1), '挑战演出限定');
+  assert.equal(challengeSongLabel(row, opening), '');
+  assert.equal(challengeSongLabel(row, opening+1, true), '');
+  assert.equal(homeMusic([song], [event], 'jp', opening).recent[0].addedAt,event.schedule.startAt);
 });

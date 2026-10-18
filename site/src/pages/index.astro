@@ -114,6 +114,7 @@ const sameMemberBatch = new Set(catalog.memberCards.map(card=>card.startAt)).siz
       <div class="home-music-grid">
         {tracks.map((release) => {
           const { track, addedAt, challengeDebut } = release;
+          const challengeLabel = challengeSongLabel(release, now, en);
           const jacket = getAsset(track.jacketAssetId);
           const expert = getMusicCharts(track.id).find(chart => chart.difficulty === 'expert');
           const gekisouCounts = (['just', 'combo', 'luck'] as const).map(type => ({
@@ -124,8 +125,8 @@ const sameMemberBatch = new Set(catalog.memberCards.map(card=>card.startAt)).siz
             <div class="home-track-art">{jacket ? <ArchiveImage asset={jacket} alt={track.title} /> : <span aria-hidden="true">♪</span>}</div>
             <div class="home-track-copy">
               <h3 title={track.title}>{track.title}</h3>
-              {challengeDebut && <div class="home-track-availability">
-                <span class="home-track-status" data-home-song={JSON.stringify({freeLiveStart: release.freeLiveStart, challengePeriods: release.challengePeriods})} data-home-locale={en ? 'en' : 'zh-CN'}>{challengeSongLabel(release, now, en)}</span>
+              {challengeDebut && <div class="home-track-availability" data-home-song-availability hidden={!challengeLabel}>
+                <span class="home-track-status" data-home-song={JSON.stringify({freeLiveStart: release.freeLiveStart, challengePeriods: release.challengePeriods})} data-home-locale={en ? 'en' : 'zh-CN'}>{challengeLabel}</span>
                 {release.freeLiveStart !== null && <small>{en ? 'Free Live' : '自由演出'} <time datetime={new Date(release.freeLiveStart).toISOString()} title={`${track.startAt} ${region === 'jp' ? 'JST' : 'UTC+8'}`}>{releaseDateLabel(track.startAt).slice(5)} {track.startAt.split(/[ T]/)[1]?.slice(0,-3).padStart(5,'0')} {region === 'jp' ? 'JST' : 'UTC+8'}</time></small>}
               </div>}
               <div class="home-track-metadata"><div class="home-track-ex" aria-label={en ? 'Expert difficulty' : 'EX 难度'}>EX <strong>{expert?.displayLevel ?? '—'}</strong></div><CardAttributeBadge code={track.musicType} compact /></div>
@@ -171,7 +172,10 @@ const sameMemberBatch = new Set(catalog.memberCards.map(card=>card.startAt)).siz
       node.textContent = scheduleLabel(parse(node.dataset.homeStart), parse(node.dataset.homeEnd), Date.now(), node.dataset.homeLocale === 'en', !node.hasAttribute('data-home-end'));
     });
     document.querySelectorAll<HTMLElement>('[data-home-song]').forEach(node => {
-      node.textContent = challengeSongLabel(JSON.parse(node.dataset.homeSong!), Date.now(), node.dataset.homeLocale === 'en');
+      const label = challengeSongLabel(JSON.parse(node.dataset.homeSong!), Date.now(), node.dataset.homeLocale === 'en');
+      node.textContent = label;
+      const availability = node.closest<HTMLElement>('[data-home-song-availability]');
+      if (availability) availability.hidden = !label;
     });
   };
   update();
