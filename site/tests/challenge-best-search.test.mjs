@@ -169,3 +169,44 @@ test('safe joint cutoff avoids native per-note bounds and remains valid with all
     assert.equal(bound.withCutoff(state,model,solution,draft,-Infinity),full);
   }
 });
+
+test('card-domain challenge search matches a native oracle with optional members and supports',async()=>{
+ const f=fixture(2);f.chart.notes=f.chart.notes.slice(0,6);
+ f.inventory.supportCardIds.push('support-card-6');
+ f.inventory.growth['support-card-6']={level:7,rank:2};
+ f.draft.modifiers.growth=structuredClone(f.inventory.growth);
+ const event=createEventEfficiency({tables:f.rules.tables,sourceReleaseId:f.rules.sourceReleaseId,eventId:1});
+ const base=structuredClone(f.draft);base.modifiers.event={id:1,sourceReleaseId:f.rules.sourceReleaseId};
+ const song=createFormalSongCalculator(f.rules,f.chart,{eventAdapters:[event.challengeAdapter(f.rules)]});
+ const character=new Map(f.rules.tables.MemberCard.map(r=>[`member-card-${r._id}`,r._characterID]));
+ const maxima={maximumScore:0,expectedScore:0};let count=0;
+ for(const omitted of f.inventory.memberCardIds){
+  const members=f.inventory.memberCardIds.filter(id=>id!==omitted);
+  if(new Set(members.map(id=>character.get(id))).size!==5)continue;
+  for(const leader of members){
+   const ordered=members.filter(id=>id!==leader);ordered.splice(2,0,leader);
+   for(const supports of permutations(f.inventory.supportCardIds)){
+    const draft={...base,slots:ordered.map((memberCardId,i)=>({memberCardId,supportCardId:supports[i]}))};
+    const score=song.calculate(draft);count++;
+    for(const metric of Object.keys(maxima))maxima[metric]=Math.max(maxima[metric],score[metric]);
+   }
+  }
+ }
+ assert.ok(count>=7200);
+ for(const [objective,metric] of [['maximum_song_score','maximumScore'],['expected_song_score','expectedScore']]){
+  const result=await optimizeChallenge({...f,objective,maxEvaluations:0});
+  assert.equal(result.certifiedSearch.bestProven,true);assert.equal(result.results[0].value,maxima[metric]);
+  const session=createChallengeSearchSession({...f,objective,maxEvaluations:1});
+  let paused=await session.run();
+  for(let i=0;i<2000&&!paused.certifiedSearch.bestProven;i++)paused=await session.run();
+  assert.equal(paused.certifiedSearch.bestProven,true);assert.equal(paused.results[0].value,maxima[metric]);
+ }
+});
+
+test('full catalog proof avoids spending its chunk budget on near-identical pairings',async()=>{
+ const f=fixture();
+ const original=JSON.parse(readFileSync(new URL('../../packages/scoring/data/formal-scoring-rules.json',import.meta.url)));
+ for(const member of f.rules.tables.MemberCard)member._liveSkillID=original.tables.MemberCard.find(r=>r._id===member._id)._liveSkillID;
+ const result=await optimizeChallenge({...f,scope:'reference',inventory:undefined,maxEvaluations:1000});
+ assert.equal(result.certifiedSearch.bestProven,true,JSON.stringify(result.certifiedSearch));
+});

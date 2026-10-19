@@ -4,6 +4,7 @@ import {eventSongCandidates} from './event-song-ranking.mjs';
 import {currentEventDraft,applyEventPlan,eventTeamDetails,eventTeamSaveButton,eventElement as el} from './event-team-view.mjs';
 import {EVENT_YIELD_GOAL_LABELS,orderEventYieldRows,eventYieldGaps} from './event-yield-goals.mjs';
 import {createCalculationProgress} from './calculation-progress.mjs';
+import {createCalculationLiveUpdates,reconcileCalculationView} from './calculation-live-updates.mjs';
 import {selectedControlValues} from './filter-controls.mjs';
 const fmt=n=>Number(n).toLocaleString('zh-CN',{maximumFractionDigits:1}),grades=['D','C','B','A','S','SS'];
 const gapText=n=>n===0?'相同':`${n>0?'少':'多'} ${fmt(Math.abs(n))}`;
@@ -41,34 +42,22 @@ export function setupEventYieldOptimizer(tool){
  const root=tool.q('yield-optimizer'),q=s=>tool.querySelector(`[data-yield-${s}]`);
  const feedback=createCalculationProgress(q('status'),'yield');
  q('continue').textContent='重新开始完整比较';
- let worker=null,key='',result=null,pendingResult=null,renderKey='',displaySort='yield',displayGoal='badges',page=0,selectedPlan=null;
- let resultTimer=null,resultAt=-Infinity,articleCache=new Map(),viewCache=new Map();
+ let worker=null,key='',result=null,renderKey='',displaySort='yield',displayGoal='badges',page=0,selectedPlan=null;
+ let articleCache=new Map(),viewCache=new Map();
  const resultKey=data=>JSON.stringify([data.rows,data.failures]);
- function publishPending(){
-   clearTimeout(resultTimer);resultTimer=null;
-   if(pendingResult){result=pendingResult;pendingResult=null;}
-   if(result){resultAt=performance.now();render();}
- }
- function queueResult(data){
-   pendingResult=data;if(resultTimer!==null)return;
-   const delay=750-(performance.now()-resultAt);
-   if(!result?.rows.length||delay<=0)publishPending();else resultTimer=setTimeout(publishPending,delay);
- }
- let progressTimer=null,latestProgress=null,progressAt=-Infinity;
- function showProgress(){
-   progressTimer=null;const data=latestProgress;if(!data)return;latestProgress=null;progressAt=performance.now();
-   const progress=eventYieldProgressText(data);feedback.update({label:'正在比较活动收益',completed:data.done,total:data.total,detail:`${data.title??'所有候选歌曲'} · ${progress.detail}`});
-   q('status').textContent=`${progress.stage}：${data.title??'所有候选歌曲'}（${data.done} / ${data.total}）`;
- }
- function queueProgress(data){latestProgress=data;if(progressTimer!==null)return;const delay=250-(performance.now()-progressAt);if(delay<=0)showProgress();else progressTimer=setTimeout(showProgress,delay);}
- const stop=()=>{clearTimeout(resultTimer);resultTimer=null;clearTimeout(progressTimer);progressTimer=null;latestProgress=null;progressAt=-Infinity;worker?.terminate();worker=null;q('cancel').hidden=true;tool.q('suggest').disabled=false;q('run').disabled=false;root.setAttribute('aria-busy','false');};
+ const updates=createCalculationLiveUpdates({hasResults:()=>Boolean(result?.rows.length),
+   onResult:data=>{result=data;render();},onProgress:data=>{
+     const progress=eventYieldProgressText(data);feedback.update({label:'正在比较活动收益',completed:data.done,total:data.total,detail:`${data.title??'所有候选歌曲'} · ${progress.detail}`});
+     q('status').textContent=`${progress.stage}：${data.title??'所有候选歌曲'}（${data.done} / ${data.total}）`;
+   }});
+ const stop=(publish=false)=>{worker?.terminate();worker=null;updates.stop({flushResult:publish});if(publish&&result)render();q('cancel').hidden=true;tool.q('suggest').disabled=false;q('run').disabled=false;root.setAttribute('aria-busy','false');};
  function context(){return {eventId:Number(tool.q('event').value),mode:tool.q('mode').value,scope:tool.q('pool').value,draft:currentEventDraft(tool),
    liveBoost:Number(tool.q('boost').value),challengeCost:Number(tool.q('cost').value),budget:Number(q('budget').value),startingCP:Number(q('starting').value),
    rewardCards:q('rewards')?.checked?tool.data.eventRewardCards?.[Number(tool.q('event').value)]??[]:[],rewardGrowth:q('reward-growth')?.value??'level',rewardGrowthOverride:q('reward-override')?.checked??false,searchDepth:q('depth').value,eco:q('eco').checked,goal:q('goal').value,basis:q('basis').value,includeChallenge:q('stages').value==='cycle',songs:q('songs').value,band:selectedControlValues(q('band')),attribute:selectedControlValues(q('attribute')),difficulty:selectedDifficulties(q('difficulty')),maxLevel:Number(q('level').value),challengeScope:q('challenge-scope').value,challengeBasis:q('challenge-basis').value,challengeDifficulty:selectedDifficulties(q('challenge-difficulty')),challengeMaxLevel:Number(q('challenge-level').value)};}
  function sync(){
    if(tool.q('mode').value==='challenge'&&q('goal').value==='grade')q('goal').value='badges';
    const c=context(),next=JSON.stringify(c);
-   if(next!==key){stop();feedback.reset();key=next;result=null;pendingResult=null;resultAt=-Infinity;articleCache.clear();viewCache.clear();selectedPlan=null;renderKey='';q('continue').hidden=true;q('results').replaceChildren();q('status').textContent='条件改变后需重新计算；原有卡组不会自动被替换。';}
+   if(next!==key){stop();feedback.reset();key=next;result=null;articleCache.clear();viewCache.clear();selectedPlan=null;renderKey='';q('continue').hidden=true;q('results').replaceChildren();q('status').textContent='条件改变后需重新计算；原有卡组不会自动被替换。';}
    const unsupported=c.mode==='gekisou',needsSong=c.mode==='challenge'&&c.songs==='selected'&&!c.draft.selectedSongId;q('run').disabled=!!worker||unsupported||needsSong;tool.q('suggest').disabled=!!worker||unsupported||needsSong;q('run').title=needsSong?'先点选本期活动曲与难度':'';
    q('challenge-settings').hidden=c.mode!=='ordinary'||!c.includeChallenge;
    q('normal-settings').hidden=c.mode==='challenge';q('stages').disabled=c.mode==='challenge';
@@ -148,9 +137,7 @@ export function setupEventYieldOptimizer(tool){
      const cached=viewCache.get(index);if(cached?.signature===signature&&node.outerHTML!==undefined)view[index]=cached.node;
      nextView.set(index,{signature,node:view[index]});
    }
-   const container=q('results'),keep=new Set(view);
-   for(const node of [...container.children])if(!keep.has(node))container.removeChild(node);
-   for(const [index,node] of view.entries())if(container.children[index]!==node){const anchor=container.children[index]??null;if(node.parentNode===container&&typeof container.moveBefore==='function')container.moveBefore(node,anchor);else container.insertBefore(node,anchor);}
+   const container=q('results');reconcileCalculationView(container,view);
    if(focusedPlan)for(const button of container.querySelectorAll('.task-event-plan-choice'))if(button.dataset.yieldPlanKey===focusedPlan&&document.activeElement!==button)button.focus({preventScroll:true});
    articleCache=nextArticles;viewCache=nextView;
 
@@ -173,23 +160,23 @@ export function setupEventYieldOptimizer(tool){
      const challengeCandidates=eventSongCandidates({...tool.data,allowedTrackIds:allowed,difficulty:c.challengeDifficulty,maxLevel:c.challengeMaxLevel});
      if(c.mode==='ordinary'&&c.includeChallenge&&!challengeCandidates.length)throw Error('后续挑战没有符合难度范围的谱面，请放宽条件或只比较普通阶段。');
      if(c.mode==='challenge'&&c.goal==='grade')c.goal='badges';
-     result=null;pendingResult=null;resultAt=-Infinity;articleCache.clear();viewCache.clear();selectedPlan=null;renderKey='';page=0;q('continue').hidden=true;q('results').replaceChildren();worker=new Worker(new URL('./event-yield-worker.mjs',import.meta.url),{type:'module'});
+     result=null;articleCache.clear();viewCache.clear();selectedPlan=null;renderKey='';page=0;q('continue').hidden=true;q('results').replaceChildren();worker=new Worker(new URL('./event-yield-worker.mjs',import.meta.url),{type:'module'});
      feedback.update({label:'准备活动收益比较',detail:'正在读取卡库、实际养成与谱面'});
      const active=worker;q('cancel').hidden=false;q('run').disabled=true;tool.q('suggest').disabled=true;root.setAttribute('aria-busy','true');q('status').textContent='正在准备卡库、实际养成与谱面…';
      worker.addEventListener('message',({data})=>{
        if(worker!==active)return;
-       if(data.type==='progress'){queueProgress(data);return;}
-       if(data.type==='partial'){queueResult(data);return;}
-       stop();if(data.type==='result'){
-         pendingResult=null;result=data;render();const summary=eventYieldCompletionText(data);feedback.finish(summary.label,summary.detail);q('continue').hidden=summary.complete;
+       if(data.type==='progress'){updates.progress(data);return;}
+       if(data.type==='partial'){updates.result(data);return;}
+       stop(data.type!=='result');if(data.type==='result'){
+         result=data;render();const summary=eventYieldCompletionText(data);feedback.finish(summary.label,summary.detail);q('continue').hidden=summary.complete;
          q('status').textContent=summary.status;
-       }else {publishPending();feedback.finish('计算失败',data.message,'error');q('continue').hidden=!result;q('status').textContent=`计算失败：${data.message}${result?'；保留当前显示的方案，可重新开始完整比较。':''}`;}
+       }else {feedback.finish('计算失败',data.message,'error');q('continue').hidden=!result;q('status').textContent=`计算失败：${data.message}${result?'；保留当前显示的方案，可重新开始完整比较。':''}`;}
      });
-     worker.addEventListener('error',()=>{if(worker!==active)return;stop();publishPending();feedback.finish('计算服务加载失败','请重试','error');q('status').textContent='计算服务加载失败，请重试。';});
+     worker.addEventListener('error',()=>{if(worker!==active)return;stop(true);feedback.finish('计算服务加载失败','请重试','error');q('status').textContent='计算服务加载失败，请重试。';});
      worker.postMessage({rules:tool.data.rules,eventId:c.eventId,candidates,challengeCandidates,input:c});
    }catch(error){stop();feedback.finish('无法开始计算',error.message,'error');q('status').textContent=error.message;tool.q('team-status').textContent=error.message;}
  }
- q('run').addEventListener('click',()=>run());q('continue').addEventListener('click',()=>run('full'));q('cancel').addEventListener('click',()=>{stop();publishPending();const summary=eventYieldStopText(Boolean(result));feedback.finish(summary.label,summary.detail,'stopped');q('continue').hidden=!result;q('status').textContent=summary.status;});
+ q('run').addEventListener('click',()=>run());q('continue').addEventListener('click',()=>run('full'));q('cancel').addEventListener('click',()=>{stop(true);const summary=eventYieldStopText(Boolean(result));feedback.finish(summary.label,summary.detail,'stopped');q('continue').hidden=!result;q('status').textContent=summary.status;});
  root.addEventListener('change',event=>{event.stopPropagation();sync();});
  return {sync,run,invalidate:()=>{key='';stop();sync();},destroy:stop};
 }

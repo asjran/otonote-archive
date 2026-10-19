@@ -15,13 +15,15 @@ export async function searchEventFormations({ rules, draft, chart, scope, invent
   compareCandidates = (a,b) => b.value-a.value, rankCandidates = compareCandidates, maxEvaluations = 24, topN = 3,
   signal, yieldControl = async () => {}, onProgress = () => {}, scoreCache,
   pairCache, pairCacheKey, modelCache, scoreCounters, baselineResult, bonusCeiling, scoreBoundOptions = {}, proofCount = topN, includeTieScoreBound = true,
-  shouldPause = () => false, onContinuation }) {
+  shouldPause = () => false, onContinuation, partitionCards = false }) {
   if (!Number.isInteger(maxEvaluations) || maxEvaluations < 0) throw new Error('Invalid event search budget');
   if (!Number.isInteger(topN) || topN < 1 || topN > 100) throw new Error('Invalid event result limit');
   if (!Number.isInteger(proofCount) || proofCount < 1 || proofCount > topN) throw new Error('Invalid event proof count');
   if (draft.modifiers?.performanceScenario) return { results: seeds, optimality: 'practical_checked',
     searchStatus: 'player_scenario_bound_unavailable', evaluated: 0, upperBound: null, optimalityGap: null };
   const input = resolveSearchInput(rules, draft, { scope, inventory });
+  const cardDomains = partitionCards && !bonusFor;
+  const characterFor = cardDomains ? new Map(rules.tables.MemberCard.map(row=>[`member-card-${row._id}`,row._characterID])) : null;
   const models = await compilePairingModels(rules, input, { eventAdapters, signal, yieldControl, pairCache, pairCacheKey, modelCache });
   if (!models) return { results: seeds, optimality: 'incomplete', searchStatus: 'cancelled', evaluated: 0 };
   const song = createFormalSongCalculator(rules, chart, { eventAdapters });
@@ -105,7 +107,18 @@ export async function searchEventFormations({ rules, draft, chart, scope, invent
   // The joint challenge relaxation uses its tighter bound for both purposes.
   const preservePriority = !bonusFor && !scoreBoundOptions.jointPowerBound;
   const solve = (state, cutoff = -Infinity) => {
-    const model = byLeader.get(state.leader), options = { required: state.required, forbidden: state.forbidden, requiredMembers: [state.leader] };
+    let model = byLeader.get(state.leader);
+    const options = { required: state.required, forbidden: state.forbidden, requiredMembers: [state.leader] };
+    if (cardDomains) {
+      const members=state.memberRequired,supports=state.supportRequired;
+      const characters=new Map(members.map(id=>[characterFor.get(id),id]));
+      // Every required card remains compulsory in the exact power matching.
+      // Other cards of its character cannot belong to any legal team here.
+      model={...model,edges:model.edges.filter(e=>!state.memberExcluded.includes(e.member)&&!state.supportExcluded.includes(e.support)
+        &&(!characters.has(e.character)||characters.get(e.character)===e.member)
+        &&(members.length<5||members.includes(e.member))&&(supports.length<5||supports.includes(e.support)))};
+      options.requiredMembers=members;options.requiredSupports=supports;
+    }
     const hint=!state.required.length&&!state.forbidden.length?rootHints.get(state.leader):null;
     const power = hint?.power??maximumPairing({ ...options, edges: model.edges });
     if (!power) return null;
@@ -140,7 +153,12 @@ export async function searchEventFormations({ rules, draft, chart, scope, invent
     return certificate.peek()?.upper;
   };
   const clear=()=>{queue.clear();certificate?.clear();active.clear();};
-  for (const model of models) { const state=solve({leader:model.leader,required:[],forbidden:[]}); if(state)push(state); }
+  for (const model of models) {
+    const state=solve({leader:model.leader,required:[],forbidden:[],...(cardDomains?{
+      memberRequired:[model.leader],supportRequired:[],memberExcluded:[],supportExcluded:[]
+    }:{})});
+    if(state)push(state);
+  }
   const signature = d => d.slots.map(s=>`${s.memberCardId}|${s.supportCardId}`).join(';');
   const results = new Map(seeds.map(r=>[signature(r.draft),r]));
   const best = () => [...results.values()].sort(rankCandidates).slice(0,topN);
@@ -178,7 +196,23 @@ export async function searchEventFormations({ rules, draft, chart, scope, invent
       }
       expanded++;
       const cutoff=!bonusFor && scoreBoundOptions.jointPowerBound ? best()[proofCount-1]?.value??-Infinity : -Infinity;
-      for (const child of partitionPairing(state,state.solution)) {
+      // Include/exclude splits are disjoint and cover the complete parent
+      // domain. Resolve card sets before enumerating their support pairings:
+      // one bound can then exclude many near-identical pair permutations.
+      let children;
+      if (cardDomains) {
+        const member=state.solution.edges.find(e=>!state.memberRequired.includes(e.member))?.member;
+        const support=state.solution.edges.find(e=>!state.supportRequired.includes(e.support))?.support;
+        if(state.memberRequired.length<5&&member)children=[
+          {...state,memberRequired:[...state.memberRequired,member]},
+          {...state,memberExcluded:[...state.memberExcluded,member]}
+        ];
+        else if(state.supportRequired.length<5&&support)children=[
+          {...state,supportRequired:[...state.supportRequired,support]},
+          {...state,supportExcluded:[...state.supportExcluded,support]}
+        ];
+      }
+      for (const child of children??partitionPairing(state,state.solution)) {
         const solved=solve(child,cutoff);
         // The incumbent cannot decrease. Discard a certified losing partition
         // now instead of retaining its edges and solution in the frontier.
