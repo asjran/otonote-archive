@@ -31,3 +31,25 @@ test('stage transitions remove stale percentages; cancellation and reset remove 
   feedback.reset();assert.equal(root.hidden,true);
  }finally{globalThis.document=previous;}
 });
+
+// Repeated worker updates must not replace the heading text node or restart the bar.
+test('progress changes only the text and value that actually changed',()=>{
+ class Node {
+  constructor(){this.dataset={};this.children=[];this.writes=0;this.attributes=0;}
+  append(...n){this.children.push(...n);}
+  before(n){this.inserted=n;}
+  set textContent(v){this.text=v;this.writes++;}
+  setAttribute(){this.attributes++;}
+  removeAttribute(){this.attributes++;}
+ }
+ const previous=globalThis.document;globalThis.document={createElement:()=>new Node()};
+ try {
+  const anchor=new Node(),feedback=createCalculationProgress(anchor,'test');
+  const [heading,bar,detail]=anchor.inserted.children,label=heading.children[0];
+  feedback.update({label:'正在比较',completed:3,total:360,detail:'分支 10'});
+  const attributes=bar.attributes;
+  feedback.update({label:'正在比较',completed:3,total:360,detail:'分支 11'});
+  feedback.update({label:'正在比较',completed:3,total:360,detail:'分支 11'});
+  assert.equal(label.writes,1);assert.equal(detail.writes,2);assert.equal(bar.attributes,attributes);
+ } finally {globalThis.document=previous;}
+});
