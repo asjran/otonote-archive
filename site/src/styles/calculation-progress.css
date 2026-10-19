@@ -24,3 +24,7 @@
 .tw-loading-cards>i{aspect-ratio:1;border-radius:12px;background:#eeedf2}
 @keyframes calculation-loading{from{background-position:100% 0}to{background-position:-100% 0}}
 @media(prefers-reduced-motion:reduce){.calculation-progress progress,.tw-loading-track{animation:none;transition:none}}
+
+.task-event-plan-enter{animation:event-plan-appear .18s ease-out both}
+@keyframes event-plan-appear{from{opacity:.35;transform:translateY(3px)}to{opacity:1;transform:translateY(0)}}
+@media(prefers-reduced-motion:reduce){.task-event-plan-enter{animation:none}}

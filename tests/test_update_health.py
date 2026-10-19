@@ -14,7 +14,7 @@ class HealthTests(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory();self.addCleanup(self.temp.cleanup)
         self.root = Path(self.temp.name)
-        self.now = 1791876000
+        self.now = int(dt.datetime(2026, 10, 19, 7, 0, 1, tzinfo=dt.timezone.utc).timestamp())
         self.observed = {'conditions': [], 'runs': {}, 'versions': {}, 'diskFreeBytes': 5000, 'diskRequiredBytes': 4000}
 
     def test_duration_dedup_recovery(self):
@@ -98,6 +98,28 @@ class HealthTests(unittest.TestCase):
         codes = {item['id'] for item in result['conditions']}
         self.assertIn('jp:schedule_stale', codes)
         self.assertNotIn('jp:poll_stale', codes)
+
+    def test_fixed_schedule_respects_overnight_gap_and_each_slot_grace(self):
+        def epoch(value):
+            return dt.datetime.fromisoformat(value.replace('Z', '+00:00')).timestamp()
+
+        for previous, check, stale in (
+                ('2026-10-18T11:02:00Z', '2026-10-19T01:59:59Z', False),
+                ('2026-10-18T11:02:00Z', '2026-10-19T02:00:01Z', True),
+                ('2026-10-19T01:02:00Z', '2026-10-19T06:59:59Z', False),
+                ('2026-10-19T01:02:00Z', '2026-10-19T07:00:01Z', True),
+                ('2026-10-19T06:02:00Z', '2026-10-19T11:59:59Z', False),
+                ('2026-10-19T06:02:00Z', '2026-10-19T12:00:01Z', True),
+                ('2026-10-19T11:02:00Z', '2026-10-20T01:59:59Z', False),
+                ('2026-10-19T06:02:00Z', '2026-10-20T01:59:59Z', True)):
+            with self.subTest(previous=previous, check=check):
+                bucket = MemoryBucket()
+                records.publish(bucket, 'jp', 1, 1, 'a' * 40, 'success', {},
+                                now=dt.datetime.fromtimestamp(epoch(previous), dt.timezone.utc), event='schedule')
+                result = health.sample(bucket, self.root/'missing', self.root/'missing', self.root, 1, epoch(check))
+                codes = {item['id'] for item in result['conditions']}
+                self.assertEqual('jp:schedule_stale' in codes, stale)
+                self.assertEqual('jp:poll_stale' in codes, stale)
 
 
 class WorkerHealthTests(unittest.TestCase):

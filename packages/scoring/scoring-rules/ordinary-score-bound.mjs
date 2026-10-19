@@ -209,10 +209,50 @@ export function createOrdinaryScoreBound({ song, pairSkills, legacyFactor, input
   };
   Object.defineProperty(bound,'bonusConstraintWitnesses',{get:()=>bonusBound?.witnesses??[]});
   bound.bonusConstraintStats=bonusBound?.stats??{matchingCalls:0};
-  // This chart-wide envelope covers every legal five-pair team. It is only
-  // used to prove a WHOLE group of charts cannot reach a grade; it supplies
-  // no score and must not be rounded to integer score/threshold units.
-  bound.normalizedPowerEnvelope=threshold=>{
+  // This envelope covers every legal five-pair team containing the supplied
+  // required members. It only proves that a chart domain cannot reach a grade;
+  // it supplies no score and must retain fractional score/threshold units.
+  // For minimum score, any subset of the 120 orders supplies an upper
+  // bound: min(all orders) <= mean(orders with these members in fixed slots).
+  // Choose slots using conservative per-member gains; this only tightens the
+  // proof and never changes the scored orders or the candidate pool.
+  const conditionalGains=new Map();
+  const minimumGainFor=requiredMembers=>{
+    const members=[...new Set(requiredMembers)].sort(),key=members.join('|');
+    if(!members.length||members.length>5)return bonusBound.envelope.gainFor;
+    if(conditionalGains.has(key))return conditionalGains.get(key);
+    const costs=members.map(member=>{
+      const values=Array(5).fill(0);let found=false;
+      for(const pair of profiles.keys())if(pair.startsWith(member+'|')){
+        found=true;const gains=bonusBound.envelope.positionGainsFor({key:pair});
+        for(let i=0;i<5;i++)values[i]=Math.max(values[i],gains[i]);
+      }
+      return found?values:null;
+    });
+    if(costs.some(row=>!row))return bonusBound.envelope.gainFor;
+    let dp=new Map([[0,{cost:0,positions:[]}]]);
+    for(const values of costs){
+      const next=new Map();
+      for(const [mask,row] of dp)for(let i=0;i<5;i++)if(!(mask&(1<<i))){
+        const target=mask|(1<<i),cost=row.cost+values[i];
+        if(!next.has(target)||cost<next.get(target).cost)next.set(target,{cost,positions:[...row.positions,i]});
+      }
+      dp=next;
+    }
+    const chosen=[...dp.values()].sort((a,b)=>a.cost-b.cost)[0];
+    const fixed=new Map(members.map((member,i)=>[member,chosen.positions[i]]));
+    const remaining=[0,1,2,3,4].filter(i=>!chosen.positions.includes(i));
+    const gainFor=edge=>{
+      const gains=bonusBound.envelope.positionGainsFor(edge),position=fixed.get(edge.member);
+      if(position!==undefined)return gains[position];
+      // Unrecognized optional edges cannot belong to a five-forced-member
+      // team. Keep a conservative value even if a caller includes them.
+      return remaining.length?remaining.reduce((sum,i)=>sum+gains[i],0)/remaining.length:Math.max(...gains);
+    };
+    if(conditionalGains.size>=64)conditionalGains.delete(conditionalGains.keys().next().value);
+    conditionalGains.set(key,gainFor);return gainFor;
+  };
+  bound.normalizedPowerEnvelope=(threshold,requiredMembers=[])=>{
     if(!bonusBound||!Number.isFinite(threshold)||threshold<=0)return null;
     const absolute=5*Math.max(0,...uniqueProfiles.map(p=>p.absolute));
     const commands=10*Math.max(0,...uniqueProfiles.map(p=>p.effects.length));
@@ -222,7 +262,8 @@ export function createOrdinaryScoreBound({ song, pairSkills, legacyFactor, input
     const error=stateError+unitRoundoff*(1+2*absolute+stateError);
     const baseCoefficient=bonusBound.envelope.baseCoefficient*(1+error)/threshold*(1+1e-10);
     if(!Number.isFinite(baseCoefficient))return null;
-    return {baseCoefficient,gainFor:edge=>bonusBound.envelope.gainFor(edge)/threshold*(1+1e-10)};
+    const gainFor=metric==='minimumScore'?minimumGainFor(requiredMembers):bonusBound.envelope.gainFor;
+    return {baseCoefficient,gainFor:edge=>gainFor(edge)/threshold*(1+1e-10)};
   };
   bound.stats={fullScoreCalculations:0};
   bound.withPriority=(...args)=>bound(...args,true);

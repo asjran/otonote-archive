@@ -33,7 +33,7 @@ export async function optimizeChallenge({rules,eventId,draft,chart,scope='owned'
  let resumeExact;
  const exact=await searchEventFormations({rules,draft:next,chart,scope,inventory,objective,
    eventAdapters,modelCache,seeds:result.results,maxEvaluations,signal,onProgress,yieldControl,baselineResult:result.baselineResult,
-   scoreCache,scoreCounters:result.practical,proofCount:1,scoreBoundOptions:{jointPowerBound:true},shouldPause,
+   scoreCache,scoreCounters:result.practical,proofCount:1,scoreBoundOptions:{jointPowerBound:true},partitionCards:true,shouldPause,
    onContinuation:resume=>{resumeExact=resume;}});
  const combine=exact=>{
   const {results:exactResults,...certificate}=exact;

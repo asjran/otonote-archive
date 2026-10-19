@@ -69,3 +69,27 @@ test('challenge cycle stages keep their independent constraints and shared score
  assert.equal(calls[2].challengeRows.length,2);assert.equal(output.coverageComplete,true);
  assert.equal(output.globalProofs.badges.scope,'all_selected_charts_given_challenge_rows');
 });
+
+test('parallel phase failures replay complete serial domains without claiming missing coverage',async()=>{
+ const challenge={id:'challenge',trackId:'music-0',seconds:5,level:20},calls=[];let grouped=0;
+ const output=await run({input:{...input,includeChallenge:true},challengeCandidates:[challenge],
+ runChallengeJobs:async()=>{throw Error('worker crashed');},runGroupProofs:async()=>{throw Error('worker missing coverage');},
+ optimizer:async o=>{calls.push(o);return result(o.candidate,o.goal,{proven:o.mode==='challenge'||!o.witnessOnly,upper:20});},
+ proveGroup:async()=>{grouped++;return {proven:false};}});
+ assert.equal(calls.filter(c=>c.mode==='challenge').length,2);assert.equal(grouped,2);
+ assert.equal(output.done,9);assert.equal(output.allProven,true);assert.equal(output.coverageComplete,true);assert.deepEqual(output.failures,[]);
+});
+
+test('parallel live improvements update candidates without prematurely certifying them',async()=>{
+ const messages=[];
+ const output=await run({onMessage:m=>messages.push(structuredClone(m)),optimizer:async o=>result(o.candidate,o.goal,{upper:20}),
+ proveGroup:async()=>{throw Error('successful parallel proof should be used');},
+ runGroupProofs:async({goals,onCandidate})=>{
+  for(const goal of goals)onCandidate(goal,row(candidates[0],goal,15));
+  const previews=messages.filter(m=>m.type==='partial'&&m.rows.some(r=>r.total.badges===15));
+  assert.ok(previews.length);assert.ok(previews.every(m=>!m.coverageComplete&&Object.keys(m.globalProofs).length===0));
+  return new Map(goals.map(goal=>[goal,{proven:true,results:[row(candidates[0],goal,15)],certificate:{bestProven:true}}]));
+ }});
+ assert.equal(output.coverageComplete,true);assert.equal(output.rows[0].total.badges,15);
+ assert.equal(output.rows[0].search.bestProven,true);
+});

@@ -15,12 +15,8 @@ on:
         type: choice
         options: [shadow, promote, auto]
   schedule:
-    # UTC; separate runs and concurrency groups for the two editions.
-    - cron: '17 0,4,8,12,16,20 * * *' # Global
-    - cron: '47 2,6,10,14,18,22 * * *' # JP
-    # Opt-in per edition; legacy slots are disabled while fast polling is on.
-    - cron: '7,22,37,52 * * * *' # Global fast
-    - cron: '12,27,42,57 * * * *' # JP fast
+    # UTC: both editions at 09:00, 14:00 and 19:00 Beijing time, three runs/day.
+    - cron: '0 1,6,11 * * *'
 
 permissions:
   contents: read
@@ -32,21 +28,20 @@ jobs:
       github.ref == format('refs/heads/{0}', github.event.repository.default_branch) &&
       (
         (github.event_name == 'schedule' &&
-          ((vars.CONTENT_R2_ENABLED_GLOBAL == 'true' &&
-            ((github.event.schedule == '17 0,4,8,12,16,20 * * *' && vars.CONTENT_R2_FAST_POLL_GLOBAL != 'true') ||
-             (github.event.schedule == '7,22,37,52 * * * *' && vars.CONTENT_R2_FAST_POLL_GLOBAL == 'true'))) ||
-           (vars.CONTENT_R2_ENABLED_JP == 'true' &&
-            ((github.event.schedule == '47 2,6,10,14,18,22 * * *' && vars.CONTENT_R2_FAST_POLL_JP != 'true') ||
-             (github.event.schedule == '12,27,42,57 * * * *' && vars.CONTENT_R2_FAST_POLL_JP == 'true'))))) ||
+          (vars.CONTENT_R2_ENABLED_GLOBAL == 'true' || vars.CONTENT_R2_ENABLED_JP == 'true')) ||
         (github.event_name == 'workflow_dispatch' &&
           ((inputs.region == 'global' && vars.CONTENT_R2_ENABLED_GLOBAL == 'true') ||
            (inputs.region == 'jp' && vars.CONTENT_R2_ENABLED_JP == 'true')))
       )
+    strategy:
+      fail-fast: false
+      matrix:
+        region: ${{ fromJSON((github.event_name == 'workflow_dispatch' && format('["{0}"]', inputs.region)) || ((vars.CONTENT_R2_ENABLED_GLOBAL == 'true' && vars.CONTENT_R2_ENABLED_JP == 'true') && '["global","jp"]') || (vars.CONTENT_R2_ENABLED_GLOBAL == 'true' && '["global"]') || '["jp"]') }}
     runs-on: ${{ vars.CONTENT_R2_RUNNER_LABEL || 'ubuntu-latest' }}
     timeout-minutes: 330
     environment: content-r2-production
     concurrency:
-      group: content-r2-${{ github.event_name == 'workflow_dispatch' && inputs.region || ((github.event.schedule == '17 0,4,8,12,16,20 * * *' || github.event.schedule == '7,22,37,52 * * * *') && 'global' || 'jp') }}
+      group: content-r2-${{ matrix.region }}
       cancel-in-progress: false
     env:
       R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
@@ -78,25 +73,21 @@ jobs:
         env:
           EVENT_NAME: ${{ github.event_name }}
           SCHEDULE: ${{ github.event.schedule }}
+          SELECTED_REGION: ${{ matrix.region }}
           INPUT_REGION: ${{ inputs.region }}
           INPUT_MODE: ${{ inputs.mode }}
           RESTORE_WORKERS_GLOBAL: ${{ vars.CONTENT_R2_RESTORE_WORKERS_GLOBAL || '8' }}
           RESTORE_WORKERS_JP: ${{ vars.CONTENT_R2_RESTORE_WORKERS_JP || '8' }}
         run: |
           set -euo pipefail
+          region="$SELECTED_REGION"
           if [[ "$EVENT_NAME" == schedule ]]; then
-            case "$SCHEDULE" in
-              '17 0,4,8,12,16,20 * * *') region=global; interval=240 ;;
-              '47 2,6,10,14,18,22 * * *') region=jp; interval=240 ;;
-              '7,22,37,52 * * * *') region=global; interval=15 ;;
-              '12,27,42,57 * * * *') region=jp; interval=15 ;;
-              *) exit 1 ;;
-            esac
+            [[ "$SCHEDULE" == '0 1,6,11 * * *' ]] || exit 1
             if [[ "$region" == global ]]; then auto="$AUTO_PROMOTE_GLOBAL"; else auto="$AUTO_PROMOTE_JP"; fi
             if [[ "$auto" == true ]]; then mode=promote; else mode=shadow; fi
-            printf 'Nominal polling interval: `%s minutes` (not a delivery deadline).\n\n' "$interval" >> "$GITHUB_STEP_SUMMARY"
+            printf 'Daily schedule (Beijing, UTC+8): `09:00, 14:00, 19:00` (three triggers/day; actual starts may be delayed).\n\n' >> "$GITHUB_STEP_SUMMARY"
           else
-            region="$INPUT_REGION"
+            [[ "$region" == "$INPUT_REGION" ]] || exit 1
             mode="$INPUT_MODE"
           fi
           [[ "$region" == global || "$region" == jp ]] || exit 1

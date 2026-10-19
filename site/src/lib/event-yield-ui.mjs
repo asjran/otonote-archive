@@ -4,6 +4,7 @@ import {eventSongCandidates} from './event-song-ranking.mjs';
 import {currentEventDraft,applyEventPlan,eventTeamDetails,eventTeamSaveButton,eventElement as el} from './event-team-view.mjs';
 import {EVENT_YIELD_GOAL_LABELS,orderEventYieldRows,eventYieldGaps} from './event-yield-goals.mjs';
 import {createCalculationProgress} from './calculation-progress.mjs';
+import {createCalculationLiveUpdates,reconcileCalculationView} from './calculation-live-updates.mjs';
 import {selectedControlValues} from './filter-controls.mjs';
 const fmt=n=>Number(n).toLocaleString('zh-CN',{maximumFractionDigits:1}),grades=['D','C','B','A','S','SS'];
 const gapText=n=>n===0?'相同':`${n>0?'少':'多'} ${fmt(Math.abs(n))}`;
@@ -41,15 +42,22 @@ export function setupEventYieldOptimizer(tool){
  const root=tool.q('yield-optimizer'),q=s=>tool.querySelector(`[data-yield-${s}]`);
  const feedback=createCalculationProgress(q('status'),'yield');
  q('continue').textContent='重新开始完整比较';
- let worker=null,key='',result=null,renderKey='',displaySort='yield',displayGoal='badges',page=0;
- const stop=()=>{worker?.terminate();worker=null;q('cancel').hidden=true;tool.q('suggest').disabled=false;q('run').disabled=false;root.setAttribute('aria-busy','false');};
+ let worker=null,key='',result=null,renderKey='',displaySort='yield',displayGoal='badges',page=0,selectedPlan=null;
+ let articleCache=new Map(),viewCache=new Map();
+ const resultKey=data=>JSON.stringify([data.rows,data.failures]);
+ const updates=createCalculationLiveUpdates({hasResults:()=>Boolean(result?.rows.length),
+   onResult:data=>{result=data;render();},onProgress:data=>{
+     const progress=eventYieldProgressText(data);feedback.update({label:'正在比较活动收益',completed:data.done,total:data.total,detail:`${data.title??'所有候选歌曲'} · ${progress.detail}`});
+     q('status').textContent=`${progress.stage}：${data.title??'所有候选歌曲'}（${data.done} / ${data.total}）`;
+   }});
+ const stop=(publish=false)=>{worker?.terminate();worker=null;updates.stop({flushResult:publish});if(publish&&result)render();q('cancel').hidden=true;tool.q('suggest').disabled=false;q('run').disabled=false;root.setAttribute('aria-busy','false');};
  function context(){return {eventId:Number(tool.q('event').value),mode:tool.q('mode').value,scope:tool.q('pool').value,draft:currentEventDraft(tool),
    liveBoost:Number(tool.q('boost').value),challengeCost:Number(tool.q('cost').value),budget:Number(q('budget').value),startingCP:Number(q('starting').value),
    rewardCards:q('rewards')?.checked?tool.data.eventRewardCards?.[Number(tool.q('event').value)]??[]:[],rewardGrowth:q('reward-growth')?.value??'level',rewardGrowthOverride:q('reward-override')?.checked??false,searchDepth:q('depth').value,eco:q('eco').checked,goal:q('goal').value,basis:q('basis').value,includeChallenge:q('stages').value==='cycle',songs:q('songs').value,band:selectedControlValues(q('band')),attribute:selectedControlValues(q('attribute')),difficulty:selectedDifficulties(q('difficulty')),maxLevel:Number(q('level').value),challengeScope:q('challenge-scope').value,challengeBasis:q('challenge-basis').value,challengeDifficulty:selectedDifficulties(q('challenge-difficulty')),challengeMaxLevel:Number(q('challenge-level').value)};}
  function sync(){
    if(tool.q('mode').value==='challenge'&&q('goal').value==='grade')q('goal').value='badges';
    const c=context(),next=JSON.stringify(c);
-   if(next!==key){stop();feedback.reset();key=next;result=null;renderKey='';q('continue').hidden=true;q('results').replaceChildren();q('status').textContent='条件改变后需重新计算；原有卡组不会自动被替换。';}
+   if(next!==key){stop();feedback.reset();key=next;result=null;articleCache.clear();viewCache.clear();selectedPlan=null;renderKey='';q('continue').hidden=true;q('results').replaceChildren();q('status').textContent='条件改变后需重新计算；原有卡组不会自动被替换。';}
    const unsupported=c.mode==='gekisou',needsSong=c.mode==='challenge'&&c.songs==='selected'&&!c.draft.selectedSongId;q('run').disabled=!!worker||unsupported||needsSong;tool.q('suggest').disabled=!!worker||unsupported||needsSong;q('run').title=needsSong?'先点选本期活动曲与难度':'';
    q('challenge-settings').hidden=c.mode!=='ordinary'||!c.includeChallenge;
    q('normal-settings').hidden=c.mode==='challenge';q('stages').disabled=c.mode==='challenge';
@@ -59,25 +67,31 @@ export function setupEventYieldOptimizer(tool){
    q('hint').textContent=c.mode==='challenge'?'比较本期挑战歌曲的直接收益；消耗沿用上方设置，挑战 pt 不参与收益排序。':'按整份耗火预算比较，自动估算队伍在歌曲中的档位。完整循环允许普通和挑战使用不同队伍；已有挑战 pt 单列，不冒充本次刷取所得。';
  }
  function render(){
-   const next=JSON.stringify([displaySort,displayGoal,page,result.rows.map(r=>[r.id,r.song.id,r.total,r.expectedScore,r.recommendationGoals]),result.failures]);
+   const next=JSON.stringify([displaySort,displayGoal,page,Boolean(worker),resultKey(result)]);
    if(next===renderKey)return;renderKey=next;
-   q('results').replaceChildren();
-   if(q('rewards')?.checked)q('results').append(el('p',`本期兑换 / pt 奖励卡已纳入候选，并不保证入选队伍。${eventRewardGrowthNote(q('reward-growth').value,q('reward-override')?.checked??false)}按获取后队伍比较，未扣兑换成本。`,'task-event-reward-result-note'));
+   const view=[],nextArticles=new Map(),focusedPlan=document.activeElement?.dataset?.yieldPlanKey;
+   if(q('rewards')?.checked)view.push(el('p',`本期兑换 / pt 奖励卡已纳入候选，并不保证入选队伍。${eventRewardGrowthNote(q('reward-growth').value,q('reward-override')?.checked??false)}按获取后队伍比较，未扣兑换成本。`,'task-event-reward-result-note'));
    const target=q('goal').value==='both'?displayGoal:q('goal').value,eligible=result.rows.filter(row=>!row.recommendationGoals||row.recommendationGoals.includes(target));
    const ordered=orderEventYieldRows(eligible,displaySort,target),{reference,gap}=eventYieldGaps(eligible,target),pageCount=Math.max(1,Math.ceil(ordered.length/8));page=Math.min(page,pageCount-1);
    const toolbar=el('div',null,'task-event-plan-sort'),sort=el('div',null,'task-event-sort-options');sort.setAttribute('role','group');sort.setAttribute('aria-label','收益方案排序');
-   if(q('goal').value==='both'){const goals=el('div',null,'task-event-result-tabs task-event-goal-tabs');goals.setAttribute('role','group');goals.setAttribute('aria-label','收益优先候选');for(const [goal,name] of [['badges','道具优先方案'],['eventPoints','pt 优先方案']]){const button=el('button',name);button.type='button';button.setAttribute('aria-pressed',String(target===goal));button.addEventListener('click',()=>{displayGoal=goal;page=0;render();});goals.append(button);}q('results').append(goals);}
-   for(const [value,name] of [['yield','收益优先'],['short','时长优先']]){const button=el('button',name);button.type='button';button.setAttribute('aria-pressed',String(displaySort===value));button.addEventListener('click',()=>{displaySort=value;page=0;render();});sort.append(button);}toolbar.append(el('span','方案排序'),sort,el('small',`${ordered.length} 个收益领先候选`));q('results').append(toolbar);
+   if(q('goal').value==='both'){const goals=el('div',null,'task-event-result-tabs task-event-goal-tabs');goals.setAttribute('role','group');goals.setAttribute('aria-label','收益优先候选');for(const [goal,name] of [['badges','道具优先方案'],['eventPoints','pt 优先方案']]){const button=el('button',name);button.type='button';button.setAttribute('aria-pressed',String(target===goal));button.addEventListener('click',()=>{displayGoal=goal;page=0;selectedPlan=null;render();});goals.append(button);}view.push(goals);}
+   for(const [value,name] of [['yield','收益优先'],['short','时长优先']]){const button=el('button',name);button.type='button';button.setAttribute('aria-pressed',String(displaySort===value));button.addEventListener('click',()=>{displaySort=value;page=0;selectedPlan=null;render();});sort.append(button);}toolbar.append(el('span','方案排序'),sort,el('small',`${ordered.length} 个收益领先候选`));view.push(toolbar);
    const baseline=el('div',null,'task-event-plan-baseline'),identity=el('div',null,'task-event-baseline-name');identity.append(el('small','比较基准'),el('strong',reference?.song.title??'—'),el('span',reference?.song.difficulty.toUpperCase()??'—','task-event-chart-label'));baseline.append(identity);
-   const totals=el('div',null,'task-event-baseline-totals');for(const [field,label] of [['badges','道具'],['eventPoints','pt']]){const metric=el('span');metric.append(el('small',label),el('b',fmt(reference?.total[field]??0)));totals.append(metric);}baseline.append(totals);q('results').append(baseline);
-   q('results').append(el('p',`仅重排${EVENT_YIELD_GOAL_LABELS[target]}的领先候选；差值均与本次搜索的收益第一比较，含当前预算${context().includeChallenge?'与后续挑战':''}。`,'event-hint task-event-gap-note'));
-   const tabs=el('div',null,'task-event-result-tabs');tabs.setAttribute('role','group');tabs.setAttribute('aria-label','收益方案');q('results').append(tabs);
-   for(const [i,row] of ordered.slice(page*8,page*8+8).entries()){
-     const article=el('article',null,'challenge-opt-result task-event-plan-result');article.hidden=i!==0;
+   const totals=el('div',null,'task-event-baseline-totals');for(const [field,label] of [['badges','道具'],['eventPoints','pt']]){const metric=el('span');metric.append(el('small',label),el('b',fmt(reference?.total[field]??0)));totals.append(metric);}baseline.append(totals);view.push(baseline);
+   view.push(el('p',`${worker?'计算中实时更新领先方案，最终排名以完成结果为准。':''}仅重排${EVENT_YIELD_GOAL_LABELS[target]}的领先候选；差值均与本次搜索的收益第一比较，含当前预算${context().includeChallenge?'与后续挑战':''}。`,'event-hint task-event-gap-note'));
+   const tabs=el('div',null,'task-event-result-tabs');tabs.setAttribute('role','group');tabs.setAttribute('aria-label','收益方案');view.push(tabs);
+   const visible=ordered.slice(page*8,page*8+8),selected=visible.find(r=>r.id===selectedPlan?.id&&r.song.id===selectedPlan?.song)??visible.find(r=>r.song.id===selectedPlan?.song)??visible[0];
+   for(const row of visible){
+     const signature=JSON.stringify({...row,search:undefined}),cached=articleCache.get(row.id+'|'+row.song.id),reuse=cached?.signature===signature;
+     const article=reuse?cached.article:el('article',null,'challenge-opt-result task-event-plan-result');article.hidden=row!==selected;
+     if(!reuse)article.className+=' task-event-plan-enter';
+     nextArticles.set(row.id+'|'+row.song.id,{signature,article});
      const differenceLabel=gap(row);
-     const tab=el('button',null,'task-event-plan-choice'),title=el('span',row.song.title,'task-event-choice-title'),meta=el('span',null,'task-event-choice-meta');meta.append(el('small',row.song.difficulty.toUpperCase(),'task-event-chart-label'),el('small',row.song.seconds==null?'时长未知':`${fmt(row.song.seconds)} 秒`));tab.append(title,meta);tab.title=row.song.title+' · '+row.song.difficulty.toUpperCase();tab.type='button';tab.setAttribute('aria-pressed',String(i===0));tab.addEventListener('click',()=>{for(const n of q('results').querySelectorAll('.task-event-plan-result'))n.hidden=n!==article;for(const b of tabs.children)b.setAttribute('aria-pressed',String(b===tab));});tabs.append(tab);
-     const differences=gap(row),metrics=el('div',null,'task-event-total-grid');for(const [key,label] of [['badges','道具总收益'],['eventPoints','活动 pt 总收益']]){const cell=el('div');cell.append(el('small',label),el('strong',fmt(row.total[key])),el('small',`比收益第一${gapText(differences[key])}`,'task-event-yield-gap'));metrics.append(cell);}article.append(metrics);
+     const tab=el('button',null,'task-event-plan-choice'),title=el('span',row.song.title,'task-event-choice-title'),meta=el('span',null,'task-event-choice-meta');meta.append(el('small',row.song.difficulty.toUpperCase(),'task-event-chart-label'),el('small',row.song.seconds==null?'时长未知':`${fmt(row.song.seconds)} 秒`));tab.append(title,meta);tab.dataset.yieldPlanKey=row.id+'|'+row.song.id;tab.title=row.song.title+' · '+row.song.difficulty.toUpperCase();tab.type='button';tab.setAttribute('aria-pressed',String(row===selected));tab.addEventListener('click',()=>{selectedPlan={id:row.id,song:row.song.id};for(const n of q('results').querySelectorAll('.task-event-plan-result'))n.hidden=n!==article;for(const b of tabs.children)b.setAttribute('aria-pressed',String(b===tab));});tabs.append(tab);
      const gapRow=el('span',null,'task-event-choice-gap');for(const [key,label] of [['badges','道具'],['eventPoints','pt']]){const value=differenceLabel[key],cell=el('span');cell.dataset.gap=value===0?'equal':value>0?'less':'more';cell.append(el('small',label),el('b',value===0?'持平':`${value>0?'−':'+'}${fmt(Math.abs(value))}`));gapRow.append(cell);}tab.append(gapRow);
+     if(reuse){for(const [index,node] of article.querySelectorAll('.task-event-yield-gap').entries()){const value=gap(row)[['badges','eventPoints'][index]];const text=`比收益第一${gapText(value)}`;if(node.textContent!==text)node.textContent=text;}}
+     if(!reuse){
+     const differences=gap(row),metrics=el('div',null,'task-event-total-grid');for(const [key,label] of [['badges','道具总收益'],['eventPoints','活动 pt 总收益']]){const cell=el('div');cell.append(el('small',label),el('strong',fmt(row.total[key])),el('small',`比收益第一${gapText(differences[key])}`,'task-event-yield-gap'));metrics.append(cell);}article.append(metrics);
      article.append(el('small',row.reward.mode==='ordinary'?'普通演出阶段':'挑战演出阶段','task-result-eyebrow'),el('h4',`${row.song.title} · ${row.song.difficulty.toUpperCase()} · ${grades[row.reward.scoreRank-2]}`));
      if(row.recommendationGoals?.length)article.append(el('strong',row.recommendationGoals.map(goal=>EVENT_YIELD_GOAL_LABELS[goal]).join(' / ')));
      article.append(el('p',`${row.performanceScenario?'当前发挥':'AP'} ${fmt(row.estimatedScore)} 分 · 估计档位范围 ${grades[row.minimumRank-2]}–${grades[row.maximumRank-2]} · 综合力 ${fmt(row.power)} · ${row.song.seconds==null?'时长未知':fmt(row.song.seconds)+' 秒'}`,'event-hint'));
@@ -96,10 +110,12 @@ export function setupEventYieldOptimizer(tool){
        section.append(el('strong',`挑战阶段小计：${fmt(row.continuation.badges)} 道具 · ${fmt(row.continuation.eventPoints)} 活动 pt`));
        if(!row.continuation.stages.length)section.append(el('p','挑战 pt 尚不足一次挑战；保留余额，本次不计入挑战收益。'));
        const stageTabs=el('div',null,'task-event-result-tabs');stageTabs.setAttribute('role','group');stageTabs.setAttribute('aria-label','后续挑战消耗方案');section.append(stageTabs);
+       const priorCost=cached?.article.querySelector?.('[data-yield-stage-cost][aria-pressed="true"]')?.dataset.yieldStageCost;
+       const activeCost=row.continuation.stages.some(stage=>String(stage.cost)===priorCost)?priorCost:String(row.continuation.stages[0]?.cost);
        const stagePanels=[];
-       for(const [stageIndex,stage] of row.continuation.stages.entries()){
-         const panel=el('section');panel.hidden=stageIndex!==0;stagePanels.push(panel);
-         const stageTab=el('button',`${stage.cost} pt × ${stage.plays} 次`);stageTab.type='button';stageTab.setAttribute('aria-pressed',String(stageIndex===0));stageTab.addEventListener('click',()=>{for(const n of stagePanels)n.hidden=n!==panel;for(const b of stageTabs.children)b.setAttribute('aria-pressed',String(b===stageTab));});stageTabs.append(stageTab);
+       for(const stage of row.continuation.stages){
+         const panel=el('section');panel.hidden=String(stage.cost)!==activeCost;stagePanels.push(panel);
+         const stageTab=el('button',`${stage.cost} pt × ${stage.plays} 次`);stageTab.type='button';stageTab.dataset.yieldStageCost=String(stage.cost);stageTab.setAttribute('aria-pressed',String(String(stage.cost)===activeCost));stageTab.addEventListener('click',()=>{for(const n of stagePanels)n.hidden=n!==panel;for(const b of stageTabs.children)b.setAttribute('aria-pressed',String(b===stageTab));});stageTabs.append(stageTab);
          const r=stage.row;
          panel.append(el('h5',`${r.song.title} · ${r.song.difficulty.toUpperCase()} · ${grades[r.reward.scoreRank-2]} 档 · ${stage.cost} 挑战 pt × ${stage.plays} 次`));
          panel.append(el('p',`活动内综合力 ${fmt(r.power)} · ${r.performanceScenario?'当前发挥':'AP'} ${fmt(r.estimatedScore)} 分 · 估计档位范围 ${grades[r.minimumRank-2]}–${grades[r.maximumRank-2]}`,'event-hint'));
@@ -108,10 +124,23 @@ export function setupEventYieldOptimizer(tool){
          const use=el('button','应用这支后续挑战队伍');use.type='button';use.addEventListener('click',()=>{tool.q('cost').value=String(stage.cost);applyEventPlan(tool,r,'challenge');});panel.append(use,eventTeamSaveButton(r.draft,`${r.song.title} · 后续挑战`));section.append(panel);
        }article.append(section);
      }
-     q('results').append(article);
+     }
+     view.push(article);
    }
-   if(pageCount>1){const pager=el('div',null,'task-event-plan-sort'),prev=el('button','上一页方案'),nextPage=el('button','下一页方案');prev.type=nextPage.type='button';prev.disabled=page===0;nextPage.disabled=page===pageCount-1;prev.addEventListener('click',()=>{page--;render();});nextPage.addEventListener('click',()=>{page++;render();});pager.append(prev,el('small',`${page+1} / ${pageCount}`),nextPage);q('results').append(pager);}
-   if(result.failures.length){const d=el('details',null,'event-details');d.append(el('summary',`${result.failures.length} 张谱面失败，已排除，结果不完整`));for(const f of result.failures)d.append(el('p',`${f.title}：${f.message}`));q('results').append(d);}
+   if(pageCount>1){const pager=el('div',null,'task-event-plan-sort'),prev=el('button','上一页方案'),nextPage=el('button','下一页方案');prev.type=nextPage.type='button';prev.disabled=page===0;nextPage.disabled=page===pageCount-1;prev.addEventListener('click',()=>{page--;selectedPlan=null;render();});nextPage.addEventListener('click',()=>{page++;selectedPlan=null;render();});pager.append(prev,el('small',`${page+1} / ${pageCount}`),nextPage);view.push(pager);}
+   if(result.failures.length){const d=el('details',null,'event-details');d.append(el('summary',`${result.failures.length} 张谱面失败，已排除，结果不完整`));for(const f of result.failures)d.append(el('p',`${f.title}：${f.message}`));view.push(d);}
+   // Keep unchanged controls (including keyboard focus) and team subtrees mounted.
+   const nextView=new Map();
+   for(const [index,node] of view.entries()){
+     if(node.className?.includes('task-event-plan-result'))continue;
+     const signature=node.outerHTML+((node===tabs)?JSON.stringify([...nextArticles].map(([key,value])=>[key,value.signature])):'');
+     const cached=viewCache.get(index);if(cached?.signature===signature&&node.outerHTML!==undefined)view[index]=cached.node;
+     nextView.set(index,{signature,node:view[index]});
+   }
+   const container=q('results');reconcileCalculationView(container,view);
+   if(focusedPlan)for(const button of container.querySelectorAll('.task-event-plan-choice'))if(button.dataset.yieldPlanKey===focusedPlan&&document.activeElement!==button)button.focus({preventScroll:true});
+   articleCache=nextArticles;viewCache=nextView;
+
  }
  function run(depth=q('depth').value){
    if(worker)return;
@@ -131,23 +160,23 @@ export function setupEventYieldOptimizer(tool){
      const challengeCandidates=eventSongCandidates({...tool.data,allowedTrackIds:allowed,difficulty:c.challengeDifficulty,maxLevel:c.challengeMaxLevel});
      if(c.mode==='ordinary'&&c.includeChallenge&&!challengeCandidates.length)throw Error('后续挑战没有符合难度范围的谱面，请放宽条件或只比较普通阶段。');
      if(c.mode==='challenge'&&c.goal==='grade')c.goal='badges';
-     result=null;renderKey='';page=0;q('continue').hidden=true;q('results').replaceChildren();worker=new Worker(new URL('./event-yield-worker.mjs',import.meta.url),{type:'module'});
+     result=null;articleCache.clear();viewCache.clear();selectedPlan=null;renderKey='';page=0;q('continue').hidden=true;q('results').replaceChildren();worker=new Worker(new URL('./event-yield-worker.mjs',import.meta.url),{type:'module'});
      feedback.update({label:'准备活动收益比较',detail:'正在读取卡库、实际养成与谱面'});
      const active=worker;q('cancel').hidden=false;q('run').disabled=true;tool.q('suggest').disabled=true;root.setAttribute('aria-busy','true');q('status').textContent='正在准备卡库、实际养成与谱面…';
      worker.addEventListener('message',({data})=>{
        if(worker!==active)return;
-       if(data.type==='progress'){const progress=eventYieldProgressText(data);feedback.update({label:progress.stage,completed:data.done,total:data.total,detail:`${data.title} · ${progress.detail}`});q('status').textContent=`${progress.stage}：${data.title}（${data.done} / ${data.total}）`;return;}
-       if(data.type==='partial'){feedback.update({label:'继续比较活动收益',completed:data.done,total:data.total,detail:'目前领先方案已显示，排名可能继续变化'});result=data;render();q('status').textContent=`已比较 ${data.done} / ${data.total} 张谱面，展示目前领先方案；还在计算，排名可能改变。`;return;}
-       stop();if(data.type==='result'){
+       if(data.type==='progress'){updates.progress(data);return;}
+       if(data.type==='partial'){updates.result(data);return;}
+       stop(data.type!=='result');if(data.type==='result'){
          result=data;render();const summary=eventYieldCompletionText(data);feedback.finish(summary.label,summary.detail);q('continue').hidden=summary.complete;
          q('status').textContent=summary.status;
        }else {feedback.finish('计算失败',data.message,'error');q('continue').hidden=!result;q('status').textContent=`计算失败：${data.message}${result?'；保留当前显示的方案，可重新开始完整比较。':''}`;}
      });
-     worker.addEventListener('error',()=>{if(worker!==active)return;stop();feedback.finish('计算服务加载失败','请重试','error');q('status').textContent='计算服务加载失败，请重试。';});
+     worker.addEventListener('error',()=>{if(worker!==active)return;stop(true);feedback.finish('计算服务加载失败','请重试','error');q('status').textContent='计算服务加载失败，请重试。';});
      worker.postMessage({rules:tool.data.rules,eventId:c.eventId,candidates,challengeCandidates,input:c});
    }catch(error){stop();feedback.finish('无法开始计算',error.message,'error');q('status').textContent=error.message;tool.q('team-status').textContent=error.message;}
  }
- q('run').addEventListener('click',()=>run());q('continue').addEventListener('click',()=>run('full'));q('cancel').addEventListener('click',()=>{stop();const summary=eventYieldStopText(Boolean(result));feedback.finish(summary.label,summary.detail,'stopped');q('continue').hidden=!result;q('status').textContent=summary.status;});
+ q('run').addEventListener('click',()=>run());q('continue').addEventListener('click',()=>run('full'));q('cancel').addEventListener('click',()=>{stop(true);const summary=eventYieldStopText(Boolean(result));feedback.finish(summary.label,summary.detail,'stopped');q('continue').hidden=!result;q('status').textContent=summary.status;});
  root.addEventListener('change',event=>{event.stopPropagation();sync();});
  return {sync,run,invalidate:()=>{key='';stop();sync();},destroy:stop};
 }

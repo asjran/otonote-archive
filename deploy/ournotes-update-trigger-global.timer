@@ -1,8 +1,8 @@
 [Unit]
-Description=OurNotes Global update dispatch every 15 minutes
+Description=OurNotes Global update dispatch at 09:00, 14:00 and 19:00 Beijing time
 
 [Timer]
-OnCalendar=*-*-* *:07,22,37,52:00 UTC
+OnCalendar=*-*-* 01,06,11:00:00 UTC
 AccuracySec=30s
 RandomizedDelaySec=15s
 Persistent=true
