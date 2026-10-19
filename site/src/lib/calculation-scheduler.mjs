@@ -5,7 +5,9 @@ export function createCalculationScheduler({eco=true,now=()=>performance.now(),s
  return async()=>{
    if(pending)return pending;
    const elapsed=now()-started;
-   if(elapsed<12)return;
+   // Nested zero-delay browser timers may still wait ~4 ms. A longer full
+   // speed slice avoids spending a quarter of the run waiting on timers.
+   if(elapsed<(eco?12:48))return;
    pending=sleep(eco?Math.min(100,Math.max(16,elapsed*2)):0).then(()=>{started=now();pending=null;});
    return pending;
  };

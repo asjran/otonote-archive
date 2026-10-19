@@ -92,3 +92,15 @@ test('merged normalized chart envelopes bound each chart and retain fractional p
  for(const chart of charts)assert.ok(unconstrained>=500*chart.coefficient/chart.threshold);
  assert.equal(createBonusConstrainedScoreEnvelopeBound({baseCoefficient:Infinity,gainFor:()=>0}),null);
 });
+
+test('normalized proof stops refining once a conservative bound already excludes the grade',()=>{
+ const edges=Array.from({length:5},(_,i)=>({key:`m${i}|s${i}`,member:`m${i}`,support:`s${i}`,character:i,weight:100,bonus:0}));
+ edges.push({key:'weak|s4',member:'weak',support:'s4',character:4,weight:1,bonus:1000});
+ const solution=maximumPairing({edges,requiredMembers:['m0']});
+ const make=cutoff=>createBonusConstrainedScoreEnvelopeBound({baseCoefficient:1/450,gainFor:()=>0,integerScore:false,cutoff});
+ const full=make(-Infinity),early=make(1);
+ const exact=401/450;
+ const args=[edges,[],'m0',solution,0,e=>e.bonus,1000];
+ for(const upper of [full(...args),early(...args)])assert.ok(upper>=exact&&upper<1);
+ assert.ok(early.stats.matchingCalls<full.stats.matchingCalls,`${early.stats.matchingCalls} >= ${full.stats.matchingCalls}`);
+});
