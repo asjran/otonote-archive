@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { maximumPairing } from '../../packages/scoring/scoring-rules/maximum-pairing.mjs';
+import { maximumPairing,createMaximumPairing } from '../../packages/scoring/scoring-rules/maximum-pairing.mjs';
 import { createScoreReplay } from '../../packages/scoring/scoring-rules/formal-score-replay.mjs';
 import { readFileSync } from 'node:fs';
 import { createFormalSongCalculator } from '../../packages/scoring/scoring-rules/formal-song-score.mjs';
@@ -23,13 +23,13 @@ test('compact residual matching agrees with exhaustive constrained small graphs'
     const required = seed%3 ? [] : [edges[next(edges.length)].key];
     const forbidden = seed%4 ? [] : [edges[next(edges.length)].key];
     const requiredMembers = [next(5)], requiredSupports = seed%2 ? [next(4)] : [];
-    let optimum = -Infinity;
+    let optimum = -Infinity;const valid=[];
     for (let a=0;a<edges.length;a++)for(let b=a+1;b<edges.length;b++)for(let c=b+1;c<edges.length;c++){
       const team=[edges[a],edges[b],edges[c]],keys=team.map(e=>e.key);
       if(['member','support','character'].some(field=>new Set(team.map(e=>e[field])).size!==3)
         ||required.some(k=>!keys.includes(k))||forbidden.some(k=>keys.includes(k))
         ||requiredMembers.some(m=>!team.some(e=>e.member===m))||requiredSupports.some(s=>!team.some(e=>e.support===s)))continue;
-      optimum=Math.max(optimum,team.reduce((sum,e)=>sum+e.weight,0));
+      valid.push(team);optimum=Math.max(optimum,team.reduce((sum,e)=>sum+e.weight,0));
     }
     const result=maximumPairing({edges,count:3,required,forbidden,requiredMembers,requiredSupports});
     assert.equal(result?.weight??-Infinity,optimum,`seed ${seed}`);
@@ -40,6 +40,11 @@ test('compact residual matching agrees with exhaustive constrained small graphs'
     const shared=maximumPairing({edges:edges.map(Object.freeze),weight,count:3,required,forbidden,requiredMembers,requiredSupports});
     assert.equal(shared?.weight,copied?.weight);
     assert.deepEqual(shared?.edges.map(e=>e.key),copied?.edges.map(e=>e.key));
+    const solve=createMaximumPairing({edges,count:3,required,forbidden,requiredMembers,requiredSupports});
+    for(const reweight of [weight,e=>-e.weight,e=>0,weight]){
+      const fresh=maximumPairing({edges,count:3,required,forbidden,requiredMembers,requiredSupports,weight:reweight});
+      const reused=solve(reweight);assert.equal(reused?.weight??-Infinity,Math.max(-Infinity,...valid.map(team=>team.reduce((s,e)=>s+reweight(e),0))));assert.equal(reused?.weight,fresh?.weight);assert.deepEqual(reused?.edges,fresh?.edges);
+    }
   }
 });
 

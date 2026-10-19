@@ -21,7 +21,7 @@ export async function runEventYieldBatch({rules,eventId,candidates,challengeCand
  loadChart,optimizer=optimizeEventYield,candidateCache=new Map(),challengePlanCache=new Map(),
  getScoreCache=async()=>new Map(),afterChart=async()=>{},onJobComplete=async()=>{},onGroupComplete=async()=>{},
  onMessage=()=>{},signal,yieldControl=createCalculationScheduler({eco:input.eco!==false}),proveGroup,
- globalPruning=true,witnessPrepass=true}){
+ globalPruning=true,witnessPrepass=true,runChallengeJobs,runGroupProofs}){
  const {plan,selected}=eventYieldChartPlan(candidates,rules,input),full=input.searchDepth==='full';
  const cycle=input.mode==='ordinary'&&input.includeChallenge;
  const goals=eventYieldGoals(input.goal,input.mode),total=selected.length+(cycle?challengeCandidates.length:0),available=candidates.length+(cycle?challengeCandidates.length:0);
@@ -88,7 +88,26 @@ export async function runEventYieldBatch({rules,eventId,candidates,challengeCand
    }catch(error){failures.push({id:c.id,mode:input.mode,title:c.title,message:error.message});failed.add(id);}
    onMessage(snapshot('partial'));
  };
- if(cycle)for(const c of challengeCandidates){
+ let parallelChallengesDone=false;
+ if(cycle&&full&&runChallengeJobs&&!signal?.aborted){
+  let outputs;
+  try{outputs=await runChallengeJobs({candidates:challengeCandidates,input:eventYieldStageInput(input,'challenge'),goals:eventYieldGoals(input.goal,'challenge'),total});}
+  catch{onMessage({type:'progress',done:0,total,stage:'并行计算不可用，继续完整单核计算'});}
+  if(outputs&&!signal?.aborted){
+   for(const [index,output] of outputs.entries()){
+    const c=challengeCandidates[index];let chartProven=true;
+    for(const {goal,result,wallMs} of output.records){
+     optimizerInvocations++;cacheHits+=result.practical.scoreCacheHits;calculations+=result.practical.scoreCalculations;
+     chartProven&&=Boolean(result.certifiedSearch?.bestProven);
+     challengeRows.push(...result.results.map(r=>({...r,recommendationGoals:[goal],search:{optimality:result.optimality,...result.certifiedSearch}})));
+     await onJobComplete({candidate:c,mode:'challenge',goal,witnessOnly:false,result,wallMs});
+    }
+    if(chartProven)challengeOptimized++;challengeDone++;
+   }
+   parallelChallengesDone=true;
+  }
+ }
+ if(cycle&&!parallelChallengesDone)for(const c of challengeCandidates){
    if(signal?.aborted)break;
    const stage=eventYieldStageInput(input,'challenge');
    let chartProven=true;
@@ -117,16 +136,23 @@ export async function runEventYieldBatch({rules,eventId,candidates,challengeCand
  if(canGlobal&&proveGroup&&input.mode==='ordinary')for(const c of plan.quick){
    if(signal?.aborted)break;if(!goals.every(g=>handled(c,g)))await mainChart(c,{practicalSeed:true});
  }
+ let parallelProofs;
+ if(canGlobal&&proveGroup&&runGroupProofs&&!signal?.aborted){
+  const pending=goals.filter(goal=>!candidates.every(c=>resolved.get(goal).has(c.id)||pruned.get(goal).has(c.id)));
+  if(pending.length)try{parallelProofs=await runGroupProofs({candidates:selected,input:eventYieldStageInput(input,input.mode),goals:pending,challengeRows,initialRows:allRows(),done:completed(),total,
+   onCandidate:(goal,row)=>{const best=bestFor(goal);if(!best||compare(row,best,goal)<0){rows.set('parallel-live:'+goal,[{...row,recommendationGoals:[goal],search:{bestProven:false}}]);onMessage(snapshot('partial'));}}});}
+  catch{onMessage({type:'progress',done:completed(),total,stage:'并行验证不可用，继续完整单核验证'});}
+ }
  if(canGlobal&&proveGroup&&!signal?.aborted)for(const goal of goals){
    if(candidates.every(c=>resolved.get(goal).has(c.id)||pruned.get(goal).has(c.id)))continue;
    let proof;
-   try{proof=await proveGroup({rules,eventId,input:eventYieldStageInput(input,input.mode),candidates:selected,challengeRows,initialRows:allRows(),goal,
+   try{proof=parallelProofs?.get(goal)??await proveGroup({rules,eventId,input:eventYieldStageInput(input,input.mode),candidates:selected,challengeRows,initialRows:allRows(),goal,
      candidateCache,challengePlanCache,loadChart,getScoreCache:cacheFor,yieldControl,signal,
      onProgress:p=>onMessage({type:'progress',done:completed(),total,goal,stage:p.stage??p.phase,detail:p})});
    }catch(error){proof={proven:false,error:error.message};}
    cacheHits+=proof.stats?.scoreCacheHits??0;calculations+=proof.stats?.fullScoreCalculations??0;
    if(proof.results?.length)rows.set('global:'+goal,proof.results.map(row=>({...row,recommendationGoals:[goal],search:{...proof.certificate,global:true}})));
-   if(proof.proven){globalProofs[goal]={...proof.certificate,bestProven:true,proofTarget:'best',scope:cycle?'all_selected_charts_given_challenge_rows':'all_selected_charts'};
+   if(proof.proven){rows.delete('parallel-live:'+goal);globalProofs[goal]={...proof.certificate,bestProven:true,proofTarget:'best',scope:cycle?'all_selected_charts_given_challenge_rows':'all_selected_charts'};
      for(const c of selected)if(!resolved.get(goal).has(c.id))pruned.get(goal).add(c.id);}
    await onGroupComplete({goal,proof});
    // Group witnesses use the same raw score maps as the individual path.
