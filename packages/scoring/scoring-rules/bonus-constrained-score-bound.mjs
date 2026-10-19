@@ -12,19 +12,23 @@ export function createBonusConstrainedScoreBound({coefficients,spans,profileFor,
   const prefix=[0];for(const value of coefficients)prefix.push(prefix.at(-1)+value);
   const total=prefix.at(-1),n=coefficients.length+1,u=2**-53;
   const epsilon=total*2*n*u/(1-n*u),baseCoefficient=total+epsilon;
+  const positionGains=new Map();
   const gains=new Map([...spans].map(([signature,positions])=>{
     const values=positions.map(effects=>effects.reduce((sum,e)=>sum+Math.max(0,prefix[e.last]-prefix[e.first]+epsilon)*e.value,0));
+    positionGains.set(signature,values);
     // A max over positions relaxes their uniqueness. For expected/minimum
     // score each member occurs in each position 24 times among 120 orders.
     return [signature,metric==='maximumScore'?Math.max(...values):values.reduce((a,b)=>a+b,0)/5];
   }));
-  return createBonusConstrainedScoreEnvelopeBound({baseCoefficient,gainFor:edge=>gains.get(profileFor(edge).signature)});
+  const bound=createBonusConstrainedScoreEnvelopeBound({baseCoefficient,gainFor:edge=>gains.get(profileFor(edge).signature)});
+  bound.envelope.positionGainsFor=edge=>positionGains.get(profileFor(edge).signature);
+  return bound;
 }
 
 /** The same matching relaxation for an already conservative P-linear
  * envelope. A group may take per-edge and base maxima across normalized
  * charts. integerScore=false retains fractional score/threshold bounds. */
-export function createBonusConstrainedScoreEnvelopeBound({baseCoefficient,gainFor:uncachedGainFor,integerScore=true}) {
+export function createBonusConstrainedScoreEnvelopeBound({baseCoefficient,gainFor:uncachedGainFor,integerScore=true,cutoff=-Infinity}) {
   if(!Number.isFinite(baseCoefficient)||baseCoefficient<0||typeof uncachedGainFor!=='function')return null;
   const gainCache=new WeakMap();
   const gainFor=edge=>{
@@ -87,17 +91,17 @@ export function createBonusConstrainedScoreEnvelopeBound({baseCoefficient,gainFo
       return {...row,gain:result.edges.reduce((s,e)=>s+gainFor(e),0)};
     };
     for(let iteration=0;iteration<3;iteration++){
-      const initial=probe(lambda,0);if(!initial)break;
+      const initial=probe(lambda,0);if(upper<cutoff)return upper;if(!initial)break;
       let chosen=initial;
       if(initial.bonus<minBonus){
         let lo=0,hi=(base+lambda*solution.weight)/Math.max(1,minBonus),high;
         for(let i=0;i<12;i++){
-          high=probe(lambda,hi);if(!high)break;
+          high=probe(lambda,hi);if(upper<cutoff)return upper;if(!high)break;
           chosen=high;if(high.bonus>=minBonus)break;
           lo=hi;hi*=2;
         }
         if(high?.bonus>=minBonus)for(let i=0;i<12;i++){
-          const mid=(lo+hi)/2,row=probe(lambda,mid);if(!row)break;
+          const mid=(lo+hi)/2,row=probe(lambda,mid);if(upper<cutoff)return upper;if(!row)break;
           chosen=row;if(row.bonus<minBonus)lo=mid;else hi=mid;
         }
       }

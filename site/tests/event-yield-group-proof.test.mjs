@@ -21,12 +21,14 @@ test('cross-chart first proof matches independent 7200-team native oracle includ
     draft.slots=members.map((memberCardId,i)=>({memberCardId,supportCardId:supports[i]}));
     const score=calculator.calculate(draft),bonuses=model.teamBonus(draft.slots.map(s=>({memberId:Number(s.memberCardId.split('-').at(-1)),supportId:Number(s.supportCardId.split('-').at(-1)),memberRank:1,supportRank:1})));
     const rank=model.scoreRank(Number(c.trackId.split('-').at(-1)),score.expectedScore),reward=model.rewards({mode:'ordinary',scoreRank:rank,...bonuses,liveBoost:1,challengeCost:200});
-    all.push({rank,total:{badges:11*reward.badges,eventPoints:11*reward.eventPoints},seconds:c.seconds});
+    all.push({rank,total:{badges:11*reward.badges,eventPoints:11*reward.eventPoints},seconds:c.seconds,score,bonuses,trackId:c.trackId});
    }
   }
  }
  assert.equal(all.length,7200);
- for(const goal of ['badges','eventPoints','grade']){
+ for(const basis of ['expectedScore','minimumScore','maximumScore'])for(const goal of ['badges','eventPoints','grade']){
+  input.basis=basis;
+  const exact=all.map(row=>{const rank=model.scoreRank(Number(row.trackId.split('-').at(-1)),row.score[basis]);const reward=model.rewards({mode:'ordinary',scoreRank:rank,...row.bonuses,liveBoost:1,challengeCost:200});return {...row,rank,total:{badges:11*reward.badges,eventPoints:11*reward.eventPoints}};});
   const seed=await optimizeEventYield({...input,candidate:candidates[0],chart:f.chart,goal,witnessOnly:true});
   // A legal old result with inflated totals must be re-evaluated, never
   // trusted as an incumbent that could prune the true winner.
@@ -34,8 +36,8 @@ test('cross-chart first proof matches independent 7200-team native oracle includ
   const caches=new Map();
   const result=await proveEventYieldGroups({rules:f.rules,eventId:1,input,candidates,goal,initialRows:seed.results,loadChart:async c=>charts.get(c.id),getScoreCache:async c=>{if(!caches.has(c.id))caches.set(c.id,new Map());return caches.get(c.id);}});
   assert.equal(result.proven,true,JSON.stringify(result));
-  const best=all.toSorted((a,b)=>compare(a,b,goal))[0],actual=result.results[0];
-  assert.equal(compare({rank:actual.reward.scoreRank,total:actual.total,seconds:actual.song.seconds},best,goal),0,goal);
+  const best=exact.toSorted((a,b)=>compare(a,b,goal))[0],actual=result.results[0];
+  assert.equal(compare({rank:actual.reward.scoreRank,total:actual.total,seconds:actual.song.seconds},best,goal),0,`${basis} ${goal}`);
   assert.equal(result.certificate.coveredChartIds.length,2);
  }
 });

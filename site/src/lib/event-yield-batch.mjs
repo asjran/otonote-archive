@@ -122,7 +122,7 @@ export async function runEventYieldBatch({rules,eventId,candidates,challengeCand
    let proof;
    try{proof=await proveGroup({rules,eventId,input:eventYieldStageInput(input,input.mode),candidates:selected,challengeRows,initialRows:allRows(),goal,
      candidateCache,challengePlanCache,loadChart,getScoreCache:cacheFor,yieldControl,signal,
-     onProgress:p=>onMessage({type:'progress',done:completed(),total,stage:p.stage??p.phase,detail:p})});
+     onProgress:p=>onMessage({type:'progress',done:completed(),total,goal,stage:p.stage??p.phase,detail:p})});
    }catch(error){proof={proven:false,error:error.message};}
    cacheHits+=proof.stats?.scoreCacheHits??0;calculations+=proof.stats?.fullScoreCalculations??0;
    if(proof.results?.length)rows.set('global:'+goal,proof.results.map(row=>({...row,recommendationGoals:[goal],search:{...proof.certificate,global:true}})));

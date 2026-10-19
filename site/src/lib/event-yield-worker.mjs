@@ -1,3 +1,4 @@
+import {eventYieldWorkerProgress} from './event-yield-progress.mjs';
 import {createBoundedChartLoader} from './bounded-chart-loader.mjs';
 import {runEventYieldBatch,eventYieldChartPlan} from './event-yield-batch.mjs';
 import {proveEventYieldGroups} from './event-yield-group-proof.mjs';
@@ -9,7 +10,8 @@ self.addEventListener('message',async({data})=>{
    const {rules,eventId,candidates,challengeCandidates,input}=data;
    const partition=await eventSearchPartition(rules,eventId,input),preparedKey=partition+':prepared';
    const candidateCache=new Map(await store.get(preparedKey)??[]),storedScores=new Map();
-   let storedCandidates=candidateCache.size,reportedAt=0,reportedStage='';
+   let storedCandidates=candidateCache.size,reportedAt=-Infinity,reportedStage='';
+   const startedAt=Date.now();
    const {selected}=eventYieldChartPlan(candidates,rules,input);
    const cycle=input.mode==='ordinary'&&input.includeChallenge;
    chartLoader=createBoundedChartLoader({candidates:[...(cycle?challengeCandidates:[]),...selected]});
@@ -27,12 +29,10 @@ self.addEventListener('message',async({data})=>{
      },
      onMessage:message=>{
        if(message.type==='progress'){
-         const stage=message.stage+':'+(message.title??''),now=Date.now();
+         const stage=(message.detail?.phase??message.stage)+':'+(message.goal??'')+':'+(message.title??''),now=Date.now();
          if(stage===reportedStage&&now-reportedAt<120)return;
          reportedStage=stage;reportedAt=now;
-         const progress=message.detail;
-         self.postMessage({...message,title:message.title??'所有候选歌曲',
-           detail:typeof progress==='object'?`${message.stage} ${progress.completed??''} / ${progress.total??'…'}`:progress});
+         self.postMessage(eventYieldWorkerProgress(message,now-startedAt));
        }else self.postMessage(message);
      }});
    await chartLoader.close();

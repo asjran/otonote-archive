@@ -114,18 +114,23 @@ export async function proveEventYieldGroups({rules,eventId,input,candidates,chal
   rows.push({...entry.transform(raw,team),draft:team,id,origins:['verified-current-group-seed'],recommendationGoals:[goal]});
  }
  rows.sort(compare);
- const envelopeFor=(entry,rank)=>{
-  if(!entry.envelopes.has(rank)){entry.envelopes.set(rank,boundFor(entry).normalizedPowerEnvelope(entry.grades.get(rank)));stats.normalizedEnvelopes++;}
-  return entry.envelopes.get(rank);
+ const envelopeFor=(entry,rank,requiredMembers=[])=>{
+  const key=rank+':'+requiredMembers.join('|');
+  if(!entry.envelopes.has(key)){
+   if(entry.envelopes.size>=64)entry.envelopes.delete(entry.envelopes.keys().next().value);
+   entry.envelopes.set(key,boundFor(entry).normalizedPowerEnvelope(entry.grades.get(rank),requiredMembers));stats.normalizedEnvelopes++;
+  }
+  return entry.envelopes.get(key);
  };
- const mergedFor=(group,charts,rank)=>{
-  const key=rank+':'+charts.map(e=>e.candidate.id).join('|');
+ const mergedFor=(group,charts,rank,state)=>{
+  const members=input.basis==='minimumScore'?[...state.memberRequired].sort():[];
+  const key=rank+':'+charts.map(e=>e.candidate.id).join('|')+':'+members.join('|');
   if(group.merged.has(key))return group.merged.get(key);
-  const envelopes=charts.map(e=>envelopeFor(e,rank));
+  const envelopes=charts.map(e=>envelopeFor(e,rank,members));
   const gains=new Map();
   const gainFor=edge=>{if(!gains.has(edge.key))gains.set(edge.key,Math.max(...envelopes.map(e=>e.gainFor(edge))));return gains.get(edge.key);};
   const bound=envelopes.every(Boolean)?createBonusConstrainedScoreEnvelopeBound({baseCoefficient:Math.max(...envelopes.map(e=>e.baseCoefficient)),
-   gainFor,integerScore:false}):null;
+   gainFor,integerScore:false,cutoff:1}):null;
   if(group.merged.size>=64)group.merged.delete(group.merged.keys().next().value);
   group.merged.set(key,bound);return bound;
  };
@@ -193,7 +198,7 @@ export async function proveEventYieldGroups({rules,eventId,input,candidates,chal
    if(!attainable)return lo;
    return attainable.find(value=>value>=lo)??null;
   };
-  for(const modelRow of group.models){
+  for(const [leaderIndex,modelRow] of group.models.entries()){
    const leader=modelRow.leader,c=baseInput.constraints;
    const initial={leader,required:c.lockedPairs.map(p=>`${p.memberCardId}|${p.supportCardId}`),forbidden:[],
     memberRequired:[...new Set([leader,...c.requiredMemberIds,...c.lockedPairs.map(p=>p.memberCardId)])],
@@ -201,7 +206,7 @@ export async function proveEventYieldGroups({rules,eventId,input,candidates,chal
    const states=[initial];
    while(states.length){
     if(signal?.aborted)return finish(false,'cancelled');
-    stats.visited++;onProgress({phase:'event-group-proof',stage:'验证跨谱面收益上界',group:stats.groupsCompleted+1,groups:stats.groups,leaders:stats.leaders,visited:stats.visited,expanded:stats.expanded,completed:stats.visited,bestCandidate:rows[0]});await yieldControl();
+    stats.visited++;onProgress({phase:'event-group-proof',stage:'验证跨谱面收益上界',group:stats.groupsCompleted+1,groups:stats.groups,groupsCompleted:stats.groupsCompleted,leader:leaderIndex+1,leaderTotal:group.models.length,frontier:states.length,leaders:stats.leaders,visited:stats.visited,expanded:stats.expanded,completed:stats.visited,bestCandidate:rows[0]});await yieldControl();
     if(signal?.aborted)return finish(false,'cancelled');
     const state=states.pop(),requiredCharacters=new Map(state.memberRequired.map(id=>[characterFor.get(id),id]));
     const edges=modelRow.edges.filter(e=>!state.memberExcluded.includes(e.member)&&!state.supportExcluded.includes(e.support)
@@ -238,7 +243,7 @@ export async function proveEventYieldGroups({rules,eventId,input,candidates,chal
      let retry=false;
      for(const {required,charts} of domains){
       let excluded=false;
-      const relaxation=mergedFor(group,charts,rank);
+      const relaxation=mergedFor(group,charts,rank,state);
       for(const [a,b] of [[1,0],[0,1],[1,1],[ceiling[secondary]+1,1],[1,ceiling[primary]+1],[8,1],[1,8],[64,1],[1,64]]){
        if(!a&&!required[1]||!b&&!required[0])continue;
        const threshold=a*required[0]+b*required[1];if(!Number.isSafeInteger(threshold))continue;
@@ -263,13 +268,16 @@ export async function proveEventYieldGroups({rules,eventId,input,candidates,chal
     }
     if(!unresolved){stats.prunedPartitions++;continue;}
     const kind=state.memberRequired.length<5?'member':state.supportRequired.length<5?'support':null;
-    if(kind){
+    // A merged envelope can combine incompatible advantages from different
+    // charts. Split that relaxation before multiplying the card subsets.
+    // Both halves retain every legal team and cover the parent chart domain.
+    if(state.charts.length>1){
+     const mid=Math.ceil(state.charts.length/2);states.push({...state,charts:state.charts.slice(mid)},{...state,charts:state.charts.slice(0,mid)});stats.chartPartitions++;
+    }else if(kind){
      const choices=[...new Set(edges.map(e=>e[kind]))].filter(id=>!state[kind+'Required'].includes(id));
      choices.sort((a,b)=>{const x=cardBonus(kind,a),y=cardBonus(kind,b);return y[secondary]-x[secondary]||y[primary]-x[primary]||a.localeCompare(b);});
      const id=choices[0];if(!id)return finish(false,'incomplete_card_partition');
      states.push({...state,[kind+'Excluded']:[...state[kind+'Excluded'],id]},{...state,[kind+'Required']:[...state[kind+'Required'],id]});stats.cardPartitions++;
-    }else if(state.charts.length>1){
-     const mid=Math.ceil(state.charts.length/2);states.push({...state,charts:state.charts.slice(mid)},{...state,charts:state.charts.slice(0,mid)});stats.chartPartitions++;
     }else {
      const entry=state.charts[0],team=draftFromPairing(entry.resolved,leader,power.edges),fixed={...state,required:power.edges.map(e=>e.key)};
      boundFor(entry);const before=entry.bound.stats.fullScoreCalculations;
@@ -285,7 +293,7 @@ export async function proveEventYieldGroups({rules,eventId,input,candidates,chal
      states.push(...partitionPairing(state,power));stats.pairPartitions++;
     }
     stats.expanded++;
-    onProgress({phase:'event-group-proof',stage:'验证跨谱面收益第一名',group:stats.groupsCompleted+1,groups:stats.groups,leaders:stats.leaders,visited:stats.visited,expanded:stats.expanded,completed:stats.visited,bestCandidate:rows[0]});await yieldControl();
+    onProgress({phase:'event-group-proof',stage:'验证跨谱面收益第一名',group:stats.groupsCompleted+1,groups:stats.groups,groupsCompleted:stats.groupsCompleted,leader:leaderIndex+1,leaderTotal:group.models.length,frontier:states.length,leaders:stats.leaders,visited:stats.visited,expanded:stats.expanded,completed:stats.visited,bestCandidate:rows[0]});await yieldControl();
    }
    stats.leaders++;await yieldControl();
   }
