@@ -1,5 +1,11 @@
 # Lightweight update trigger on the existing origin
 
+2026-10-19 policy: native Actions scheduling is the selected trigger, at Beijing
+09:00, 14:00 and 19:00 for both editions. These external timer templates remain an
+optional alternative and now use the same slots. Do not enable them alongside
+native scheduling; that would exceed the intended three daily trigger points.
+No external timer is enabled by changing these files.
+
 The current reliability rollout found long delays before scheduled Actions runs
 were created. Increasing cron frequency alone cannot establish timely detection.
 Keep heavy work on Actions and use the existing origin only to send a small HTTPS
@@ -8,7 +14,7 @@ is needed on the origin.
 
 ## Contract
 
-- Per-edition systemd timers run at staggered 15-minute UTC slots. The service has
+- Per-edition systemd timers use the shared 01:00, 06:00 and 11:00 UTC slots. The service has
   a 15-second network timeout, 45-second service timeout, 64 MiB memory limit and
   5% CPU quota. It stores only two bounded status files and lock files.
 - Each invocation sends at most one request to the fixed GitHub API host and
@@ -67,11 +73,12 @@ on GitHub's cron trigger, not on Actions availability or runner capacity.
    source compatibility and units on the host. Keep the frontend untouched.
 3. Provision the dedicated credential, perform one per-edition dispatch and inspect
    bounded status files plus matching Actions runs. Then enable the timers.
-4. Keep native fast-poll switches off when the external timers are enabled. The
-   existing four-hour native schedule remains a fallback; an overlap is coalesced
-   by the shared Actions concurrency group and verified unchanged gate.
-5. Roll back by stopping/disabling only these two timers. Keep the native fallback
-   and existing jobs running. Prior published content and frontend are untouched.
+4. If explicitly switching to external timers, remove the native `schedule`
+   trigger while retaining `workflow_dispatch`. The retired fast-poll variables
+   no longer switch scheduling modes. Enable only one scheduler.
+5. Roll back by stopping/disabling these two timers and restoring the reviewed
+   native three-slot schedule. Keep existing jobs running. Prior published
+   content and frontend are untouched.
 
 Validation covers request binding and auto policy, per-region/slot deduplication,
 unknown outcomes, HTTP errors without response-body disclosure, rejected redirects,

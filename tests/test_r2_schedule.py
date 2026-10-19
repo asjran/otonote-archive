@@ -1,5 +1,6 @@
 """Exercise the actual workflow eligibility, serialization and selection script."""
 import os
+import json
 from pathlib import Path
 import re
 import subprocess
@@ -7,18 +8,21 @@ import tempfile
 import textwrap
 import unittest
 
+from tools.r2_schedule import UTC_HOURS
+
 
 WORKFLOW = Path(__file__).resolve().parents[1] / '.github/workflows/content-r2.yml'
 
 
 def expression(source, context):
-    # The workflow currently uses only comparisons, boolean operators and format.
+    # Evaluate the comparisons, boolean operators, format and fromJSON used here.
     # Evaluate that restricted subset after replacing all context lookups; no
     # external input is executed and no workflow actions run in these tests.
-    source = re.sub(r'\b(?:github|inputs|vars)(?:\.[A-Za-z_][A-Za-z_0-9]*)+',
+    source = re.sub(r'\b(?:github|inputs|vars|matrix)(?:\.[A-Za-z_][A-Za-z_0-9]*)+',
                     lambda match: repr(context.get(match[0], '')), source)
     source = source.replace('&&', ' and ').replace('||', ' or ')
-    return eval(source, {'__builtins__': {}, 'format': lambda value, *args: value.format(*args)})
+    return eval(source, {'__builtins__': {}, 'format': lambda value, *args: value.format(*args),
+                         'fromJSON': json.loads})
 
 
 class ScheduleTests(unittest.TestCase):
@@ -26,8 +30,9 @@ class ScheduleTests(unittest.TestCase):
     def setUpClass(cls):
         cls.text = WORKFLOW.read_text()
         cls.crons = re.findall(r"- cron: '([^']+)'", cls.text)
-        cls.eligibility = ' '.join(cls.text.split('    if: >-\n', 1)[1].split('    runs-on:', 1)[0].split())
+        cls.eligibility = ' '.join(cls.text.split('    if: >-\n', 1)[1].split('    strategy:', 1)[0].split())
         cls.group = re.search(r'group: content-r2-\$\{\{ (.+) \}\}', cls.text)[1]
+        cls.regions = re.search(r'        region: \$\{\{ (.+) \}\}', cls.text)[1]
         step = cls.text.split('      - name: Select region and publication mode\n', 1)[1]
         cls.selection = textwrap.dedent(step.split('        run: |\n', 1)[1].split('      - name:', 1)[0])
 
@@ -38,50 +43,58 @@ class ScheduleTests(unittest.TestCase):
         result.update(changes)
         return result
 
-    def test_per_region_fast_switch_replaces_legacy_slots_and_keeps_disabled_editions_off(self):
-        self.assertEqual(len(self.crons), 4)
-        for global_fast in ('', 'false', 'true'):
-            for jp_fast in ('', 'false', 'true'):
-                context = self.context(**{'vars.CONTENT_R2_FAST_POLL_GLOBAL': global_fast,
-                                           'vars.CONTENT_R2_FAST_POLL_JP': jp_fast})
-                actual = []
-                for cron in self.crons:
-                    context['github.event.schedule'] = cron
-                    actual.append(bool(expression(self.eligibility, context)))
-                self.assertEqual(actual, [global_fast != 'true', jp_fast != 'true',
-                                          global_fast == 'true', jp_fast == 'true'])
-                for name in ('GLOBAL', 'JP'):
-                    disabled = dict(context, **{'vars.CONTENT_R2_ENABLED_' + name: 'false'})
-                    for index in ((0, 2) if name == 'GLOBAL' else (1, 3)):
-                        disabled['github.event.schedule'] = self.crons[index]
-                        self.assertFalse(expression(self.eligibility, disabled))
+    def test_shared_schedule_selects_only_enabled_editions(self):
+        self.assertNotIn('CONTENT_R2_FAST_POLL', self.text)
+        for global_enabled in ('', 'false', 'true'):
+            for jp_enabled in ('', 'false', 'true'):
+                context = self.context(**{'vars.CONTENT_R2_ENABLED_GLOBAL': global_enabled,
+                                           'vars.CONTENT_R2_ENABLED_JP': jp_enabled})
+                expected = [region for region, enabled in (('global', global_enabled), ('jp', jp_enabled))
+                            if enabled == 'true']
+                self.assertEqual(bool(expression(self.eligibility, context)), bool(expected))
+                if expected:
+                    self.assertEqual(expression(self.regions, context), expected)
 
-    def test_manual_and_both_cadences_share_region_lock_without_cancelling_running_publish(self):
+    def test_manual_and_scheduled_runs_share_region_lock_without_cancelling_running_publish(self):
         self.assertIn('      cancel-in-progress: false', self.text)
-        for index, cron in enumerate(self.crons):
-            region = 'global' if index % 2 == 0 else 'jp'
-            context = self.context(**{'github.event.schedule': cron})
-            self.assertEqual(expression(self.group, context), region)
-            context.update({'github.event_name': 'workflow_dispatch', 'inputs.region': region})
-            self.assertEqual(expression(self.group, context), region)
-            self.assertTrue(expression(self.eligibility, context))
-            context['github.ref'] = 'refs/heads/unreviewed'
+        self.assertIn('      fail-fast: false', self.text)
+        for region in ('global', 'jp'):
+            for event in ('schedule', 'workflow_dispatch'):
+                context = self.context(**{'github.event_name': event, 'inputs.region': region,
+                                           'matrix.region': region})
+                self.assertEqual(expression(self.group, context), region)
+                self.assertEqual(expression(self.regions, context),
+                                 [region] if event == 'workflow_dispatch' else ['global', 'jp'])
+                self.assertTrue(expression(self.eligibility, context))
+                context['github.ref'] = 'refs/heads/unreviewed'
+                self.assertFalse(expression(self.eligibility, context))
+
+    def test_manual_cannot_run_a_disabled_or_invalid_edition(self):
+        for region in ('global', 'jp'):
+            context = self.context(**{'github.event_name': 'workflow_dispatch', 'inputs.region': region,
+                                      'vars.CONTENT_R2_ENABLED_' + region.upper(): 'false'})
             self.assertFalse(expression(self.eligibility, context))
+        context = self.context(**{'github.event_name': 'workflow_dispatch', 'inputs.region': 'invalid'})
+        self.assertFalse(expression(self.eligibility, context))
+        self.assertFalse(expression(self.eligibility, self.context(**{'github.event_name': 'push'})))
 
-    def test_fast_minutes_are_regular_and_editions_are_staggered(self):
-        minute_sets = []
-        for cron in self.crons[2:]:
-            minutes, *rest = cron.split()
-            self.assertEqual(rest, ['*'] * 4)
-            slots = list(map(int, minutes.split(',')))
-            self.assertEqual([b - a for a, b in zip(slots, slots[1:] + [slots[0] + 60])], [15] * 4)
-            minute_sets.append(set(slots))
-        self.assertFalse(minute_sets[0] & minute_sets[1])
+    def test_exactly_three_daily_triggers_match_beijing_times_and_health_schedule(self):
+        self.assertEqual(self.crons, ['0 1,6,11 * * *'])
+        minute, hours, *days = self.crons[0].split()
+        self.assertEqual(minute, '0')
+        self.assertEqual(days, ['*', '*', '*'])
+        self.assertEqual(tuple(map(int, hours.split(','))), UTC_HOURS)
+        self.assertEqual([(hour + 8) % 24 for hour in UTC_HOURS], [9, 14, 19])
+        for region in ('global', 'jp'):
+            timer = WORKFLOW.parents[2] / f'deploy/ournotes-update-trigger-{region}.timer'
+            self.assertIn('OnCalendar=*-*-* 01,06,11:00:00 UTC', timer.read_text())
 
-    def select(self, event, cron='', region='', mode='', auto='true', global_workers='', jp_workers=''):
+    def select(self, event, cron='', region='', mode='', auto='true', global_workers='', jp_workers='',
+               selected_region=None):
         with tempfile.TemporaryDirectory() as folder:
             env_path, summary = Path(folder) / 'env', Path(folder) / 'summary'
             env = dict(os.environ, EVENT_NAME=event, SCHEDULE=cron, INPUT_REGION=region,
+                       SELECTED_REGION=region if selected_region is None else selected_region,
                        INPUT_MODE=mode, AUTO_PROMOTE_GLOBAL=auto, AUTO_PROMOTE_JP=auto,
                        RESTORE_WORKERS_GLOBAL=global_workers, RESTORE_WORKERS_JP=jp_workers,
                        GITHUB_ENV=str(env_path), GITHUB_STEP_SUMMARY=str(summary), GITHUB_RUN_ID='123')
@@ -89,18 +102,22 @@ class ScheduleTests(unittest.TestCase):
             return result.returncode, env_path.read_text() if env_path.exists() else '', summary.read_text() if summary.exists() else ''
 
     def test_actual_selection_script_preserves_auto_promote_and_manual_mode(self):
-        for index, cron in enumerate(self.crons):
-            for auto in ('true', 'false', ''):
-                status, env, summary = self.select('schedule', cron=cron, auto=auto)
-                self.assertEqual(status, 0)
-                self.assertIn('REGION=' + ('global' if index % 2 == 0 else 'jp'), env)
-                self.assertIn('MODE=' + ('promote' if auto == 'true' else 'shadow'), env)
-                self.assertIn('15 minutes' if index >= 2 else '240 minutes', summary)
-                self.assertIn('Selection started at (UTC)', summary)
+        for region in ('global', 'jp'):
+            for cron in self.crons:
+                for auto in ('true', 'false', ''):
+                    status, env, summary = self.select('schedule', cron=cron, region=region, auto=auto)
+                    self.assertEqual(status, 0)
+                    self.assertIn('REGION=' + region, env)
+                    self.assertIn('MODE=' + ('promote' if auto == 'true' else 'shadow'), env)
+                    self.assertIn('09:00, 14:00, 19:00', summary)
+                    self.assertIn('three triggers/day', summary)
+                    self.assertIn('Selection started at (UTC)', summary)
         status, env, _ = self.select('workflow_dispatch', region='jp', mode='shadow')
         self.assertEqual((status, env), (0, 'REGION=jp\nMODE=shadow\nRESTORE_WORKERS=8\n'))
         self.assertNotEqual(self.select('schedule', cron='unknown')[0], 0)
         self.assertNotEqual(self.select('workflow_dispatch', region='invalid', mode='promote')[0], 0)
+        self.assertNotEqual(self.select('schedule', cron=self.crons[0], region='invalid')[0], 0)
+        self.assertNotEqual(self.select('workflow_dispatch', region='jp', mode='promote', selected_region='global')[0], 0)
 
     def test_external_auto_dispatch_uses_current_auto_promote_setting(self):
         for region in ('global', 'jp'):

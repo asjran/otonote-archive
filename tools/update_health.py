@@ -11,6 +11,7 @@ import time
 
 from tools.r2_content import S3Bucket, baseline
 from tools.r2_run_record import key, validate
+from tools.r2_schedule import GRACE_SECONDS, last_due_slot
 
 REGIONS = ('global', 'jp')
 CODES = {'worker_errors', 'worker_budget', 'worker_metrics_stale', 'schedule_stale', 'receipt_missing', 'poll_stale', 'run_stuck', 'run_failed', 'delivery_unknown',
@@ -43,6 +44,7 @@ def read_json(path, now, max_age=None):
 
 def sample(bucket, delivery_path, ranking_path, disk_path, budget, now, worker_path=None):
     conditions, runs, versions = [], {}, {}
+    due_slot = last_due_slot(now)
 
     def condition(code, region='all', grace=600):
         conditions.append({'id': region + ':' + code, 'code': code, 'region': region, 'grace': grace})
@@ -70,13 +72,13 @@ def sample(bucket, delivery_path, ranking_path, disk_path, budget, now, worker_p
             if run['status'] != 'running':
                 scheduled = run.get('lastScheduledAt')
                 if scheduled is None:
-                    condition('schedule_stale', region, 3600)
-                elif not -60 <= now - timestamp(scheduled) <= 3600:
+                    condition('schedule_stale', region, GRACE_SECONDS)
+                elif timestamp(scheduled) < due_slot or timestamp(scheduled) > now + 60:
                     condition('schedule_stale', region, 0)
             if run['status'] == 'running':
                 if age > 6 * 3600:
                     condition('run_stuck', region, 0)
-            elif age > 3600:
+            elif timestamp(run['observedAt']) < due_slot:
                 condition('poll_stale', region, 0)
             if run['status'] == 'failure' or (run['status'] != 'success' and run['consecutiveFailures'] > 0):
                 condition('run_failed', region, 0 if run['consecutiveFailures'] >= 2 else 900)
