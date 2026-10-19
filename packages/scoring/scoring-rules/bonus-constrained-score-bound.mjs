@@ -1,4 +1,4 @@
-import {maximumPairing} from './maximum-pairing.mjs';
+import {createMaximumPairing} from './maximum-pairing.mjs';
 
 /** Score upper bound inside a minimum-additive-bonus subspace. Nothing here
  * supplies a score or excludes a card. For lambda>0, mu>=0 and B>=T:
@@ -57,12 +57,13 @@ export function createBonusConstrainedScoreEnvelopeBound({baseCoefficient,gainFo
       }
       bound.witnesses=[...witnesses.values()];return row;
     };
+    const solve=createMaximumPairing(options);
     const match=weight=>{
       stats.matchingCalls++;
       // A future unsupported magnitude must loosen the bound, never silently
       // overflow an exact matching weight. Existing scoring errors still use
       // the normal search/fallback path.
-      try{return maximumPairing({...options,weight});}catch{return null;}
+      try{return solve(weight);}catch{return null;}
     };
     const bonusMaximum=match(e=>bonuses.get(e));
     if(!bonusMaximum)return Infinity;

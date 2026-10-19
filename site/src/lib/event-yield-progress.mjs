@@ -12,5 +12,9 @@ export function eventYieldWorkerProgress(message,elapsedMs){
   parts.push(`已用时 ${format(Math.floor(Math.max(0,elapsedMs)/1000))} 秒`,'分支总量动态变化，仍在证明最优性');
   detail=parts.join(' · ');
  }
+ if(message.parallelGoals?.length>1){
+  detail=message.parallelGoals.map(p=>{const name=p.goal==='eventPoints'?'活动 pt':'道具';return p.groups>0?`${name}：${p.groupsCompleted??0} / ${p.groups} 组完成，已检查 ${format(p.visited??0)} 个分支`:`${name}：准备与复算候选`;}).join(' · ')+` · 已用时 ${format(Math.floor(Math.max(0,elapsedMs)/1000))} 秒`;
+ }
+ if(message.parallelism>1)detail=`${message.parallelism} 个计算线程 · ${detail??'准备完整计算'}`;
  return {...message,title:message.title??'所有候选歌曲',detail};
 }

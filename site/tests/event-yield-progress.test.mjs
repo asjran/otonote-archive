@@ -18,3 +18,9 @@ test('actual worker throttles alternating proof labels as one phase and always d
  assert.ok(progress.length<10,`alternating labels bypassed throttling: ${progress.length}`);
  assert.equal(messages.at(-1).type,'result');
 });
+
+test('parallel goal progress keeps both proof domains visible without inventing percentages',()=>{
+ const m=eventYieldWorkerProgress({stage:'event-group-proof',parallelism:2,parallelGoals:[{goal:'badges',groups:26,groupsCompleted:26,visited:1800},{goal:'eventPoints',groups:26,groupsCompleted:12,visited:3000}]},10000);
+ assert.match(m.detail,/2 个计算线程/);assert.match(m.detail,/道具：26 \/ 26/);assert.match(m.detail,/活动 pt：12 \/ 26/);
+ assert.doesNotMatch(m.detail,/%/);
+});
